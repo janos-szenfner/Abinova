@@ -384,11 +384,13 @@ public:
 	UT_sint32               calcDocsize(void) const;
 	void                    setCRNumber(UT_sint32 iCRNumber)
 	{ m_iCurCRNumber = iCRNumber;}
+	px_ChangeHistory*		getChangeHistory(void)
+		{ return &m_history; }
+	const px_ChangeHistory*	getChangeHistory(void) const
+		{ return &m_history; }
 #ifdef PT_TEST
 	UT_TestStatus			__test_VerifyCoalescedFrags(FILE * fp) const;
 	void					__dump(FILE * fp) const;
-	px_ChangeHistory*		getChangeHistory(void) const
-		{ return &m_history; }
 #endif /* PT_TEST */
 
 protected:

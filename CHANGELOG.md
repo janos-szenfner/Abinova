@@ -4042,6 +4042,15 @@ below are on `main` but the release has not been cut yet.
   past a cap degrades to a truncated-but-openable document instead of
   an OOM, a crash, or a never-terminating layout pass; normal
   documents are unaffected.
+- **Undo history and clipboard/drop payloads are now bounded** — the
+  undo history grew by one record per atomic edit for the whole
+  session; it is now capped at 200 undoable operations (new
+  `MaxUndoOps` preference, 0 disables the cap). Pruning drops the
+  oldest operations and always keeps multi-record undo groups whole,
+  so undo can never stop mid-operation. Clipboard reads and writes and
+  drag-and-drop payloads over 64 MB are refused instead of being
+  materialized into memory, and a refused paste or drop now shows an
+  explanatory message instead of looking like an empty clipboard.
 
 ### GTK4 port (core migration)
 

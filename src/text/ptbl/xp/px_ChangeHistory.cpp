@@ -24,8 +24,11 @@
 #include "px_ChangeRecord.h"
 #include "px_ChangeHistory.h"
 #include "px_CR_Span.h"
+#include "px_CR_Glob.h"
 #include "pt_PieceTable.h"
 #include "ut_debugmsg.h"
+#include "xap_App.h"
+#include "xap_Prefs.h"
 
 
 // m_undoPosition is the position of the undo pointer.
@@ -40,7 +43,9 @@ px_ChangeHistory::px_ChangeHistory(pt_PieceTable * pPT)
 	  m_iAdjustOffset(0),
 	  m_bOverlap(false),
 	  m_iMinUndo(0),
-	  m_bScanUndoGLOB(false)
+	  m_bScanUndoGLOB(false),
+	  m_iUndoOps(0),
+	  m_iGlobDepth(0)
 {
 }
 
@@ -61,12 +66,21 @@ void px_ChangeHistory::clearHistory()
 	m_bOverlap = false;
 	m_iMinUndo = 0;
 	m_bScanUndoGLOB = false;
+	m_iUndoOps = 0;
+	m_iGlobDepth = 0;
 }
 
 void px_ChangeHistory::_invalidateRedo(void)
 {
 	UT_sint32 kLimit = static_cast<UT_sint32>(m_vecChangeRecords.size());
 	UT_return_if_fail (m_undoPosition <= kLimit);
+
+	/* count the ops and net glob markers the erase removes so the
+	 * running undo-depth accounting stays exact; the tail normally
+	 * starts on an op boundary (undo only ever stops at one) */
+	UT_sint32 iTailStarts = 0;
+	UT_sint32 iTailEnds = 0;
+	UT_sint32 iTailOps = 0;
 
 	UT_sint32 i = m_undoPosition - m_iAdjustOffset;
 	for (UT_sint32 k = m_undoPosition - m_iAdjustOffset; k < kLimit; k++)
@@ -76,6 +90,27 @@ void px_ChangeHistory::_invalidateRedo(void)
 			break;
 		if (pcrTemp->isFromThisDoc())
 		{
+			if (pcrTemp->getType() == PX_ChangeRecord::PXT_GlobMarker)
+			{
+				UT_Byte flags =
+					static_cast<PX_ChangeRecord_Glob *>(pcrTemp)->getFlags();
+				if (flags & (PX_ChangeRecord_Glob::PXF_MultiStepStart |
+							 PX_ChangeRecord_Glob::PXF_UserAtomicStart))
+				{
+					iTailStarts++;
+					if (iTailStarts - iTailEnds == 1)
+						iTailOps++;
+				}
+				else if (flags & (PX_ChangeRecord_Glob::PXF_MultiStepEnd |
+								  PX_ChangeRecord_Glob::PXF_UserAtomicEnd))
+				{
+					iTailEnds++;
+				}
+			}
+			else if (iTailStarts == iTailEnds)
+			{
+				iTailOps++;
+			}
 		    m_vecChangeRecords.erase(m_vecChangeRecords.begin() + i);
 		}
 		else
@@ -85,6 +120,12 @@ void px_ChangeHistory::_invalidateRedo(void)
 	if (m_savePosition > m_undoPosition)
 		m_savePosition = -1;
 	m_iAdjustOffset = 0;
+	m_iUndoOps -= iTailOps;
+	if (m_iUndoOps < 0)
+		m_iUndoOps = 0;
+	m_iGlobDepth -= (iTailStarts - iTailEnds);
+	if (m_iGlobDepth < 0)
+		m_iGlobDepth = 0;
 }
 
 PD_Document * px_ChangeHistory::getDoc(void) const
@@ -115,6 +156,36 @@ bool px_ChangeHistory::addChangeRecord(PX_ChangeRecord * pcr)
 									std::unique_ptr<PX_ChangeRecord>(pcr));
 			xxx_UT_DEBUGMSG(("After Invalidate Undo pos %d savepos %d iAdjust %d \n",m_undoPosition,m_savePosition,m_iAdjustOffset));
 			m_iAdjustOffset = 0;
+
+			/* op accounting: one undo step is a lone record or a whole
+			 * glob - a Start marker opens it at depth 0 (nested globs
+			 * only deepen it), the matching End closes it */
+			if (pcr->getType() == PX_ChangeRecord::PXT_GlobMarker)
+			{
+				UT_Byte flags =
+					static_cast<PX_ChangeRecord_Glob *>(pcr)->getFlags();
+				if (flags & (PX_ChangeRecord_Glob::PXF_MultiStepStart |
+							 PX_ChangeRecord_Glob::PXF_UserAtomicStart))
+				{
+					if (m_iGlobDepth == 0)
+						m_iUndoOps++;
+					m_iGlobDepth++;
+				}
+				else if ((flags & (PX_ChangeRecord_Glob::PXF_MultiStepEnd |
+								   PX_ChangeRecord_Glob::PXF_UserAtomicEnd)) &&
+						 m_iGlobDepth > 0)
+				{
+					m_iGlobDepth--;
+				}
+			}
+			else if (m_iGlobDepth == 0)
+			{
+				m_iUndoOps++;
+			}
+
+			UT_uint32 iLimit = getUndoDepthLimit();
+			if (iLimit && m_iUndoOps > static_cast<UT_sint32>(iLimit))
+				pruneHistory(iLimit);
 			return true;
 		}
 		else
@@ -479,8 +550,11 @@ bool px_ChangeHistory::didUndo(void)
 	if (m_iAdjustOffset == 0)
 		m_undoPosition--;
 	pcr = _getCR(m_undoPosition-m_iAdjustOffset);
-	if (pcr && !pcr->getPersistance())
+	if (pcr && !pcr->getPersistance() && (m_savePosition >= 0))
 	{
+		/* a save position of -1 means the saved state was pruned out
+		 * of the history; the doc stays dirty and we simply stop
+		 * tracking it rather than blocking undo */
 		UT_return_val_if_fail(m_savePosition > 0,false);
 		m_savePosition--;
 	}
@@ -513,7 +587,7 @@ bool px_ChangeHistory::didRedo(void)
 		xxx_UT_DEBUGMSG(("Undo Position incremented in redo \n"));
 		m_undoPosition++;
 	}
-	if (pcr && !pcr->getPersistance())
+	if (pcr && !pcr->getPersistance() && (m_savePosition >= 0))
 		m_savePosition++;
 	return true;
 }
@@ -617,4 +691,100 @@ bool px_ChangeHistory:: doesOverlap(PX_ChangeRecord * pcr, PT_DocPosition low, P
 	if ((crHigh>low) && (crHigh<=high))
 		return true;
 	return false;
+}
+
+/*!
+ * Configured ceiling on the number of undoable ops kept in the
+ * history (MaxUndoOps pref; default 200, 0 disables the cap).
+ * Negative or absent values fall back to the compiled default.
+ */
+UT_uint32 px_ChangeHistory::getUndoDepthLimit(void) const
+{
+	int iLimit = 200;
+	XAP_Prefs * pPrefs = XAP_App::getApp() ? XAP_App::getApp()->getPrefs() : nullptr;
+	if (pPrefs)
+		pPrefs->getPrefsValueInt(XAP_PREF_KEY_MaxUndoOps, iLimit);
+	if (iLimit < 0)
+		iLimit = 0;
+	return static_cast<UT_uint32>(iLimit);
+}
+
+/*!
+ * Drop the oldest ops from the front of the history so at most
+ * maxOps undoable ops remain.  An "op" is one user-level undo step:
+ * a lone change record or a whole glob sequence (a MultiStep or
+ * UserAtomic Start marker through its matching End marker, nested
+ * globs included).  The cut lands only on op boundaries, so undo can
+ * never stop inside a glob.
+ *
+ * Called from addChangeRecord() right after _invalidateRedo(), so the
+ * tail holds no stale local redo records.  Records not from this
+ * document (collab remote CRs) are erased with the prefix: they sit
+ * below every surviving local record, and the undo/redo adjustment
+ * scans only consult records *above* the one being replayed.
+ */
+void px_ChangeHistory::pruneHistory(UT_uint32 maxOps)
+{
+	if (!maxOps)
+		return;
+
+	std::vector<UT_sint32> opStarts;
+	UT_sint32 iDepth = 0;
+	const UT_sint32 iSize = static_cast<UT_sint32>(m_vecChangeRecords.size());
+	for (UT_sint32 i = 0; i < iSize; i++)
+	{
+		PX_ChangeRecord * pcr = m_vecChangeRecords[i].get();
+		if (!pcr || !pcr->isFromThisDoc())
+			continue;
+		if (pcr->getType() == PX_ChangeRecord::PXT_GlobMarker)
+		{
+			UT_Byte flags =
+				static_cast<PX_ChangeRecord_Glob *>(pcr)->getFlags();
+			if (flags & (PX_ChangeRecord_Glob::PXF_MultiStepStart |
+						 PX_ChangeRecord_Glob::PXF_UserAtomicStart))
+			{
+				if (iDepth == 0)
+					opStarts.push_back(i);
+				iDepth++;
+			}
+			else if ((flags & (PX_ChangeRecord_Glob::PXF_MultiStepEnd |
+							   PX_ChangeRecord_Glob::PXF_UserAtomicEnd)) &&
+					 iDepth > 0)
+			{
+				iDepth--;
+			}
+			/* an End marker at depth 0 pairs with a Start that was
+			 * already undone past - malformed, keep it inside the
+			 * following op's span rather than letting it become a
+			 * boundary undo could stop on */
+		}
+		else if (iDepth == 0)
+		{
+			opStarts.push_back(i);
+		}
+	}
+
+	const UT_sint32 iOps = static_cast<UT_sint32>(opStarts.size());
+	m_iUndoOps = iOps;
+	m_iGlobDepth = iDepth;
+	if (iOps <= static_cast<UT_sint32>(maxOps))
+		return;
+
+	const UT_sint32 iCut = opStarts[iOps - static_cast<UT_sint32>(maxOps)];
+	m_vecChangeRecords.erase(m_vecChangeRecords.begin(),
+							 m_vecChangeRecords.begin() + iCut);
+
+	m_undoPosition -= iCut;
+	if (m_undoPosition < 0)
+		m_undoPosition = 0;
+	m_iMinUndo -= iCut;
+	if (m_iMinUndo < 0)
+		m_iMinUndo = 0;
+	if (m_savePosition >= 0)
+	{
+		m_savePosition -= iCut;
+		if (m_savePosition < 0)
+			m_savePosition = -1;	// saved state pruned - undo can never reach it
+	}
+	m_iUndoOps = static_cast<UT_sint32>(maxOps);
 }

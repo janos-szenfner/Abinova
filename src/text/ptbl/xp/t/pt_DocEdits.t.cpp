@@ -47,6 +47,8 @@
 #include "px_CR_Span.h"
 #include "ut_growbuf.h"
 #include "xad_Document.h"
+#include "xap_App.h"
+#include "xap_Prefs.h"
 
 #define TFSUITE "core.text.ptbl.docedits"
 
@@ -1298,4 +1300,151 @@ TFTEST_MAIN("unbalanced glob end and degenerate span record")
 	TFPASS(crZero.getLength() == 0);
 	TFPASS(crZero.getBufIndex() == 3);
 	TFPASS(crZero.getField() == nullptr);
+}
+
+namespace {
+
+/* run fn with MaxUndoOps clamped low, restoring the pref afterwards
+ * (TFPASS doesn't abort, so the restore has to be unconditional) */
+struct ScopedUndoCap
+{
+	ScopedUndoCap(int limit)
+	{
+		pPrefs = XAP_App::getApp() ? XAP_App::getApp()->getPrefs() : nullptr;
+		if (pPrefs)
+		{
+			pPrefs->getPrefsValueInt(XAP_PREF_KEY_MaxUndoOps, oldLimit);
+			pPrefs->getCurrentScheme(true)->setValueInt(
+				XAP_PREF_KEY_MaxUndoOps, limit);
+		}
+	}
+	~ScopedUndoCap()
+	{
+		if (pPrefs)
+			pPrefs->getCurrentScheme(true)->setValueInt(
+				XAP_PREF_KEY_MaxUndoOps, oldLimit);
+	}
+	XAP_Prefs *pPrefs = nullptr;
+	int oldLimit = 200;
+};
+
+} // namespace
+
+TFTEST_MAIN("undo history cap prunes whole ops at the boundary")
+{
+	ScopedUndoCap cap(4);
+	EditDoc d;
+	TFPASS(d.build());
+	pf_Frag_Strux *b = nullptr;
+	TFPASS(d.para("cap", PP_NOPROPS, &b));
+	d.finish();
+
+	px_ChangeHistory * hist = d.doc->getPieceTable()->getChangeHistory();
+	TFPASS(hist != nullptr);
+	TFPASS(hist->getUndoDepthLimit() == 4);
+
+	/* seven single-char inserts at the same spot — repeated inserts
+	 * at a fixed position can't coalesce (that needs appending at the
+	 * tail of the previous record), so each is its own op */
+	const PT_DocPosition s = blockText(d.doc, b);
+	const UT_UCS4String ins("x");
+	for (int i = 0; i < 7; i++)
+		TFPASS(d.doc->insertSpan(s, ins.ucs4_str(), 1));
+	TFPASS(editDocText(d.doc) == "xxxxxxxcap");
+
+	/* the history kept only the newest 4 ops — one record apiece */
+	TFPASS(hist->getOpCount() == 4);
+	TFPASS(hist->getRecordCount() == 4);
+	TFPASS(d.doc->undoCount(true) == 4);
+
+	/* undo stops exactly at the cap boundary and the pruned inserts
+	 * stay put — the doc is left sane, not corrupted */
+	for (int i = 0; i < 4; i++)
+		TFPASS(d.doc->undoCmd(1));
+	TFPASS(!d.doc->canDo(true));
+	TFPASS(editDocText(d.doc) == "xxxcap");
+
+	/* a fresh edit invalidates the redo tail and re-counts ops */
+	TFPASS(d.doc->insertSpan(s, ins.ucs4_str(), 1));
+	TFPASS(hist->getOpCount() == 1);
+	TFPASS(editDocText(d.doc) == "xxxxcap");
+}
+
+TFTEST_MAIN("undo cap drops whole globs atomically")
+{
+	ScopedUndoCap cap(3);
+	EditDoc d;
+	TFPASS(d.build());
+	pf_Frag_Strux *b = nullptr;
+	TFPASS(d.para("keep", PP_NOPROPS, &b));
+	d.finish();
+
+	px_ChangeHistory * hist = d.doc->getPieceTable()->getChangeHistory();
+	const PT_DocPosition s = blockText(d.doc, b);
+	const UT_UCS4String ins("q");
+
+	/* op1: lone insert (will be pruned), op2: 2-insert glob,
+	 * ops 3-4: lone inserts — 4 ops > cap 3, so op1's record goes */
+	TFPASS(d.doc->insertSpan(s, ins.ucs4_str(), 1));
+	d.doc->beginUserAtomicGlob();
+	TFPASS(d.doc->insertSpan(s, ins.ucs4_str(), 1));
+	TFPASS(d.doc->insertSpan(s, ins.ucs4_str(), 1));
+	d.doc->endUserAtomicGlob();
+	TFPASS(d.doc->insertSpan(s, ins.ucs4_str(), 1));
+	TFPASS(d.doc->insertSpan(s, ins.ucs4_str(), 1));
+	TFPASS(editDocText(d.doc) == "qqqqqkeep");
+
+	/* kept: glob op (4 records) + 2 lone records = 3 ops, 6 records */
+	TFPASS(hist->getOpCount() == 3);
+	TFPASS(hist->getRecordCount() == 6);
+
+	/* three undos: lone, lone, then the glob's two inserts in one
+	 * step — pruning can never leave undo able to stop mid-glob */
+	TFPASS(d.doc->undoCmd(1));
+	TFPASS(editDocText(d.doc) == "qqqqkeep");
+	TFPASS(d.doc->undoCmd(1));
+	TFPASS(editDocText(d.doc) == "qqqkeep");
+	TFPASS(d.doc->undoCmd(1));
+	TFPASS(editDocText(d.doc) == "qkeep");
+	TFPASS(!d.doc->canDo(true));
+
+	/* redo replays the surviving ops cleanly */
+	TFPASS(d.doc->redoCmd(1));
+	TFPASS(d.doc->redoCmd(1));
+	TFPASS(d.doc->redoCmd(1));
+	TFPASS(editDocText(d.doc) == "qqqqqkeep");
+	TFPASS(!d.doc->canDo(false));
+}
+
+TFTEST_MAIN("MaxUndoOps=0 leaves the history unbounded")
+{
+	ScopedUndoCap cap(0);
+	EditDoc d;
+	TFPASS(d.build());
+	pf_Frag_Strux *b = nullptr;
+	TFPASS(d.para("free", PP_NOPROPS, &b));
+	d.finish();
+
+	px_ChangeHistory * hist = d.doc->getPieceTable()->getChangeHistory();
+	TFPASS(hist->getUndoDepthLimit() == 0);
+
+	const PT_DocPosition s = blockText(d.doc, b);
+	const UT_UCS4String ins("y");
+
+	/* the first insert into a fresh paragraph also emits a fmtmark
+	 * fixup op and a multistep glob — absorb it before baselining so
+	 * the delta below is exactly the plain inserts */
+	TFPASS(d.doc->insertSpan(s, ins.ucs4_str(), 1));
+	const UT_sint32 n0 = hist->getOpCount();
+	TFPASS(n0 > 0);
+
+	for (int i = 0; i < 6; i++)
+		TFPASS(d.doc->insertSpan(s, ins.ucs4_str(), 1));
+
+	/* no pruning: every op is still there and undoable */
+	TFPASS(hist->getOpCount() == n0 + 6);
+	for (int i = 0; i < 6; i++)
+		TFPASS(d.doc->undoCmd(1));
+	TFPASS(editDocText(d.doc) == "yfree");
+	TFPASS(hist->getOpCount() == n0 + 6);
 }

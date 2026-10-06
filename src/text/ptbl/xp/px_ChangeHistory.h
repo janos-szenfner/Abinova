@@ -83,6 +83,17 @@ public:
 	PD_Document *			getDoc(void) const;
 	bool					getCRRange(PX_ChangeRecord * pcr,PT_DocPosition & posLow, PT_DocPosition &posHigh) const;
 	bool					doesOverlap(PX_ChangeRecord * pcr, PT_DocPosition low, PT_DocPosition high) const;
+
+	// bound the undo history: the vector grows one record per atomic
+	// edit otherwise, so an open session accumulates without limit.
+	// the cap counts user-level ops (a lone record or a whole glob);
+	// 0 means unbounded.
+	UT_uint32				getUndoDepthLimit(void) const;
+	void					pruneHistory(UT_uint32 maxOps);
+	UT_sint32				getOpCount(void) const
+		{ return m_iUndoOps; }
+	UT_sint32				getRecordCount(void) const
+		{ return static_cast<UT_sint32>(m_vecChangeRecords.size()); }
 	void                                    setScanningUndoGLOB(bool bTrue) const
 	{ m_bScanUndoGLOB = bTrue;}
 	bool                                    isScanningUndoGLOB(void) const
@@ -111,6 +122,12 @@ protected:
 	mutable bool			m_bOverlap;
 	mutable UT_sint32		m_iMinUndo;
 	mutable bool                            m_bScanUndoGLOB;
+	// running count of local undoable ops in the vector, and the
+	// depth of still-open globs at the append point; both maintained
+	// incrementally on add/erase and recomputed authoritatively by
+	// pruneHistory()'s scan
+	UT_sint32				m_iUndoOps;
+	UT_sint32				m_iGlobDepth;
 };
 
 #endif /* PX_CHANGEHISTORY_H */

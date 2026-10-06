@@ -88,6 +88,7 @@ public:
 														UT_uint32 iLen,
 														const char * szFormatFound,
 														XAP_UnixClipboard::T_AllowGet tFrom);
+	void							notifyOversizedPaste(void);
 	virtual bool canPasteFromClipboard(void) const override;
 	virtual void					addClipboardFmt (const char * szFormat) override {m_pClipboard->addFormat(szFormat);}
 	virtual void					deleteClipboardFmt (const char * szFormat) override {m_pClipboard->deleteFormat(szFormat);}

@@ -68,6 +68,13 @@ public:
 
 	bool canPaste(T_AllowGet tFrom) const;
 
+	/* true when a clipboard payload was dropped for exceeding the
+	 * size cap (a rejected addData() on our side, or an oversized
+	 * read from a foreign owner) - lets a failed paste explain itself
+	 * to the user instead of looking like an empty clipboard */
+	bool				wasDataOversized(void) const
+		{ return m_bOversizedData; }
+
 	// called by the GdkContentProvider when a pasting peer requests data
 	bool				writeData(const char * mime_type, GOutputStream * stream,
 								  bool bPrimary, GCancellable *cancellable,
@@ -119,4 +126,6 @@ protected:
 
 	GdkClipboard * m_clip;
 	GdkClipboard * m_primary;
+
+	bool				m_bOversizedData;
 };

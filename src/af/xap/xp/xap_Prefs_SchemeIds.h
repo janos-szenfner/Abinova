@@ -89,6 +89,13 @@
 #define XAP_PREF_DEFAULT_AutoSaveFileExt			".bak~"
 #endif
 
+/* maximum number of undoable operations kept in the change history;
+ * 0 disables the cap.  An "op" is one user-level undo step: a single
+ * change record or a whole glob of records (multi-step edits,
+ * user-atomic groups) - globs are always pruned whole. */
+#define XAP_PREF_KEY_MaxUndoOps						"MaxUndoOps"
+#define XAP_PREF_DEFAULT_MaxUndoOps					"200"
+
 #define XAP_PREF_KEY_ColorForTransparent			"TransparentColor"
 #define XAP_PREF_DEFAULT_ColorForTransparent		"ffffff"
 
@@ -186,6 +193,7 @@ dcl(LatinLigatures)
 dcl(AutoSaveFile)
 dcl(AutoSaveFilePeriod)
 dcl(AutoSaveFileExt)
+dcl(MaxUndoOps)
 dcl(ColorForTransparent)
 dcl(ColorForShowPara)
 dcl(ColorForSquiggle)

@@ -172,6 +172,7 @@ static AV_View * viewFromApp(XAP_App * pApp)
 
 XAP_UnixClipboard::XAP_UnixClipboard(XAP_UnixApp * pUnixApp)
 	: m_pUnixApp(pUnixApp)
+	, m_bOversizedData(false)
 {
 	GdkDisplay *display = gdk_display_get_default();
 	m_clip = gdk_display_get_clipboard(display);
@@ -275,6 +276,7 @@ bool XAP_UnixClipboard::writeData(const char * mime_type, GOutputStream * stream
 	{
 		if (data_len > ABI_CLIPBOARD_MAX_BYTES)
 		{
+			m_bOversizedData = true;
 			g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED,
 						"clipboard payload too large");
 			return false;
@@ -309,7 +311,10 @@ bool XAP_UnixClipboard::addData(T_AllowGet tFrom, const char* format, const void
 	if(!format || !pData || iNumBytes < 0)
 		return false;
 	if(static_cast<guint64>(iNumBytes) > ABI_CLIPBOARD_MAX_BYTES)
+	{
+		m_bOversizedData = true;
 		return false;
+	}
 
 	if(tFrom == TAG_PrimaryOnly)
 		return m_fakePrimaryClipboard.addData(format,pData,iNumBytes);
@@ -340,6 +345,7 @@ void XAP_UnixClipboard::finishedAddingData(void)
 
 void XAP_UnixClipboard::_clearStoredData(T_AllowGet tFrom)
 {
+	m_bOversizedData = false;
 	if (tFrom == TAG_PrimaryOnly)
 		m_fakePrimaryClipboard.clearClipboard();
 	else
@@ -354,6 +360,9 @@ bool XAP_UnixClipboard::_materializeData(T_AllowGet /*tFrom*/,
 
 void XAP_UnixClipboard::clearData(bool bClipboard, bool bPrimary)
 {
+	/* a deliberate clear retires any pending oversized rejection -
+	 * the next empty paste genuinely means "nothing there" */
+	m_bOversizedData = false;
 	if (bClipboard)
 	{
 		GdkClipboard * clippy = clipboardForTarget (TAG_ClipboardOnly);
@@ -477,11 +486,13 @@ static gboolean read_timeout_cb(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
-/* Read up to ABI_CLIPBOARD_MAX_BYTES from a stream. */
+/* Read up to ABI_CLIPBOARD_MAX_BYTES from a stream.  Sets oversized
+ * when the payload was cut for exceeding the cap. */
 static bool s_read_stream_into(GInputStream *stream, UT_ByteBuf & out,
-							   GCancellable *cancellable)
+							   GCancellable *cancellable, bool & oversized)
 {
 	out.truncate(0);
+	oversized = false;
 	guchar buf[8192];
 	gssize n;
 	while ((n = g_input_stream_read(stream, buf, sizeof(buf),
@@ -490,6 +501,7 @@ static bool s_read_stream_into(GInputStream *stream, UT_ByteBuf & out,
 		if (out.getLength() + static_cast<gsize>(n) > ABI_CLIPBOARD_MAX_BYTES)
 		{
 			out.truncate(0);
+			oversized = true;
 			return false;
 		}
 		out.append(buf, n);
@@ -547,6 +559,8 @@ bool XAP_UnixClipboard::getTextData(T_AllowGet tFrom, void ** ppData,
 	size_t len = strlen (txt);
 	if (!len || len > ABI_CLIPBOARD_MAX_BYTES)
 	{
+		if (len > ABI_CLIPBOARD_MAX_BYTES)
+			m_bOversizedData = true;
 		g_free(txt);
 		return false;
 	}
@@ -623,13 +637,18 @@ bool XAP_UnixClipboard::_getDataFromServer(T_AllowGet tFrom, const char** format
 
 		if (stream)
 		{
-			if (s_read_stream_into(stream, m_databuf, nullptr))
+			bool bOversized = false;
+			if (s_read_stream_into(stream, m_databuf, nullptr, bOversized))
 			{
 				*pLen = m_databuf.getLength();
 				*ppData = const_cast<void *>(reinterpret_cast<const void*>((m_databuf.getPointer(0))));
 				*pszFormatFound = formatList[i];
 				rval = true;
 				UT_DEBUGMSG(("Found format %s on clipbaord \n",formatList[i]));
+			}
+			else if (bOversized)
+			{
+				m_bOversizedData = true;
 			}
 			g_object_unref(stream);
 		}

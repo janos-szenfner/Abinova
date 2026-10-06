@@ -558,11 +558,34 @@ void AP_UnixApp::pasteFromClipboard(PD_DocumentRange * pDocRange, bool bUseClipb
     if (!bFoundOne)
     {
 	UT_DEBUGMSG(("PasteFromClipboard: did not find anything to paste.\n"));
+		if (m_pClipboard->wasDataOversized())
+			notifyOversizedPaste();
 		return;
     }
 
     pasteDataToDocRange(pDocRange, static_cast<const unsigned char*>(pData),
 						iLen, szFormatFound, tFrom);
+}
+
+/*!
+ * A clipboard payload was dropped for exceeding the size cap: tell the
+ * user rather than leaving paste looking like a silent no-op.  Falls
+ * back to stderr when no frame exists (headless conversion).
+ */
+void AP_UnixApp::notifyOversizedPaste(void)
+{
+	XAP_Frame * pFrame = getLastFocussedFrame();
+	if (pFrame)
+	{
+		pFrame->showMessageBox(XAP_STRING_ID_MSG_ClipboardTooLarge,
+							   XAP_Dialog_MessageBox::b_O,
+							   XAP_Dialog_MessageBox::a_OK);
+		return;
+	}
+	const XAP_StringSet * pSS = getStringSet();
+	fprintf(stderr, "%s\n",
+			pSS ? pSS->getValue(XAP_STRING_ID_MSG_ClipboardTooLarge)
+				: "Clipboard data too large to paste.");
 }
 
 /*!
@@ -588,6 +611,8 @@ void AP_UnixApp::pasteFromClipboardWithFormat(PD_DocumentRange * pDocRange,
 							   &iLen, &szFormatFound))
 	{
 		UT_DEBUGMSG(("PasteWithFormat: no data for %s\n", szMimeType));
+		if (m_pClipboard->wasDataOversized())
+			notifyOversizedPaste();
 		return;
 	}
 	if (!szFormatFound)

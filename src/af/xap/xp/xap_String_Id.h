@@ -39,6 +39,8 @@ dcl(MSG_HistoryNoRestore, "Abinova cannot restore version %d of the document bec
 dcl(MSG_HistoryConfirmSave, "You have to save changes to document %s before proceeding. Save now?")
 
 dcl(MSG_NoUndo, "This operation cannot be undone. Are you sure you want to proceed?")
+dcl(MSG_ClipboardTooLarge, "The clipboard data is too large to insert into the document (the limit is 64 MB).")
+dcl(MSG_DropTooLarge, "The dropped data is too large to insert into the document (the limit is 64 MB).")
 
 /* Default name for new, untitled document */
 dcl(UntitledDocument,			"Untitled%d")

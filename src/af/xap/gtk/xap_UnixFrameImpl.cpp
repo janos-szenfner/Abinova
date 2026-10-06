@@ -678,7 +678,13 @@ s_drop_cb(GtkDropTargetAsync * /*target*/, GdkDrop *drop,
 	}
 	g_object_unref(stream);
 
-	if (!bOverflow && buf.getLength() > 0)
+	if (bOverflow)
+	{
+		pFrame->showMessageBox(XAP_STRING_ID_MSG_DropTooLarge,
+							   XAP_Dialog_MessageBox::b_O,
+							   XAP_Dialog_MessageBox::a_OK);
+	}
+	else if (buf.getLength() > 0)
 	{
 		/* text-uri-list / text payload is consumed as C strings by the
 		 * dispatch helpers - guarantee NUL termination regardless of

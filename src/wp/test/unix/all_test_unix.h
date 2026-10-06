@@ -19,6 +19,9 @@
 
 
 
+#include "src/af/xap/gtk/t/xap_UnixClipboard.t.cpp"
+#undef TFSUITE
+
 #include "src/af/xap/gtk/t/xap_UnixWidget.t.cpp"
 #undef TFSUITE
 
