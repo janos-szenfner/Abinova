@@ -641,6 +641,16 @@ protected:
 	bool                    _insertNoteInEmbeddedStruxList(pf_Frag_Strux * pfsNew);
 	void                    _removeFromEmbeddedStruxList(const pf_Frag_Strux * pfs);
 
+	// HARD05 load-time structural caps (see PT_LOAD_MAX_* in
+	// pt_Types.h): track open embedded-container struxes
+	// (table/cell/frame/note/TOC) and suppressed opens so a degenerate
+	// document degrades to a truncated-but-openable document instead
+	// of exhausting memory or spinning in layout.
+	bool					_dropStruxForLoadCaps(PTStruxType pts);
+	bool					_dropFragForLoadCaps(void) const;
+	static bool				s_isContainerBegin(PTStruxType pts);
+	static bool				s_isContainerEnd(PTStruxType pts);
+
 	PTState					m_pts;		/* are we loading or editing */
 	pt_VarSet				m_varset;
 	px_ChangeHistory		m_history;
@@ -667,4 +677,10 @@ protected:
 	};
 
 	std::list <embeddedStrux> m_embeddedStrux;
+
+	// HARD05: open embedded-container struxes seen while m_pts ==
+	// PTS_Loading, plus the depth of a subtree being suppressed after
+	// a cap was exceeded.
+	UT_uint32               m_iLoadContainerDepth;
+	UT_uint32               m_iLoadSuppressedDepth;
 };

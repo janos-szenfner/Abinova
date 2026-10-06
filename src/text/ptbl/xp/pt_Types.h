@@ -31,6 +31,28 @@ typedef UT_uint32 PT_DocPosition;
 //! block-relative document position
 typedef UT_uint32 PT_BlockOffset;
 
+/*!
+ * HARD05: structural limits enforced while a document is loading
+ * (piece table state PTS_Loading). Nothing historically bounded
+ * table dimensions, container (table/cell/frame/note/TOC) nesting
+ * depth, list definitions and list ancestor chains, style counts, or
+ * the total number of fragments a document may request — so a tiny
+ * but degenerate file could force unbounded allocation or an
+ * effectively non-terminating layout pass.
+ *
+ * When a cap is exceeded the document is *truncated*: surplus
+ * fragments/struxes/lists are silently dropped so the file still
+ * opens as a bounded, valid document rather than being refused
+ * outright or wedging the process. The bounds are deliberately
+ * generous — far beyond what any sane producer emits (e.g. Word
+ * itself caps tables at 32767 rows and lists at 9 levels).
+ */
+[[maybe_unused]] constexpr UT_uint32 PT_LOAD_MAX_FRAGMENTS       = 1000000;
+[[maybe_unused]] constexpr UT_uint32 PT_LOAD_MAX_CONTAINER_DEPTH = 32;
+[[maybe_unused]] constexpr UT_uint32 PT_LOAD_MAX_STYLES          = 65536;
+[[maybe_unused]] constexpr UT_uint32 PT_LOAD_MAX_LISTS           = 8192;
+[[maybe_unused]] constexpr UT_uint32 PT_LOAD_MAX_LIST_DEPTH      = 64;
+
 class PD_Document;
 /*!
  PD_DocumentRange identifies a piece of the document, using two

@@ -56,7 +56,9 @@ pt_PieceTable::pt_PieceTable(PD_Document * pDocument)
 	m_bDoingTheDo(false),
 	m_bDoNotTweakPosition(false),
 	m_iXID(0),
-	m_iCurCRNumber(0)
+	m_iCurCRNumber(0),
+	m_iLoadContainerDepth(0),
+	m_iLoadSuppressedDepth(0)
 {
 
 	setPieceTableState(PTS_Create);
@@ -272,6 +274,10 @@ bool pt_PieceTable::deleteFmtMark(PT_DocPosition dpos)
  */
 bool pt_PieceTable::insertStruxNoUpdateBefore(const pf_Frag_Strux* pfs, PTStruxType pts, const PP_PropertyVector & attributes )
 {
+	if (_dropStruxForLoadCaps(pts))
+	{
+		return true;
+	}
 	UT_DEBUGMSG(("SEVIOR: Inserting strux of type %d no update %p \n", pts, pfs));
 //
 // Create an indexAP
@@ -302,6 +308,119 @@ bool pt_PieceTable::insertStruxNoUpdateBefore(const pf_Frag_Strux* pfs, PTStruxT
 	}
 
 	return true;
+}
+
+/*****************************************************************/
+/* HARD05: load-time structural caps                              */
+/*****************************************************************/
+
+/*!
+ * Strux types that open a nesting scope closed by a matching PTX_End*
+ * strux. Nesting depth on these is what makes frames inside cells
+ * inside tables inside frames (and so on) dangerous, so it is capped
+ * by PT_LOAD_MAX_CONTAINER_DEPTH while loading.
+ */
+bool pt_PieceTable::s_isContainerBegin(PTStruxType pts)
+{
+	switch (pts)
+	{
+	case PTX_SectionTable:
+	case PTX_SectionCell:
+	case PTX_SectionFootnote:
+	case PTX_SectionEndnote:
+	case PTX_SectionAnnotation:
+	case PTX_SectionMarginnote:
+	case PTX_SectionFrame:
+	case PTX_SectionTOC:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool pt_PieceTable::s_isContainerEnd(PTStruxType pts)
+{
+	switch (pts)
+	{
+	case PTX_EndTable:
+	case PTX_EndCell:
+	case PTX_EndFootnote:
+	case PTX_EndEndnote:
+	case PTX_EndAnnotation:
+	case PTX_EndMarginnote:
+	case PTX_EndFrame:
+	case PTX_EndTOC:
+		return true;
+	default:
+		return false;
+	}
+}
+
+/*!
+ * HARD05 structural-limit gate applied to strux creation while a
+ * document is loading (m_pts == PTS_Loading). Returns true when the
+ * strux must be silently dropped so the document degrades to a
+ * truncated-but-openable document:
+ *
+ * - once PT_LOAD_MAX_FRAGMENTS fragments exist, non-End struxes are
+ *   dropped;
+ * - a container open that would exceed PT_LOAD_MAX_CONTAINER_DEPTH (or
+ *   the fragment cap) is dropped together with *everything* inside it
+ *   — subsequent struxes/frags are suppressed until the matching
+ *   PTX_End* is seen, keeping the document valid;
+ * - End struxes stay allowed slightly past the fragment cap (bounded
+ *   by the depth cap) so already-open containers still close cleanly.
+ */
+bool pt_PieceTable::_dropStruxForLoadCaps(PTStruxType pts)
+{
+	if (m_pts != PTS_Loading)
+		return false;
+
+	bool bBegin = s_isContainerBegin(pts);
+	bool bEnd   = s_isContainerEnd(pts);
+
+	if (m_iLoadSuppressedDepth)
+	{
+		if (bBegin)
+			++m_iLoadSuppressedDepth;
+		else if (bEnd)
+			--m_iLoadSuppressedDepth;
+		return true;
+	}
+
+	if (bBegin)
+	{
+		if (   m_fragments.fragCount() >= PT_LOAD_MAX_FRAGMENTS
+			|| m_iLoadContainerDepth >= PT_LOAD_MAX_CONTAINER_DEPTH)
+		{
+			++m_iLoadSuppressedDepth;
+			return true;
+		}
+		++m_iLoadContainerDepth;
+		return false;
+	}
+
+	if (bEnd)
+	{
+		if (m_iLoadContainerDepth)
+			--m_iLoadContainerDepth;
+		return m_fragments.fragCount() >=
+			   PT_LOAD_MAX_FRAGMENTS + PT_LOAD_MAX_CONTAINER_DEPTH;
+	}
+
+	return m_fragments.fragCount() >= PT_LOAD_MAX_FRAGMENTS;
+}
+
+/*!
+ * HARD05 gate for non-strux fragments (spans/objects/fmt marks) while
+ * loading: drop them once the fragment cap is hit or while inside a
+ * suppressed container subtree.
+ */
+bool pt_PieceTable::_dropFragForLoadCaps(void) const
+{
+	return m_pts == PTS_Loading &&
+		   (   m_iLoadSuppressedDepth != 0
+			|| m_fragments.fragCount() >= PT_LOAD_MAX_FRAGMENTS);
 }
 
 void pt_PieceTable::_unlinkFrag(const pf_Frag * pf,

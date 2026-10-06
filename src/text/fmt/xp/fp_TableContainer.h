@@ -357,6 +357,16 @@ private:
 	UT_sint32	m_iVertAlign;
 };
 
+/*!
+ * HARD05: bound the row/column arrays — they are sized from
+ * document-supplied cell attach indices, so a degenerate document
+ * could otherwise request unbounded allocations per table. (Word
+ * itself caps tables at 32767 rows; the column bound is more generous
+ * to accommodate merged-cell grids.)
+ */
+[[maybe_unused]] constexpr UT_sint32 FP_TABLE_MAX_ROWS = 32767;
+[[maybe_unused]] constexpr UT_sint32 FP_TABLE_MAX_COLS = 1024;
+
 class ABI_EXPORT fp_TableContainer : public fp_VerticalContainer
 {
 public:

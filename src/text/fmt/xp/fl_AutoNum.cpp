@@ -1050,6 +1050,25 @@ void fl_AutoNum::_setParent(const fl_AutoNumPtr & pParent)
 		char szParent[13];
 		m_pParent = pParent;
 		if (pParent) {
+			// HARD05: bound the ancestor chain — a degenerate document
+			// can declare an arbitrarily deep parentid chain, and both
+			// checkReference() and label generation then recurse once
+			// per level. Walked iteratively so the check itself is
+			// bounded even against already-corrupt chains.
+			UT_uint32 depth = 0;
+			for (fl_AutoNumPtr p = pParent;
+				 p && depth <= PT_LOAD_MAX_LIST_DEPTH;
+				 p = p->getParent())
+			{
+				++depth;
+			}
+			if (depth > PT_LOAD_MAX_LIST_DEPTH)
+			{
+				m_pParent.reset();
+				m_iParentID = 0;
+				m_bDirty = true;
+				return;
+			}
 			if (!pParent->checkReference(*this)) {
 				m_pParent.reset();
 				m_iParentID = 0;

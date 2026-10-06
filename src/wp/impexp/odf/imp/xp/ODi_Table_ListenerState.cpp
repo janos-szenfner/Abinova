@@ -36,6 +36,25 @@
 #include "pd_Document.h"
 #include "ut_std_string.h"
 
+// HARD05: bound ODF repetition/span attributes — a degenerate file
+// can request unbounded expansion (e.g. table:number-rows-repeated=
+// "1000000000") from a handful of bytes, which would grow the
+// row/column spec strings without limit or re-parse the element
+// billions of times. (Word itself caps tables at 32767 rows; the
+// column bound is more generous to accommodate merged-cell grids.)
+constexpr UT_sint32 ODI_TABLE_MAX_ROWS   = 32767;
+constexpr UT_sint32 ODI_TABLE_MAX_COLS   = 1024;
+
+static UT_sint32 _clampRepeat(const gchar* pVal, UT_sint32 max)
+{
+	UT_sint32 n = pVal ? atoi(pVal) : 1;
+	if (n < 1)
+		n = 1;
+	if (n > max)
+		n = max;
+	return n;
+}
+
 
 /**
  * Constructor
@@ -275,9 +294,8 @@ void ODi_Table_ListenerState::_parseRowStart (const gchar** ppAtts,
         const gchar* pStyleName = UT_getAttribute("table:style-name", ppAtts);
         const ODi_Style_Style* pStyle;
         
-        const gchar* pNumberRowsRepeated = UT_getAttribute("table:number-rows-repeated", ppAtts);           
-        UT_sint32 nRowsRepeated = !pNumberRowsRepeated ? 1 : atoi(pNumberRowsRepeated);
-        UT_ASSERT_HARMLESS(nRowsRepeated > 0);
+        const gchar* pNumberRowsRepeated = UT_getAttribute("table:number-rows-repeated", ppAtts);
+        UT_sint32 nRowsRepeated = _clampRepeat(pNumberRowsRepeated, ODI_TABLE_MAX_ROWS);
 
         std::string rowHeight = "";
 
@@ -308,9 +326,8 @@ void ODi_Table_ListenerState::_parseRowStart (const gchar** ppAtts,
     else
     {
         if (m_rowsLeftToRepeat == 0) {
-            const gchar* pNumberRowsRepeated = UT_getAttribute("table:number-rows-repeated", ppAtts);           
-            m_rowsLeftToRepeat = !pNumberRowsRepeated ? 1 : atoi(pNumberRowsRepeated);
-            UT_ASSERT_HARMLESS(m_rowsLeftToRepeat > 0);
+            const gchar* pNumberRowsRepeated = UT_getAttribute("table:number-rows-repeated", ppAtts);
+            m_rowsLeftToRepeat = _clampRepeat(pNumberRowsRepeated, ODI_TABLE_MAX_ROWS);
         }
 
         m_row++;
@@ -352,8 +369,7 @@ void ODi_Table_ListenerState::_parseColumnStart (const gchar** ppAtts,
             {
                 pNumberColumnsRepeated = UT_getAttribute("table:number-columns-repeated", ppAtts);
                 if (pNumberColumnsRepeated != nullptr) {
-                    nColsRepeated = atoi(pNumberColumnsRepeated);
-                    UT_ASSERT(nColsRepeated > 0);
+                    nColsRepeated = _clampRepeat(pNumberColumnsRepeated, ODI_TABLE_MAX_COLS);
                 } 
                 else 
                 {
@@ -408,24 +424,12 @@ void ODi_Table_ListenerState::_parseCellStart (const gchar** ppAtts,
         m_col++;
         std::string dataID;
         
+        // HARD05: clamp spans too — they become cell attach indices
+        // which size the layout row/column arrays.
         pVal = UT_getAttribute("table:number-columns-spanned", ppAtts);
-        if (pVal) {
-            colSpan = atoi(pVal);
-            if (colSpan < 1) {
-                colSpan = 1;
-            }
-        } else {
-            colSpan = 1;
-        }
+        colSpan = _clampRepeat(pVal, ODI_TABLE_MAX_COLS);
         pVal = UT_getAttribute("table:number-rows-spanned", ppAtts);
-        if (pVal) {
-            rowSpan = atoi(pVal);
-            if (rowSpan < 1) {
-                rowSpan = 1;
-            }
-        } else {
-            rowSpan = 1;
-        }
+        rowSpan = _clampRepeat(pVal, ODI_TABLE_MAX_ROWS);
         
 
         props = UT_std_string_sprintf(

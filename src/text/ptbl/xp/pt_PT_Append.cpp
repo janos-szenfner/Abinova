@@ -46,6 +46,13 @@
 
 bool pt_PieceTable::appendStrux(PTStruxType pts, const PP_PropertyVector & attributes, pf_Frag_Strux ** ppfs_ret)
 {
+	if (_dropStruxForLoadCaps(pts))
+	{
+		if (ppfs_ret)
+			*ppfs_ret = nullptr;
+		return true;
+	}
+
 	pf_Frag_Strux * pfs = nullptr;
 	if(!_makeStrux(pts, attributes, pfs) || !pfs)
 		return false;
@@ -354,6 +361,9 @@ bool pt_PieceTable::appendFmt(const PP_PropertyVector & vecAttributes)
 	// can only be used while loading the document
 	UT_return_val_if_fail (m_pts==PTS_Loading, false);
 
+	if (_dropFragForLoadCaps())
+		return true;
+
 	// Only a strux can be appended to an empty document
 	UT_return_val_if_fail (nullptr != m_fragments.getFirst(),false);
 
@@ -374,6 +384,9 @@ bool pt_PieceTable::appendSpan(const UT_UCS4Char * pbuf, UT_uint32 length)
 {
 	// can only be used while loading the document
 	UT_return_val_if_fail (m_pts==PTS_Loading, false);
+
+	if (_dropFragForLoadCaps())
+		return true;
 
 	// Only a strux can be appended to an empty document
 	UT_return_val_if_fail (nullptr != m_fragments.getFirst(),false);
@@ -419,6 +432,9 @@ bool pt_PieceTable::appendSpan(const UT_UCS4Char * pbuf, UT_uint32 length)
 
 bool pt_PieceTable::appendObject(PTObjectType pto, const PP_PropertyVector & attributes)
 {
+	if (_dropFragForLoadCaps())
+		return true;
+
 	pf_Frag_Object * pfo = nullptr;
 	if(!_makeObject(pto,attributes,pfo) || !pfo)
 		return false;
@@ -441,6 +457,9 @@ bool pt_PieceTable::appendObject(PTObjectType pto, const PP_PropertyVector & att
 
 bool pt_PieceTable::appendFmtMark(void)
 {
+	if (_dropFragForLoadCaps())
+		return true;
+
 	pf_Frag_FmtMark * pff = nullptr;
 	if (!_makeFmtMark(pff) || !pff)
 		return false;
@@ -453,6 +472,13 @@ bool pt_PieceTable::insertStruxBeforeFrag(const pf_Frag * pF, PTStruxType pts,
 										  const PP_PropertyVector & attributes, pf_Frag_Strux ** ppfs_ret)
 {
 	UT_return_val_if_fail(pF , false);
+
+	if (_dropStruxForLoadCaps(pts))
+	{
+		if (ppfs_ret)
+			*ppfs_ret = nullptr;
+		return true;
+	}
 
 	pf_Frag_Strux * pfs = nullptr;
 	if(!_makeStrux(pts, attributes, pfs) || !pfs)
@@ -492,6 +518,9 @@ bool pt_PieceTable::insertSpanBeforeFrag(const pf_Frag * pf, const UT_UCS4Char *
 
 	// cannot insert before first fragment (i.e., span cannot start a document)
 	UT_return_val_if_fail(pf && pf->getPrev() && pf != m_fragments.getFirst(), false);
+
+	if (_dropFragForLoadCaps())
+		return true;
 
 	// append the text to the buffer
 	PT_BufIndex bi;
@@ -549,6 +578,9 @@ bool pt_PieceTable::insertObjectBeforeFrag(const pf_Frag * pF, PTObjectType pto,
 	// cannot insert before first fragment
 	UT_return_val_if_fail(pF && pF->getPrev() && pF != m_fragments.getFirst(), false);
 
+	if (_dropFragForLoadCaps())
+		return true;
+
 	pf_Frag_Object * pfo = nullptr;
 	if(!_makeObject(pto, attributes, pfo) || !pfo)
 		return false;
@@ -573,6 +605,9 @@ bool pt_PieceTable::insertFmtMarkBeforeFrag(const pf_Frag * pF)
 	// cannot insert before first fragment
 	UT_return_val_if_fail(pF && pF->getPrev() && pF != m_fragments.getFirst(), false);
 
+	if (_dropFragForLoadCaps())
+		return true;
+
 	pf_Frag_FmtMark * pff = nullptr;
 	if (!_makeFmtMark(pff) || !pff)
 		return false;
@@ -586,6 +621,9 @@ bool pt_PieceTable::insertFmtMarkBeforeFrag(const pf_Frag * pF, const PP_Propert
 {
 	// cannot insert before first fragment
 	UT_return_val_if_fail(pF && pF->getPrev() && pF != m_fragments.getFirst(), false);
+
+	if (_dropFragForLoadCaps())
+		return true;
 
 	pf_Frag_FmtMark * pff = nullptr;
 	if (!_makeFmtMark(pff,attributes) || !pff)

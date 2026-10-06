@@ -5959,6 +5959,12 @@ void PD_Document::StopList(const pf_Frag_Strux* pfs)
 
 bool PD_Document::appendList(const PP_PropertyVector & attributes)
 {
+	// HARD05: bound the list table — every entry becomes a heap
+	// fl_AutoNum and dirty-list reparenting is O(lists × items), so a
+	// degenerate document could otherwise force quadratic work.
+	if (m_mapLists.size() >= PT_LOAD_MAX_LISTS)
+		return true;	// silently truncate
+
 	const std::string *szID = nullptr;
 	const std::string *szPid = nullptr;
 	const std::string *szType = nullptr;

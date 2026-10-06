@@ -2105,6 +2105,11 @@ void ODi_TextContent_ListenerState::_defineAbiTOCHeadingStyles() {
     count = m_tablesOfContent.size();
     for (i=0; i<count; i++) {
         pTOCStrux = m_tablesOfContent[i];
+        // HARD05: the TOC strux may have been dropped by the load-time
+        // structural caps — skip it.
+        if (!pTOCStrux) {
+            continue;
+        }
         props = *(m_tablesOfContentProps[i]);
         
         for (j=1; j<5; j++) {

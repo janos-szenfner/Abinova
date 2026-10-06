@@ -395,6 +395,11 @@ bool pt_PieceTable::appendStyle(const PP_PropertyVector & attributes)
 	// this function can only be called while loading the document.
   //UT_ASSERT(m_pts==PTS_Loading);
 
+	// HARD05: bound the number of style definitions so a degenerate
+	// document cannot exhaust memory with millions of named styles.
+	if (m_pts == PTS_Loading && m_hashStyles.size() >= PT_LOAD_MAX_STYLES)
+		return true;	// silently truncate
+
 	// first, store the attributes and properties and get an index to them.
 
 	PT_AttrPropIndex indexAP;

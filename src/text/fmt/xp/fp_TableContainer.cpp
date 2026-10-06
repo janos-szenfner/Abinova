@@ -3461,6 +3461,10 @@ UT_sint32 fp_TableContainer::getRowOrColumnAtPosition(UT_sint32 y, bool bRow) co
 
 void fp_TableContainer::resize(UT_sint32 n_rows, UT_sint32 n_cols)
 {
+	// HARD05: clamp document-supplied extents (cell attach indices)
+	// before allocating the row/column arrays.
+	n_rows = UT_MIN(n_rows, FP_TABLE_MAX_ROWS);
+	n_cols = UT_MIN(n_cols, FP_TABLE_MAX_COLS);
 	fl_TableLayout * pTL = static_cast<fl_TableLayout *>(getSectionLayout());
 	if (!pTL->isInitialLayoutCompleted() || (n_rows != m_iRows) ||
 		( n_cols != m_iCols))
@@ -4482,8 +4486,10 @@ void fp_TableContainer::tableAttach (fp_CellContainer *child)
 	fl_TableLayout * pTL = static_cast<fl_TableLayout *>(getSectionLayout());
 	if (!pTL->isInitialLayoutCompleted())
 	{
-		m_iCols = UT_MAX(m_iCols, child->getRightAttach());
-		m_iRows = UT_MAX(m_iRows, child->getBottomAttach());
+		// HARD05: clamp document-supplied attach indices — they size
+		// m_vecRows/m_vecColumns and bound several layout loops.
+		m_iCols = UT_MAX(m_iCols, UT_MIN(child->getRightAttach(), FP_TABLE_MAX_COLS));
+		m_iRows = UT_MAX(m_iRows, UT_MIN(child->getBottomAttach(), FP_TABLE_MAX_ROWS));
 	}
 	else
 	{

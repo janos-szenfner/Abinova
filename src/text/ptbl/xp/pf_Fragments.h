@@ -139,6 +139,9 @@ public:
 
 	Iterator find(PT_DocPosition pos) const; // throws ()
 
+	//! total number of fragments — used by the HARD05 load-time
+	//! fragment cap (PT_LOAD_MAX_FRAGMENTS)
+	size_t					fragCount() const { return m_nSize; }
 
 private:
 	Iterator insertRoot(pf_Frag* new_piece); // throws std::bad_alloc (strong)
