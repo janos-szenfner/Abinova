@@ -34,7 +34,7 @@
 #include "../../common/xp/ODc_Crypto.h"
 #include "ODi_Office_Styles.h"
 #include "ODi_Abi_Data.h"
-#include "ODi_RDFParser.h"
+#include "pd_RDFXMLParser.h"
 
 // Abinova inlcudes
 #include "ie_imp.h"
@@ -82,7 +82,7 @@ private:
 #else
     UT_Error _loadRDFFromFile ( GsfInput* pInput,
                                 const char * pStream,
-                                std::vector<ODi_RDFTriple>& triples );
+                                std::vector<PD_RDFXMLTriple>& triples );
 #endif
 
     UT_Error _handleFlatFile(GsfInput* pInput);

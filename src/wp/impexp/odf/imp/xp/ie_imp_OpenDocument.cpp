@@ -513,11 +513,11 @@ UT_Error IE_Imp_OpenDocument::_handleContentStream ()
  */
 UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
                                                  const char * pStream,
-                                                 std::vector<ODi_RDFTriple>& triples )
+                                                 std::vector<PD_RDFXMLTriple>& triples )
 {
     UT_return_val_if_fail(pInput, UT_ERROR);
 
-    ODi_RDFParser rdfParser(pStream ? pStream : "");
+    PD_RDFXMLParser rdfParser(pStream ? pStream : "");
     UT_XML reader;
     reader.setListener(&rdfParser);
 
@@ -525,7 +525,7 @@ UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
     if (err != UT_OK)
         return err;
 
-    const std::vector<ODi_RDFTriple>& parsed = rdfParser.triples();
+    const std::vector<PD_RDFXMLTriple>& parsed = rdfParser.triples();
     triples.insert(triples.end(), parsed.begin(), parsed.end());
     return UT_OK;
 }
@@ -599,7 +599,7 @@ UT_Error IE_Imp_OpenDocument::_handleRDFStreams ()
         "http://docs.oasis-open.org/opendocument/meta/package/common#path";
 
     UT_Error error = UT_OK;
-    std::vector<ODi_RDFTriple> triples;
+    std::vector<PD_RDFXMLTriple> triples;
 
     // check if we can load a manifest.rdf file
     GsfInput* pRdfManifest = gsf_infile_child_by_name(m_pGsfInfile, "manifest.rdf");
@@ -618,11 +618,11 @@ UT_Error IE_Imp_OpenDocument::_handleRDFStreams ()
     // carry an odfcommon:path literal naming the package member
     std::set<std::string> auxFiles;
     std::set<std::string> metaSubjects;
-    for (const ODi_RDFTriple& t : triples)
+    for (const PD_RDFXMLTriple& t : triples)
         if (t.predicate == RDF_TYPE_URI &&
             t.object.isURI() && t.object.toString() == ODF_METADATAFILE_URI)
             metaSubjects.insert(t.subject);
-    for (const ODi_RDFTriple& t : triples)
+    for (const PD_RDFXMLTriple& t : triples)
         if (metaSubjects.count(t.subject) &&
             t.predicate == ODF_PATH_URI && t.object.isLiteral())
             auxFiles.insert(t.object.toString());
@@ -645,7 +645,7 @@ UT_Error IE_Imp_OpenDocument::_handleRDFStreams ()
     {
         PD_DocumentRDFHandle rdf = getDoc()->getDocumentRDF();
         PD_DocumentRDFMutationHandle m = rdf->createMutation();
-        for (const ODi_RDFTriple& t : triples)
+        for (const PD_RDFXMLTriple& t : triples)
             m->add( PD_URI(t.subject), PD_URI(t.predicate), t.object );
         m->commit();
     }

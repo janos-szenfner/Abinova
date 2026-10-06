@@ -212,11 +212,15 @@ IE_Imp_RDF::insertTextWithXMLID( const std::string& textconst,
     endpos--;
     
     XAP_Frame* lff = XAP_App::getApp()->getLastFocussedFrame();
-    if(lff) 
+    if(lff)
     {
+        // headless imports have a frame but no view
         FV_View * pView = static_cast<FV_View*>( lff->getCurrentView() );
-        pView->selectRange( startpos, endpos );
-        pView->cmdInsertXMLID( xmlid );
+        if( pView )
+        {
+            pView->selectRange( startpos, endpos );
+            pView->cmdInsertXMLID( xmlid );
+        }
     }
 
     return std::make_pair( startpos, endpos );    

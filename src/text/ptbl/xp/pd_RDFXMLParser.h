@@ -17,8 +17,8 @@
  * 02110-1301 USA.
  */
 
-#ifndef ODI_RDFPARSER_H
-#define ODI_RDFPARSER_H
+#ifndef PD_RDFXMLPARSER_H
+#define PD_RDFXMLPARSER_H
 
 #include <map>
 #include <string>
@@ -37,7 +37,7 @@
  * Literal/Resource and rdf:li list items.
  */
 
-struct ODi_RDFTriple
+struct PD_RDFXMLTriple
 {
     std::string subject;      // URI or "_:name" for a blank node
     bool        subjectIsBNode = false;
@@ -45,17 +45,17 @@ struct ODi_RDFTriple
     PD_Object   object;
 };
 
-class ODi_RDFParser : public UT_XML::Listener
+class PD_RDFXMLParser : public UT_XML::Listener
 {
 public:
-    explicit ODi_RDFParser(const std::string& baseURI);
-    virtual ~ODi_RDFParser() {}
+    explicit PD_RDFXMLParser(const std::string& baseURI);
+    virtual ~PD_RDFXMLParser() {}
 
     virtual void startElement(const gchar* name, const gchar** atts) override;
     virtual void endElement(const gchar* name) override;
     virtual void charData(const gchar* buffer, int length) override;
 
-    const std::vector<ODi_RDFTriple>& triples() const { return m_triples; }
+    const std::vector<PD_RDFXMLTriple>& triples() const { return m_triples; }
 
 private:
     enum FrameKind
@@ -88,10 +88,10 @@ private:
 
     std::string m_baseURI;
     std::vector<Frame> m_stack;
-    std::vector<ODi_RDFTriple> m_triples;
+    std::vector<PD_RDFXMLTriple> m_triples;
     std::vector<std::map<std::string, std::string>> m_nsStack;
     int m_bnodeCounter = 0;
     int m_literalDepth = 0;    // >0 inside rdf:parseType="Literal" content
 };
 
-#endif /* ODI_RDFPARSER_H */
+#endif /* PD_RDFXMLPARSER_H */

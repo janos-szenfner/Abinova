@@ -256,8 +256,6 @@ libimpexp_la_SOURCES += \
 	odf/imp/xp/ODi_Office_Styles.h \
 	odf/imp/xp/ODi_Postpone_ListenerState.cpp \
 	odf/imp/xp/ODi_Postpone_ListenerState.h \
-	odf/imp/xp/ODi_RDFParser.cpp \
-	odf/imp/xp/ODi_RDFParser.h \
 	odf/imp/xp/ODi_SettingsStream_ListenerState.h \
 	odf/imp/xp/ODi_StartTag.cpp \
 	odf/imp/xp/ODi_StartTag.h \

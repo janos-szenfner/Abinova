@@ -45,8 +45,21 @@ below are on `main` but the release has not been cut yet.
   "Encrypt with password" in the ODF save dialog. PBKDF2-SHA1 +
   Blowfish CFB64 (vendored from OpenSSL 4.0.2, Apache-2.0), no
   libgcrypt dependency.
-- **Built-in RDF metadata** — SAX-based `ODi_RDFParser` importer and
+- **Built-in RDF metadata** — SAX-based `pd_RDFXMLParser` importer and
   `toRDFXML` serializer; `manifest.rdf` round-trips, no libredland.
+- **RDF semantic items work without libredland** — the RDF/semantic
+  stack (contacts, events, locations, xml:id links, the ribbon's
+  "RDF Link" preset, RDF Editor and RDF Query dialogs) was silently
+  inert when Abinova was built without libredland: every SPARQL query
+  returned empty and `manifest.rdf` re-import reported an error. A
+  built-in SPARQL-subset evaluator now answers the queries the
+  subsystem generates internally (SELECT [DISTINCT], triple patterns,
+  OPTIONAL, FILTER str() comparisons with `||`/`&&`), the former ODF
+  RDF/XML parser moved into the shared text layer and backs
+  `loadRDFXML`, and the RDF Query dialog's Execute/Show All buttons
+  are live again. The same change hardens the subsystem's custom
+  length-prefixed stream format against corrupt/truncated input and
+  escapes values interpolated into generated queries.
 - **Equation LaTeX source round-trips through ODF** — the ODF
   exporter now writes each equation's LaTeX source and
   `display:inline|block` mode as foreign-namespaced

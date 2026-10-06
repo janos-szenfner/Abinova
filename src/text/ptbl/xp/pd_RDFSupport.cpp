@@ -27,6 +27,8 @@
 #include "config.h"
 #endif
 #include "ut_debugmsg.h"
+#include "ut_xml.h"
+#include "pd_RDFXMLParser.h"
 
 #include <sstream>
 #include <set>
@@ -604,9 +606,30 @@ loadRDFXML( PD_DocumentRDFMutationHandle m, const std::string& rdfxml, const std
     UT_Error e = convertRedlandToNativeModel( m, args.world, args.model );
     return e;
 #else
-	UT_UNUSED(m);
-	UT_UNUSED(rdfxml);
-	UT_UNUSED(baseuri);
+	if( rdfxml.empty() )
+		return UT_OK;
+
+	PD_RDFXMLParser parser( baseuri.empty() ? "manifest.rdf" : baseuri );
+	UT_XML reader;
+	reader.setListener( &parser );
+	UT_XML_UntrustedParseScope xxeGuard;
+	if( reader.parse( rdfxml.c_str(),
+					  static_cast<UT_uint32>(rdfxml.size()) ) != UT_OK )
+	{
+		UT_DEBUGMSG(("loadRDFXML() failed to parse RDF/XML, sz:%lu\n",
+					 static_cast<long unsigned>(rdfxml.size()) ));
+		return UT_ERROR;
+	}
+
+	const std::vector< PD_RDFXMLTriple >& triples = parser.triples();
+	for( std::vector< PD_RDFXMLTriple >::const_iterator
+			 it = triples.begin(); it != triples.end(); ++it )
+	{
+		m->add( PD_URI( it->subject ),
+				PD_URI( it->predicate ),
+				it->object );
+	}
+	return UT_OK;
 #endif
 
     return UT_ERROR;

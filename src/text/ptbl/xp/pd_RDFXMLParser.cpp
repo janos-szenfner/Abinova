@@ -20,7 +20,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "ODi_RDFParser.h"
+#include "pd_RDFXMLParser.h"
 
 namespace {
 
@@ -52,7 +52,7 @@ std::string xmlEscape(const gchar* s, int len)
 } // anonymous namespace
 
 
-ODi_RDFParser::ODi_RDFParser(const std::string& baseURI)
+PD_RDFXMLParser::PD_RDFXMLParser(const std::string& baseURI)
     : m_baseURI(baseURI)
 {
     Frame root;
@@ -68,7 +68,7 @@ ODi_RDFParser::ODi_RDFParser(const std::string& baseURI)
 }
 
 
-const gchar* ODi_RDFParser::findAtt(const gchar** atts, const char* name) const
+const gchar* PD_RDFXMLParser::findAtt(const gchar** atts, const char* name) const
 {
     if (!atts)
         return nullptr;
@@ -79,7 +79,7 @@ const gchar* ODi_RDFParser::findAtt(const gchar** atts, const char* name) const
 }
 
 
-void ODi_RDFParser::pushNS(const gchar** atts)
+void PD_RDFXMLParser::pushNS(const gchar** atts)
 {
     std::map<std::string, std::string> ns;
     if (!m_nsStack.empty())
@@ -96,14 +96,14 @@ void ODi_RDFParser::pushNS(const gchar** atts)
 }
 
 
-void ODi_RDFParser::popNS()
+void PD_RDFXMLParser::popNS()
 {
     if (m_nsStack.size() > 1)
         m_nsStack.pop_back();
 }
 
 
-std::string ODi_RDFParser::expand(const std::string& qname) const
+std::string PD_RDFXMLParser::expand(const std::string& qname) const
 {
     std::string::size_type colon = qname.find(':');
     if (colon == std::string::npos)
@@ -119,7 +119,7 @@ std::string ODi_RDFParser::expand(const std::string& qname) const
 }
 
 
-std::string ODi_RDFParser::resolveURI(const std::string& ref) const
+std::string PD_RDFXMLParser::resolveURI(const std::string& ref) const
 {
     if (ref.empty())
         return m_baseURI;
@@ -138,7 +138,7 @@ std::string ODi_RDFParser::resolveURI(const std::string& ref) const
 }
 
 
-std::string ODi_RDFParser::newBNode()
+std::string PD_RDFXMLParser::newBNode()
 {
     char buf[32];
     snprintf(buf, sizeof(buf), "_:b%d", ++m_bnodeCounter);
@@ -146,10 +146,10 @@ std::string ODi_RDFParser::newBNode()
 }
 
 
-void ODi_RDFParser::emit(const std::string& s, bool sIsBNode,
+void PD_RDFXMLParser::emit(const std::string& s, bool sIsBNode,
                          const std::string& p, const PD_Object& o)
 {
-    ODi_RDFTriple t;
+    PD_RDFXMLTriple t;
     t.subject = s;
     t.subjectIsBNode = sIsBNode;
     t.predicate = p;
@@ -158,7 +158,7 @@ void ODi_RDFParser::emit(const std::string& s, bool sIsBNode,
 }
 
 
-void ODi_RDFParser::startElement(const gchar* name, const gchar** atts)
+void PD_RDFXMLParser::startElement(const gchar* name, const gchar** atts)
 {
     pushNS(atts);
 
@@ -336,7 +336,7 @@ void ODi_RDFParser::startElement(const gchar* name, const gchar** atts)
 }
 
 
-void ODi_RDFParser::endElement(const gchar* name)
+void PD_RDFXMLParser::endElement(const gchar* name)
 {
     if (m_literalDepth > 0)
     {
@@ -376,7 +376,7 @@ void ODi_RDFParser::endElement(const gchar* name)
 }
 
 
-void ODi_RDFParser::charData(const gchar* buffer, int length)
+void PD_RDFXMLParser::charData(const gchar* buffer, int length)
 {
     if (m_stack.empty())
         return;

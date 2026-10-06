@@ -449,10 +449,8 @@ AP_UnixDialog_RDFQuery::_constructWindow (XAP_Frame * /*pFrame*/)
 	g_signal_connect (m_wDialog, "close-request",
 					  G_CALLBACK (AP_UnixDialog_RDFQuery__onDeleteWindow), static_cast <gpointer>(this));
 
-#ifndef WITH_REDLAND
-	gtk_widget_set_sensitive(m_btExecute, FALSE);  
-	gtk_widget_set_sensitive(m_btShowAll, FALSE);  
-#endif
+	// RDF01: the built-in SPARQL-subset evaluator covers the internal
+	// query shapes when Redland is absent, so Execute/Show All stay live.
 
 	g_object_unref(G_OBJECT(builder));
 }

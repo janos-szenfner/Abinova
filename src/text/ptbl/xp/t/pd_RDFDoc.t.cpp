@@ -23,9 +23,9 @@
  * PD_Literal/PD_RDFStatement), the PP_AttrProp-backed triple store
  * behind PD_DocumentRDF, batch mutations (add/remove/commit/rollback/
  * scope-commit), prefix expansion, and the xml:id-anchored scoping
- * helpers.  SPARQL execution itself needs redland which this build
- * lacks, so the SPARQL-driven paths are exercised only up to their
- * empty-bindings early-outs. */
+ * helpers.  RDF01 added a built-in SPARQL-subset evaluator used when
+ * libredland is absent, so the SPARQL-driven paths are exercised with
+ * real bindings here. */
 
 #include <algorithm>
 #include <sstream>
@@ -39,6 +39,8 @@
 
 #include "pd_Document.h"
 #include "pd_DocumentRDF.h"
+#include "pd_RDFQuery.h"
+#include "pd_RDFSupport.h"
 #include "pf_Frag.h"
 #include "pf_Frag_Object.h"
 #include "pf_Frag_Strux.h"
@@ -615,6 +617,12 @@ TFTEST_MAIN("xml:id anchors scope RDF lookups")
 					 PD_Object("blkA note", PD_Object::OBJECT_TYPE_LITERAL)));
 		TFPASS(!scratch->contains(PD_URI("http://ex.org/other"), pred,
 					 PD_Object("unrelated", PD_Object::OBJECT_TYPE_LITERAL)));
+
+		/* relink finds the pkg:idref'd subject via SPARQL and adds
+		 * the new idref arc */
+		rdf->relinkRDFToNewXMLID("blkA", "blkA2", false);
+		TFPASS(rdf->contains(subj, idref,
+				PD_Object("blkA2", PD_Object::OBJECT_TYPE_LITERAL)));
 	}
 
 	/* position-scoped model: getRDFAtPosition never crashes and
@@ -624,9 +632,6 @@ TFTEST_MAIN("xml:id anchors scope RDF lookups")
 			rdf->getRDFAtPosition(d.doc->getStruxPosition(blkA) + 1);
 		TFPASS(at.get() != nullptr);
 	}
-
-	/* relink path is a no-op without redland but must not crash */
-	rdf->relinkRDFToNewXMLID("blkA", "blkA2", false);
 }
 
 TFTEST_MAIN("object-scope helpers + semantic-item entry points")
@@ -658,7 +663,8 @@ TFTEST_MAIN("object-scope helpers + semantic-item entry points")
 		TFPASS((*objs.begin())->getObjectType() == PTO_Bookmark);
 	}
 
-	/* SPARQL-backed entry points degrade to empty without redland */
+	/* SPARQL-backed entry points run the built-in evaluator; this
+	 * model has no foaf/cal triples so the lists come back empty */
 	TFPASS(rdf->getAllSemanticObjects().empty());
 	TFPASS(rdf->getSemanticObjects(std::set<std::string>{"x"}).empty());
 	TFPASS(rdf->getContacts().empty());
@@ -680,4 +686,329 @@ TFTEST_MAIN("object-scope helpers + semantic-item entry points")
 		TFPASS(PD_DocumentRDF::getSPARQL_LimitedToXMLIDList(
 			std::set<std::string>()).empty());
 	}
+}
+
+TFTEST_MAIN("built-in SPARQL-subset evaluator")
+{
+	RdfDoc d;
+	TFPASS(d.build());
+	const UT_UCS4String t1("q ");
+	TFPASS(d.para(t1));
+	d.finish();
+
+	PD_DocumentRDFHandle rdf = d.doc->getDocumentRDF();
+
+	const PD_URI alice("http://ex.org/alice");
+	const PD_URI bob("http://ex.org/bob");
+	const PD_URI carol("http://ex.org/carol");
+	const PD_URI rdfType("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+	const PD_URI person("http://xmlns.com/foaf/0.1/Person");
+	const PD_URI namep("http://xmlns.com/foaf/0.1/name");
+	const PD_URI nickp("http://xmlns.com/foaf/0.1/nick");
+	const PD_URI idref(
+		"http://docs.oasis-open.org/opendocument/meta/package/common#idref");
+
+	{
+		PD_DocumentRDFMutationHandle m = rdf->createMutation();
+		m->add(alice, rdfType, PD_Object(person));
+		m->add(alice, namep, PD_Literal("Alice"));
+		m->add(alice, nickp, PD_Literal("ally"));
+		m->add(bob, rdfType, PD_Object(person));
+		m->add(bob, namep, PD_Literal("Bob"));
+		m->add(carol, rdfType, PD_Object(person));
+		m->add(carol, namep, PD_Literal("Alice"));
+		m->add(alice, idref, PD_Literal("blkA"));
+		m->commit();
+	}
+	TFPASS(rdf->getTripleCount() == 8);
+
+	/* PREFIX expansion, explicit vars, OPTIONAL keeps the row */
+	{
+		PD_RDFQuery q(rdf, rdf);
+		PD_ResultBindings_t b = q.executeQuery(
+			"prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
+			"prefix foaf: <http://xmlns.com/foaf/0.1/>\n"
+			"select ?person ?name ?nick\n"
+			"where {\n"
+			"  ?person rdf:type foaf:Person .\n"
+			"  ?person foaf:name ?name .\n"
+			"  OPTIONAL { ?person foaf:nick ?nick }\n"
+			"}\n");
+		TFPASS(b.size() == 3);
+		for (PD_ResultBindings_t::iterator it = b.begin();
+			 it != b.end(); ++it)
+		{
+			const std::string n = (*it)["name"];
+			TFPASS(n == "Alice" || n == "Bob");
+			const std::string s = (*it)["person"];
+			if (s == alice.toString())
+				TFPASS((*it)["nick"] == "ally");
+			else
+				TFPASS((*it)["nick"].empty());
+		}
+	}
+
+	/* FILTER str() = with || */
+	{
+		PD_RDFQuery q(rdf, rdf);
+		PD_ResultBindings_t b = q.executeQuery(
+			"prefix foaf: <http://xmlns.com/foaf/0.1/>\n"
+			"select ?person\n"
+			"where {\n"
+			"  ?person foaf:name ?name .\n"
+			"  filter( str(?name) = \"Alice\" || str(?name) = \"Bob\" )\n"
+			"}\n");
+		TFPASS(b.size() == 3);
+	}
+
+	/* FILTER str() != with && */
+	{
+		PD_RDFQuery q(rdf, rdf);
+		PD_ResultBindings_t b = q.executeQuery(
+			"prefix foaf: <http://xmlns.com/foaf/0.1/>\n"
+			"prefix pkg: <http://docs.oasis-open.org/opendocument/meta/package/common#>\n"
+			"select ?s ?name\n"
+			"where {\n"
+			"  ?s foaf:name ?name .\n"
+			"  ?s pkg:idref ?x .\n"
+			"  filter( str(?name) != \"Bob\" && str(?x) = \"blkA\" )\n"
+			"}\n");
+		TFPASS(b.size() == 1);
+		TFPASS((*b.begin())["s"] == alice.toString());
+	}
+
+	/* SELECT DISTINCT collapses duplicate projection rows */
+	{
+		PD_RDFQuery q(rdf, rdf);
+		PD_ResultBindings_t all = q.executeQuery(
+			"prefix foaf: <http://xmlns.com/foaf/0.1/>\n"
+			"select ?name\n"
+			"where { ?s foaf:name ?name }\n");
+		TFPASS(all.size() == 3);
+
+		PD_RDFQuery q2(rdf, rdf);
+		PD_ResultBindings_t dist = q2.executeQuery(
+			"prefix foaf: <http://xmlns.com/foaf/0.1/>\n"
+			"select distinct ?name\n"
+			"where { ?s foaf:name ?name }\n");
+		TFPASS(dist.size() == 2);
+	}
+
+	/* SELECT * projects every bound variable */
+	{
+		PD_RDFQuery q(rdf, rdf);
+		PD_ResultBindings_t b = q.executeQuery(
+			"prefix foaf: <http://xmlns.com/foaf/0.1/>\n"
+			"select *\n"
+			"where { ?s foaf:nick ?nick }\n");
+		TFPASS(b.size() == 1);
+		TFPASS((*b.begin())["s"] == alice.toString());
+		TFPASS((*b.begin())["nick"] == "ally");
+	}
+
+	/* querying a restricted model only sees its triples */
+	{
+		PD_RDFModelHandle scratch = rdf->createScratchModel();
+		{
+			PD_DocumentRDFMutationHandle sm = scratch->createMutation();
+			sm->add(alice, namep, PD_Literal("Alice"));
+			sm->commit();
+		}
+		PD_RDFQuery q(rdf, scratch);
+		PD_ResultBindings_t b = q.executeQuery(
+			"prefix foaf: <http://xmlns.com/foaf/0.1/>\n"
+			"select ?s ?name\n"
+			"where { ?s foaf:name ?name }\n");
+		TFPASS(b.size() == 1);
+	}
+
+	/* generated query shape: xmlid-restricted statement listing */
+	{
+		std::string sparql = PD_DocumentRDF::getSPARQL_LimitedToXMLIDList(
+			std::set<std::string>{"blkA"});
+		PD_RDFQuery q(rdf, rdf);
+		PD_ResultBindings_t b = q.executeQuery(sparql);
+		/* every statement of alice (the blkA-linked subject) */
+		TFPASS(b.size() == 4);
+		for (PD_ResultBindings_t::iterator it = b.begin();
+			 it != b.end(); ++it)
+		{
+			TFPASS((*it)["s"] == alice.toString());
+			TFPASS((*it)["rdflink"] == "blkA");
+		}
+	}
+
+	/* empty model -> empty bindings, malformed query -> empty */
+	{
+		PD_RDFModelHandle scratch = rdf->createScratchModel();
+		PD_RDFQuery q(rdf, scratch);
+		TFPASS(q.executeQuery("select * where { ?s ?p ?o }").empty());
+		PD_RDFQuery q2(rdf, rdf);
+		TFPASS(q2.executeQuery("this is not sparql").empty());
+	}
+}
+
+TFTEST_MAIN("semantic-item enumeration through SPARQL")
+{
+	RdfDoc d;
+	TFPASS(d.build());
+	const UT_UCS4String t1("si ");
+	TFPASS(d.para(t1, {"xml:id", "siBlk"}));
+	d.finish();
+
+	PD_DocumentRDFHandle rdf = d.doc->getDocumentRDF();
+
+	const PD_URI alice("http://ex.org/alice");
+	const PD_URI rdfType("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+	const PD_URI person("http://xmlns.com/foaf/0.1/Person");
+	const PD_URI namep("http://xmlns.com/foaf/0.1/name");
+	const PD_URI idref(
+		"http://docs.oasis-open.org/opendocument/meta/package/common#idref");
+
+	{
+		PD_DocumentRDFMutationHandle m = rdf->createMutation();
+		m->add(alice, rdfType, PD_Object(person));
+		m->add(alice, namep, PD_Literal("Alice"));
+		m->add(alice, idref, PD_Literal("siBlk"));
+		m->commit();
+	}
+
+	/* getContacts() runs the generated SPARQL through the built-in
+	 * evaluator; under the test harness the GTK semantic-item
+	 * factory is installed so the contact materializes */
+	PD_RDFContacts contacts = rdf->getContacts();
+	TFPASS(contacts.size() == 1);
+	if (!contacts.empty())
+		TFPASS((*contacts.begin())->name() == "Alice");
+
+	/* getSemanticObjects intersects the item's xmlids with the
+	 * requested set */
+	PD_RDFSemanticItems inScope =
+		rdf->getSemanticObjects(std::set<std::string>{"siBlk"});
+	TFPASS(inScope.size() == 1);
+	TFPASS(rdf->getSemanticObjects(std::set<std::string>{"nope"}).empty());
+	TFPASS(rdf->getAllSemanticObjects().size() == 1);
+
+	/* xmlid lookup for the linking subject works via the evaluator */
+	std::set<std::string> ids =
+		PD_RDFSemanticItem::getXMLIDsForLinkingSubject(
+			rdf, alice.toString());
+	TFPASS(ids.count("siBlk") == 1);
+	TFPASS(PD_RDFSemanticItem::getXMLIDsForLinkingSubject(
+			rdf, "http://ex.org/unknown").empty());
+}
+
+TFTEST_MAIN("RDF/XML load + export round-trip without redland")
+{
+	RdfDoc d;
+	TFPASS(d.build());
+	const UT_UCS4String t1("io ");
+	TFPASS(d.para(t1));
+	d.finish();
+
+	PD_DocumentRDFHandle rdf = d.doc->getDocumentRDF();
+
+	/* import from an RDF/XML document */
+	const std::string rdfxml =
+		"<?xml version=\"1.0\"?>\n"
+		"<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"\n"
+		"         xmlns:foaf=\"http://xmlns.com/foaf/0.1/\">\n"
+		" <rdf:Description rdf:about=\"http://ex.org/alice\">\n"
+		"  <rdf:type rdf:resource=\"http://xmlns.com/foaf/0.1/Person\"/>\n"
+		"  <foaf:name>Alice</foaf:name>\n"
+		"  <foaf:knows rdf:resource=\"http://ex.org/bob\"/>\n"
+		" </rdf:Description>\n"
+		" <foaf:Person rdf:about=\"http://ex.org/bob\">\n"
+		"  <foaf:nick>bobby</foaf:nick>\n"
+		" </foaf:Person>\n"
+		"</rdf:RDF>\n";
+	{
+		PD_DocumentRDFMutationHandle m = rdf->createMutation();
+		TFPASS(loadRDFXML(m, rdfxml) == UT_OK);
+		m->commit();
+	}
+
+	const PD_URI alice("http://ex.org/alice");
+	const PD_URI type("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+	const PD_URI namep("http://xmlns.com/foaf/0.1/name");
+	const PD_URI knows("http://xmlns.com/foaf/0.1/knows");
+	const PD_URI nickp("http://xmlns.com/foaf/0.1/nick");
+
+	TFPASS(rdf->getTripleCount() == 4);
+	TFPASS(rdf->contains(alice, type,
+				PD_Object("http://xmlns.com/foaf/0.1/Person")));
+	TFPASS(rdf->contains(alice, namep,
+				PD_Object("Alice", PD_Object::OBJECT_TYPE_LITERAL)));
+	TFPASS(rdf->contains(alice, knows,
+				PD_Object("http://ex.org/bob")));
+	TFPASS(rdf->contains(PD_URI("http://ex.org/bob"), nickp,
+				PD_Object("bobby", PD_Object::OBJECT_TYPE_LITERAL)));
+
+	/* the imported triples are visible to SPARQL queries */
+	{
+		PD_RDFQuery q(rdf, rdf);
+		PD_ResultBindings_t b = q.executeQuery(
+			"prefix foaf: <http://xmlns.com/foaf/0.1/>\n"
+			"select ?p ?n\n"
+			"where { ?p foaf:name ?n }\n");
+		TFPASS(b.size() == 1);
+		TFPASS((*b.begin())["p"] == alice.toString());
+	}
+
+	/* export and re-import into a scratch model */
+	std::string exported = toRDFXML(rdf);
+	TFPASS(!exported.empty());
+	{
+		PD_RDFModelHandle scratch = rdf->createScratchModel();
+		PD_DocumentRDFMutationHandle sm = scratch->createMutation();
+		TFPASS(loadRDFXML(sm, exported) == UT_OK);
+		sm->commit();
+		TFPASS(scratch->getTripleCount() == 4);
+		TFPASS(scratch->contains(alice, namep,
+				PD_Object("Alice", PD_Object::OBJECT_TYPE_LITERAL)));
+		TFPASS(scratch->contains(PD_URI("http://ex.org/bob"), nickp,
+				PD_Object("bobby", PD_Object::OBJECT_TYPE_LITERAL)));
+	}
+
+	/* malformed input fails, empty input is a no-op success */
+	{
+		PD_RDFModelHandle scratch = rdf->createScratchModel();
+		PD_DocumentRDFMutationHandle sm = scratch->createMutation();
+		TFPASS(loadRDFXML(sm, "<rdf:RDF><unclosed>") == UT_ERROR);
+		TFPASS(scratch->getTripleCount() == 0);
+		TFPASS(loadRDFXML(sm, "") == UT_OK);
+		sm->commit();
+	}
+}
+
+TFTEST_MAIN("serialized RDF stream rejects corrupt lengths")
+{
+	/* truncated/oversized length-prefixed strings must fail, not
+	 * allocate or read out of bounds */
+	PD_URI u;
+	std::stringstream bad1;
+	bad1 << "1 1 99999 abc";
+	TFPASS(!u.read(bad1));
+
+	std::stringstream bad2;
+	bad2 << "1 1 -5 xxxxx";
+	TFPASS(!u.read(bad2));
+
+	PD_Object o;
+	std::stringstream bad3;
+	bad3 << "1 1 2 1000 short";
+	TFPASS(!o.read(bad3));
+
+	/* out-of-range object type is rejected */
+	std::stringstream bad4;
+	bad4 << "1 1 99 3 abc 0  0  ";
+	TFPASS(!o.read(bad4));
+
+	/* a well-formed stream still reads */
+	PD_URI good("http://ex.org/ok");
+	std::stringstream good1;
+	TFPASS(good.write(good1));
+	PD_URI good2;
+	TFPASS(good2.read(good1));
+	TFPASS(good2 == good);
 }

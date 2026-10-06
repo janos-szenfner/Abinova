@@ -656,10 +656,16 @@ AP_UnixDialog_RDFEditor::selectRowForCellClick( AbiRdfTripleRow *row,
 
 static std::string tostr( GsfInput* gsf )
 {
+    if( !gsf )
+        return std::string();
     gsf_off_t sz = gsf_input_size( gsf );
+    if( sz <= 0 )
+        return std::string();
     guint8 const * d = gsf_input_read(gsf, sz, nullptr);
-    std::string ret = std::string(const_cast<char*>(reinterpret_cast<const char*>(d)));
-    return ret;
+    if( !d )
+        return std::string();
+    // gsf buffers are not NUL terminated; take the explicit size
+    return std::string( reinterpret_cast<const char*>(d), static_cast<std::size_t>(sz) );
 }
 
 
@@ -677,7 +683,8 @@ AP_UnixDialog_RDFEditor::onImportRDFXML()
         GError* err = nullptr;
         GsfInput* gsf = UT_go_file_open( afp.getPath().c_str(), &err );
         std::string rdfxml = tostr( gsf );
-        g_object_unref (G_OBJECT (gsf));
+        if( gsf )
+            g_object_unref (G_OBJECT (gsf));
 
         xxx_UT_DEBUGMSG(("rdfxml: %s\n", rdfxml.c_str()));
         PD_DocumentRDFMutationHandle m = getModel()->createMutation();
@@ -706,6 +713,8 @@ AP_UnixDialog_RDFEditor::onExportRDFXML()
         std::string rdfxml = toRDFXML( getModel() );
         GError* err = nullptr;
         GsfOutput* gsf = UT_go_file_create( afp.getPath().c_str(), &err );
+        if( !gsf )
+            return;
         gsf_output_write( gsf, rdfxml.size(), reinterpret_cast<const guint8*>(rdfxml.data() ));
         gsf_output_close( gsf );
     }

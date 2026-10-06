@@ -30,7 +30,11 @@
 #include "pf_Frag_Object.h"
 #include "pf_Frag_Strux.h"
 #include "ut_std_string.h"
+#include "ut_string.h"
 
+#include <cstring>
+#include <map>
+#include <vector>
 #include <sstream>
 #include <set>
 #include <iostream>
@@ -645,6 +649,720 @@ static librdf_model* getRedlandModel( PD_RDFModelHandle abimodel )
 #endif // ifdef WITH_REDLAND
 
 
+#ifndef WITH_REDLAND
+
+/********************************************************************************/
+/*** Built-in SPARQL-subset evaluator (no libredland) *****************************/
+/********************************************************************************/
+//
+// rasqal is not linked in this build, so the SELECT queries the RDF
+// subsystem issues internally (contact/event/location discovery,
+// xml:id scoping) are answered by this evaluator instead.  It covers
+// the subset of SPARQL the code generates: PREFIX declarations, SELECT
+// [DISTINCT] variables or *, a WHERE group of triple patterns,
+// OPTIONAL { ... } sub-groups, and FILTER( expr ) where expr is a
+// boolean combination of str(?var) =|"!=" "literal" comparisons, ||
+// and &&.  Queries outside the subset (CONSTRUCT, UNION, ORDER BY,
+// nested property paths, ...) parse-error and return no bindings.
+//
+namespace {
+
+enum SparqlTokType
+{
+    TOK_EOF, TOK_LBRACE, TOK_RBRACE, TOK_LPAREN, TOK_RPAREN,
+    TOK_DOT, TOK_COMMA, TOK_STAR, TOK_EQ, TOK_NEQ, TOK_OR, TOK_AND,
+    TOK_IRI, TOK_STRING, TOK_VAR, TOK_WORD
+};
+
+struct SparqlTok
+{
+    SparqlTokType type;
+    std::string   text;
+};
+
+class SparqlLexer
+{
+    const std::string& m_s;
+    std::string::size_type m_pos;
+    SparqlTok m_peeked;
+    bool m_havePeeked;
+
+    static bool isWordChar( char c )
+    {
+        return c > ' ' && strchr("{}(),*=\"'<>|&!?", c) == nullptr;
+    }
+
+  public:
+    explicit SparqlLexer( const std::string& s )
+        : m_s(s), m_pos(0), m_havePeeked(false)
+    {
+    }
+
+    const SparqlTok& peek()
+    {
+        if( !m_havePeeked )
+        {
+            nextInto( m_peeked );
+            m_havePeeked = true;
+        }
+        return m_peeked;
+    }
+
+    SparqlTok next()
+    {
+        SparqlTok t = peek();
+        m_havePeeked = false;
+        return t;
+    }
+
+  private:
+    void nextInto( SparqlTok& t )
+    {
+        t.text.clear();
+        while( m_pos < m_s.size() )
+        {
+            char c = m_s[m_pos];
+            if( isspace(static_cast<unsigned char>(c)) )
+            {
+                ++m_pos;
+                continue;
+            }
+            if( c == '#' )
+            {
+                while( m_pos < m_s.size() && m_s[m_pos] != '\n' )
+                    ++m_pos;
+                continue;
+            }
+            break;
+        }
+        if( m_pos >= m_s.size() )
+        {
+            t.type = TOK_EOF;
+            return;
+        }
+
+        const char c = m_s[m_pos];
+        switch( c )
+        {
+            case '{': ++m_pos; t.type = TOK_LBRACE; return;
+            case '}': ++m_pos; t.type = TOK_RBRACE; return;
+            case '(': ++m_pos; t.type = TOK_LPAREN; return;
+            case ')': ++m_pos; t.type = TOK_RPAREN; return;
+            case '.': ++m_pos; t.type = TOK_DOT;    return;
+            case ',': ++m_pos; t.type = TOK_COMMA;  return;
+            case '*': ++m_pos; t.type = TOK_STAR;   return;
+            case '|':
+                if( m_pos + 1 < m_s.size() && m_s[m_pos+1] == '|' )
+                {
+                    m_pos += 2; t.type = TOK_OR; return;
+                }
+                break;
+            case '&':
+                if( m_pos + 1 < m_s.size() && m_s[m_pos+1] == '&' )
+                {
+                    m_pos += 2; t.type = TOK_AND; return;
+                }
+                break;
+            case '=':
+                ++m_pos; t.type = TOK_EQ; return;
+            case '!':
+                if( m_pos + 1 < m_s.size() && m_s[m_pos+1] == '=' )
+                {
+                    m_pos += 2; t.type = TOK_NEQ; return;
+                }
+                break;
+            case '<':
+            {
+                std::string::size_type e = m_s.find( '>', m_pos + 1 );
+                if( e == std::string::npos )
+                {
+                    t.type = TOK_EOF;
+                    return;
+                }
+                t.type = TOK_IRI;
+                t.text = m_s.substr( m_pos + 1, e - m_pos - 1 );
+                m_pos = e + 1;
+                return;
+            }
+            case '"':
+            case '\'':
+            {
+                const char quote = c;
+                std::string::size_type p = m_pos + 1;
+                std::string v;
+                bool closed = false;
+                for( ; p < m_s.size(); ++p )
+                {
+                    char d = m_s[p];
+                    if( d == quote )
+                    {
+                        closed = true;
+                        ++p;
+                        break;
+                    }
+                    if( d == '\\' && p + 1 < m_s.size() )
+                    {
+                        ++p;
+                        switch( m_s[p] )
+                        {
+                            case 'n': v += '\n'; break;
+                            case 't': v += '\t'; break;
+                            case 'r': v += '\r'; break;
+                            default:  v += m_s[p]; break;
+                        }
+                        continue;
+                    }
+                    v += d;
+                }
+                if( !closed )
+                {
+                    t.type = TOK_EOF;
+                    return;
+                }
+                t.type = TOK_STRING;
+                t.text = v;
+                m_pos = p;
+                return;
+            }
+            case '?':
+            case '$':
+            {
+                std::string::size_type p = m_pos + 1;
+                const std::string::size_type b = p;
+                // SPARQL var names cannot contain ':' or '.'
+                while( p < m_s.size() && isWordChar( m_s[p] ) &&
+                       m_s[p] != ':' && m_s[p] != '.' )
+                    ++p;
+                if( p == b )
+                {
+                    t.type = TOK_EOF;
+                    return;
+                }
+                t.type = TOK_VAR;
+                t.text = m_s.substr( b, p - b );
+                m_pos = p;
+                return;
+            }
+            default:
+            {
+                if( !isWordChar( c ) )
+                {
+                    ++m_pos;
+                    t.type = TOK_EOF;
+                    return;
+                }
+                std::string::size_type p = m_pos;
+                while( p < m_s.size() && isWordChar( m_s[p] ) )
+                    ++p;
+                // a '.' can legitimately appear inside a prefixed
+                // name (geo84:x.y) but a trailing '.' is the pattern
+                // terminator -- hand it back as TOK_DOT
+                while( p > m_pos && m_s[p-1] == '.' )
+                    --p;
+                t.type = TOK_WORD;
+                t.text = m_s.substr( m_pos, p - m_pos );
+                m_pos = p;
+                return;
+            }
+        }
+        // unrecognised character
+        ++m_pos;
+        t.type = TOK_EOF;
+    }
+};
+
+static bool tokIsKeyword( const SparqlTok& t, const char* kw )
+{
+    if( t.type != TOK_WORD )
+        return false;
+    return g_ascii_strcasecmp( t.text.c_str(), kw ) == 0;
+}
+
+struct SparqlTerm
+{
+    enum Kind { VAR, IRI, LITERAL, BNODE } kind;
+    std::string text;   // IRI: expanded uri; LITERAL/BNODE: lexical form; VAR: name
+};
+
+struct SparqlPattern
+{
+    SparqlTerm s, p, o;
+};
+
+struct SparqlFilterAtom
+{
+    bool negated = false;      // '=' vs '!='
+    std::string var;           // str(?var) or bare ?var operand
+    std::string literal;       // comparison literal
+};
+
+struct SparqlFilter
+{
+    // disjunction of conjunctions of atoms
+    std::vector< std::vector< SparqlFilterAtom > > disj;
+};
+
+struct SparqlGroup
+{
+    std::vector< SparqlPattern > patterns;
+    std::vector< SparqlGroup >   optionals;
+    std::vector< SparqlFilter >  filters;
+};
+
+struct SparqlQuery
+{
+    bool distinct = false;
+    bool selectAll = false;
+    std::vector< std::string > selectVars;
+    SparqlGroup where;
+};
+
+class SparqlParser
+{
+    SparqlLexer m_lex;
+    std::map< std::string, std::string > m_prefixes;
+    bool m_ok;
+
+  public:
+    explicit SparqlParser( const std::string& q )
+        : m_lex( q )
+        , m_ok( true )
+    {
+        // well-known defaults, same table PD_RDFModel::getUriToPrefix uses
+        m_prefixes["rdf"]   = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
+        m_prefixes["rdfs"]  = "http://www.w3.org/2000/01/rdf-schema#";
+        m_prefixes["foaf"]  = "http://xmlns.com/foaf/0.1/";
+        m_prefixes["pkg"]   = "http://docs.oasis-open.org/opendocument/meta/package/common#";
+        m_prefixes["odf"]   = "http://docs.oasis-open.org/opendocument/meta/package/odf#";
+        m_prefixes["dc"]    = "http://purl.org/dc/elements/1.1/";
+        m_prefixes["dcterms"] = "http://dublincore.org/documents/dcmi-terms/#";
+        m_prefixes["cal"]   = "http://www.w3.org/2002/12/cal/icaltzd#";
+        m_prefixes["geo84"] = "http://www.w3.org/2003/01/geo/wgs84_pos#";
+    }
+
+    bool parse( SparqlQuery& q )
+    {
+        // prologue: [prefix] pfx: <iri> / base <iri>
+        while( tokIsKeyword( m_lex.peek(), "prefix" ) ||
+               tokIsKeyword( m_lex.peek(), "base" ) )
+        {
+            bool isPrefix = tokIsKeyword( m_lex.next(), "prefix" );
+            if( isPrefix )
+            {
+                SparqlTok pfx = m_lex.next();            // e.g. "foaf:"
+                SparqlTok iri = m_lex.next();
+                if( pfx.type != TOK_WORD || iri.type != TOK_IRI )
+                    return false;
+                std::string name = pfx.text;
+                if( !name.empty() && name[name.size()-1] == ':' )
+                    name.erase( name.size()-1 );
+                m_prefixes[name] = iri.text;
+            }
+            else
+            {
+                if( m_lex.next().type != TOK_IRI )
+                    return false;
+            }
+        }
+
+        if( !tokIsKeyword( m_lex.next(), "select" ) )
+            return false;
+
+        if( tokIsKeyword( m_lex.peek(), "distinct" ) ||
+            tokIsKeyword( m_lex.peek(), "reduced" ) )
+        {
+            m_lex.next();
+            q.distinct = true;
+        }
+
+        if( m_lex.peek().type == TOK_STAR )
+        {
+            m_lex.next();
+            q.selectAll = true;
+        }
+        else
+        {
+            while( m_lex.peek().type == TOK_VAR )
+                q.selectVars.push_back( m_lex.next().text );
+            if( q.selectVars.empty() )
+                return false;
+        }
+
+        if( tokIsKeyword( m_lex.peek(), "where" ) )
+            m_lex.next();
+        if( m_lex.next().type != TOK_LBRACE )
+            return false;
+        if( !parseGroup( q.where ) )
+            return false;
+
+        // reject trailing content: only EOF acceptable
+        return m_ok && m_lex.next().type == TOK_EOF;
+    }
+
+  private:
+    bool parseGroup( SparqlGroup& g )
+    {
+        for(;;)
+        {
+            const SparqlTok& t = m_lex.peek();
+            if( t.type == TOK_EOF )
+                return false;
+            if( t.type == TOK_RBRACE )
+            {
+                m_lex.next();
+                return true;
+            }
+            if( t.type == TOK_DOT )
+            {
+                m_lex.next();
+                continue;
+            }
+            if( tokIsKeyword( t, "optional" ) )
+            {
+                m_lex.next();
+                if( m_lex.next().type != TOK_LBRACE )
+                    return false;
+                SparqlGroup sub;
+                if( !parseGroup( sub ) )
+                    return false;
+                g.optionals.push_back( sub );
+                continue;
+            }
+            if( tokIsKeyword( t, "filter" ) )
+            {
+                m_lex.next();
+                if( m_lex.next().type != TOK_LPAREN )
+                    return false;
+                SparqlFilter f;
+                if( !parseFilterOr( f.disj ) )
+                    return false;
+                if( m_lex.next().type != TOK_RPAREN )
+                    return false;
+                g.filters.push_back( f );
+                continue;
+            }
+            // unsupported group elements: fail the whole query
+            if( tokIsKeyword( t, "union" ) || tokIsKeyword( t, "graph" ) ||
+                tokIsKeyword( t, "minus" )  || tokIsKeyword( t, "service" ) ||
+                tokIsKeyword( t, "group" )  || tokIsKeyword( t, "order" ) ||
+                tokIsKeyword( t, "limit" )  || tokIsKeyword( t, "values" ) )
+            {
+                return false;
+            }
+
+            SparqlPattern pat;
+            if( !parseTerm( pat.s ) || !parseTerm( pat.p ) || !parseTerm( pat.o ) )
+                return false;
+            g.patterns.push_back( pat );
+            if( m_lex.peek().type == TOK_DOT )
+                m_lex.next();
+        }
+    }
+
+    bool parseTerm( SparqlTerm& term )
+    {
+        SparqlTok t = m_lex.next();
+        switch( t.type )
+        {
+            case TOK_VAR:
+                term.kind = SparqlTerm::VAR;
+                term.text = t.text;
+                return true;
+            case TOK_IRI:
+                term.kind = SparqlTerm::IRI;
+                term.text = t.text;
+                return true;
+            case TOK_STRING:
+                term.kind = SparqlTerm::LITERAL;
+                term.text = t.text;
+                return true;
+            case TOK_WORD:
+                if( t.text.size() > 2 && t.text.compare(0,2,"_:") == 0 )
+                {
+                    term.kind = SparqlTerm::BNODE;
+                    term.text = t.text;
+                    return true;
+                }
+                if( t.text == "a" )
+                {
+                    term.kind = SparqlTerm::IRI;
+                    term.text = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
+                    return true;
+                }
+                {
+                    std::string::size_type colon = t.text.find(':');
+                    if( colon != std::string::npos )
+                    {
+                        std::map< std::string, std::string >::const_iterator
+                            mi = m_prefixes.find( t.text.substr(0, colon) );
+                        if( mi != m_prefixes.end() )
+                        {
+                            term.kind = SparqlTerm::IRI;
+                            term.text = mi->second + t.text.substr(colon+1);
+                            return true;
+                        }
+                    }
+                    // undeclared prefix or bare word: match as a literal
+                    // string so queries degrade gracefully
+                    term.kind = SparqlTerm::LITERAL;
+                    term.text = t.text;
+                    return true;
+                }
+            default:
+                return false;
+        }
+    }
+
+    bool parseFilterOr( std::vector< std::vector< SparqlFilterAtom > >& disj )
+    {
+        std::vector< SparqlFilterAtom > conj;
+        if( !parseFilterAnd( conj ) )
+            return false;
+        disj.push_back( conj );
+        while( m_lex.peek().type == TOK_OR )
+        {
+            m_lex.next();
+            conj.clear();
+            if( !parseFilterAnd( conj ) )
+                return false;
+            disj.push_back( conj );
+        }
+        return true;
+    }
+
+    bool parseFilterAnd( std::vector< SparqlFilterAtom >& conj )
+    {
+        if( !parseFilterAtom( conj ) )
+            return false;
+        while( m_lex.peek().type == TOK_AND )
+        {
+            m_lex.next();
+            if( !parseFilterAtom( conj ) )
+                return false;
+        }
+        return true;
+    }
+
+    bool parseFilterAtom( std::vector< SparqlFilterAtom >& conj )
+    {
+        if( m_lex.peek().type == TOK_LPAREN )
+        {
+            // parenthesised sub-expression: merge its single-branch
+            // conjunction; a multi-branch OR nested inside an AND
+            // can't be folded into this flat representation -- fail
+            // the query rather than mis-evaluate it
+            m_lex.next();
+            std::vector< std::vector< SparqlFilterAtom > > inner;
+            if( !parseFilterOr( inner ) )
+                return false;
+            if( m_lex.next().type != TOK_RPAREN )
+                return false;
+            if( inner.size() != 1 )
+                return false;
+            conj.insert( conj.end(), inner[0].begin(), inner[0].end() );
+            return true;
+        }
+
+        SparqlFilterAtom a;
+        // left operand: str(?v) or bare ?v
+        if( tokIsKeyword( m_lex.peek(), "str" ) )
+        {
+            m_lex.next();
+            if( m_lex.next().type != TOK_LPAREN )
+                return false;
+            SparqlTok v = m_lex.next();
+            if( v.type != TOK_VAR )
+                return false;
+            if( m_lex.next().type != TOK_RPAREN )
+                return false;
+            a.var = v.text;
+        }
+        else if( m_lex.peek().type == TOK_VAR )
+        {
+            a.var = m_lex.next().text;
+        }
+        else
+        {
+            return false;
+        }
+
+        const SparqlTok op = m_lex.next();
+        if( op.type == TOK_EQ )
+            a.negated = false;
+        else if( op.type == TOK_NEQ )
+            a.negated = true;
+        else
+            return false;
+
+        SparqlTok rhs = m_lex.next();
+        if( rhs.type != TOK_STRING && rhs.type != TOK_IRI && rhs.type != TOK_WORD )
+            return false;
+        a.literal = rhs.text;
+
+        conj.push_back( a );
+        return true;
+    }
+};
+
+typedef std::map< std::string, std::string > SparqlBinding;
+
+static bool termMatches( const SparqlTerm& t,
+                         const std::string& nodeValue,
+                         bool nodeIsLiteral )
+{
+    switch( t.kind )
+    {
+        case SparqlTerm::IRI:
+            return nodeValue == t.text && !nodeIsLiteral;
+        case SparqlTerm::BNODE:
+            return nodeValue == t.text;
+        case SparqlTerm::LITERAL:
+            return nodeValue == t.text;
+        default:
+            return true;    // VAR binds anything
+    }
+}
+
+static bool bindTerm( SparqlBinding& b,
+                      const SparqlTerm& t,
+                      const std::string& nodeValue,
+                      bool nodeIsLiteral )
+{
+    if( t.kind == SparqlTerm::VAR )
+    {
+        SparqlBinding::iterator it = b.find( t.text );
+        if( it == b.end() )
+        {
+            b[t.text] = nodeValue;
+            return true;
+        }
+        return it->second == nodeValue;
+    }
+    return termMatches( t, nodeValue, nodeIsLiteral );
+}
+
+static void joinPattern( std::vector< SparqlBinding >& bindings,
+                         const SparqlPattern& pat,
+                         PD_RDFModelHandle model,
+                         std::size_t maxRows )
+{
+    std::vector< SparqlBinding > out;
+    for( std::vector< SparqlBinding >::iterator bi = bindings.begin();
+         bi != bindings.end(); ++bi )
+    {
+        for( PD_RDFModelIterator it = model->begin();
+             it != model->end(); ++it )
+        {
+            const PD_RDFStatement& st = *it;
+            if( !st.isValid() )
+                continue;
+
+            SparqlBinding cand = *bi;
+            if( !bindTerm( cand, pat.s, st.getSubject().toString(), false ) )
+                continue;
+            if( !bindTerm( cand, pat.p, st.getPredicate().toString(), false ) )
+                continue;
+            if( !bindTerm( cand, pat.o, st.getObject().toString(),
+                           st.getObject().isLiteral() ) )
+                continue;
+            out.push_back( cand );
+            if( out.size() >= maxRows )
+            {
+                bindings = out;
+                return;
+            }
+        }
+    }
+    bindings.swap( out );
+}
+
+static bool filterPasses( const SparqlFilter& f, const SparqlBinding& b )
+{
+    for( std::vector< std::vector< SparqlFilterAtom > >::const_iterator
+             di = f.disj.begin(); di != f.disj.end(); ++di )
+    {
+        bool conjOk = true;
+        for( std::vector< SparqlFilterAtom >::const_iterator
+                 ai = di->begin(); ai != di->end(); ++ai )
+        {
+            SparqlBinding::const_iterator v = b.find( ai->var );
+            // comparing an unbound variable is an error in SPARQL and
+            // drops the row for both = and !=
+            bool eq = (v != b.end() && v->second == ai->literal);
+            bool pass = (v != b.end()) && (ai->negated ? !eq : eq);
+            if( !pass )
+            {
+                conjOk = false;
+                break;
+            }
+        }
+        if( conjOk )
+            return true;
+    }
+    return false;
+}
+
+static void evalGroup( const SparqlGroup& g,
+                       std::vector< SparqlBinding >& bindings,
+                       PD_RDFModelHandle model,
+                       std::size_t maxRows )
+{
+    for( std::vector< SparqlPattern >::const_iterator
+             pi = g.patterns.begin(); pi != g.patterns.end(); ++pi )
+    {
+        joinPattern( bindings, *pi, model, maxRows );
+        if( bindings.empty() )
+            break;
+    }
+
+    for( std::vector< SparqlGroup >::const_iterator
+             oi = g.optionals.begin(); oi != g.optionals.end(); ++oi )
+    {
+        std::vector< SparqlBinding > out;
+        for( std::vector< SparqlBinding >::iterator
+                 bi = bindings.begin(); bi != bindings.end(); ++bi )
+        {
+            std::vector< SparqlBinding > ext( 1, *bi );
+            evalGroup( *oi, ext, model, maxRows );
+            if( ext.empty() )
+            {
+                out.push_back( *bi );   // left-join: keep unextended
+            }
+            else
+            {
+                for( std::vector< SparqlBinding >::iterator
+                         xi = ext.begin(); xi != ext.end(); ++xi )
+                {
+                    out.push_back( *xi );
+                    if( out.size() >= maxRows )
+                        break;
+                }
+            }
+            if( out.size() >= maxRows )
+                break;
+        }
+        bindings.swap( out );
+    }
+
+    for( std::vector< SparqlFilter >::const_iterator
+             fi = g.filters.begin(); fi != g.filters.end(); ++fi )
+    {
+        std::vector< SparqlBinding > out;
+        for( std::vector< SparqlBinding >::iterator
+                 bi = bindings.begin(); bi != bindings.end(); ++bi )
+        {
+            if( filterPasses( *fi, *bi ) )
+                out.push_back( *bi );
+        }
+        bindings.swap( out );
+    }
+}
+
+} // anonymous namespace
+
+#endif // !WITH_REDLAND
+
+
 
 /**
  * Perpare to execute a SPARQL query on the submodel 'm' of the whole
@@ -672,8 +1390,60 @@ PD_RDFQuery::executeQuery( const std::string& sparql_query_string )
     PD_ResultBindings_t ret;
 
 #ifndef WITH_REDLAND
-	UT_UNUSED(sparql_query_string);
-	return ret;
+    // Built-in SPARQL-subset evaluator; covers the query shapes the
+    // RDF subsystem generates internally.  Queries outside the subset
+    // return no bindings rather than mis-evaluating.
+    if( !m_model || m_model->empty() )
+        return ret;
+
+    SparqlQuery q;
+    SparqlParser parser( sparql_query_string );
+    if( !parser.parse( q ) )
+    {
+        UT_DEBUGMSG(("PD_RDFQuery::executeQuery() unsupported SPARQL, no bindings\n"));
+        return ret;
+    }
+
+    const std::size_t maxRows = 100000;
+    std::vector< SparqlBinding > bindings( 1 );
+    evalGroup( q.where, bindings, m_model, maxRows );
+
+    std::set< std::string > seen;
+    for( std::vector< SparqlBinding >::iterator
+             bi = bindings.begin(); bi != bindings.end(); ++bi )
+    {
+        std::map< std::string, std::string > row;
+        if( q.selectAll )
+            row = *bi;
+        else
+        {
+            for( std::vector< std::string >::const_iterator
+                     vi = q.selectVars.begin(); vi != q.selectVars.end(); ++vi )
+            {
+                SparqlBinding::const_iterator v = bi->find( *vi );
+                if( v != bi->end() )
+                    row[*vi] = v->second;
+            }
+        }
+
+        if( q.distinct )
+        {
+            std::string key;
+            for( std::map< std::string, std::string >::const_iterator
+                     ri = row.begin(); ri != row.end(); ++ri )
+            {
+                key += ri->first;
+                key += '\x01';
+                key += ri->second;
+                key += '\x02';
+            }
+            if( seen.count( key ) )
+                continue;
+            seen.insert( key );
+        }
+        ret.push_back( row );
+    }
+    return ret;
 #else
         
     if( m_model->empty() )

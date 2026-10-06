@@ -140,6 +140,8 @@ libtext_la_SOURCES = \
 	ptbl/xp/pd_RDFQuery.cpp \
 	ptbl/xp/pd_RDFSupport.h \
 	ptbl/xp/pd_RDFSupport.cpp \
+	ptbl/xp/pd_RDFXMLParser.h \
+	ptbl/xp/pd_RDFXMLParser.cpp \
 	ptbl/xp/pd_Iterator.cpp \
 	ptbl/xp/pd_Iterator.h \
 	ptbl/xp/pd_Style.cpp \

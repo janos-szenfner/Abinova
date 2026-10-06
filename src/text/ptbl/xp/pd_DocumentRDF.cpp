@@ -411,31 +411,66 @@ PD_RDFModel::getUriToPrefix()
 
 /**
  * Read a string which is prefixed with it's length in ascii from the
- * given stream.
+ * given stream. The serialized form lives inside document files so it
+ * is attacker-controlled: reject negative or absurd lengths and any
+ * read that does not produce exactly the declared byte count.
  * @param iss stream to read length and string from
- * @return string
+ * @param out receives the string on success
+ * @return true on success, false on malformed input
  */
-static std::string readLengthPrefixedString( std::istream& iss )
+static bool readLengthPrefixedString( std::istream& iss, std::string& out )
 {
-    char ch;
-    int len = 0;
-    iss >> len >> std::noskipws >> ch;
+    char ch = 0;
+    long len = 0;
+    if( !(iss >> len >> std::noskipws >> ch) )
+        return false;
+
+    // in_avail() is not meaningful on streams written via <<, so the
+    // only sanity bound is a generous hard cap; the gcount() check
+    // below catches a length that overruns the real payload
+    if( len < 0 || len > (256L << 20) )
+        return false;
 
 #if DEBUG
     if( DEBUG_LOWLEVEL_IO )
     {
         std::streamoff loc = iss.tellg();
-        UT_DEBUGMSG(("PD_DocumentRDF::readLengthPrefixedString() len:%d loc:%ld\n", 
+        UT_DEBUGMSG(("PD_DocumentRDF::readLengthPrefixedString() len:%ld loc:%ld\n",
 					 len, static_cast<long>(loc)));
     }
 #endif
-    
-    char* p = new char[len+2];
-    memset( p, 0, len+2 );
-    iss.read( p, len );
-    std::string ret = p;
-    delete [] p;
-    return ret;
+
+    out.resize( static_cast<std::size_t>(len) );
+    iss.read( &out[0], len );
+    if( iss.gcount() != len )
+        return false;
+    return true;
+}
+
+/**
+ * Escape a value for inclusion inside a "..." SPARQL string literal.
+ * Values interpolated into generated queries (xml:id anchors, linking
+ * subjects) come from document content and can contain quotes or
+ * backslashes that would otherwise break out of the literal.
+ */
+static std::string escapeSparqlLiteral( const std::string& s )
+{
+    std::string out;
+    out.reserve( s.size() );
+    for( std::string::const_iterator it = s.begin(); it != s.end(); ++it )
+    {
+        const char c = *it;
+        switch( c )
+        {
+            case '"':  out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\n': out += "\\n";  break;
+            case '\r': out += "\\r";  break;
+            case '\t': out += "\\t";  break;
+            default:   out += c;
+        }
+    }
+    return out;
 }
 
 /**
@@ -468,16 +503,17 @@ static std::string combinePO(const PD_URI& p, const PD_Object& o )
  * Split up a packed double that contains a predicate and object.
  * @see combinePO()
  */
-static std::pair< PD_URI, PD_Object > splitPO( const std::string& po )
+static bool splitPO( const std::string& po, std::pair< PD_URI, PD_Object >& out )
 {
     std::stringstream ss;
     ss << po;
-    
+
     PD_URI p;
     PD_Object o;
-    p.read( ss );
-    o.read( ss );
-    return std::make_pair( p, o );
+    if( !p.read( ss ) || !o.read( ss ) )
+        return false;
+    out = std::make_pair( p, o );
+    return true;
 }
 
 /**
@@ -492,20 +528,27 @@ static POCol decodePOCol( const std::string& data )
     if( data.empty() )
         return ret;
 
-    char ch;
-    int sz = 0;
+    char ch = 0;
+    long sz = 0;
     std::stringstream ss;
     ss << data;
-    ss >> sz >> std::noskipws >> ch;
-//    UT_DEBUGMSG(("PD_DocumentRDF::decodePOCol() sz:%d\n", sz ));
-    for( int i=0; i<sz; ++i )
+    if( !(ss >> sz >> std::noskipws >> ch) )
+        return ret;
+    // sz can't exceed the number of bytes in the payload
+    if( sz < 0 || static_cast<std::string::size_type>(sz) > data.size() )
+        return ret;
+//    UT_DEBUGMSG(("PD_DocumentRDF::decodePOCol() sz:%ld\n", sz ));
+    for( long i=0; i<sz; ++i )
     {
-        std::string po = readLengthPrefixedString( ss );
+        std::string po;
+        if( !readLengthPrefixedString( ss, po ) )
+            break;
         ss >> std::noskipws >> ch;
 //        UT_DEBUGMSG(("PD_DocumentRDF::decodePOCol() po:%s\n", po.c_str() ));
-        
-        std::pair< PD_URI, PD_Object > p = splitPO( po );
-        ret.insert(p);
+
+        std::pair< PD_URI, PD_Object > p;
+        if( splitPO( po, p ) )
+            ret.insert(p);
     }
     return ret;
 }
@@ -591,12 +634,15 @@ PD_URI::prefixedToURI( const PD_RDFModelHandle & model ) const
  */
 bool PD_URI::read( std::istream& ss )
 {
-    char ch;
+    char ch = 0;
     int version = 0;
     int numParts = 0;
-    ss >> version  >> std::noskipws >> ch;
-    ss >> numParts >> std::noskipws >> ch;
-    m_value = readLengthPrefixedString(ss);
+    if( !(ss >> version  >> std::noskipws >> ch) )
+        return false;
+    if( !(ss >> numParts >> std::noskipws >> ch) )
+        return false;
+    if( !readLengthPrefixedString(ss, m_value) )
+        return false;
     ss >> std::noskipws >> ch;
     return true;
 }
@@ -685,17 +731,25 @@ bool PD_Object::hasXSDType() const
 
 bool PD_Object::read( std::istream& ss )
 {
-    char ch;
+    char ch = 0;
     int version = 0;
     int numParts = 0;
-    ss >> version  >> std::noskipws >> ch;
-    ss >> numParts >> std::noskipws >> ch;
-    ss >> m_objectType >> std::noskipws >> ch;
-    m_value = readLengthPrefixedString(ss);
+    if( !(ss >> version  >> std::noskipws >> ch) )
+        return false;
+    if( !(ss >> numParts >> std::noskipws >> ch) )
+        return false;
+    if( !(ss >> m_objectType >> std::noskipws >> ch) )
+        return false;
+    if( m_objectType < OBJECT_TYPE_URI || m_objectType > OBJECT_TYPE_BNODE )
+        return false;
+    if( !readLengthPrefixedString(ss, m_value) )
+        return false;
     ss >> std::noskipws >> ch;
-    m_xsdType = readLengthPrefixedString(ss);
+    if( !readLengthPrefixedString(ss, m_xsdType) )
+        return false;
     ss >> std::noskipws >> ch;
-    m_context = readLengthPrefixedString(ss);
+    if( !readLengthPrefixedString(ss, m_context) )
+        return false;
     ss >> std::noskipws >> ch;
     return true;
 }
@@ -2278,7 +2332,7 @@ PD_RDFLocation::getXMLIDs() const
        << "where { " << std::endl
        << " ?s pkg:idref ?xmlid ." << std::endl
        << " ?s ?p ?o " << std::endl
-       << " . filter( str(?o) = \"" << m_linkingSubject.toString() << "\" )" << std::endl
+       << " . filter( str(?o) = \"" << escapeSparqlLiteral( m_linkingSubject.toString() ) << "\" )" << std::endl
        << "}" << std::endl;
     std::set<std::string> uniqfilter;
     PD_RDFQuery q( getRDF(), getRDF() );
@@ -2506,7 +2560,7 @@ PD_RDFSemanticItem::getXMLIDsForLinkingSubject( PD_DocumentRDFHandle rdf, const 
        << "select distinct ?s ?xmlid" << std::endl
        << "where { " << std::endl
        << " ?s pkg:idref ?xmlid " << std::endl
-       << " . filter( str(?s) = \"" << linkingSubj << "\" )" << std::endl
+       << " . filter( str(?s) = \"" << escapeSparqlLiteral( linkingSubj ) << "\" )" << std::endl
        << "}" << std::endl;
     std::set<std::string> uniqfilter;
     PD_RDFQuery q( rdf, rdf );
@@ -2762,6 +2816,11 @@ void
 PD_RDFSemanticItemViewSite::reflowUsingCurrentStylesheet( FV_View* pView )
 {
     PD_RDFSemanticStylesheetHandle ss = stylesheet();
+    if( !ss )
+    {
+        UT_DEBUGMSG(("reflowUsingCurrentStylesheet() no stylesheet, xmlid:%s\n", m_xmlid.c_str() ));
+        return;
+    }
     ss->format( m_semItem, pView, m_xmlid );
 }
 
@@ -2958,7 +3017,7 @@ PD_DocumentRDF::getSPARQL_LimitedToXMLIDList( const std::set< std::string >& xml
     for( std::set< std::string >::const_iterator iter = xmlids.begin();
          iter != xmlids.end(); ++iter )
     {
-        ss << joiner << " str(?rdflink) = \"" << *iter << "\" ";
+        ss << joiner << " str(?rdflink) = \"" << escapeSparqlLiteral( *iter ) << "\" ";
         joiner = " || ";
     }
     ss << " ) \n";
@@ -4716,7 +4775,7 @@ class ABI_EXPORT PD_RDFMutation_XMLIDLimited
                    << "where {  \n"
                    << " ?s ?p ?o .  \n"
                    << " ?s pkg:idref ?rdflink .  \n"
-                   << "   filter( str(?s) = \"" << subj << "\" ) . \n"
+                   << "   filter( str(?s) = \"" << escapeSparqlLiteral( subj ) << "\" ) . \n"
                    << "   filter( str(?p) != \"http://docs.oasis-open.org/opendocument/meta/package/common#idref\" ) \n"
                 << "} \n";
             
@@ -4961,6 +5020,8 @@ PD_DocumentRDF::getContacts( PD_RDFModelHandle alternateModel )
         uniqfilter.insert(n);
 
         PD_RDFContact* newItem = PD_DocumentRDF::getSemanticItemFactory()->createContact( rdf, it );
+        if( !newItem )
+            continue;
         PD_RDFContactHandle h( newItem );
         ret.push_back( h );
     }
@@ -5016,6 +5077,8 @@ PD_DocumentRDF::getEvents( PD_RDFModelHandle alternateModel )
         uniqfilter.insert(n);
 
         PD_RDFEvent* newItem = PD_DocumentRDF::getSemanticItemFactory()->createEvent( rdf, it );
+        if( !newItem )
+            continue;
         PD_RDFEventHandle h( newItem );
         ret.push_back( h );
     }
@@ -5045,6 +5108,8 @@ PD_DocumentRDF::addLocations( PD_RDFLocations& ret,
 
 #ifdef WITH_CHAMPLAIN
         PD_RDFLocation* newItem = PD_DocumentRDF::getSemanticItemFactory()->createLocation( rdf, it, isGeo84 );
+        if( !newItem )
+            continue;
         PD_RDFLocationHandle h( newItem );
         ret.push_back( h );
 #else
