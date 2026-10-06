@@ -4009,6 +4009,19 @@ below are on `main` but the release has not been cut yet.
   providers: the code released the file/RTF providers right after
   handing them to the union provider, which owns (not references)
   them, so `gdk_drag_begin` dereferenced dead objects.
+- **"Layout bomb" documents can no longer exhaust memory or hang
+  layout** — document loading now enforces structural caps on inputs
+  that were previously unbounded: total piece-table fragments
+  (1,000,000), container nesting depth (32) with a tighter bound for
+  nested tables (8), style definitions (65,536), list definitions
+  (8,192) and list-parent chains (64), table grids (32767×1024, the
+  same row limit Word documents), and ODF repeated rows/columns and
+  cell spans. Cell attach indices are clamped to the allocated grid —
+  a document claiming `right-attach="2000000"` previously drove layout
+  loops past the end of the row/column arrays and crashed. Anything
+  past a cap degrades to a truncated-but-openable document instead of
+  an OOM, a crash, or a never-terminating layout pass; normal
+  documents are unaffected.
 
 ### GTK4 port (core migration)
 

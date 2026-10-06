@@ -58,7 +58,8 @@ pt_PieceTable::pt_PieceTable(PD_Document * pDocument)
 	m_iXID(0),
 	m_iCurCRNumber(0),
 	m_iLoadContainerDepth(0),
-	m_iLoadSuppressedDepth(0)
+	m_iLoadSuppressedDepth(0),
+	m_iLoadTableDepth(0)
 {
 
 	setPieceTableState(PTS_Create);
@@ -390,13 +391,17 @@ bool pt_PieceTable::_dropStruxForLoadCaps(PTStruxType pts)
 
 	if (bBegin)
 	{
+		bool bTable = (pts == PTX_SectionTable);
 		if (   m_fragments.fragCount() >= PT_LOAD_MAX_FRAGMENTS
-			|| m_iLoadContainerDepth >= PT_LOAD_MAX_CONTAINER_DEPTH)
+			|| m_iLoadContainerDepth >= PT_LOAD_MAX_CONTAINER_DEPTH
+			|| (bTable && m_iLoadTableDepth >= PT_LOAD_MAX_TABLE_DEPTH))
 		{
 			++m_iLoadSuppressedDepth;
 			return true;
 		}
 		++m_iLoadContainerDepth;
+		if (bTable)
+			++m_iLoadTableDepth;
 		return false;
 	}
 
@@ -404,6 +409,8 @@ bool pt_PieceTable::_dropStruxForLoadCaps(PTStruxType pts)
 	{
 		if (m_iLoadContainerDepth)
 			--m_iLoadContainerDepth;
+		if (pts == PTX_EndTable && m_iLoadTableDepth)
+			--m_iLoadTableDepth;
 		return m_fragments.fragCount() >=
 			   PT_LOAD_MAX_FRAGMENTS + PT_LOAD_MAX_CONTAINER_DEPTH;
 	}

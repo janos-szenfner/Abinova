@@ -49,6 +49,13 @@ typedef UT_uint32 PT_BlockOffset;
  */
 [[maybe_unused]] constexpr UT_uint32 PT_LOAD_MAX_FRAGMENTS       = 1000000;
 [[maybe_unused]] constexpr UT_uint32 PT_LOAD_MAX_CONTAINER_DEPTH = 32;
+// Nested tables get their own, tighter bound: table layout cost
+// grows steeply (super-linearly) with nesting depth because each
+// inner table's format pass propagates back through every ancestor
+// cell, so even ~a dozen nested tables take minutes to lay out.
+// Real-world documents essentially never nest tables deeper than a
+// few levels.
+[[maybe_unused]] constexpr UT_uint32 PT_LOAD_MAX_TABLE_DEPTH     = 8;
 [[maybe_unused]] constexpr UT_uint32 PT_LOAD_MAX_STYLES          = 65536;
 [[maybe_unused]] constexpr UT_uint32 PT_LOAD_MAX_LISTS           = 8192;
 [[maybe_unused]] constexpr UT_uint32 PT_LOAD_MAX_LIST_DEPTH      = 64;

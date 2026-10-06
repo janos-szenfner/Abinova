@@ -2642,6 +2642,18 @@ void fl_CellLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 		m_iBottomAttach = m_iTopAttach+1;
 	}
 
+	// HARD05: clamp document-supplied attach indices — they index
+	// fp_TableContainer's row/column arrays and bound several layout
+	// loops, so a degenerate file must not push them past the
+	// allocated grid (or negative, which wraps when indexed as
+	// UT_uint32).
+	m_iLeftAttach   = UT_MAX(0, UT_MIN(m_iLeftAttach, FP_TABLE_MAX_COLS - 1));
+	m_iRightAttach  = UT_MAX(m_iLeftAttach + 1,
+							 UT_MIN(m_iRightAttach, FP_TABLE_MAX_COLS));
+	m_iTopAttach    = UT_MAX(0, UT_MIN(m_iTopAttach, FP_TABLE_MAX_ROWS - 1));
+	m_iBottomAttach = UT_MAX(m_iTopAttach + 1,
+							 UT_MIN(m_iBottomAttach, FP_TABLE_MAX_ROWS));
+
 	/* cell-border properties:
 	 */
 	const gchar * pszColor = nullptr;

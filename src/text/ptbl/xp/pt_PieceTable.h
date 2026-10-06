@@ -683,4 +683,7 @@ protected:
 	// a cap was exceeded.
 	UT_uint32               m_iLoadContainerDepth;
 	UT_uint32               m_iLoadSuppressedDepth;
+	// Nesting depth of open PTX_SectionTable struxes (tables are the
+	// expensive container to nest — see PT_LOAD_MAX_TABLE_DEPTH).
+	UT_uint32               m_iLoadTableDepth;
 };

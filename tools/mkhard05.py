@@ -67,8 +67,8 @@ write('bomb_depth.abwn', abwn(
 # 10000 list defs chained parentid -> previous (count + ancestor depth)
 lists = ['<lists>']
 for i in range(1, 10001):
-    pid = f' parentid="{i - 1}"' if i > 1 else ''
-    lists.append(f'<l id="{i}"{pid} type="0" list-style="Numbered"'
+    lists.append(f'<l id="{i}" parentid="{i - 1}" type="0"'
+                 f' list-style="Numbered"'
                  f' start-value="1" list-delim="%L."/>')
 lists.append('</lists>')
 write('bomb_lists.abwn', abwn(
@@ -161,8 +161,9 @@ all_prelude = (
     '<styles>' + ''.join(
         f'<s name="S{i}" type="P"/>' for i in range(70000))
     + '</styles><lists>' + ''.join(
-        f'<l id="{i}"{f" parentid=\"{i - 1}\"" if i > 1 else ""}'
-        ' type="0" list-style="Bulleted"/>'
+        f'<l id="{i}" parentid="{i - 1}"'
+        ' type="0" list-style="Bulleted"'
+        ' start-value="1" list-delim="%L."/>'
         for i in range(1, 9001))
     + '</lists>')
 write('bomb_all.abwn', abwn(all_body, all_prelude))
