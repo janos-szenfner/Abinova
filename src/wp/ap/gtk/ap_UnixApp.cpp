@@ -1124,11 +1124,17 @@ static void s_open(GApplication*, gpointer files, gint n_files, gchar* /*hint*/,
  */
 void AP_UnixApp::_appActivate()
 {
-	static bool s_firstActivationDone = false;
-	if (!s_firstActivationDone)
+	if (!m_bFirstActivationDone)
 	{
-		s_firstActivationDone = true;
+		m_bFirstActivationDone = true;
 		openCmdLineFiles(m_args.get());
+		/* macOS Finder launches deliver documents through the "open"
+		 * signal, which arrives AFTER this activate (the launch has
+		 * no cmdline files, so GLib activates us and the untitled
+		 * frame above gets created first).  Remember it so _appOpen
+		 * can drop it if documents arrive right behind. */
+		if (AP_Args::m_sFiles == nullptr)
+			m_pPristineFrame = getLastFocussedFrame();
 		recoverAutosavedDocs();
 		return;
 	}
@@ -1140,8 +1146,18 @@ void AP_UnixApp::_appActivate()
 
 void AP_UnixApp::_appOpen(GFile* files[], gint n_files)
 {
-	if (!files) {
+	if (!files || n_files <= 0) {
 		return;
+	}
+	if (!m_bFirstActivationDone)
+	{
+		/* With G_APPLICATION_HANDLES_OPEN (macOS build) a launch
+		 * that carries files emits "open" INSTEAD of "activate" —
+		 * run the once-per-launch recovery activate would have
+		 * done.  openCmdLineFiles is deliberately skipped: the
+		 * files opened below ARE the command line. */
+		m_bFirstActivationDone = true;
+		recoverAutosavedDocs();
 	}
 	for (gint i = 0; i < n_files; i++) {
 		char* uri = g_file_get_uri(files[i]);
@@ -1150,6 +1166,29 @@ void AP_UnixApp::_appOpen(GFile* files[], gint n_files)
 			g_free(uri);
 		} else {
 			UT_DEBUGMSG(("can't get uri for file to open"));
+		}
+	}
+
+	/* Drop the untitled placeholder frame _appActivate recorded when
+	 * the launch carried no documents — but only while it is still
+	 * pristine (untitled and unedited), so nothing the user typed is
+	 * ever lost.  The pointer may be stale (frame closed meanwhile),
+	 * so it is revalidated against the frame list. */
+	XAP_Frame *pPristine = m_pPristineFrame;
+	m_pPristineFrame = nullptr;
+	if (pPristine)
+	{
+		for (UT_sint32 i = 0; i < getFrameCount(); i++)
+		{
+			if (getFrame(i) != pPristine)
+				continue;
+			if (!pPristine->getFilename() && !pPristine->isDirty())
+			{
+				forgetFrame(pPristine);
+				pPristine->close();
+				delete pPristine;
+			}
+			break;
 		}
 	}
 }

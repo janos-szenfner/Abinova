@@ -74,7 +74,22 @@ XAP_UnixApp::XAP_UnixApp(const char * szAppName, const char* app_id)
 	  m_controlFactory(new AP_UnixToolbar_ControlFactory()),
 	  m_szTmpFile(nullptr),
 	  // XXX maybe we need better flags as we handle command line
-	  m_gtkApp(gtk_application_new(app_id, G_APPLICATION_DEFAULT_FLAGS))
+	  /* On macOS the bundle's Info.plist registers the document
+	   * types, so Finder double-clicks and dock drops are delivered
+	   * through GApplication's "open" signal — which GLib only
+	   * emits when G_APPLICATION_HANDLES_OPEN is set (the quartz
+	   * backend's openFiles delegate calls g_application_open(),
+	   * a no-op without the flag).  A launch carrying files then
+	   * gets "open" INSTEAD of "activate"; AP_UnixApp::_appOpen runs
+	   * the once-per-launch duties activate would have done.
+	   * Other platforms keep argv handling unchanged. */
+	  m_gtkApp(gtk_application_new(app_id,
+#ifdef __APPLE__
+		  G_APPLICATION_HANDLES_OPEN
+#else
+		  G_APPLICATION_DEFAULT_FLAGS
+#endif
+		  ))
 {
 	_setAbiSuiteLibDir();
 

@@ -548,7 +548,13 @@ ap_bs_Char CharTable[] =
 	{0x6e, /* n      */ { "insertData",			"fileNew",			DO_NOT_USE,		"viewNormalLayout"	}},
 	{0x6f, /* o      */ { "insertData",			"fileOpen",			DO_NOT_USE,		""					}},
 	{0x70, /* p      */ { "insertData",			"print",			DO_NOT_USE,		"viewPrintLayout"	}},
-	{0x71, /* q      */ { "insertData",			"clearParaFormatting",	DO_NOT_USE,	""					}},
+	{0x71, /* q      */ { "insertData",
+#ifdef __APPLE__
+						  "querySaveAndExit",	/* Cmd+Q = quit on macOS */
+#else
+						  "clearParaFormatting",
+#endif
+													DO_NOT_USE,	""					}},
 	{0x72, /* r      */ { "insertData",			"alignRight",		DO_NOT_USE,		"insertRegistered"	}},
 	{0x73, /* s      */ { "insertData",			"fileSave",		    DO_NOT_USE,		"viewSplit"			}},
 	{0x74, /* t      */ { "insertData",			"toggleOline",		DO_NOT_USE,		"insertTrademark"	}},

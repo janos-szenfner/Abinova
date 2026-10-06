@@ -153,6 +153,16 @@ protected:
 	PD_DocumentRange		m_cacheDocumentRangeOfSelection;
 private:
 	std::unique_ptr<AP_Args> m_args;
+	/* The untitled frame the first activation creates when launched
+	 * with no documents — dropped by _appOpen if the platform then
+	 * delivers files to open (macOS Finder double-click / dock drop),
+	 * so an empty window is not left next to the real documents. */
+	XAP_Frame *				m_pPristineFrame = nullptr;
+	/* Whether the once-per-launch startup sequence (cmdline files +
+	 * autosave recovery) has run — shared by _appActivate/_appOpen
+	 * because HANDLES_OPEN launches carrying files emit "open"
+	 * instead of "activate". */
+	bool					m_bFirstActivationDone = false;
 };
 
 // HACK What follows is an ugly hack. It is neccessitated by the

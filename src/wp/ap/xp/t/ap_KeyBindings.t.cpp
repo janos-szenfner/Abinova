@@ -131,7 +131,13 @@ TFTEST_MAIN("ap_KeyBindings")
 	TFPASS(expectChar('0', EV_EMS_CONTROL, "toggleParaBefore"));
 	TFPASS(expectChar('m', EV_EMS_CONTROL, "toggleIndent"));
 	TFPASS(expectChar('M', EV_EMS_CONTROL, "toggleUnIndent"));
+#ifdef __APPLE__
+	/* Cmd+Q quits on macOS; clearParaFormatting stays on Cmd+Shift+Q */
+	TFPASS(expectChar('q', EV_EMS_CONTROL, "querySaveAndExit"));
+	TFPASS(expectChar('Q', EV_EMS_CONTROL, "clearParaFormatting"));
+#else
 	TFPASS(expectChar('q', EV_EMS_CONTROL, "clearParaFormatting"));
+#endif
 	TFPASS(expectNVK(EV_NVK_SPACE, EV_EMS_CONTROL, "togglePlain"));
 	TFPASS(expectChar('N', EV_EMS_CONTROL, "setStyleNormal"));  /* Ctrl+Shift+N */
 	TFPASS(expectChar('1', EV_EMS_ALT | EV_EMS_CONTROL, "setStyleHeading1"));

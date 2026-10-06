@@ -822,13 +822,15 @@ delivered by GDK as Meta/Super — into the Control state, so every
 Ctrl binding above works as its Cmd equivalent out of the box
 (Cmd+S save, Cmd+P print, Cmd+B/I/U, Cmd+F find, Cmd+Home/End for
 document bounds, Cmd+; spell check, Cmd+, Preferences, and so on).
-Divergent Mac conventions are bound explicitly: Cmd+Shift+Z is redo
+Divergent Mac conventions are bound explicitly: Cmd+Q quits
+(querySaveAndExit — GTK4 ships no native macOS menubar, so nothing
+else would consume it; Cmd+Shift+Q keeps clearParaFormatting),
+Cmd+Shift+Z is redo
 (platform-conditional — Ctrl+Shift+Z stays undo elsewhere),
 Option+←/→ and Option+Shift+←/→ move/select by word, Option+Delete
 deletes the word to the left, and Ctrl+/Cmd+; opens the spell
 checker. ⌥ maps to Alt. Function keys may require Fn depending on
-the "Use F1, F2…" system setting, and window-manager shortcuts like
-Cmd+Q/Cmd+M are left to the platform. Bindings whose command does
+the "Use F1, F2…" system setting. Bindings whose command does
 not exist remain unbound on all platforms.
 
 ### GTK4 runtime fixes (this round)
@@ -2020,7 +2022,12 @@ launch unsigned).  `--sign-identity "Developer ID Application: …"`
 signature with hardened runtime + secure timestamp, and
 `--notarize-profile <profile>` (`ABINOVA_NOTARY_PROFILE`) additionally
 submits to Apple's notary service and staples the ticket — see
-`dist/SIGNING.md`.
+`dist/SIGNING.md`. The app is deliberately unsandboxed (direct
+distribution; `dist/Abinova.entitlements` is an empty plist applied
+by `sign-macos.sh`), and `Info.plist` registers the document types
+so Finder double-click / dock-drop reaches the app through GTK's
+`GApplication::open` — files opened that way replace the launch-time
+untitled window instead of sitting next to it.
 `Resources/hunspell` + `Resources/hyphen` carry whatever spell and
 hyphenation dictionaries the build host provides, and
 `Resources/fontconfig/` holds a private `fonts.conf` (+ resolved

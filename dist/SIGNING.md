@@ -37,8 +37,9 @@ Requirements for a release signature:
   Settings → Accounts → Manage Certificates, or
   https://developer.apple.com/account/resources/certificates).
 - Signing applies `--options runtime` (hardened runtime — mandatory
-  for notarization; the app requests no special entitlements) and
-  `--timestamp` (Apple's timestamp server).
+  for notarization) and `--timestamp` (Apple's timestamp server), and
+  embeds `dist/Abinova.entitlements` via `--entitlements`
+  (override with `--entitlements FILE` or `ABINOVA_ENTITLEMENTS`).
 - Notarization additionally needs a `notarytool` keychain profile:
 
   ```bash
@@ -59,6 +60,45 @@ codesign --verify --deep --strict --verbose=2 Abinova.app   # done by the script
 spctl -a -vv Abinova.app        # "accepted" only for Developer-ID + notarized
 xcrun stapler validate Abinova.app
 ```
+
+### Sandbox / entitlements decision
+
+Abinova is distributed **unsandboxed**. The App Sandbox is effectively
+an App-Store technology — direct distribution (Developer ID + hardened
+runtime + notarization) does not require it, and a document editor
+gets little from it:
+
+- Reading arbitrary user files works in a sandbox via the open
+  dialog, but *saving back* to a user-chosen document needs
+  security-scoped bookmarks (per-document, persisted) — real
+  machinery for no meaningful win on a word processor.
+- The update check and any future network feature would each need
+  their own `com.apple.security.network.*` entitlement.
+- Embedded-object launch, the screenshot portal and dictionary
+  discovery touch resources the sandbox restricts.
+
+The hardened runtime *is* enabled for Developer-ID signatures — it is
+what notarization requires, and it is independent of the sandbox.
+`dist/Abinova.entitlements` ships as an empty plist dict: it is the
+single place to add a capability if one is ever needed, and
+`sign-macos.sh` applies it automatically. If the app were ever
+sandboxed, a `com.apple.security.network.client` entitlement would be
+required or the update check silently fails.
+
+### Gatekeeper & first run (what users see)
+
+Files downloaded from the internet get `com.apple.quarantine` —
+what happens on double-click depends on the signature tier:
+
+| Signature | First launch |
+|---|---|
+| Developer-ID + notarized + stapled | Standard "downloaded from the internet" prompt → opens normally. Recommended release configuration. |
+| Developer-ID signed, not notarized | Gatekeeper blocks it ("cannot be opened because the developer cannot be verified") — users must right-click → Open → Open, or run `xattr -dr com.apple.quarantine Abinova.app`. Acceptable for internal/beta builds. |
+| Ad-hoc (`codesign -s -`, the default) | Runs fine on the machine that built it (arm64 requires *a* signature, not a trusted one). A downloaded copy is quarantined and reports "damaged or can't be opened" — fixable with `xattr -dr com.apple.quarantine Abinova.app`, but this is a build-host/dev artifact, not a distribution format. |
+
+Unsigned arm64 binaries do not launch at all, which is why
+`build-macos.sh --bundle` always applies at least the ad-hoc
+signature.
 
 ## Windows — Authenticode + NSIS installer
 

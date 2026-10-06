@@ -828,7 +828,9 @@ below are on `main` but the release has not been cut yet.
   GDK_META_MASK/GDK_SUPER_MASK (⌘ under Quartz/XQuartz) into
   EV_EMS_CONTROL, so every Ctrl binding resolves as its Cmd
   equivalent; Cmd+Shift+Z resolves to `redo` via a platform-conditional
-  binding (Ctrl+Shift+Z stays `undo` elsewhere), Option+←/→ move by
+  binding (Ctrl+Shift+Z stays `undo` elsewhere), Cmd+Q quits
+  (`querySaveAndExit`; Cmd+Shift+Q keeps `clearParaFormatting` on
+  macOS), Option+←/→ move by
   word (`warpInsPtBOW`/`warpInsPtEOW`), Option+Delete deletes a word
   left (`delBOW`), Cmd+; spell check, Cmd+, Preferences.
 - **Reassigned (Word takes precedence)** — Ctrl+K hyperlink
@@ -836,7 +838,8 @@ below are on `main` but the release has not been cut yet.
   bullets), Ctrl+M indent (was symbol dialog), Ctrl+N fileNew on
   the unshifted key with Ctrl+Shift+N applying Normal (was
   new-from-template), Ctrl+Q clear paragraph formatting (was quit;
-  quit stays on Alt+F4), Ctrl+Shift+V paste formatting (was a
+  quit stays on Alt+F4 — except on macOS, where ⌘Q still quits and
+  clear-format moves to ⌘⇧Q), Ctrl+Shift+V paste formatting (was a
   second paste), F12 Save As (was input-mode cycling —
   `cycleInputMode` remains available programmatically), Ctrl+=
   subscript and Ctrl+- optional hyphen (zoom remains on
@@ -4424,6 +4427,27 @@ below are on `main` but the release has not been cut yet.
   shared-mime-info package and the AppStream metainfo per-user under
   `~/.local/share` or system-wide under `/usr/local/share`.  See
   `dist/SIGNING.md` for the certificate setup.
+- **macOS app-integration layer** — the bundle is a well-behaved Mac
+  citizen beyond mere signing.  `Info.plist` registers the document
+  types and the `GApplication` is created with
+  `G_APPLICATION_HANDLES_OPEN` (macOS build only — other platforms
+  keep argv handling unchanged), so Finder double-click and
+  dock-drops actually reach the running app through
+  `GApplication::open` instead of being silently dropped, and when
+  a launch delivers documents that way the throwaway untitled
+  window that activation created first is dropped — only while it
+  is still pristine, so nothing typed is ever lost.  Cmd+Q is bound
+  to `querySaveAndExit` on macOS
+  only (Cmd+Shift+Q keeps `clearParaFormatting` there; other
+  platforms are unchanged), alongside the existing Cmd+, Preferences.
+  The distribution decision is documented in `dist/SIGNING.md`: the
+  app is deliberately **unsandboxed** (direct Developer-ID
+  distribution, not the App Store), and `dist/Abinova.entitlements`
+  ships as an empty plist that `sign-macos.sh` applies via
+  `codesign --entitlements` — the single documented extension point
+  if a capability is ever needed.  A Gatekeeper first-run table in
+  the same doc explains what users see for notarized,
+  Developer-ID-but-not-notarized and ad-hoc builds.
 - **Flatpak package** — a new flatpak-builder manifest at
   `io.github.janos_szenfner.Abinova.yml` (repo root) builds Abinova
   on `org.gnome.Platform`//51 with a tight permission set: Wayland +

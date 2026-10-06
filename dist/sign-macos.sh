@@ -3,7 +3,7 @@
 #
 # Usage:
 #   dist/sign-macos.sh [--identity NAME] [--notarize-profile PROFILE]
-#                      [--no-sign] <Abinova.app>
+#                      [--entitlements FILE] [--no-sign] <Abinova.app>
 #
 # Default (no --identity): AD-HOC signing — `codesign -s -` on every
 # Mach-O inside-out, then the .app itself.  Ad-hoc signing is the
@@ -21,9 +21,13 @@
 #   or export ABINOVA_CODESIGN_IDENTITY="Developer ID Application: ..."
 #
 # Real signing adds --options runtime (hardened runtime — mandatory
-# for notarization; no special entitlements are requested) and
-# --timestamp (secure timestamp server).  The app is then verified
-# with `codesign --verify --deep --strict`.
+# for notarization) and --timestamp (secure timestamp server).  The
+# app is intentionally NOT sandboxed (direct distribution; see
+# dist/Abinova.entitlements + dist/SIGNING.md), so the entitlement set
+# is an empty plist applied via --entitlements — override the file
+# with --entitlements FILE or ABINOVA_ENTITLEMENTS if a capability is
+# ever added.  The app is then verified with
+# `codesign --verify --deep --strict`.
 #
 # Notarization (--notarize-profile or ABINOVA_NOTARY_PROFILE): packs
 # the .app into a zip with ditto and submits it to Apple via
@@ -44,6 +48,7 @@ set -e
 
 identity=${ABINOVA_CODESIGN_IDENTITY:-}
 notary=${ABINOVA_NOTARY_PROFILE:-}
+entitlements=${ABINOVA_ENTITLEMENTS:-}
 sign=1
 appdir=""
 
@@ -53,8 +58,10 @@ while [ $# -gt 0 ]; do
 	--identity=*)        identity=${1#*=}; shift ;;
 	--notarize-profile)  notary=$2; shift 2 ;;
 	--notarize-profile=*) notary=${1#*=}; shift ;;
+	--entitlements)      entitlements=$2; shift 2 ;;
+	--entitlements=*)    entitlements=${1#*=}; shift ;;
 	--no-sign)           sign=0; shift ;;
-	-h|--help)           sed -n '2,42p' "$0"; exit 0 ;;
+	-h|--help)           sed -n '2,48p' "$0"; exit 0 ;;
 	-*)  echo "sign-macos: unknown option $1" >&2; exit 1 ;;
 	*)
 		if [ -n "$appdir" ]; then
@@ -90,10 +97,23 @@ is_macho() {
 
 # codesign arguments for a single file: identity signing adds the
 # hardened runtime and a secure timestamp, both required for a
-# notarization submission to be accepted.
+# notarization submission to be accepted.  The entitlement plist
+# (dist/Abinova.entitlements — an empty dict by decision, see
+# SIGNING.md) is applied when it exists so the file is the single
+# documented extension point; absent or unreadable files are skipped.
 cargs=""
 if [ -n "$identity" ]; then
 	cargs="--options runtime --timestamp"
+	if [ -z "$entitlements" ]; then
+		cand="$(cd "$(dirname "$0")" 2>/dev/null && pwd)/Abinova.entitlements"
+		[ -f "$cand" ] && entitlements=$cand
+	fi
+	if [ -n "$entitlements" ] && [ -f "$entitlements" ]; then
+		cargs="$cargs --entitlements $entitlements"
+	elif [ -n "$entitlements" ]; then
+		echo "sign-macos: entitlements file '$entitlements' not found" >&2
+		exit 1
+	fi
 fi
 
 # Sign every Mach-O inside-out, deepest path first so nested helpers

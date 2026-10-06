@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Abinova entitlements - deliberately EMPTY.
+
+  Decision (MAC02): Abinova is distributed direct, not through the App
+  Store, so the App Sandbox is not enabled.  Sandboxing a document
+  editor gains little here and would cost real machinery:
+
+    * opening arbitrary user documents is already fine sandboxed via
+      the open dialog, but saving them back needs security-scoped
+      bookmarks (per-document, persisted, or the save panel each time);
+    * the update check needs com.apple.security.network.client;
+    * embedded-object launch and the screenshot path spawn/access
+      things the sandbox restricts.
+
+  The hardened runtime (codesign -o runtime, applied by
+  dist/sign-macos.sh for Developer-ID signatures) is still used - it
+  is what notarization requires and it is independent of the sandbox.
+
+  If a future capability genuinely needs an entitlement (library
+  validation exceptions, JIT, ...), add the key inside the dict below -
+  sign-macos.sh already passes this file to codesign.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict/>
+</plist>
