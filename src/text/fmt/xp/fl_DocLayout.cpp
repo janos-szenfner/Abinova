@@ -1101,7 +1101,7 @@ void FL_DocLayout::setFramePageNumbers(UT_sint32 iStartPage)
 	  {
 	      continue;
 	  }
-	  pPage->setPageNumberInFrames();
+	  pPage->setPageNumberInFrames(iPage);
       }
 }
 
@@ -2399,9 +2399,17 @@ UT_sint32 FL_DocLayout::countPages() const
 UT_sint32 FL_DocLayout::findPage(const fp_Page * pPage) const
 {
 	UT_sint32 count = static_cast<UT_sint32>(m_vecPages.size());
-	if(count < 1)
+	if(count < 1 || pPage == nullptr)
 	{
 		return -1;
+	}
+	// m_vecPages keeps every page's m_iPageIndex in sync (see
+	// addNewPage/deletePage), so the common case is O(1); fall back
+	// to the scan if the cached slot doesn't hold this page.
+	UT_sint32 ndx = pPage->getPageIndex();
+	if((ndx >= 0) && (ndx < count) && (m_vecPages[ndx].get() == pPage))
+	{
+		return ndx;
 	}
 	auto it = std::find_if(m_vecPages.begin(), m_vecPages.end(),
 						   [pPage](const std::unique_ptr<fp_Page>& p) {
@@ -2414,7 +2422,7 @@ UT_sint32 FL_DocLayout::findPage(const fp_Page * pPage) const
 fp_Page* FL_DocLayout::getNthPage(int n) const
 {
 	UT_ASSERT(static_cast<UT_sint32>(m_vecPages.size()) > 0);
-	if(n >= static_cast<UT_sint32>(m_vecPages.size()))
+	if((n < 0) || (n >= static_cast<UT_sint32>(m_vecPages.size())))
 	  return nullptr;
 	return m_vecPages[n].get();
 }
@@ -2456,12 +2464,17 @@ void FL_DocLayout::deletePage(fp_Page* pPage, bool bDontNotify /* default false 
 	if(itPage != m_vecPages.end())
 	{
 		m_vecPages.erase(itPage);
+		// Pages after the hole shift down one slot.
+		for(UT_sint32 i = ndx; i < static_cast<UT_sint32>(m_vecPages.size()); i++)
+		{
+			m_vecPages[i]->setPageIndex(i);
+		}
 	}
 	else
 	{
 		delete pPage;
 	}
-	if(ndx < countPages())
+	if((ndx >= 0) && (ndx < countPages()))
 	{
 	    setFramePageNumbers(ndx);
 	}
@@ -2503,12 +2516,18 @@ fp_Page* FL_DocLayout::addNewPage(fl_DocSectionLayout* pOwner, bool bNoUpdate,
 	if (ndx >= 0)
 	{
 		m_vecPages.emplace(m_vecPages.begin() + ndx, pPage);
-		// Later pages shifted by one; renumber their frames.
+		// Later pages shifted by one; resync their cached indices and
+		// renumber their frames.
+		for(UT_sint32 i = ndx; i < static_cast<UT_sint32>(m_vecPages.size()); i++)
+		{
+			m_vecPages[i]->setPageIndex(i);
+		}
 		setFramePageNumbers(ndx);
 	}
 	else
 	{
 		m_vecPages.emplace_back(pPage);
+		pPage->setPageIndex(static_cast<UT_sint32>(m_vecPages.size()) - 1);
 	}
 	pOwner->addOwnedPage(pPage);
 

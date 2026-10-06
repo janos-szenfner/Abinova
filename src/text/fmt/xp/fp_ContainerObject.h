@@ -281,14 +281,19 @@ public:
     virtual void        setNext(fp_ContainerObject * pNext) override;
     virtual void        setPrev(fp_ContainerObject * pPrev) override;
 	void                   clearCons(void)
-		{ m_vecContainers.clear();}
+		{ m_vecContainers.clear(); m_iConInsertHint = -1;}
 	fp_ContainerObject *   getNthCon(UT_sint32 i) const;
 	void                   addCon(fp_ContainerObject * pCon);
 	UT_sint32              countCons(void) const;
 	UT_sint32              findCon(fp_ContainerObject * pCon) const;
+	UT_sint32              findConFrom(fp_ContainerObject * pCon, UT_sint32 iStart) const;
 	void                   justRemoveNthCon(UT_sint32 i);
 	void                   deleteNthCon(UT_sint32 i);
 	void                   insertConAt(fp_ContainerObject * pCon, UT_sint32 i);
+	UT_sint32              getConInsertHint(void) const
+		{ return m_iConInsertHint; }
+	void                   setConInsertHint(UT_sint32 i)
+		{ m_iConInsertHint = i; }
 	bool                   isEmpty(void) const;
 	virtual UT_uint32 	distanceFromPoint(UT_sint32 x, UT_sint32 y) =0;
 	virtual void        recalcMaxWidth(bool bDontClearIfNeeded = false) = 0;
@@ -317,6 +322,7 @@ private:
 	fp_ContainerObject *   m_pNext;
 	fp_ContainerObject *   m_pPrev;
 	std::vector<fp_ContainerObject *> m_vecContainers;
+	UT_sint32              m_iConInsertHint;
 	fp_Container *         m_pMyBrokenContainer;
 	UT_uint32              m_cBrokenContainers;
     fg_FillType            m_FillType;

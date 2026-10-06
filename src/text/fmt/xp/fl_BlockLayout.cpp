@@ -3631,7 +3631,13 @@ fp_Line *  fl_BlockLayout::getNextWrappedLine(UT_sint32 iX,
 				if(pContainer)
 				{
    					pContainer->insertContainerAfter(static_cast<fp_Container *>(pLine), static_cast<fp_Container *>(pOldLastLine));
-					m_iLinePosInContainer = pContainer->findCon(pLine)+1;
+					// The insert appended when pOldLastLine was the
+					// tail, so probe the back slot instead of
+					// rescanning the whole column.
+					m_iLinePosInContainer =
+						(pContainer->getNthCon(pContainer->countCons()-1) == pLine)
+						? pContainer->countCons()
+						: pContainer->findCon(pLine) + 1;
 					pLine->setContainer(pContainer);
 				}
 				xxx_UT_DEBUGMSG(("Max width 3 set to %d \n",iMinWidth));
@@ -3689,7 +3695,10 @@ fp_Line *  fl_BlockLayout::getNextWrappedLine(UT_sint32 iX,
 				if(pContainer)
 				{
 			   		pContainer->insertContainerAfter(static_cast<fp_Container *>(pLine2), static_cast<fp_Container *>(pOldLastLine));
-					m_iLinePosInContainer = pContainer->findCon(pLine2)+1;
+					m_iLinePosInContainer =
+						(pContainer->getNthCon(pContainer->countCons()-1) == pLine2)
+						? pContainer->countCons()
+						: pContainer->findCon(pLine2) + 1;
 					pLine2->setContainer(pContainer);
 				}
 				xxx_UT_DEBUGMSG(("Max width 5 set to %d \n",iMinWidth));

@@ -16714,7 +16714,10 @@ UT_uint32 FV_View::getMaxHeight(UT_uint32 iRow) const
 		return iMaxPageHeight;
 	}
 	fl_DocSectionLayout * pDSL = pPage->getOwningSection();
-	
+	// Walk consecutive pages from wherever pPage sits in the layout
+	// vector — the same sequence the old getNext() chain produced.
+	UT_sint32 iCurPage = pPage->getPageIndex();
+
 	for(unsigned int i = 0; i < getNumHorizPages(); i++)
 	{
 		UT_sint32 iPageHeight = pPage->getHeight();
@@ -16726,18 +16729,15 @@ UT_uint32 FV_View::getMaxHeight(UT_uint32 iRow) const
 		{
 			iMaxPageHeight = iPageHeight;
 		}
-		
-		if(pPage->getNext())
-		{	
-			pPage = pPage->getNext();
-		}
-		else
+
+		pPage = (iCurPage >= 0) ? m_pLayout->getNthPage(iCurPage + i + 1) : nullptr;
+		if(!pPage)
 		{
 			break;
 		}
 	}
-	
-	
+
+
 	return iMaxPageHeight;
 }
 
@@ -16767,24 +16767,11 @@ UT_uint32 FV_View::getWidthPrevPagesInRow(UT_uint32 iPageNumber) const
 		diff = 0;
 	if (iFirstPageInRow != static_cast<UT_sint32>(iPageNumber))
 	{
-		fp_Page * pPage = nullptr;
-		
-		if (m_pLayout->getNthPage(iFirstPageInRow))
+		fp_Page * pPage = m_pLayout->getNthPage(iFirstPageInRow);
+		for (UT_sint32 i = 0; pPage && (i < diff); i++)
 		{
-			pPage = m_pLayout->getNthPage(iFirstPageInRow);
-			for (UT_sint32 i = 0; i < diff; i++)
-			{
-				totalWidth += getHorizPageSpacing() + pPage->getWidth();
-				
-				if (pPage->getNext())
-				{
-					pPage = pPage->getNext();
-				}
-				else
-				{
-					break;
-				}
-			}
+			totalWidth += getHorizPageSpacing() + pPage->getWidth();
+			pPage = m_pLayout->getNthPage(iFirstPageInRow + i + 1);
 		}
 	}
 	return totalWidth;

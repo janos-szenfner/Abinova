@@ -157,8 +157,10 @@ public:
 	void                redrawDamagedFrames(dg_DrawArgs* pDA);
 	bool                overlapsWrappedFrame(const fp_Line * pLine) const;
 	bool                overlapsWrappedFrame(const UT_Rect & rec) const;
-	void                setPageNumberInFrames(void);
+	void                setPageNumberInFrames(UT_sint32 iPage = -1);
 	UT_sint32           getPageNumber(void) const;
+	UT_sint32           getPageIndex(void) const { return m_iPageIndex; }
+	void                setPageIndex(UT_sint32 i) { m_iPageIndex = i; }
 	UT_sint32           getFieldPageNumber(void) const;
 	void                setFieldPageNumber(UT_sint32 iPageNum);
 	void                resetFieldPageNumber(void);
@@ -212,6 +214,11 @@ private:
 	UT_Rect             m_rDamageRect;
 	UT_sint32           m_iCountWrapPasses;
 	UT_sint32           m_iFieldPageNumber;
+	// Position inside FL_DocLayout::m_vecPages, maintained by the
+	// layout on every page insert/remove; -1 when not (or no longer)
+	// in the list. Lets findPage()/getNext()/getPrev() answer in O(1)
+	// instead of scanning the page vector.
+	UT_sint32           m_iPageIndex;
 };
 
 #endif /* PAGE_H */

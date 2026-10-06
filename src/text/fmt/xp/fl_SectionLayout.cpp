@@ -155,6 +155,11 @@ void fl_SectionLayout::_purgeLayout()
 
 void fl_SectionLayout::removeFromUpdate(fl_ContainerLayout * pCL)
 {
+  if(!m_setFormatLayout.erase(pCL))
+  {
+    // never queued - skip the vector scan
+    return;
+  }
   auto it = std::find(m_vecFormatLayout.begin(), m_vecFormatLayout.end(), pCL);
   while(it != m_vecFormatLayout.end())
   {
@@ -166,10 +171,13 @@ void fl_SectionLayout::removeFromUpdate(fl_ContainerLayout * pCL)
 
 void fl_SectionLayout::clearNeedsReformat(fl_ContainerLayout * pCL)
 {
-       auto it = std::find(m_vecFormatLayout.begin(), m_vecFormatLayout.end(), pCL);
-       if(it != m_vecFormatLayout.end())
+       if(m_setFormatLayout.erase(pCL))
        {
-	   m_vecFormatLayout.erase(it);
+	   auto it = std::find(m_vecFormatLayout.begin(), m_vecFormatLayout.end(), pCL);
+	   if(it != m_vecFormatLayout.end())
+	   {
+	       m_vecFormatLayout.erase(it);
+	   }
        }
        if(m_vecFormatLayout.empty())
        {
@@ -179,8 +187,7 @@ void fl_SectionLayout::clearNeedsReformat(fl_ContainerLayout * pCL)
 
 void fl_SectionLayout::setNeedsReformat(fl_ContainerLayout * pCL, UT_uint32 /*offset*/)
 {
-	if(std::find(m_vecFormatLayout.begin(), m_vecFormatLayout.end(), pCL)
-	   == m_vecFormatLayout.end())
+	if(m_setFormatLayout.insert(pCL).second)
 	{
 	  m_vecFormatLayout.push_back(pCL);
 	}
@@ -1864,7 +1871,6 @@ void fl_DocSectionLayout::markAllRunsDirty(void)
 
 void fl_DocSectionLayout::updateLayout(bool bDoFull)
 {
-	gint64 t_ul0 = g_get_monotonic_time(); // PERFDBG
 	fl_ContainerLayout*	pBL = getFirstLayout();
 	FV_View * pView = m_pLayout->getView();
 	bool bShowHidden = pView && pView->getShowPara();
@@ -1901,14 +1907,15 @@ void fl_DocSectionLayout::updateLayout(bool bDoFull)
 				  {
 				       pBL->format();
 				       j--;
-				       if(j < static_cast<UT_sint32>(m_vecFormatLayout.size()))
+				       if((j >= 0) && (j < static_cast<UT_sint32>(m_vecFormatLayout.size())))
 				       {
-					    auto itF = std::find(m_vecFormatLayout.begin(),
-									 m_vecFormatLayout.end(), pBL);
-					    UT_sint32 k = itF == m_vecFormatLayout.end()
-						    ? -1 : static_cast<UT_sint32>(itF - m_vecFormatLayout.begin());
-					    if(k == j)
+					    // still queued at the slot we just processed?
+					    // (format() may have dequeued or re-queued it)
+					    if(m_vecFormatLayout[j] == pBL)
+					    {
 					         m_vecFormatLayout.erase(m_vecFormatLayout.begin() + j);
+					         m_setFormatLayout.erase(pBL);
+					    }
 				       }
 				  }
 			     }
@@ -1947,8 +1954,7 @@ void fl_DocSectionLayout::updateLayout(bool bDoFull)
 			pBL = pBL->getNext();
 		}
 	}
-	m_vecFormatLayout.clear();
-	fprintf(stderr,"PERFDBG updateLayout fmtphase: %.2f ms\n",(g_get_monotonic_time()-t_ul0)/1000.0);
+	clearFormatQueue();
 	if(needsSectionBreak() && !getDocument()->isDontImmediateLayout() )
 	{
 		if (!isFirstPageValid())
@@ -1963,9 +1969,7 @@ void fl_DocSectionLayout::updateLayout(bool bDoFull)
 			format();
 			return;
 		}
-		gint64 t_bs0 = g_get_monotonic_time();
 		m_ColumnBreaker.breakSection();
-		fprintf(stderr,"PERFDBG breakSection: %.2f ms\n",(g_get_monotonic_time()-t_bs0)/1000.0);
 	}
 	if(needsRebuild() && !getDocument()->isDontImmediateLayout() )
 	{
@@ -4114,7 +4118,7 @@ void fl_HdrFtrSectionLayout::updateLayout(bool /*bDoFull*/)
 		bredraw = true;
 		m_bNeedsReformat = false;
 	}
-	m_vecFormatLayout.clear();
+	clearFormatQueue();
 	while (pBL)
 	{
 		if (pBL->needsReformat())
@@ -5451,7 +5455,7 @@ void fl_HdrFtrShadow::updateLayout(bool /*bDoAll*/)
 	bool bredraw = false;
 	xxx_UT_DEBUGMSG(("Doing Update layout in shadow %x \n",this));
 	fl_ContainerLayout*	pBL = getFirstLayout();
-	m_vecFormatLayout.clear();
+	clearFormatQueue();
 	while (pBL)
 	{
 		if (pBL->needsReformat())

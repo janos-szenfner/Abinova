@@ -63,7 +63,8 @@ fp_Page::fp_Page(FL_DocLayout* pLayout,
 		m_FillType(nullptr,nullptr,FG_FILL_TRANSPARENT),
 		m_pLastMappedTOC(nullptr),
 		m_iCountWrapPasses(0),
-		m_iFieldPageNumber(-1)
+		m_iFieldPageNumber(-1),
+		m_iPageIndex(-1)
 {
 	UT_ASSERT(pLayout);
 	UT_ASSERT(pOwner);
@@ -205,9 +206,12 @@ bool fp_Page::isEmpty(void) const
  * This method sets the page number in all thepages frames.
  */
 
-void fp_Page::setPageNumberInFrames(void)
+void fp_Page::setPageNumberInFrames(UT_sint32 iPage)
 {
-	UT_sint32 iPage = getDocLayout()->findPage(this);
+	if (iPage < 0)
+	{
+		iPage = getDocLayout()->findPage(this);
+	}
 	UT_sint32 i = 0;
 	for(i=0; i< static_cast<UT_sint32>(countAboveFrameContainers()); i++)
 	{
@@ -930,7 +934,7 @@ bool fp_Page::containsPageBreak(void) const
  */
 UT_sint32 fp_Page::getPageNumber(void) const
 {
-	return m_pLayout->findPage(this);
+	return m_iPageIndex;
 }
 
 /*!

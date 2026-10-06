@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 enum SectionType: uint8_t
@@ -210,6 +211,14 @@ protected:
 	UT_sint32           m_iDocImageWidth;
 	UT_sint32           m_iDocImageHeight;
 	std::vector<fl_ContainerLayout *> m_vecFormatLayout;
+	// Membership mirror of m_vecFormatLayout so queue dedup is O(1)
+	// instead of a per-block linear scan during populate/full-format.
+	std::unordered_set<fl_ContainerLayout *> m_setFormatLayout;
+	void                clearFormatQueue()
+	{
+		m_vecFormatLayout.clear();
+		m_setFormatLayout.clear();
+	}
 };
 
 class ABI_EXPORT fl_DocSectionLayout : public fl_SectionLayout

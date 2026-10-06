@@ -833,6 +833,25 @@ void fp_VerticalContainer::removeContainer(fp_Container* pContainer,bool bClear)
 }
 
 /*!
+ * Same as removeContainer() but the caller already knows the index,
+ * so no findCon scan is needed.
+ */
+void fp_VerticalContainer::removeNthCon(UT_sint32 ndx, bool bClear)
+{
+	fp_Container * pContainer = static_cast<fp_Container *>(getNthCon(ndx));
+	if(pContainer == nullptr)
+	{
+		return;
+	}
+	if(bClear && (pContainer->getContainerType() == FP_CONTAINER_LINE))
+	{
+		pContainer->clearScreen();
+	}
+	pContainer->setContainer(nullptr);
+	deleteNthCon(ndx);
+}
+
+/*!
  Insert line at the front/top of the container
  \param pNewContainer Container
  */
@@ -896,7 +915,22 @@ bool fp_VerticalContainer::insertContainerAfter(fp_Container*	pNewContainer, fp_
 	UT_ASSERT(pNewContainer->getContainerType() != FP_CONTAINER_ANNOTATION);
 
 	UT_sint32 count = countCons();
-	UT_sint32 ndx = findCon(pAfterContainer);
+	// Fast path: the after-container is the tail — the common case
+	// when filling a column — so no findCon scan is needed.
+	UT_sint32 ndx;
+	if ((count > 0) && (getNthCon(count - 1) == pAfterContainer))
+	{
+		ndx = count - 1;
+	}
+	else
+	{
+		// The insert hint tracks the position of the last inserted
+		// container. Chained and interleaved inserts (each new line
+		// after the previous one, or after the element following it)
+		// resolve in a handful of comparisons from there; other
+		// patterns wrap around and cost at most one full scan.
+		ndx = findConFrom(pAfterContainer, getConInsertHint());
+	}
 	UT_ASSERT( (count > 0) || (ndx == -1) );
 
 	/*
@@ -914,6 +948,7 @@ bool fp_VerticalContainer::insertContainerAfter(fp_Container*	pNewContainer, fp_
 		// TODO remove this....
 		insertConAt(pNewContainer, 0);
 	}
+	setConInsertHint(ndx + 1);
 
 	pNewContainer->setContainer(this);
 	if(pNewContainer->getContainerType() == FP_CONTAINER_LINE)

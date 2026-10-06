@@ -168,6 +168,7 @@ fp_Container::fp_Container(FP_ContainerType iType, fl_SectionLayout* pSectionLay
 			m_pContainer(nullptr),
 			m_pNext(nullptr),
 			m_pPrev(nullptr),
+			m_iConInsertHint(-1),
 			m_pMyBrokenContainer(nullptr),
 			m_cBrokenContainers(0),
 			m_FillType(nullptr,this,FG_FILL_TRANSPARENT)
@@ -494,6 +495,10 @@ void fp_Container::insertConAt(fp_ContainerObject * pCon, UT_sint32 i)
 {
         UT_ASSERT(pCon != this);
 	m_vecContainers.insert(m_vecContainers.begin() + i, pCon);
+	if (m_iConInsertHint >= i)
+	{
+		++m_iConInsertHint;
+	}
 	pCon->ref();
 }
 
@@ -522,6 +527,33 @@ UT_sint32  fp_Container::findCon(fp_ContainerObject * pCon) const
 	auto it = std::find(m_vecContainers.begin(), m_vecContainers.end(), pCon);
 	return it == m_vecContainers.end()
 		? -1 : static_cast<UT_sint32>(it - m_vecContainers.begin());
+}
+
+/*!
+  Like findCon, but scans from iStart and wraps around, so callers that
+  resolve container positions in roughly document order can pass the last
+  resolved index and get O(distance) instead of O(count) lookups.
+  \param pCon   Container to find
+  \param iStart Index to start scanning from
+*/
+UT_sint32  fp_Container::findConFrom(fp_ContainerObject * pCon, UT_sint32 iStart) const
+{
+	const UT_sint32 count = countCons();
+	if (iStart < 0 || iStart >= count)
+	{
+		return findCon(pCon);
+	}
+	auto b = m_vecContainers.begin();
+	auto it = std::find(b + iStart, m_vecContainers.end(), pCon);
+	if (it == m_vecContainers.end())
+	{
+		it = std::find(b, b + iStart, pCon);
+		if (it == b + iStart)
+		{
+			return -1;
+		}
+	}
+	return static_cast<UT_sint32>(it - b);
 }
 
 bool  fp_Container::isEmpty(void) const
@@ -590,6 +622,10 @@ void fp_Container::justRemoveNthCon(UT_sint32 i)
         fp_ContainerObject * pCon = getNthCon(i);
 	pCon->unref();
 	m_vecContainers.erase(m_vecContainers.begin() + i);
+	if (m_iConInsertHint > i)
+	{
+		--m_iConInsertHint;
+	}
 }
 
 void  fp_Container::deleteNthCon(UT_sint32 i)
@@ -601,6 +637,10 @@ void  fp_Container::deleteNthCon(UT_sint32 i)
 	}
 	pCon->unref();
 	m_vecContainers.erase(m_vecContainers.begin() + i);
+	if (m_iConInsertHint > i)
+	{
+		--m_iConInsertHint;
+	}
 	xxx_UT_DEBUGMSG(("AFter deleting item %d in %x there are %d cons left \n",i,this,countCons()));
 }
 

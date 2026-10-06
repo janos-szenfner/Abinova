@@ -723,7 +723,7 @@ void fl_TableLayout::format(void)
 		m_pNewHeightCell = nullptr;
 		m_bIsDirty = false;
 		m_bNeedsReformat = false;
-		m_vecFormatLayout.clear();
+		clearFormatQueue();
 		xxx_UT_DEBUGMSG(("TableLayout format cleared %x \n"));
 	}
 }
@@ -756,7 +756,7 @@ void fl_TableLayout::updateLayout(bool /*bDoAll*/)
 	xxx_UT_DEBUGMSG(("updateTableLayout Doing updates  \n"));
 	fl_ContainerLayout*	pBL = getFirstLayout();
 	bool bNeedsFormat = false;
-	m_vecFormatLayout.clear();
+	clearFormatQueue();
 	while (pBL)
 	{
 		if (pBL->needsReformat())
@@ -2261,7 +2261,7 @@ void fl_CellLayout::format(void)
 	UT_sint32 iOldHeight = getFirstContainer()->getHeight();
 	fl_ContainerLayout * pPrevCL = myContainingLayout()->getPrev();
 	fp_Page * pPrevP = nullptr;
-	m_vecFormatLayout.clear(); // Later we'll use this.
+	clearFormatQueue(); // Later we'll use this.
 	if(pPrevCL)
 	{
 		fp_Container * pPrevCon = pPrevCL->getFirstContainer();
@@ -2359,7 +2359,7 @@ void fl_CellLayout::updateLayout(bool /*bDoAll*/)
 	fl_ContainerLayout*	pBL = getFirstLayout();
 	bool bNeedsFormat = false;
     xxx_UT_DEBUGMSG(("updateCellLayout \n"));
-	m_vecFormatLayout.clear();
+	clearFormatQueue();
 	while (pBL)
 	{
 		if (pBL->needsReformat())

@@ -1182,7 +1182,9 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 			{
 			    break;
 			}
-			if (pCurContainer->getContainer() != pCurColumn || (pCurColumn->findCon(pCurContainer) < 0) )
+			if (pCurContainer->getContainer() != pCurColumn ||
+			    ((pCurColumn->getNthCon(conPos) != pCurContainer) &&
+			     (pCurColumn->findCon(pCurContainer) < 0)))
 			{
 //
 // Endnotes don't get placed in columns until here
@@ -1195,10 +1197,14 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 					}
 				}
 //				UT_ASSERT(pCurContainer->getContainer());
-				if(pCurContainer->getContainer() && pCurContainer->getContainer()->findCon(pCurContainer) >= 0)
+				if(pCurContainer->getContainer())
 				{
 					fp_VerticalContainer *pVert = static_cast<fp_VerticalContainer *>(pCurContainer->getContainer());
-					pVert->removeContainer(pCurContainer,true);
+					UT_sint32 iOldNdx = pVert->findCon(pCurContainer);
+					if(iOldNdx >= 0)
+					{
+						pVert->removeNthCon(iOldNdx,true);
+					}
 				}
 				if((pCurContainer->getContainer() != pCurColumn) && (pCurContainer->getDocSectionLayout() == pCurColumn->getDocSectionLayout()))
 				{
@@ -1279,9 +1285,14 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 // Code to fix order in the column
 // 
 #if 1
-			if((pCurColumn->findCon(pCurContainer) >= 0) && (pCurColumn->findCon(pCurContainer)  != conPos))
+			// conPos is where this container belongs in the column;
+			// probe that slot first so the already-in-order common
+			// case costs O(1) instead of a findCon scan.
+			UT_sint32 iConNdx = (pCurColumn->getNthCon(conPos) == pCurContainer)
+				? conPos : pCurColumn->findCon(pCurContainer);
+			if((iConNdx >= 0) && (iConNdx != conPos))
 			{
-				xxx_UT_DEBUGMSG(("fb_ColumnBreaker:Container out of order. Should be at %d is at %d \n",conPos,pCurColumn->findCon(pCurContainer)));
+				xxx_UT_DEBUGMSG(("fb_ColumnBreaker:Container out of order. Should be at %d is at %d \n",conPos,iConNdx));
 				xxx_UT_DEBUGMSG(("fb_ColumnBreak: Fixing this now orig num cons %d \n",pCurColumn->countCons()));
 				static_cast<fp_VerticalContainer *>(pCurContainer->getContainer())->removeContainer(pCurContainer);
 				pCurColumn->insertConAt(pCurContainer,conPos);
