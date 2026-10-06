@@ -27,6 +27,7 @@ clipart_DATA = \
 	tree.png \
 	tux_bordelais.png \
 	weather.png \
-	write.png
+	write.png \
+	README
 
 EXTRA_DIST = $(clipart_DATA)

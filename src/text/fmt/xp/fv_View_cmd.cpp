@@ -69,7 +69,6 @@
 #include "fg_GraphicRaster.h"
 #include "pd_Document.h"
 #include "pd_Style.h"
-#include "ie_imp_Abinova_1.h"
 #include "pp_Property.h"
 #include "pp_AttrProp.h"
 #include "gr_Graphics.h"
@@ -7134,10 +7133,6 @@ struct FV_CoverPreset
 	const char * szId;
 	const char * szName;
 	const FV_CoverLine * pLines;
-	// true => insert the frame-based abwn template from the
-	// "covers/<id>.xml" gresource; pLines is the fallback/legacy
-	// path for presets without one
-	bool bTemplate;
 };
 
 // Paragraph-formatting reset applied to every cover line so
@@ -7242,28 +7237,11 @@ static const FV_CoverLine s_coverYearly[] = {
 
 
 static const FV_CoverPreset s_coverPresets[] = {
-	{ "austin",     "Austin",       nullptr,          true  },
-	{ "badge",      "Badge",        nullptr,          true  },
-	{ "banded",     "Banded",       nullptr,          true  },
-	{ "crop",       "Crop",         nullptr,          true  },
-	{ "facet",      "Facet",        nullptr,          true  },
-	{ "feathered",  "Feathered",    nullptr,          true  },
-	{ "filigree",   "Filigree",     nullptr,          true  },
-	{ "frame",      "Frame",        s_coverFrame,     false },
-	{ "headline",   "Headline",     nullptr,          true  },
-	{ "integral",   "Integral",     nullptr,          true  },
-	{ "iondark",    "Ion (Dark)",   nullptr,          true  },
-	{ "ionlight",   "Ion (Light)",  nullptr,          true  },
-	{ "motion",     "Motion",       s_coverMotion,    false },
-	{ "retrospect", "Retrospect",   nullptr,          true  },
-	{ "semaphore",  "Semaphore",    nullptr,          true  },
-	{ "slicedark",  "Slice (Dark)", nullptr,          true  },
-	{ "slicelight", "Slice (Light)",nullptr,          true  },
-	{ "sideline",   "Sideline",     s_coverSideline,  false },
-	{ "viewmaster", "ViewMaster",   nullptr,          true  },
-	{ "whisp",      "Whisp",        nullptr,          true  },
-	{ "yearly",     "Yearly",       s_coverYearly,    false },
-	{ nullptr, nullptr, nullptr, false }
+	{ "frame",      "Frame",        s_coverFrame  },
+	{ "motion",     "Motion",       s_coverMotion },
+	{ "sideline",   "Sideline",     s_coverSideline },
+	{ "yearly",     "Yearly",       s_coverYearly },
+	{ nullptr, nullptr, nullptr }
 };
 
 static const FV_CoverPreset * _coverPresetById(const char * szId)
@@ -7347,118 +7325,11 @@ UT_Error FV_View::cmdInsertCoverPage(const char * szPreset)
 	{
 		// The cover always goes above the first body paragraph.
 		setPoint(2);
-		if(!pPreset->bTemplate)
-		{
-			insertParagraphBreak();
-			setPoint(2);
-		}
+		insertParagraphBreak();
+		setPoint(2);
 	}
 	PT_DocPosition posMark = getPoint();
-	PT_DocPosition posCoverEnd = 0;
-	bool bPasted = false;
 
-	// Frame-based presets carry an abwn template in the "covers/"
-	// gresource (generated from the reference .docx designs by
-	// tools/mkcovers.py); it splices real positioned frames, fills
-	// and images into the top of the section via the paste importer.
-	if(pPreset->bTemplate)
-	{
-		std::string res = "/io/github/janos_szenfner/Abinova/covers/";
-		res += pPreset->szId;
-		res += ".xml";
-		GBytes * pBytes = g_resources_lookup_data(
-			res.c_str(), G_RESOURCE_LOOKUP_FLAGS_NONE, nullptr);
-		if(pBytes)
-		{
-			gsize len = 0;
-			const unsigned char * pData =
-				static_cast<const unsigned char *>(
-					g_bytes_get_data(pBytes, &len));
-			// Paste at the first block's strux position: inserting
-			// strux at a content position would split the block and
-			// make the frame snap rules scramble the order. Probe
-			// the piece table directly - the view point may still be
-			// inside an old frame (frame edit mode hijacks it).
-			const pf_Frag_Strux * sdh = nullptr;
-			PT_DocPosition posProbe = posOld ? posOld : 2;
-			PT_DocPosition posPaste = posProbe;
-			if(m_pDoc->getStruxOfTypeFromPosition(posProbe, PTX_Block,
-												  &sdh) && sdh)
-			{
-				posPaste = sdh->getPos();
-			}
-			PD_DocumentRange dr(m_pDoc, posPaste, posPaste);
-			IE_Imp_Abinova_1 imp(m_pDoc);
-			bPasted = imp.pasteFromBuffer(&dr, pData,
-										static_cast<UT_uint32>(len),
-										"UTF-8");
-			if(bPasted)
-			{
-				// A zero-width sentinel at the start of the cover's
-				// first paragraph keeps the start marker off block
-				// offset 0. Without it the deleteSpan tweak drags
-				// the block strux into the span and the piece table
-				// refuses to unlink the section's first block when
-				// a frame follows it - aborting the delete mid-way.
-				posMark = posPaste + 1;
-				UT_UCS4Char cSentinel = 0x200B;
-				if(m_pDoc->insertSpan(posPaste + 1, &cSentinel, 1))
-				{
-					posMark = posPaste + 2;
-				}
-
-				// The block that followed the paste target now sits
-				// right after all the pasted content; prepend an
-				// empty shell paragraph before it to carry the
-				// trailing page break and the end marker. All of
-				// this is done at document level - the view point
-				// cannot be trusted here because frame-edit mode is
-				// active after the paste and pulls the point back
-				// inside the pasted frames.
-				PT_DocPosition posShell =
-					sdh ? sdh->getPos()
-						: static_cast<PT_DocPosition>(imp.getDocPos());
-				bool bEmptyTail = true;
-				// layout siblings are not all blocks — the cover
-				// markup inserts frames into the same chain
-				for(fl_ContainerLayout * pL =
-						_findBlockAtPosition(posShell + 1);
-					pL;
-					pL = pL->getNext())
-				{
-					if(pL->getContainerType() != FL_CONTAINER_BLOCK)
-					{
-						continue;
-					}
-					fl_BlockLayout * pB = static_cast<fl_BlockLayout *>(pL);
-					UT_GrowBuf gb;
-					pB->getBlockBuf(&gb);
-					if(gb.getLength() > 0)
-					{
-						bEmptyTail = false;
-						break;
-					}
-				}
-				m_pDoc->insertStrux(posShell, PTX_Block);
-				PT_DocPosition posShellEnd = posShell + 1;
-				if(!bEmptyTail)
-				{
-					// Page break inside the shell so the body
-					// starts on page 2; it sits inside the marker
-					// so removing the cover restores page 1.
-					UT_UCS4Char ff = UCS_FF;
-					if(m_pDoc->insertSpan(posShell + 1, &ff, 1))
-					{
-						posShellEnd = posShell + 2;
-					}
-				}
-				posCoverEnd = posShellEnd;
-			}
-			g_bytes_unref(pBytes);
-		}
-	}
-
-	if(!bPasted)
 	{
 		std::string sTitle, sAuthor;
 		if(!m_pDoc->getMetaDataProp(PD_META_KEY_TITLE, sTitle) ||
@@ -7538,14 +7409,9 @@ UT_Error FV_View::cmdInsertCoverPage(const char * szPreset)
 	// inside the marker so removing the cover restores page 1.
 	// When the rest of the document is nothing but empty paragraphs
 	// the break is skipped - the cover is then the only page.
-	// (The template path builds its shell paragraph at document
-	// level above; here we only handle the legacy preset path.)
-	PT_DocPosition posEnd = posCoverEnd;
-	if(!bPasted)
+	PT_DocPosition posEnd;
 	{
 		bool bEmptyTail = true;
-		// layout siblings are not all blocks — the cover markup
-		// inserts frames into the same chain
 		for(fl_ContainerLayout * pL = _findBlockAtPosition(getPoint());
 			pL; pL = pL->getNext())
 		{

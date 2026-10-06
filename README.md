@@ -529,13 +529,9 @@ Text → Table conversion were removed.
 Laid out as large icon-over-caption buttons with two-line
 labels, like Word's ribbon.
 
-- **Pages**: **Cover Page** opens a scrolling 3-column gallery
-  of twenty A4-portrait preview cards (Austin, Badge, Banded,
-  Crop, Facet, Feathered, Filigree, Frame, Headline, Integral,
-  Ion Dark/Light, Motion, Retrospect, Semaphore, Slice Dark/
-  Light, Sideline, ViewMaster, Whisp, Yearly) — seventeen
-  spliced from real positioned-frame templates, three drawn in
-  code, no third-party artwork.
+- **Pages**: **Cover Page** opens a scrolling gallery of
+  A4-portrait preview cards (Frame, Motion, Sideline, Yearly) —
+  all drawn in code, no third-party artwork.
   Cover pages pull title/author from document metadata
   (`dc.title`/`dc.creator`, placeholders as fallback), add the
   current month/year, and are wrapped in a `_cover-page` marker
@@ -2536,4 +2532,6 @@ Abinova itself remains under its original license — see `COPYING` and
 `COPYRIGHT.TXT`. Third-party bundled fonts carry their own licenses
 (mostly OFL 1.1) in `fonts/<family>/`; provenance is documented in
 `fonts/README.md`. Vendored Blowfish code is Apache-2.0 (see
-`src/wp/impexp/odf/common/xp/blowfish/`).
+`src/wp/impexp/odf/common/xp/crypto/blowfish/`). The full audit of
+bundled third-party components and their licenses is in
+`dist/THIRD-PARTY-NOTICES.md`.

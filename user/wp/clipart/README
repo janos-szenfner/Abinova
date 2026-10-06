@@ -1,0 +1,22 @@
+Abinova clipart gallery — provenance and license
+================================================
+
+The PNG images in this directory are the legacy clipart set inherited
+verbatim from the AbiWord source tree (abiword/user/wp/clipart/, as of
+the AbiWord 3.1.90 snapshot).  Upstream AbiWord ships this artwork
+under the project's own license: the GNU General Public License,
+version 2 or later (see the top-level COPYING file).
+
+Notable individual items:
+
+- gnome*.png: border/decoration artwork from the GNOME project's
+  clipart collection, distributed with AbiWord under GPL-2.0+.
+- tux_bordelais.png: "Tux", the Linux penguin, drawn by Larry Ewing
+  (lewing@isc.tamu.edu) with The GIMP.  Larry Ewing releases Tux for
+  any use provided he is acknowledged as the original artist:
+  "Permission to use and/or modify this image is granted provided you
+  acknowledge me lewing@isc.tamu.edu and The GIMP if someone asks."
+  This notice satisfies that acknowledgment.
+
+The images are only installed when Abinova is configured with
+--enable-clipart.

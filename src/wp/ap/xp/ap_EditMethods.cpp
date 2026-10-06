@@ -7191,7 +7191,7 @@ Defun1(noteSwap)
 
 /*
  * Insert tab "Cover Page" gallery. callData is the preset id
- * ("austin", "banded", "facet", "filigree", "integral", "whisp");
+ * ("frame", "motion", "sideline", "yearly");
  * no data inserts the default preset.
  */
 Defun(coverPageInsert)
@@ -7199,7 +7199,7 @@ Defun(coverPageInsert)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	const char * szPreset = "austin";
+	const char * szPreset = "frame";
 	if(pCallData && pCallData->m_pData && pCallData->m_dataLength)
 	{
 		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);

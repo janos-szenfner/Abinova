@@ -153,9 +153,9 @@
         "sha256": "4c730d3b325c0785450dd3a043eeb53e1518598c4f41f155558385dd2635c19d",
         "alternates": ["https://fossies.org/linux/misc/old/wv-1.2.9.tar.gz"]
       },
-      "license": "GPL-2.0+ (upstream COPYING is NOT vendored — LIC01 adds it)",
+      "license": "GPL-2.0+ (upstream COPYING vendored verbatim — LIC01)",
       "vendored_paths": ["<flat library sources only: *.c/*.h at the dir root>"],
-      "dropped": "converter mains (wvWare.c, wvText.in, wvConvert.c, wvRTF.c, wvSummary.c, wvVersion.c), helper scripts (wvHtml.in, wvLatex.in, wvPDF.in, wvPS.in, wvDVI.in, wvAbw.in, wvCleanLatex.in, wvDocBook.in, wvWml.in, wvMime), getopt.c/getopt1.c, patterns/, wingdingfont/, xml/, help/, GNUmakefile.*, autotools machinery, version.c.in, wv-1.0.pc.in, COPYING, README, NEWS",
+      "dropped": "converter mains (wvWare.c, wvText.in, wvConvert.c, wvRTF.c, wvSummary.c, wvVersion.c), helper scripts (wvHtml.in, wvLatex.in, wvPDF.in, wvPS.in, wvDVI.in, wvAbw.in, wvCleanLatex.in, wvDocBook.in, wvWml.in, wvMime), getopt.c/getopt1.c, patterns/, wingdingfont/, xml/, help/, GNUmakefile.*, autotools machinery, version.c.in, wv-1.0.pc.in, README, NEWS",
       "notes": "Upstream is dead; this tree carries a large local security/correctness patch set from the DOC01-23 + UB/SEC/MEM audit series (see git history, task notes in .devin/TASKS.md). 'Upgrading' means a 3-way merge: regenerate the patch series with `tools/vendor-check.py --patch-out DIR wv` against a new upstream drop, or treat the vendored tree as effectively maintained in-tree.",
       "local_files": {
         "config.h": "hand-written static config (no autoconf); defines MATCHED_TYPE on little-endian hosts — REQUIRED for correct read_*ubit/write_*ubit endianness",

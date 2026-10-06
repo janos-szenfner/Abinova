@@ -133,15 +133,33 @@ $(srcdir)/help/en-US/changelog.html: $(srcdir)/CHANGELOG.md $(srcdir)/tools/chan
 
 # bundled user manual (single-page HTML for the built-in help
 # browser); wipe first so removed pages don't linger from older
-# installs
+# installs. License texts for the statically-linked vendored
+# libraries and the consolidated third-party notice file install
+# into the datadir so they ride inside every bundle.
 install-data-local:
 	rm -rf $(DESTDIR)@ABINOVA_DATADIR@/help
 	cp -r $(srcdir)/help $(DESTDIR)@ABINOVA_DATADIR@/
 	cp -r $(srcdir)/artwork $(DESTDIR)@ABINOVA_DATADIR@/
+	rm -rf $(DESTDIR)@ABINOVA_DATADIR@/licenses
+	for d in hunspell-1.7.4 librevenge-0.0.6 libwpd-0.10.3 libwpg-0.3.4 libwps-0.4.14 wv-1.2.9; do \
+		mkdir -p $(DESTDIR)@ABINOVA_DATADIR@/licenses/$$d; \
+		for f in $(srcdir)/thirdparty/$$d/COPYING* $(srcdir)/thirdparty/$$d/LICENSE* $(srcdir)/thirdparty/$$d/license*; do \
+			if [ -f "$$f" ]; then cp "$$f" $(DESTDIR)@ABINOVA_DATADIR@/licenses/$$d/; fi; \
+		done; \
+	done
+	mkdir -p $(DESTDIR)@ABINOVA_DATADIR@/licenses/openssl-blowfish
+	cp $(srcdir)/src/wp/impexp/odf/common/xp/crypto/blowfish/LICENSE.txt \
+		$(DESTDIR)@ABINOVA_DATADIR@/licenses/openssl-blowfish/
+	cp $(srcdir)/COPYING $(srcdir)/COPYRIGHT.TXT $(DESTDIR)@ABINOVA_DATADIR@/
+	cp $(srcdir)/dist/THIRD-PARTY-NOTICES.md $(DESTDIR)@ABINOVA_DATADIR@/
 
 uninstall-local:
 	rm -rf $(DESTDIR)@ABINOVA_DATADIR@/help
 	rm -rf $(DESTDIR)@ABINOVA_DATADIR@/artwork
+	rm -rf $(DESTDIR)@ABINOVA_DATADIR@/licenses
+	rm -f $(DESTDIR)@ABINOVA_DATADIR@/COPYING \
+		$(DESTDIR)@ABINOVA_DATADIR@/COPYRIGHT.TXT \
+		$(DESTDIR)@ABINOVA_DATADIR@/THIRD-PARTY-NOTICES.md
 
 # needed to make sure we don't include .svn directories.
 dist-hook:

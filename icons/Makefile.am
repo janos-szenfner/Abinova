@@ -53,5 +53,6 @@ uninstall-icons:
 
 EXTRA_DIST = \
         $(public_icons)         \
+	README                  \
 	$(NULL)
 

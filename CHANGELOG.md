@@ -616,17 +616,6 @@ below are on `main` but the release has not been cut yet.
   were missing from the property registry — now registered in
   `pp_Property.cpp`, documented in `docs/ABWN-FORMAT.md` (new §4.4,
   refreshed §6 defaults table) and listed in `abwn.dtd`.
-- **Built-in cover pages regenerated and re-verified** — all 17
-  cover templates (`src/wp/covers/*.xml`) were rebuilt from fresh
-  imports of the reference `.docx` designs, so they now carry the
-  `char-spacing` tracking, theme-resolved fonts and verbatim image
-  bytes the older exports lacked (e.g. Badge's tracked-out title,
-  Integral's full-quality JPEG), and each was rendered against its
-  source design for a pixel-level comparison.  Inserting a template
-  cover while the caret sat inside an old frame could scramble the
-  splice because frame-edit mode hijacked the view point; the
-  template path now probes the piece table and builds the sentinel
-  and trailing shell paragraph at document level instead.
 - **Locale decimal-separator corruption fixed** — the OOXML
   importer serialized lengths with locale-sensitive `snprintf`
   (`xpos:3,7620in` under comma-decimal locales) while the abwn
@@ -1121,10 +1110,9 @@ below are on `main` but the release has not been cut yet.
   Line, Date and Time, Field, Object, LRM/RLM) and Symbols (Edit
   Equation, Symbol), all laid out as Word-style large
   icon-over-caption buttons with two-line labels. **Cover Page**
-  opens a scrolling 3-column gallery of A4-portrait preview cards for
-  twelve designs generated entirely in code — Austin, Banded, Crop,
-  Facet, Filigree, Frame, Integral, Motion, Retrospect, Sideline,
-  Whisp, Yearly — so no third-party artwork or licensing is involved.
+  opens a scrolling gallery of A4-portrait preview cards for four
+  designs generated entirely in code — Frame, Motion, Sideline,
+  Yearly — so no third-party artwork or licensing is involved.
   Covers pull the title/author from document metadata with
   placeholder fallbacks and are wrapped in a `_cover-page` marker
   bookmark; **Remove Current Cover** deletes the page break and
@@ -5187,6 +5175,23 @@ below are on `main` but the release has not been cut yet.
   installed or referenced; spell checking runs on enchant + hunspell
   today. The whole `user/wp/dictionary/` directory and its build
   wiring (`configure.ac` output, `SUBDIRS`/`DIST_SUBDIRS`) are gone.
+- **Full license audit; cover gallery trimmed to clean designs** —
+  every vendored library, artwork gallery, font directory and bundled
+  asset now carries its license file in-tree and inside packaged
+  bundles: upstream's `COPYING` was restored to `thirdparty/wv-1.2.9`
+  (GPL-2.0+), `artwork/shapes/` gained `LICENSE.txt` documenting its
+  LibreOffice Breeze-theme provenance (GPL-2.0+), `user/wp/clipart/`
+  gained a provenance/attribution README, and `icons/` gained one for
+  the original app icon. `make install` now also installs the
+  vendored libraries' license texts under
+  `<datadir>/licenses/<lib>/` plus `COPYING`, `COPYRIGHT.TXT` and the
+  new `dist/THIRD-PARTY-NOTICES.md` audit file, so every bundle ships
+  them. The audit found that seventeen of the built-in cover-page
+  templates were mechanical conversions of Microsoft Word's own
+  cover-page documents — including embedded Microsoft artwork — and
+  are not redistributable; they were removed along with
+  `tools/mkcovers.py`. The **Cover Page** gallery now offers four
+  presets drawn entirely in code (Frame, Motion, Sideline, Yearly).
 
 ### Resolved root causes worth noting
 
