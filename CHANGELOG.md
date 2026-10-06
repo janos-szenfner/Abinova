@@ -4737,6 +4737,22 @@ below are on `main` but the release has not been cut yet.
   `fuzz/corpus/{libwpd,libwpg,libwps}` (regenerate with
   `tools/mkvendseeds.py`); all three replay clean and survived 15s
   bounded runs with zero crashes.
+- **Fuzz harnesses for the remaining importers** — `fuzz_epub`,
+  `fuzz_xhtml`, `fuzz_md`, `fuzz_tex`, `fuzz_wps` and `fuzz_wpg`
+  close the format-coverage gap: every claimed import format now has
+  a `fuzz_<fmt>` target pinned through the sniff+`readFromFile` glue
+  (`.wps`/`.wpg` exercise Abinova's importer entry points, unlike
+  the raw `fuzz_libwps`/`fuzz_libwpg` vendored-API drivers). The new
+  targets immediately found and fixed real bugs: a
+  heap-buffer-overflow in `UT_go_url_resolve_relative` when a
+  Markdown image is imported with an empty base URI (stream loads
+  have no filename), a LaTeX sniffer suffix table whose leading-dot
+  entries could never resolve `.tex`/`.latex`/`.ltx`, and two
+  infinite loops in the LaTeX importer on a trailing backslash
+  (one grew `pending` until OOM, the other spun in `_parseText`).
+  Seed corpora live in `fuzz/corpus/{epub,xhtml,md,tex,wps,wpg}` and
+  both fuzzer-found reproducers are pinned under
+  `fuzz/regress/tex/`.
 - **Sanitizer suite gate (`make check-asan` / `make check-ubsan`)** —
   `tools/check-san.sh` maintains a scratch
   `-fsanitize=address,undefined` build under `san-build/tree/`

@@ -2304,8 +2304,12 @@ Each `fuzz/fuzz_<fmt>.cpp` harness feeds bytes through the
 `IE_Imp::fileTypeForContents()` sniff plus a full
 `PD_Document::readFromFile()` pinned to one importer: `fuzz_abw`
 (native `.abw`/`.abwn`), `fuzz_doc` (legacy Word `.doc` via wv),
-`fuzz_rtf` and `fuzz_wpd` (WordPerfect via libwpd), `fuzz_odt` and
-`fuzz_docx` (zip+XML containers) and `fuzz_mht` (MHTML). Seed corpora live
+`fuzz_rtf` and `fuzz_wpd` (WordPerfect via libwpd), `fuzz_odt`,
+`fuzz_docx` and `fuzz_epub` (zip+XML containers), `fuzz_mht` (MHTML),
+`fuzz_xhtml` (XHTML/HTML), `fuzz_md` (Markdown), `fuzz_tex`
+(LaTeX), `fuzz_wps` (MS Works through the libwps importer glue) and
+`fuzz_wpg` (WordPerfect graphics — an image format, driven through
+`IE_ImpGraphic::loadGraphic` rather than `readFromFile`). Seed corpora live
 in `fuzz/corpus/<fmt>/`. A second trio — `fuzz_libwpd`, `fuzz_libwpg`
 and `fuzz_libwps` — bypasses the importer glue entirely and feeds
 bytes straight into the vendored parsers' public APIs

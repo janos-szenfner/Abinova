@@ -732,7 +732,8 @@ make_full_uri_from_relative (const char *base_uri, const char *uri)
 		 */
 
 		base_uri_length = strlen (mutable_base_uri);
-		if ('/' == mutable_base_uri[base_uri_length-1]) {
+		if (base_uri_length > 0 &&
+		    '/' == mutable_base_uri[base_uri_length-1]) {
 			/* Trim off '/' for the operation below */
 			mutable_base_uri[base_uri_length-1] = 0;
 		} else {

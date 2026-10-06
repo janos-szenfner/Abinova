@@ -433,7 +433,7 @@ static void s_emitInlineRun(IE_Imp_LaTeX * imp, const std::string & text,
 	{
 		size_t save = i;
 		std::string cmd = s_readCommand(text, i);
-		if (cmd.empty()) { pending += '\\'; return; }
+		if (cmd.empty()) { pending += '\\'; i++; return; }
 
 		// escaped specials / breaks
 		if (cmd == "%") { pending += '%'; return; }
@@ -1403,6 +1403,14 @@ void IE_Imp_LaTeX::_parseText(const std::string & text)
 			size_t save = i;
 			size_t p = i;
 			std::string cmd = s_readCommand(text, p);
+			if (cmd.empty())
+			{
+				// trailing backslash at EOF — keep it and move on
+				para += c;
+				paraHasText = true;
+				i++;
+				continue;
+			}
 
 			// block-level commands
 			if (cmd == "begin" || cmd == "end")
@@ -1625,9 +1633,9 @@ IE_Imp_LaTeX_Sniffer::~IE_Imp_LaTeX_Sniffer()
 }
 
 static IE_SuffixConfidence IE_Imp_LaTeX_Sniffer__SuffixConfidence[] = {
-	{ ".tex",	UT_CONFIDENCE_PERFECT },
-	{ ".latex",	UT_CONFIDENCE_PERFECT },
-	{ ".ltx",	UT_CONFIDENCE_PERFECT },
+	{ "tex",	UT_CONFIDENCE_PERFECT },
+	{ "latex",	UT_CONFIDENCE_PERFECT },
+	{ "ltx",	UT_CONFIDENCE_PERFECT },
 	{ "", 		UT_CONFIDENCE_ZILCH 	}
 };
 
