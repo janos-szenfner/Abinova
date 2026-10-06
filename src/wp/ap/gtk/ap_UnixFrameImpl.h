@@ -135,6 +135,10 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 							  AV_View * pView) override;
 	virtual void notifyViewChanged(AV_View * pView) override;
 	void _setActivePane(AV_View * pView);
+	/* (re)bind the primary canvas's GtkAccessibleText backing view;
+	 * the view object is recreated on document reload, so the
+	 * listener follows notifyViewChanged */
+	void _bindA11yText(AV_View * pView);
 	static void _scrollFuncX2(void * pData, UT_sint32 xoff, UT_sint32 xrange);
 	static void _scrollFuncY2(void * pData, UT_sint32 yoff, UT_sint32 yrange);
 	static void _vScrollChanged2(GtkAdjustment * adj, gpointer data);
@@ -211,6 +215,15 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	AV_ScrollObj * m_pScrollObj2;
 	AV_Listener * m_pScrollListener2;
 	AV_ListenerId m_lidScroll2;
+	AV_Listener * m_pA11yListener2;
+	AV_ListenerId m_lidA11y2;
 	AV_View * m_pPane1View;
+
+	/* primary canvas's accessible-text binding: the view it reads
+	 * from plus the view listener that pushes caret/selection/
+	 * contents updates onto the AT-SPI bridge */
+	AV_View * m_pA11yView;
+	AV_Listener * m_pA11yListener;
+	AV_ListenerId m_lidA11y;
 };
 #endif

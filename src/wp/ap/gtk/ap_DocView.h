@@ -24,6 +24,11 @@
 
 G_BEGIN_DECLS
 
+/* g_object data key holding the weak FV_View* the widget's
+ * GtkAccessibleText implementation reads caret/selection/text from;
+ * set by the frame impl, which owns the view lifecycle */
+#define AP_DOCVIEW_A11Y_VIEW_KEY "a11y-view"
+
 #define AP_TYPE_DOCVIEW      (ap_DocView_get_type ())
 #define AP_DOCVIEW(obj)       (G_TYPE_CHECK_INSTANCE_CAST((obj), AT_TYPE_DOCVIEW, ApDocView))
 #define IS_AP_DOCVIEW(obj)     (G_TYPE_CHECK_INSTANCE_TYPE((obj), AT_TYPE_DOCVIEW))

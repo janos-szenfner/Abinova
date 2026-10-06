@@ -1895,6 +1895,15 @@ below are on `main` but the release has not been cut yet.
   unlabelled controls on map, as do popovers when they attach their
   children. Screen readers and other AT-SPI clients can now announce
   the UI.
+- **Document canvas exposes real text to screen readers** — the
+  drawing area used to be a named but silent `document` node. It now
+  implements GTK4's `GtkAccessibleText`, so AT-SPI clients can read
+  the document text (paragraph breaks appear as newlines, embedded
+  objects as U+FFFC), query the caret offset and the selection range,
+  and get character/word/sentence/paragraph slices around an offset.
+  Caret moves, selection changes and edits are pushed to the AT-SPI
+  bus as they happen, so typing and cursor movement are announced
+  live. The split-view's second canvas is covered the same way.
 - **RDF Editor dialog fixes** — the "Edit document RDF" menubar no
   longer shows literal `&File`/`&Triple` labels: the string table's
   `&` mnemonic markers are converted to GMenu's `_` form, so the

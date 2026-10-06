@@ -960,6 +960,12 @@ not exist remain unbound on all platforms.
   controls when they map. Note that a GTK4 widget with the default
   `generic` role is name-prohibited — naming a custom drawing area
   also requires giving it a naming-capable `accessible-role` first.
+  On top of roles and names, the canvas implements
+  `GtkAccessibleText`: screen readers get the document text (block
+  boundaries surface as newlines, embedded objects as U+FFFC), the
+  caret offset, the selection range, and text slices at character/
+  word/sentence/paragraph granularity, plus live caret/selection/
+  contents notifications as you type and move around.
 
 ### Autosave and crash recovery
 

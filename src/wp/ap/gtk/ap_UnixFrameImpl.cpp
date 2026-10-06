@@ -104,7 +104,12 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_pScrollObj2(nullptr),
 	m_pScrollListener2(nullptr),
 	m_lidScroll2(0),
-	m_pPane1View(nullptr)
+	m_pA11yListener2(nullptr),
+	m_lidA11y2(-1),
+	m_pPane1View(nullptr),
+	m_pA11yView(nullptr),
+	m_pA11yListener(nullptr),
+	m_lidA11y(-1)
 {
 	UT_DEBUGMSG(("Created AP_UnixFrameImpl %p \n",this));
 }
@@ -118,12 +123,19 @@ AP_UnixFrameImpl::~AP_UnixFrameImpl()
 	 * already mid-destruction; the widgets die with the window */
 	if (m_pView2)
 	{
+		m_pView2->removeListener(m_lidA11y2);
 		m_pView2->removeListener(m_lidScroll2);
 		m_pView2->removeScrollListener(m_pScrollObj2);
 	}
+	DELETEP(m_pA11yListener2);
 	DELETEP(m_pScrollObj2);
 	DELETEP(m_pScrollListener2);
 	DELETEP(m_pView2);
+	/* the primary view outlives the impl (the frame deletes its impl
+	 * before its view), so the a11y listener can still be detached */
+	if (m_pA11yView && m_pA11yListener)
+		m_pA11yView->removeListener(m_lidA11y);
+	DELETEP(m_pA11yListener);
 	DELETEP(m_pDocLayout2);
 	DELETEP(m_pG2);
 	DELETEP(m_pRibbon);
@@ -783,6 +795,48 @@ private:
 	AV_View * m_pView;
 };
 
+/* pushes caret/selection/contents changes from a pane's view onto
+ * the canvas's GtkAccessibleText so the AT-SPI bridge emits
+ * TextCaretMoved / TextSelectionChanged / TextChanged; bound to
+ * whichever view the canvas shows, so the frame impl rebinds it on
+ * view replacement (notifyViewChanged) */
+class ap_A11yViewListener : public AV_Listener
+{
+public:
+	ap_A11yViewListener(GtkWidget * w)
+		: m_w(w), m_lastCaret(0xffffffff), m_lastAnchor(0xffffffff) {}
+	bool notify(AV_View * pView, const AV_ChangeMask mask) override
+	{
+		FV_View * pFV = static_cast<FV_View *>(pView);
+		if (!m_w || !pFV || !GTK_IS_ACCESSIBLE_TEXT(m_w))
+			return true;
+		GtkAccessibleText * at = GTK_ACCESSIBLE_TEXT(m_w);
+		unsigned int caret = pFV->getInsPoint();
+		unsigned int anchor = pFV->getSelectionAnchor();
+		bool bCaret = caret != m_lastCaret;
+		if (bCaret)
+			gtk_accessible_text_update_caret_position(at);
+		if (bCaret || anchor != m_lastAnchor)
+			gtk_accessible_text_update_selection_bound(at);
+		m_lastCaret = caret;
+		m_lastAnchor = anchor;
+		/* we don't get edit ranges this high up; a whole-document
+		 * invalidation is coarse but keeps ATs from reading stale
+		 * text after edits */
+		if (mask & (AV_CHG_TYPING | AV_CHG_DIRTY | AV_CHG_DO))
+			gtk_accessible_text_update_contents(
+				at, GTK_ACCESSIBLE_TEXT_CONTENT_CHANGE_INSERT,
+				0, G_MAXUINT);
+		return true;
+	}
+	AV_ListenerType getType() const override
+		{ return AV_LISTENER_VIEW; }
+private:
+	GtkWidget * m_w;
+	unsigned int m_lastCaret;
+	unsigned int m_lastAnchor;
+};
+
 void AP_UnixFrameImpl::_drawPane2(GtkDrawingArea * /*area*/, cairo_t * cr,
 								  int /*width*/, int /*height*/, gpointer w)
 {
@@ -989,6 +1043,32 @@ bool AP_UnixFrameImpl::_isPaneView(AV_View * pView)
 	return pView && (pView == m_pView2 || pView == m_pPane1View);
 }
 
+/* keep m_dArea's accessible-text backing (the "a11y-view" weak ref
+ * read by ApDocView's GtkAccessibleText vfuncs, and the listener
+ * that pushes caret/selection/contents updates) pointed at the
+ * view the primary canvas actually shows; safe to call with the
+ * about-to-be-deleted old view still alive */
+void AP_UnixFrameImpl::_bindA11yText(AV_View * pView)
+{
+	if (m_pA11yView == pView)
+		return;
+	if (m_pA11yView && m_pA11yListener)
+		m_pA11yView->removeListener(m_lidA11y);
+	DELETEP(m_pA11yListener);
+	m_lidA11y = -1;
+	m_pA11yView = pView;
+	if (m_dArea)
+	{
+		g_object_set_data(G_OBJECT(m_dArea),
+						  AP_DOCVIEW_A11Y_VIEW_KEY, pView);
+		if (pView)
+		{
+			m_pA11yListener = new ap_A11yViewListener(m_dArea);
+			pView->addListener(m_pA11yListener, &m_lidA11y);
+		}
+	}
+}
+
 /* the primary view is recreated on document reload; keep the
  * pane-1 binding pointing at it so the primary scrollbars keep
  * working while the split is open.  If the frame switched to a
@@ -1003,11 +1083,13 @@ void AP_UnixFrameImpl::notifyViewChanged(AV_View * pView)
 		/* rebind pane 1 first so the teardown reactivates the
 		 * new view rather than the about-to-be-deleted old one */
 		m_pPane1View = pView;
+		_bindA11yText(pView);
 		setSplitView(false);
 		return;
 	}
 	if (m_pPane1View && pView && pView != m_pView2)
 		m_pPane1View = pView;
+	_bindA11yText(paneView(0));
 }
 
 /* move the frame's current view (and the ruler/statusbar bindings)
@@ -1061,9 +1143,12 @@ void AP_UnixFrameImpl::setSplitView(bool bSplit)
 			_setActivePane(m_pPane1View);
 		if (m_pView2)
 		{
+			m_pView2->removeListener(m_lidA11y2);
 			m_pView2->removeListener(m_lidScroll2);
 			m_pView2->removeScrollListener(m_pScrollObj2);
 		}
+		DELETEP(m_pA11yListener2);
+		m_lidA11y2 = -1;
 		DELETEP(m_pScrollObj2);
 		DELETEP(m_pScrollListener2);
 		DELETEP(m_pView2);
@@ -1244,6 +1329,12 @@ void AP_UnixFrameImpl::setSplitView(bool bSplit)
 	m_pScrollListener2 = new ap_Pane2ViewListener(this, m_pView2);
 	m_pView2->addScrollListener(m_pScrollObj2);
 	m_pView2->addListener(m_pScrollListener2, &m_lidScroll2);
+	/* the secondary canvas implements GtkAccessibleText too; give
+	 * it the same view binding + update listener as pane 1 */
+	g_object_set_data(G_OBJECT(m_dArea2),
+					  AP_DOCVIEW_A11Y_VIEW_KEY, m_pView2);
+	m_pA11yListener2 = new ap_A11yViewListener(m_dArea2);
+	m_pView2->addListener(m_pA11yListener2, &m_lidA11y2);
 
 	m_wSplitPaned = gtk_paned_new(GTK_ORIENTATION_VERTICAL);
 	/* replacing the paned's start child unparents m_wSunkenBox and
