@@ -2687,7 +2687,7 @@ void fl_DocSectionLayout::collapse(void)
 // docsection. We must collapse these endnotes first
 //
 		pCol2->collapseEndnotes();
-		if (pCol2->getLeader() == pCol2)
+		if ((pCol2->getLeader() == pCol2) && (pCol2->getPage() != nullptr))
 		{
 			pCol2->getPage()->removeColumnLeader(pCol2);
 		}
@@ -2705,10 +2705,19 @@ void fl_DocSectionLayout::collapse(void)
 			UT_ASSERT_HARMLESS( pCon );
 			if(pCon)
 			{
-				fp_Column * pCol = static_cast<fp_Column *>(pCon->getColumn());
-				UT_DEBUGMSG(("Got and endnote in this section!! \n"));
-				UT_DEBUGMSG(("Remove Endnote con %p from col %p \n", static_cast<void*>(pCon), static_cast<void*>(pCol)));
-				pCol->removeContainer(pCon);
+				// The container may already have been detached by
+				// collapseEndnotes() or lost its host column to a
+				// re-break page reap; only remove it from a column
+				// that still lists it.
+				fp_Container * pParent = pCon->getContainer();
+				if(pParent && (pParent->getContainerType() == FP_CONTAINER_COLUMN) &&
+				   (pParent->findCon(pCon) >= 0))
+				{
+					fp_Column * pCol = static_cast<fp_Column *>(pParent);
+					UT_DEBUGMSG(("Got and endnote in this section!! \n"));
+					UT_DEBUGMSG(("Remove Endnote con %p from col %p \n", static_cast<void*>(pCon), static_cast<void*>(pCol)));
+					pCol->removeContainer(pCon);
+				}
 			}
 		}
 		pBL->collapse();
@@ -3555,7 +3564,7 @@ void fl_HdrFtrSectionLayout::changeIntoHdrFtrSection( fl_DocSectionLayout * pSL)
 	pCol = static_cast<fp_Column *>(pSL->getFirstContainer());
 	while (pCol)
 	{
-		if (pCol->getLeader() == pCol)
+		if ((pCol->getLeader() == pCol) && (pCol->getPage() != nullptr))
 		{
 			pCol->getPage()->removeColumnLeader(pCol);
 		}

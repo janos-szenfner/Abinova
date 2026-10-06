@@ -86,6 +86,64 @@ fp_Page::fp_Page(FL_DocLayout* pLayout,
 fp_Page::~fp_Page()
 {
 	xxx_UT_DEBUGMSG(("fpPage: Deleting page %x \n",this));
+	//
+	// Columns keep a raw m_pPage back-link that removeColumnLeader()
+	// normally clears. If this page is reaped while a column still links
+	// here (re-break churn can remove the column row without going through
+	// removeColumnLeader), its next getPage() returns this dead page.
+	// Walk every doc section's live column chain and clear those links.
+	//
+	if (m_pLayout)
+	{
+		fl_DocSectionLayout * pDSL = m_pLayout->getFirstSection();
+		while(pDSL)
+		{
+			fp_Column * pCol = static_cast<fp_Column *>(pDSL->getFirstContainer());
+			while(pCol)
+			{
+				fp_Column * pNext = static_cast<fp_Column *>(pCol->getNext());
+				if(pCol->getPage() == this)
+				{
+					pCol->setPage(nullptr);
+				}
+				pCol = pNext;
+			}
+			pDSL = pDSL->getNextDocSection();
+		}
+	}
+	//
+	// Footnote, annotation and frame containers keep their own m_pPage
+	// back-link (set by add*/insert*FrameContainer). Outliving containers
+	// must not dereference this page after it dies.
+	//
+	for (fp_FootnoteContainer * pFC : m_vecFootnotes)
+	{
+		if (pFC && (pFC->getPage() == this))
+		{
+			pFC->setPage(nullptr);
+		}
+	}
+	for (fp_AnnotationContainer * pAC : m_vecAnnotations)
+	{
+		if (pAC && (pAC->getPage() == this))
+		{
+			pAC->setPage(nullptr);
+		}
+	}
+	for (fp_FrameContainer * pFrame : m_vecAboveFrames)
+	{
+		if (pFrame && (pFrame->getPage() == this))
+		{
+			pFrame->setPage(nullptr);
+		}
+	}
+	for (fp_FrameContainer * pFrame : m_vecBelowFrames)
+	{
+		if (pFrame && (pFrame->getPage() == this))
+		{
+			pFrame->setPage(nullptr);
+		}
+	}
 	if (m_pOwner)
 	{
 		fl_DocSectionLayout *pDSL = m_pOwner;

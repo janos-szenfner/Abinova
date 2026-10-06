@@ -1753,6 +1753,38 @@ fp_Column::fp_Column(fl_SectionLayout* pSectionLayout) : fp_VerticalContainer(FP
 fp_Column::~fp_Column()
 {
 	xxx_UT_DEBUGMSG(("Deleting Column %x Number containers left %d \n",this,countCons()));
+//
+// Endnote containers hosted by this column are owned by fl_EndnoteLayout
+// objects that can outlive us - after re-break/page-reap churn such a
+// container may still link here without being in our vector any more, and
+// it may not even sit in this section's own endnote list.  Walk the doc's
+// authoritative endnote layout list and clear every container link still
+// pointing at this dead column.
+//
+	FL_DocLayout * pLayout = getSectionLayout() ? getSectionLayout()->getDocLayout() : nullptr;
+	if(pLayout)
+	{
+		const UT_uint32 iEndCount = pLayout->countEndnotes();
+		for(UT_uint32 iEnd = 0; iEnd < iEndCount; iEnd++)
+		{
+			fl_EndnoteLayout * pEL = pLayout->getNthEndnote(iEnd);
+			if(!pEL)
+			{
+				continue;
+			}
+			fp_EndnoteContainer * pECon =
+				static_cast<fp_EndnoteContainer *>(pEL->getFirstContainer());
+			while(pECon)
+			{
+				fp_EndnoteContainer * pNext = pECon->getLocalNext();
+				if(pECon->getContainer() == this)
+				{
+					pECon->setContainer(nullptr);
+				}
+				pECon = pNext;
+			}
+		}
+	}
 //	UT_ASSERT(countCons() == 0);
 }
 
@@ -1770,11 +1802,12 @@ void fp_Column::collapseEndnotes(void)
 		if(pCon->getContainerType() == FP_CONTAINER_ENDNOTE)
 		{
 			fl_EndnoteLayout * pEL = static_cast<fl_EndnoteLayout *>(pCon->getSectionLayout());
-			pEL->collapse();
-			UT_sint32 ndx = findCon(pCon);
-			if(ndx >= 0)
+			// Detach while the container is still valid: fl_EndnoteLayout::collapse()
+			// destroys it, so looking it up afterwards is use-after-free.
+			removeContainer(pCon);
+			if(pEL)
 			{
-				justRemoveNthCon(ndx);
+				pEL->collapse();
 			}
 		}
 	}

@@ -3991,6 +3991,14 @@ below are on `main` but the release has not been cut yet.
   zero length during line breaking dereferenced an empty itemization —
   visible previously as a crash on paragraphs of repeated `{`/`}`.
   Normal equations are unaffected.
+- **Layout re-break no longer crashes on endnote-heavy documents** —
+  on documents combining endnotes, multi-column sections and frames,
+  the re-break/page-reap churn could delete a column or page while an
+  endnote container (or a column, footnote, annotation or frame
+  container) still pointed back at it; the next section collapse then
+  dereferenced the dead host and crashed. Dying columns and pages now
+  clear every back-link that outliving containers may hold, and the
+  collapse path validates a container's parent before detaching it.
 
 ### GTK4 port (core migration)
 
