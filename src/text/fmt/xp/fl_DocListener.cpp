@@ -247,6 +247,21 @@ bool fl_DocListener::populateStrux(pf_Frag_Strux* sdh,
 	const PX_ChangeRecord_Strux * pcrx = static_cast<const PX_ChangeRecord_Strux *> (pcr);
 
 	XAP_Frame * pFrame = XAP_App::getApp()->getLastFocussedFrame();
+	/* The progress pump below (pFrame->nullUpdate()) iterates the GTK
+	 * main context mid-populate - arbitrary pending event handlers run
+	 * while the layout is half built.  That is only tolerable for the
+	 * frame whose view is actually loading the document; when the
+	 * listener is populating a background/secondary frame's document,
+	 * the nested dispatch can re-enter app code against the wrong
+	 * frame's state (observed: the new frame's statusbar clobbered by
+	 * a stale write while fileNew's empty document was filling).
+	 * Restrict the pump - and the percent-driven work tied to it - to
+	 * the owning frame. */
+	if(pFrame && m_pLayout && m_pLayout->getView() &&
+	   pFrame != static_cast<XAP_Frame*>(m_pLayout->getView()->getParentData()))
+	{
+		pFrame = nullptr;
+	}
 	if(pFrame)
 	{
 		if(pcrx->getStruxType() == PTX_Block && !m_bFootnoteInProgress)

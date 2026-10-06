@@ -36,6 +36,11 @@ class fl_BlockLayout;
 class fp_FootnoteContainer;
 class fp_AnnotationContainer;
 
+/* True when ABINOVA_BREAK_DEBUG is set in the environment — gates the
+ * re-break diagnostic logging in fb_ColumnBreaker.cpp and
+ * fl_SectionLayout.cpp.  Lives here so both TUs share one flag. */
+ABI_EXPORT bool abi_breakDebug(void);
+
 class ABI_EXPORT fb_ColumnBreaker
 {
 public:
@@ -44,7 +49,12 @@ public:
 	UT_sint32 breakSection(void);
 	void   setStartPage(fp_Page * pPage);
 	fp_Page * getStartPage(void) { return m_pStartPage;}
-	fp_Page * needsRebreak(void);
+	/* When piSignature is non-null it receives a cheap signature of the
+	 * reported overflow (page index, which check failed, and the
+	 * offending height/Y).  Two consecutive passes that end in the
+	 * identical signature produced an identical observable outcome, so
+	 * the caller can tell a futile retry from a converging one. */
+	fp_Page * needsRebreak(UT_sint32 * piSignature = nullptr);
 private:
 	fp_Page *               _getLastValidPage(void);
 	UT_sint32               _breakSection(fp_Page * pStartPage);

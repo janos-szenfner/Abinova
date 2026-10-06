@@ -20,6 +20,9 @@
  * 02110-1301 USA.
  */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "fb_ColumnBreaker.h"
 #include "fl_DocLayout.h"
 #include "fl_SectionLayout.h"
@@ -35,6 +38,24 @@
 #include "fl_ContainerLayout.h"
 #include "fl_FootnoteLayout.h"
 #include "fp_Page.h"
+
+/*!
+ * Env-gated diagnostics for the re-break loop: set
+ * ABINOVA_BREAK_DEBUG=1 to log every needsRebreak() reason and every
+ * mid-pass restart request.  Production builds compile UT_DEBUGMSG
+ * out, so this is how non-convergence is diagnosed in the field.
+ */
+bool abi_breakDebug(void)
+{
+	static int iDbg = -1;
+	if (iDbg < 0)
+	{
+		const char * e = getenv("ABINOVA_BREAK_DEBUG");
+		iDbg = (e && e[0] && strcmp(e, "0")) ? 1 : 0;
+	}
+	return iDbg == 1;
+}
+#define BRKDBG(M) do { if (abi_breakDebug()) _UT_OutputMessage M; } while(0)
 
 fb_ColumnBreaker::fb_ColumnBreaker(fl_DocSectionLayout * pDSL) :
 	m_pStartPage(nullptr),
@@ -150,8 +171,12 @@ void fb_ColumnBreaker::_reparentNotesToPage(fp_Page * pPage,
  * Returns nullptr if no rebreak is required.
  * Otherwise returns a pointer to the page requiring the rebreak.
 */
-fp_Page * fb_ColumnBreaker::needsRebreak(void)
+fp_Page * fb_ColumnBreaker::needsRebreak(UT_sint32 * piSignature)
 {
+	if(piSignature)
+	{
+		*piSignature = -1;
+	}
     fl_ContainerLayout * pCL = m_pDocSec->getLastLayout();
     fl_BlockLayout * pBL = nullptr;
     if(pCL && (pCL->getContainerType() == FL_CONTAINER_BLOCK))
@@ -180,9 +205,16 @@ fp_Page * fb_ColumnBreaker::needsRebreak(void)
 	}
 	else if(pLine->getY() >  m_pDocSec->getActualColumnHeight())
 	{
-	     UT_DEBUGMSG(("fb_ColumnBreaker::needsRebreak: tail line overflows column (y %d > %d) on page %d\n",
+	     BRKDBG(("fb_ColumnBreaker::needsRebreak: tail line overflows column (y %d > %d) on page %d\n",
 			  pLine->getY(), m_pDocSec->getActualColumnHeight(),
 			  m_pDocSec->getDocLayout()->findPage(pPage)));
+	     if(piSignature)
+	     {
+		 *piSignature = static_cast<UT_sint32>(
+			 (static_cast<UT_uint32>(m_pDocSec->getDocLayout()->findPage(pPage)) << 4)
+			 + 1u
+			 + static_cast<UT_uint32>(pLine->getY()) * 65599u);
+	     }
 	     return pPage;
 	}
 	else
@@ -190,9 +222,16 @@ fp_Page * fb_ColumnBreaker::needsRebreak(void)
 	    fp_Column * pCol = pPage->getNthColumnLeader(0);
 	    if(pCol && pCol->getHeight() >  m_pDocSec->getActualColumnHeight())
 	    {
-		UT_DEBUGMSG(("fb_ColumnBreaker::needsRebreak: column leader overflows (%d > %d) on page %d\n",
+		BRKDBG(("fb_ColumnBreaker::needsRebreak: column leader overflows (%d > %d) on page %d\n",
 			     pCol->getHeight(), m_pDocSec->getActualColumnHeight(),
 			     m_pDocSec->getDocLayout()->findPage(pPage)));
+		if(piSignature)
+		{
+		    *piSignature = static_cast<UT_sint32>(
+			    (static_cast<UT_uint32>(m_pDocSec->getDocLayout()->findPage(pPage)) << 4)
+			    + 2u
+			    + static_cast<UT_uint32>(pCol->getHeight()) * 65599u);
+		}
 		return pPage;
 	    }
 	}
@@ -207,6 +246,8 @@ fp_Page * fb_ColumnBreaker::needsRebreak(void)
 static const UT_sint32 REBREAK_RESTART_PREV_PAGE = 10; // retry from the previous page
 static const UT_sint32 REBREAK_EVICT_FOOTNOTES = 15;   // evict footnotes off over-full pages
 static const UT_sint32 REBREAK_MAX_ATTEMPTS    = 50;   // hard cap, then give up
+static const UT_sint32 REBREAK_STALL_LIMIT     = 3;    // repeat sightings -> futile
+static const UT_sint32 REBREAK_SIG_WINDOW      = 6;    // remembered reports
 
 /*!
   Layout sections on pages
@@ -244,7 +285,15 @@ static const UT_sint32 REBREAK_MAX_ATTEMPTS    = 50;   // hard cap, then give up
     reappears);
   - REBREAK_MAX_ATTEMPTS is the hard cap: on hitting it the overflow is
     left in place and a warning is emitted - a slightly wrong layout
-    beats a hang.
+    beats a hang;
+  - REBREAK_STALL_LIMIT is the futility short-circuit: a break pass is
+    deterministic in the layout state it is handed, so a needsRebreak()
+    report (same page, same failing check, same overflowing height)
+    seen REBREAK_STALL_LIMIT times within the last REBREAK_SIG_WINDOW
+    passes means the loop has reached a fixed point or a short cycle -
+    a container that can never fit the column, or mid-pass restart
+    requests that keep redirecting to the same over-full page.  Bail
+    instead of burning all REBREAK_MAX_ATTEMPTS.
 
   Termination: iAttempt increments unconditionally each iteration, so
   the loop body runs at most REBREAK_MAX_ATTEMPTS times; the
@@ -269,7 +318,15 @@ UT_sint32 fb_ColumnBreaker::breakSection()
        pStartPage = nullptr;
   UT_sint32 iVal = _breakSection(pStartPage);
   UT_sint32 iAttempt = 0;
-  pStartPage = needsRebreak();
+  UT_sint32 aiSigHist[REBREAK_SIG_WINDOW];
+  UT_sint32 iHistLen = 0;
+  UT_sint32 iNewSig = -1;
+  bool bStalled = false;
+  pStartPage = needsRebreak(&iNewSig);
+  if(iNewSig != -1)
+  {
+      aiSigHist[iHistLen++] = iNewSig;
+  }
   if(m_pStartPage)
   {
       iAttempt = 0;
@@ -278,18 +335,18 @@ UT_sint32 fb_ColumnBreaker::breakSection()
   while(pStartPage && (iAttempt < REBREAK_MAX_ATTEMPTS))
   {
 
-      UT_DEBUGMSG(("fb_ColumnBreaker: re-break attempt %d\n",iAttempt));
+      BRKDBG(("fb_ColumnBreaker: re-break attempt %d\n",iAttempt));
       iPage = pDL->findPage(pStartPage);
       if(iPage < 0)
       {
 	  // The retry target left the page list (e.g. an empty page was
 	  // reaped mid-break): fall back to a whole-section pass.
-	  UT_DEBUGMSG(("fb_ColumnBreaker: re-break target page gone; restarting whole section\n"));
+	  BRKDBG(("fb_ColumnBreaker: re-break target page gone; restarting whole section\n"));
 	  pStartPage = nullptr;
       }
       else
       {
-	  UT_DEBUGMSG(("fb_ColumnBreaker: retrying from page %d\n",iPage));
+	  BRKDBG(("fb_ColumnBreaker: retrying from page %d\n",iPage));
 	  if((iAttempt > REBREAK_EVICT_FOOTNOTES) &&
 	     (pStartPage->getAvailableHeight() < 0))
 	  {
@@ -311,32 +368,65 @@ UT_sint32 fb_ColumnBreaker::breakSection()
 		  pStartPage->removeFootnoteContainer(pFC);
 		  iEvicted++;
 	      }
-	      UT_DEBUGMSG(("fb_ColumnBreaker: page %d over-full (avail %d); evicted %d footnote containers\n",
+	      BRKDBG(("fb_ColumnBreaker: page %d over-full (avail %d); evicted %d footnote containers\n",
 			   iPage,pStartPage->getAvailableHeight(),iEvicted));
 	  }
       }
 
       iVal = _breakSection(pStartPage);
-      pStartPage = needsRebreak();
+      iNewSig = -1;
+      pStartPage = needsRebreak(&iNewSig);
       if(m_pStartPage)
       {
 	  // A restart request arrived mid-pass (setStartPage() from
 	  // getNewContainer() or updatePageForWrapping()); it outranks
 	  // the needsRebreak() target.
-	  UT_DEBUGMSG(("fb_ColumnBreaker: mid-pass restart request to page %d\n",
+	  BRKDBG(("fb_ColumnBreaker: mid-pass restart request to page %d\n",
 		       pDL->findPage(m_pStartPage)));
   	  pStartPage = m_pStartPage;
 	  if(iAttempt > REBREAK_RESTART_PREV_PAGE)
 	  {
 	      fp_Page * pPrev = pStartPage->getPrev();
-	      UT_DEBUGMSG(("fb_ColumnBreaker: escalating - restart from previous page %d\n",
+	      BRKDBG(("fb_ColumnBreaker: escalating - restart from previous page %d\n",
 			   pPrev ? pDL->findPage(pPrev) : -1));
 	      pStartPage = pPrev;
 	  }
       }
+      // Stall detection: a report signature already seen
+      // REBREAK_STALL_LIMIT-1 times inside the window means the last
+      // passes could not change the overflow at all - retrying is
+      // deterministic and can only reproduce it again.
+      if(pStartPage && (iNewSig != -1))
+      {
+	  UT_sint32 iSeen = 0;
+	  for(UT_sint32 h = 0; h < iHistLen; h++)
+	  {
+	      if(aiSigHist[h] == iNewSig)
+	      {
+		  iSeen++;
+	      }
+	  }
+	  if(iSeen >= REBREAK_STALL_LIMIT - 1)
+	  {
+	      UT_WARNINGMSG(("Abinova: section break stalled - identical overflow report on page %d after %d attempts; leaving layout as-is\n",
+			     pDL->findPage(pStartPage), iSeen + 1));
+	      bStalled = true;
+	      break;
+	  }
+	  if(iHistLen < REBREAK_SIG_WINDOW)
+	  {
+	      aiSigHist[iHistLen++] = iNewSig;
+	  }
+	  else
+	  {
+	      memmove(aiSigHist, aiSigHist + 1,
+		      sizeof(aiSigHist) - sizeof(aiSigHist[0]));
+	      aiSigHist[REBREAK_SIG_WINDOW - 1] = iNewSig;
+	  }
+      }
       iAttempt++;
   }
-  if(pStartPage != nullptr)
+  if(pStartPage != nullptr && !bStalled)
   {
       // REBREAK_MAX_ATTEMPTS exhausted with the tail still
       // overflowing: give up and leave the layout as-is.

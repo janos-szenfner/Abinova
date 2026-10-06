@@ -622,7 +622,8 @@ bool AP_StatusBar::notify(AV_View * pView, const AV_ChangeMask mask)
     // to hang around and clear it at some point in the future.
     // This way, message will get cleared any time the user does
     // something with the window.
-    if(getFrame()->getFrameMode() != XAP_NormalFrame)
+    XAP_Frame * pFrame = getFrame();
+    if(!pFrame || pFrame->getFrameMode() != XAP_NormalFrame)
     {
 		return true;
     }
@@ -652,7 +653,13 @@ bool AP_StatusBar::notify(AV_View * pView, const AV_ChangeMask mask)
 
 void AP_StatusBar::setStatusMessage(const char * pBuf, int /*redraw*/)
 {
-    if(getFrame()->getFrameMode() != XAP_NormalFrame) {
+    XAP_Frame * pFrame = getFrame();
+    if(!pFrame) {
+        UT_WARNINGMSG(("AP_StatusBar::setStatusMessage: null frame on %p\n",
+                       static_cast<void*>(this)));
+        return;
+    }
+    if(pFrame->getFrameMode() != XAP_NormalFrame) {
         return;
     }
 

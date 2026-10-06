@@ -28,6 +28,9 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <memory>
+#ifndef _WIN32
+#include <execinfo.h>
+#endif
 
 #include "ut_types.h"
 #include "ut_string.h"
@@ -1972,6 +1975,19 @@ void fl_DocSectionLayout::updateLayout(bool bDoFull)
 
 void fl_DocSectionLayout::setNeedsSectionBreak(bool bSet, fp_Page * pPage)
 {
+	if(bSet && abi_breakDebug())
+	{
+		// Every mid-pass restart request funnels through here; the
+		// caller is what matters when diagnosing non-convergence, so
+		// print a short backtrace with it.
+		_UT_OutputMessage("fl_DocSectionLayout::setNeedsSectionBreak: request from page %d\n",
+				  pPage ? getDocLayout()->findPage(pPage) : -2);
+#ifndef _WIN32
+		void * pBT[8];
+		int iDepth = backtrace(pBT, 8);
+		backtrace_symbols_fd(pBT, iDepth, 2);
+#endif
+	}
 	m_bNeedsSectionBreak = bSet;
 	fp_Page * pOldP = m_ColumnBreaker.getStartPage();
 	UT_sint32 iOldP = 999999999;

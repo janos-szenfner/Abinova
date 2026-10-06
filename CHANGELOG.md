@@ -2196,6 +2196,26 @@ below are on `main` but the release has not been cut yet.
   body text can flow — and after a bounded number of attempts it gives
   up with a diagnostic message instead of risking a hang. Documents
   that paginated correctly before are unaffected.
+- **Re-break stall detector kills the residual 99%-CPU spin** — the
+  bounded loop above could still burn its full retry budget when a
+  mid-pass restart request kept redirecting to the same overflowing
+  page (reproduced by paragraph-border edits on multi-column documents
+  with frames, where a single UI click could peg a core for tens of
+  seconds). The breaker now fingerprints each overflow report and
+  bails once the identical report recurs inside a short window, and
+  `ABINOVA_BREAK_DEBUG=1` turns the previously debug-build-only
+  re-break diagnostics on in production builds.
+- **Crash fixes in paragraph-border drawing and document fill** —
+  `fp_Line::canDrawBotBorder()` blindly downcast the next in-section
+  container to a line and crashed when it was a table (and
+  `canDrawTopBorder()`/`canDrawBotBorder()` could dereference a null
+  block); both are now type- and null-guarded. Separately, the
+  load-progress pump in `fl_DocListener::populateStrux()` iterated the
+  GTK main context against the *focussed* frame even when the listener
+  was filling a different frame's document — the nested event dispatch
+  corrupted the new frame's statusbar and crashed a toolbar "New
+  Document" click; the pump is now restricted to the frame that owns
+  the layout being filled.
 - **Empty-stack access hardening** — a C++ Core Guidelines
   bounds/lifetime audit found parser and piece-table paths that call
   `std::stack::top()`/`vector::back()` without checking the container

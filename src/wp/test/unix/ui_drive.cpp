@@ -2378,6 +2378,47 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 	return 0;
 }
 
+/* narrow repro for the frame-leg fileNew crash: boot one frame on the
+ * scratch doc, then invoke the fileNew edit method directly — reaches
+ * the populateStrux/statusbar heap overwrite in seconds instead of a
+ * full widget walk, so it can run under valgrind */
+static int drive_filenew(AP_UnixApp *app, const char *src)
+{
+	alarm(0);
+	XAP_Frame *frame = app->newFrame();
+	if (!frame) {
+		g_printerr("drive: no frame\n");
+		return 1;
+	}
+	char *uri = g_strdup_printf("file://%s", src);
+	UT_Error err = frame->loadDocument(uri, IEFT_Unknown, true);
+	g_free(uri);
+	if (err != UT_OK) {
+		g_printerr("drive: load err %d\n", err);
+		return 1;
+	}
+	frame->show();
+	pump_for(300);
+	AV_View *av = frame->getCurrentView();
+	const EV_EditMethodContainer *emc =
+		XAP_App::getApp()->getEditMethodContainer();
+	if (!av || !emc) {
+		g_printerr("drive: no view/edit-method container\n");
+		return 1;
+	}
+	EV_EditMethod *em = emc->findEditMethodByName("fileNew");
+	if (!em) {
+		g_printerr("drive: no fileNew method\n");
+		return 1;
+	}
+	set_phase("filenew: invoke");
+	EV_EditMethodCallData emcd;
+	em->Fn(av, &emcd);
+	pump_for(300);
+	set_phase("filenew: done");
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	g_log_set_writer_func(drive_log_writer, nullptr, nullptr);
@@ -2403,7 +2444,7 @@ int main(int argc, char **argv)
 	alarm(120); /* last-resort watchdog; drvwrap wraps us in `timeout` */
 
 	bool wantList = false, wantFrame = false, wantAbi = false,
-		 wantEv = false, wantFmt = false;
+		 wantEv = false, wantFmt = false, wantFileNew = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -2416,13 +2457,15 @@ int main(int argc, char **argv)
 			wantEv = true;
 		else if (strcmp(argv[i], "--fmt") == 0)
 			wantFmt = true;
+		else if (strcmp(argv[i], "--filenew") == 0)
+			wantFileNew = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
 	if (!wantList && !wantFrame && !wantAbi && !wantEv && !wantFmt &&
-		wantId < 0) {
+		!wantFileNew && wantId < 0) {
 		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev"
-				   " | --fmt\n", argv[0]);
+				   " | --fmt | --filenew\n", argv[0]);
 		return 2;
 	}
 
@@ -2490,6 +2533,8 @@ int main(int argc, char **argv)
 		return drive_ev(app, src);
 	if (wantFmt)
 		return drive_fmt(app, src);
+	if (wantFileNew)
+		return drive_filenew(app, src);
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {

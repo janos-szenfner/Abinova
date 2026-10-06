@@ -647,7 +647,7 @@ bool fp_Line::canDrawTopBorder(void) const
   if(!pPrev || (pPrev->getContainerType() != FP_CONTAINER_LINE))
     return true;
   fl_BlockLayout * pPrevBlock = static_cast<fp_Line *>(pPrev)->getBlock();
-  if(pPrevBlock->canMergeBordersWithNext())
+  if(pPrevBlock && pPrevBlock->canMergeBordersWithNext())
     return false;
   return (pFirst == this);
 }
@@ -669,7 +669,7 @@ bool fp_Line::canDrawBotBorder(void) const
   if(pMyCon == nullptr)
     return false;
   fp_Container * pNext = pLast->getNextContainerInSection();
-  if(pNext == nullptr)
+  if(!pNext || (pNext->getContainerType() != FP_CONTAINER_LINE))
     return true;
   fp_Line * pNextL = static_cast<fp_Line *>(pNext);
   if(pNextL->getContainer() == nullptr)
@@ -677,7 +677,7 @@ bool fp_Line::canDrawBotBorder(void) const
   if(pNextL->getContainer() != pMyCon)
     return true;
   fl_BlockLayout * pNextBlock = pNextL->getBlock();
-  if(pNextBlock->canMergeBordersWithPrev())
+  if(pNextBlock && pNextBlock->canMergeBordersWithPrev())
     return false;
   return (pLast == this);
 }

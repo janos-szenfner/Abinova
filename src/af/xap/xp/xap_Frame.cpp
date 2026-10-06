@@ -1079,6 +1079,12 @@ time_t XAP_Frame::getTimeSinceSave() const
 
 XAP_FrameMode XAP_Frame::getFrameMode()
 {
+	if(!m_pFrameImpl)
+	{
+		UT_WARNINGMSG(("XAP_Frame::getFrameMode: null frame impl on %p\n",
+			       static_cast<void*>(this)));
+		return XAP_NormalFrame;
+	}
 	return m_pFrameImpl->m_iFrameMode;
 }
 void XAP_Frame::setFrameMode(XAP_FrameMode iFrameMode)
