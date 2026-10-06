@@ -727,11 +727,29 @@ void XAP_UnixDialog_PrintPreview::runModal(XAP_Frame * pFrame)
 	/* Modal loop matching the XP runModal() contract: block until the
 	 * user closes the preview. */
 	m_pLoop = g_main_loop_new(nullptr, FALSE);
+	/* a destroy that bypasses close-request (teardown, session end)
+	 * must unwind the loop too or it never returns; the weak pointer
+	 * tracks whether the window is still ours to destroy afterwards */
+	GtkWindow *win = m_pWindow;
+	g_object_add_weak_pointer(G_OBJECT(win),
+							  reinterpret_cast<gpointer *>(&win));
+	g_signal_connect_swapped(m_pWindow, "destroy",
+							 G_CALLBACK(+[](gpointer l) {
+		if (l && g_main_loop_is_running(static_cast<GMainLoop*>(l)))
+			g_main_loop_quit(static_cast<GMainLoop*>(l));
+	}), m_pLoop);
 	g_main_loop_run(m_pLoop);
+	if (win)
+	{
+		g_signal_handlers_disconnect_by_data(G_OBJECT(win), m_pLoop);
+		g_object_remove_weak_pointer(G_OBJECT(win),
+									 reinterpret_cast<gpointer *>(&win));
+	}
 	g_main_loop_unref(m_pLoop);
 	m_pLoop = nullptr;
 
-	gtk_window_destroy(m_pWindow);
+	if (win)
+		gtk_window_destroy(win);
 	m_pWindow = nullptr;
 	m_pArea = nullptr;
 	m_pScrolled = nullptr;

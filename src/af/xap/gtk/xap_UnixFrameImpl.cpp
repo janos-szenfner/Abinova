@@ -1996,6 +1996,39 @@ bool XAP_UnixFrameImpl::_updateTitle()
 	return true;
 }
 
+/* Context-menu nested-loop state: the loop waits on the popover's
+ * compositor-driven lifecycle, so it must survive the popover dying
+ * or never mapping (weak-ref'd slot + present watchdog). */
+#define ABI_MENU_PRESENT_TIMEOUT_S  15
+
+struct AbiMenuRun
+{
+	GMainLoop * loop;
+	GtkWidget * menu;	/* weak-ref'd; nullptr once destroyed */
+};
+
+static void s_menu_loop_quit(GObject * /*emitter*/, AbiMenuRun * run)
+{
+	if (run && run->loop && g_main_loop_is_running(run->loop))
+		g_main_loop_quit(run->loop);
+}
+
+static void s_menu_weak_notify(gpointer data, GObject * /*dead*/)
+{
+	*static_cast<GtkWidget **>(data) = nullptr;
+}
+
+static gboolean s_menu_map_timeout(gpointer data)
+{
+	AbiMenuRun * run = static_cast<AbiMenuRun*>(data);
+	/* if the popover never mapped the compositor denied or dropped
+	 * the popup — "closed" will never arrive, so bail out instead of
+	 * freezing the app; a live popover keeps its nested loop */
+	if (!run->menu || !gtk_widget_get_mapped(run->menu))
+		s_menu_loop_quit(nullptr, run);
+	return G_SOURCE_REMOVE;
+}
+
 bool XAP_UnixFrameImpl::_runModalContextMenu(AV_View * /* pView */, const char * szMenuName,
 											 UT_sint32 x, UT_sint32 y)
 {
@@ -2020,7 +2053,14 @@ bool XAP_UnixFrameImpl::_runModalContextMenu(AV_View * /* pView */, const char *
 		// toplevel window and point it at the current pointer
 		// position, like gtk_menu_popup_at_pointer() did.
 		GtkWidget * menu = m_pUnixPopup->getMenuHandle();
-		if (GTK_IS_POPOVER(menu))
+		/* FRZ08: popping up on an unmapped toplevel hands GTK an
+		 * xdg_popup whose parent surface has no mapped role — the
+		 * compositor never sends its configure and GTK's popup path
+		 * blocks in wl_display_dispatch_queue waiting for it (the
+		 * captured live-Wayland freeze).  Don't ask for a menu that
+		 * cannot be presented. */
+		if (GTK_IS_POPOVER(menu) &&
+			gtk_widget_get_mapped(m_wTopLevelWindow))
 		{
 			GtkWidget * toplevel = m_wTopLevelWindow;
 			// _createPopupWidget() already parents the popover to the
@@ -2042,18 +2082,45 @@ bool XAP_UnixFrameImpl::_runModalContextMenu(AV_View * /* pView */, const char *
 			}
 			gtk_popover_set_pointing_to(GTK_POPOVER(menu), &rect);
 
-			GMainLoop * loop = g_main_loop_new(nullptr, FALSE);
+			AbiMenuRun run;
+			run.loop = g_main_loop_new(nullptr, FALSE);
+			run.menu = menu;
+			/* "closed" is NOT guaranteed: a popup the compositor
+			 * denies, one dismissed by a teardown, or one destroyed
+			 * mid-wait never emits it — an unbounded loop here froze
+			 * the whole app on Wayland.  unmap/destroy quit the loop
+			 * too, and the watchdog bails if the popup never maps. */
 			g_signal_connect_swapped(G_OBJECT(menu), "closed",
-							 G_CALLBACK(g_main_loop_quit), loop);
+							 G_CALLBACK(g_main_loop_quit), run.loop);
+			g_signal_connect_swapped(G_OBJECT(menu), "unmap",
+							 G_CALLBACK(s_menu_loop_quit), &run);
+			g_signal_connect_swapped(G_OBJECT(menu), "destroy",
+							 G_CALLBACK(s_menu_loop_quit), &run);
+			g_object_weak_ref(G_OBJECT(menu), s_menu_weak_notify,
+							  &run.menu);
+			guint watchdog = g_timeout_add_seconds(
+				ABI_MENU_PRESENT_TIMEOUT_S, s_menu_map_timeout, &run);
 			gtk_popover_popup(GTK_POPOVER(menu));
 
 			// We run this menu synchronously, since GTK doesn't.
 			// The "closed" handler above quits the nested loop.
-			g_main_loop_run(loop);
-			g_main_loop_unref(loop);
+			g_main_loop_run(run.loop);
+			g_source_remove(watchdog);
+			if (run.menu)
+			{
+				g_object_weak_unref(G_OBJECT(menu), s_menu_weak_notify,
+									&run.menu);
+				g_signal_handlers_disconnect_by_data(
+					G_OBJECT(menu), run.loop);
+				g_signal_handlers_disconnect_by_data(
+					G_OBJECT(menu), &run);
+			}
+			g_main_loop_unref(run.loop);
 
 			gtk_widget_unparent(menu);
 		}
+		else if (GTK_IS_POPOVER(menu))
+			gtk_widget_unparent(menu);
 	}
 
 	if (pFrame && pFrame->getCurrentView())

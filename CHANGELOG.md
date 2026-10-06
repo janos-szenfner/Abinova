@@ -3948,6 +3948,18 @@ below are on `main` but the release has not been cut yet.
   result is cached per URI so repaints are free, files over 64 MiB
   are skipped (they remain insertable, just not previewed), and the
   preview visibly renders again.
+- **Wayland dialog/context-menu freeze fixed** — on a live Wayland
+  session a right-click menu or dialog could freeze the whole
+  application permanently ("not responding"): when the compositor
+  never configured a popup — a denied grab, teardown mid-present, or
+  a popup requested while the window was unmapped — GTK's popup path
+  blocks in `wl_display_dispatch_queue` and the nested event loops
+  that waited only for the popover's `closed` signal never returned.
+  The context-menu path now refuses to present a popover on an
+  unmapped toplevel, unwinds on unmap/destroy as well as `closed`,
+  and carries a present watchdog; modal dialogs and the print
+  preview now also quit their nested loops when the window is
+  destroyed without a response.
 - **Equation import hardened against hostile math source** — the
   built-in typesetter's LaTeX/MathML parsers now enforce a nesting-depth
   cap and a node budget, so a document containing thousands of nested

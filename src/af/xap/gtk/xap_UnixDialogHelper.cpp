@@ -555,6 +555,19 @@ static gboolean abi_dlg_close_request_cb (GtkWindow * /*w*/, gpointer data)
 	return TRUE;
 }
 
+/* a dialog destroyed without a response (external teardown, session
+ * end, a stray sweep closing toplevels) never emits "response" or
+ * "close-request" — without this the nested loop below waits for an
+ * event that can no longer arrive and the whole app wedges */
+static void abi_dlg_destroy_cb (GtkWidget * /*w*/, gpointer data)
+{
+	AbiDialogRun *run = static_cast<AbiDialogRun*>(data);
+	if (run->response == GTK_RESPONSE_NONE)
+		run->response = GTK_RESPONSE_DELETE_EVENT;
+	if (g_main_loop_is_running(run->loop))
+		g_main_loop_quit(run->loop);
+}
+
 gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, GtkAccessibleRole role)
 {
 	/* GTK4's accessible role is immutable once set; setting it again
@@ -594,6 +607,7 @@ gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, GtkAccessibleRole rol
 	run.response = GTK_RESPONSE_NONE;
 	g_signal_connect (me, "response", G_CALLBACK(abi_dlg_response_cb), &run);
 	g_signal_connect (me, "close-request", G_CALLBACK(abi_dlg_close_request_cb), &run);
+	g_signal_connect (me, "destroy", G_CALLBACK(abi_dlg_destroy_cb), &run);
 	gtk_window_present (GTK_WINDOW (me));
 
     // now run the dialog
@@ -603,6 +617,11 @@ gint abiRunModalDialog(GtkDialog * me, bool destroyDialog, GtkAccessibleRole rol
 		g_main_loop_run (run.loop);
 		result = run.response;
 	} while (result == GTK_RESPONSE_HELP && w != nullptr);
+
+	/* &run dies with this frame: drop every handler that carries it
+	 * or a later destroy/response fires them on dangling storage */
+	if (w != nullptr)
+		g_signal_handlers_disconnect_by_data (G_OBJECT (me), &run);
 
 	g_main_loop_unref (run.loop);
 
