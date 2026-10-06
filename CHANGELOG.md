@@ -5044,6 +5044,14 @@ below are on `main` but the release has not been cut yet.
   `ABINOVA_TEST_LIVE_DISPLAY=1` forces the live display for legs that
   genuinely need it (portal-mediated file choosers, the `--fmt`
   leg's Wayland-backend paths).
+- **Xvfb test runs can no longer leak onto a live Wayland
+  session** — the display-driving wrappers now pin
+  `GDK_BACKEND=x11` under `xvfb-run` instead of merely unsetting
+  `WAYLAND_DISPLAY`. GTK4's Wayland backend falls back to the
+  default `wayland-0` socket in `XDG_RUNTIME_DIR` when the
+  variable is unset, so on a machine with a live compositor the
+  old scrub still let test dialogs open on the user's real
+  session and die on protocol errors.
 - **Coverage ratchet raised to a 65% floor (measured 67.7%)** —
   `tools/coverage-gate.sh` and the `make check-coverage` target now
   fail when total first-party line coverage regresses below 65%

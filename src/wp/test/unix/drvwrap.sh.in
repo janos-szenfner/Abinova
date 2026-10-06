@@ -30,10 +30,15 @@ if [ -z "${COV12_INNER:-}" ]; then
 	if [ -n "${ABINOVA_TEST_LIVE_DISPLAY:-}" ]; then
 		: # caller asked for the real session display
 	elif command -v xvfb-run >/dev/null 2>&1; then
-		# Strip Wayland/GDK backend hints first: GTK would honour
-		# them over xvfb's DISPLAY and open on the real session.
+		# Pin the X11 backend, not just strip the hints: GTK4's
+		# wayland backend falls back to the "wayland-0" socket in
+		# XDG_RUNTIME_DIR even with WAYLAND_DISPLAY unset, so an
+		# unset alone still lets dialogs open on a live compositor
+		# (FRZ06's transient id-1005 failure: wl_surface protocol
+		# error from the real session under xvfb).
 		unset WAYLAND_DISPLAY
-		unset GDK_BACKEND
+		GDK_BACKEND=x11
+		export GDK_BACKEND
 		COV12_INNER=1
 		export COV12_INNER
 		# Absolute path: the cd above already moved us off the
