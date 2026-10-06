@@ -4462,6 +4462,16 @@ below are on `main` but the release has not been cut yet.
   Platform/Sdk from flathub, builds, smoke-tests `abinova --version`
   inside the build sandbox, `--install` installs user-level, and
   `--bundle` writes `dist/abinova-<ver>-<arch>.flatpak`.
+- **Update-check platform caveats documented** — `dist/SIGNING.md`
+  now records that a sandboxed `.app` MUST request
+  `com.apple.security.network.client` or Check for Updates always
+  reports failure; the README documents that proxy handling is GLib's
+  (`*_proxy` environment variables everywhere, GNOME system settings
+  where the glib-networking backend is installed — no macOS System
+  Settings / Windows WinHTTP integration, so corporate-proxy users on
+  those platforms set `https_proxy`) and that the first update check
+  on Windows may trigger an expected Defender Firewall prompt.  No
+  code change.
 - **Dead preprocessor branches resolved** — `TOOLKIT_*`,
   `XP_TARGET_*`, `XP_MAC`, constant `XAP_DONTUSE_XOR`; OS/compiler
   macros kept for future GTK4 ports to Windows/macOS.

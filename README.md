@@ -729,7 +729,15 @@ labels, like Word's ribbon.
   the GitHub releases/tags API in a background thread and
   reports in a symmetric in-app dialog with a download link when
   a newer version exists; on failure the dialog names the cause
-  (no TLS backend, unreachable server, or HTTP error).
+  (no TLS backend, unreachable server, or HTTP error). Proxy
+  handling is GLib's: the standard `https_proxy`/`http_proxy`/
+  `no_proxy` environment variables are honored on every platform,
+  and GNOME's system proxy settings apply where the
+  glib-networking GNOME backend is installed — but there is no
+  dedicated macOS System Settings or Windows WinHTTP/WinINET
+  integration, so on those platforms behind a corporate proxy
+  either set `https_proxy` or the check reports it cannot reach
+  the server.
 
 #### Contextual tabs
 
@@ -2077,6 +2085,13 @@ Windows tokens (the app exports `FONTCONFIG_FILE` at the bundled
 process start also removes the current directory from the DLL search
 path (`SetDllDirectory`/`SetDefaultDllDirectories`) so a stray DLL
 next to a document cannot shadow a bundled dependency.
+
+Windows note: the first time Help > Check for Updates runs, its
+outbound TLS connection to GitHub may trigger a Windows Defender
+Firewall prompt for `abinova.exe` — that is expected behavior for a
+newly installed unsigned-by-default bundle; allowing or declining only
+decides whether the update check can reach the network, and everything
+else works offline either way.
 
 CJK input methods work on Windows: GTK ships a built-in IMM32 `ime`
 module (compiled into libgtk — the bundle needs nothing extra for

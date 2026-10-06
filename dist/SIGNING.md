@@ -82,8 +82,9 @@ what notarization requires, and it is independent of the sandbox.
 `dist/Abinova.entitlements` ships as an empty plist dict: it is the
 single place to add a capability if one is ever needed, and
 `sign-macos.sh` applies it automatically. If the app were ever
-sandboxed, a `com.apple.security.network.client` entitlement would be
-required or the update check silently fails.
+sandboxed, `com.apple.security.network.client` MUST be added there —
+a sandboxed app gets no outbound sockets without it, so Help > Check
+for Updates would always report "Could not check for updates."
 
 ### Gatekeeper & first run (what users see)
 
