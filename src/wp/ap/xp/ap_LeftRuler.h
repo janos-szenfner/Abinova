@@ -173,6 +173,24 @@ public:
 	virtual GR_Graphics* getGraphics(void) const override { return m_pG; }
 	virtual XAP_Frame* getFrame() const override {	return m_pFrame; }
 
+	enum DraggingWhat: uint8_t { DW_NOTHING,
+								 DW_TOPMARGIN,
+								 DW_BOTTOMMARGIN,
+								 DW_CELLMARK
+	};
+
+	/* scripted-input test support: which drag target a press grabbed
+	 * (DraggingWhat; DW_NOTHING means empty band).  Lets a pointer-
+	 * injection harness aim at markers without duplicating the
+	 * hit-test geometry. */
+	DraggingWhat    draggingWhatForTest() const
+		{ return m_draggingWhat; }
+	/* layout-y of the most recent mousePress; a pointer-injection
+	 * harness needs the actual landing point to correct its aim when
+	 * delivered coordinates differ from the warp target */
+	UT_sint32       lastPressYForTest() const
+		{ return m_lastPressY; }
+
 protected:
 	virtual void        _refreshView(void) override;
 
@@ -231,13 +249,8 @@ private:
 	AP_LeftRulerInfo 	m_infoCache;
 	UT_sint32			m_oldY; /* Only for dragging; used to see if object has moved */
 
-	enum DraggingWhat: uint8_t { DW_NOTHING,
-								 DW_TOPMARGIN,
-								 DW_BOTTOMMARGIN,
-								 DW_CELLMARK
-	};
-
 	DraggingWhat		m_draggingWhat;
+	UT_sint32			m_lastPressY;	/* layout-y of last mousePress */
 	UT_sint32			m_draggingCenter; /* center of primary thing being dragged */
 	bool				m_bBeforeFirstMotion;
 	UT_sint32           m_draggingCell;

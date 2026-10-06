@@ -88,6 +88,19 @@
 #include "xap_Dlg_HTMLOptions.h"
 #include "gtktexthandleprivate.h"
 #include "fv_FrameEdit.h"
+#include "ap_FrameData.h"
+#include "ap_TopRuler.h"
+#include "ap_LeftRuler.h"
+#include "ap_UnixTopRuler.h"
+#include "ap_UnixLeftRuler.h"
+
+#include <cmath>
+
+#ifdef GDK_WINDOWING_X11
+#include <gdk/x11/gdkx.h>
+#include <X11/Xlib.h>
+#include <dlfcn.h>
+#endif
 
 extern "C" void __gcov_dump(void); /* checkpoint coverage counters */
 
@@ -352,6 +365,10 @@ struct DriveCtx {
 										 * under gcov the frame leg
 										 * would outgrow its wrapper
 										 * timeout without a bound */
+	int straysClosed;                   /* stray toplevels the sweep
+										 * answered — the ruler leg
+										 * asserts its double-click
+										 * dialog by watching this */
 };
 
 /* GTK's own system toplevels (print/file dialogs) are not our
@@ -386,6 +403,7 @@ static void sweep_strays(DriveCtx &ctx)
 			else if (GTK_IS_WINDOW(w))
 				gtk_window_close(GTK_WINDOW(w));
 			closed = true;
+			ctx.straysClosed++;
 		}
 		g_object_unref(w);
 	}
@@ -1016,7 +1034,7 @@ static int run_dialog(XAP_DialogFactory *factory, XAP_Frame *frame,
 
 	/* 40s of widget budget inside the wrapper's 60s leg timeout */
 	DriveCtx ctx {nullptr, {}, 0, false, false,
-		g_get_monotonic_time() + 40 * G_USEC_PER_SEC};
+		g_get_monotonic_time() + 40 * G_USEC_PER_SEC, 0};
 	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
 
 	guint sweeper = g_timeout_add(150, stray_sweep_cb, &ctx);
@@ -1129,7 +1147,7 @@ static int drive_frame(AP_UnixApp *app, const char *scratch)
 	 * keeps the leg deterministic; coverage already earned still
 	 * lands via the end-of-leg dump */
 	DriveCtx ctx {win, std::move(before), 0, false, false,
-		g_get_monotonic_time() + 230 * G_USEC_PER_SEC};
+		g_get_monotonic_time() + 230 * G_USEC_PER_SEC, 0};
 	ctx.preexisting.push_back(win);
 	if (!sweep_guard([&] {
 			g_signal_connect(win, "destroy",
@@ -1159,13 +1177,611 @@ static int drive_frame(AP_UnixApp *app, const char *scratch)
 	return 0;
 }
 
+/* ---------------- RUL01: ruler drag drive ---------------- */
+
+/* Scripted-pointer leg for RUL01.  GTK4 dropped the implicit press
+ * grab the rulers relied on, so a drag that leaves the ruler band used
+ * to stop receiving motion and silently cancel.  Drags now go through
+ * GtkGestureDrag which reports drag-update/drag-end offsets regardless
+ * of where the pointer is.  This leg injects REAL pointer events with
+ * XTest (motion via XWarpPointer — window-relative, so no root
+ * coordinate math) and asserts the Word-parity semantics:
+ *
+ *   - a click on the band adds a tab stop
+ *   - dragging a tab stop vertically off the band deletes it
+ *   - a paragraph-marker drag keeps tracking horizontally while the
+ *     pointer strays off the band, and applies at the tracked x
+ *   - a left-ruler margin drag keeps tracking vertically and applies
+ *     at the tracked y
+ *   - a double-click on the ruler opens the Paragraph dialog
+ *
+ * Needs the X11 backend plus libXtst; exits 77 (SKIP) without them.
+ * libXtst is dlopen'ed so the binary still links everywhere. */
+
+#ifdef GDK_WINDOWING_X11
+typedef int (*XTestBtnFn)(Display *, unsigned int, Bool, unsigned long);
+
+/* press at (px,py) device px on the ruler via the XP entry points and
+ * release without document side effects: a same-spot release is the
+ * "clicked, no move" no-op for markers and existing tabs; a pending
+ * NEW tab (draggingTabForTest() < 0) is dropped by an off-band release,
+ * which rewrites the unchanged tab list.  Returns the DraggingWhat the
+ * press grabbed. */
+static AP_TopRuler::DraggingWhat probe_top_ruler(AP_TopRuler *tr,
+												 int px, int py,
+												 UT_sint32 *tabIdx)
+{
+	GR_Graphics *rg = tr->getGraphics();
+	tr->mousePress(0, EV_EMB_BUTTON1,
+				   static_cast<UT_uint32>(rg->tlu(px)),
+				   static_cast<UT_uint32>(rg->tlu(py)));
+	AP_TopRuler::DraggingWhat w = tr->draggingWhatForTest();
+	if (tabIdx)
+		*tabIdx = tr->draggingTabForTest();
+	if (w == AP_TopRuler::DW_TABSTOP && tr->draggingTabForTest() < 0)
+		tr->mouseRelease(0, EV_EMB_BUTTON1, rg->tlu(px), -1000);
+	else
+		tr->mouseRelease(0, EV_EMB_BUTTON1, rg->tlu(px), rg->tlu(py));
+	return w;
+}
+
+static AP_LeftRuler::DraggingWhat probe_left_ruler(AP_LeftRuler *lr,
+												   int px, int py)
+{
+	GR_Graphics *rg = lr->getGraphics();
+	lr->mousePress(0, EV_EMB_BUTTON1,
+				   static_cast<UT_uint32>(rg->tlu(px)),
+				   static_cast<UT_uint32>(rg->tlu(py)));
+	AP_LeftRuler::DraggingWhat w = lr->draggingWhatForTest();
+	lr->mouseRelease(0, EV_EMB_BUTTON1, rg->tlu(px), rg->tlu(py));
+	return w;
+}
+
+/* scan device-px columns x0..x1 of the top ruler at row py and return
+ * the CENTER of the first contiguous run where the probe matches.
+ * Aiming at the run center (rather than the first matching px) keeps
+ * the real XTest press inside the hit box even when the pointer lands
+ * a few px off the warp target — observed jitter is several px as the
+ * frame's layout settles under Xvfb. */
+static int probe_top_center(AP_TopRuler *tr, int py, int x0, int x1,
+							AP_TopRuler::DraggingWhat want,
+							bool wantExistingTab)
+{
+	int runStart = -1;
+	for (int px = x0; px <= x1; px++) {
+		UT_sint32 ti = 0;
+		AP_TopRuler::DraggingWhat w = probe_top_ruler(tr, px, py, &ti);
+		bool match = (w == want) && (!wantExistingTab || ti >= 0);
+		if (match && runStart < 0)
+			runStart = px;
+		else if (!match && runStart >= 0)
+			return (runStart + px - 1) / 2;
+	}
+	return runStart >= 0 ? (runStart + x1) / 2 : -1;
+}
+
+struct RulerInject {
+	Display *dpy;
+	Window xid;
+	XTestBtnFn fakeBtn;
+};
+
+/* warp the real pointer to widget-space (px,py) and give the main
+ * loop a slice so GDK dispatches the resulting MotionNotify */
+static void rul_move(RulerInject &inj, GtkWidget *w, double px, double py)
+{
+	GtkWidget *native = GTK_WIDGET(gtk_widget_get_native(w));
+	graphene_point_t in = {(float)px, (float)py}, out;
+	if (native && gtk_widget_compute_point(w, native, &in, &out)) {
+		XWarpPointer(inj.dpy, None, inj.xid, 0, 0, 0, 0,
+					 (int)lrint(out.x), (int)lrint(out.y));
+		XFlush(inj.dpy);
+		if (g_trace)
+			fprintf(stderr, "rul_move w(%g,%g) -> native(%g,%g)\n",
+					px, py, out.x, out.y);
+	} else if (g_trace)
+		fprintf(stderr, "rul_move w(%g,%g): compute_point failed\n",
+				px, py);
+	pump_for(35);
+}
+
+static void rul_btn(RulerInject &inj, bool down)
+{
+	inj.fakeBtn(inj.dpy, 1, down ? True : False, 0);
+	XFlush(inj.dpy);
+	pump_for(45);
+}
+
+/* GtkGestureClick folds presses that land within gtk-double-click-time
+ * (~250ms) and distance of each other into n_press > 1 — and the
+ * ruler's click handler turns n_press == 2 into dlgParagraph.  Every
+ * synthetic press pair that is not meant to be a double-click must be
+ * separated by more than that window or the leg opens modal dialogs it
+ * never intended to. */
+static void rul_gap(void)
+{
+	pump_for(450);
+}
+
+/* a ruler press while a document change is in flight early-outs and
+ * grabs nothing — drain the main loop until the piece table is idle */
+static void wait_pt_idle(FV_View *view)
+{
+	gint64 deadline = g_get_monotonic_time() + 2000000;
+	while (view->getDocument()->isPieceTableChanging() &&
+		   g_get_monotonic_time() < deadline)
+		pump_for(40);
+}
+
+/* under Xvfb the freshly-mapped frame keeps resizing for a second or
+ * two and every resize shifts the ruler's column origin, which makes a
+ * drag's tracked coordinate recompute against a moving reference.
+ * Probe a fixed marker's x until it stops moving (and the widget stops
+ * changing height) so the leg exercises a stable layout. */
+static void settle_ruler(AP_TopRuler *tr, GtkWidget *tw)
+{
+	int lastX = -1, lastH = -1, stable = 0;
+	gint64 deadline = g_get_monotonic_time() + 4000000;
+	int py = (3 * gtk_widget_get_height(tw) / 4) - 3;
+	while (stable < 3 && g_get_monotonic_time() < deadline) {
+		pump_for(150);
+		int cx = probe_top_center(tr, py, 8,
+								  gtk_widget_get_width(tw) - 8,
+								  AP_TopRuler::DW_LEFTINDENT, false);
+		int h = gtk_widget_get_height(tw);
+		if (cx >= 0 && cx == lastX && h == lastH)
+			stable++;
+		else {
+			stable = 0;
+			lastX = cx;
+			lastH = h;
+		}
+	}
+}
+
+static int drive_ruler(AP_UnixApp *app, const char *scratch)
+{
+	alarm(0);
+	set_phase("ruler: init");
+	GdkDisplay *gd = gdk_display_get_default();
+	if (!GDK_IS_X11_DISPLAY(gd)) {
+		g_printerr("ruler: not an X11 display — XTest injection needs "
+				   "Xvfb\n");
+		return 77;
+	}
+	Display *dpy = gdk_x11_display_get_xdisplay(gd);
+	void *xt = dlopen("libXtst.so.6", RTLD_NOW | RTLD_LOCAL);
+	if (!xt)
+		xt = dlopen("libXtst.so", RTLD_NOW | RTLD_LOCAL);
+	XTestBtnFn fakeBtn = xt ? reinterpret_cast<XTestBtnFn>(
+		dlsym(xt, "XTestFakeButtonEvent")) : nullptr;
+	if (!fakeBtn) {
+		g_printerr("ruler: libXtst unavailable — cannot inject buttons\n");
+		return 77;
+	}
+
+	/* the ruler's double-click handler runs dlgParagraph modally; an
+	 * accidental multi-press (or the deliberate one at the end) wedges
+	 * the leg without a stray sweeper inside the nested loop.  Same
+	 * mechanism the dialog legs use. */
+	DriveCtx sctx {nullptr, {}, 0, false, false, 0, 0};
+	sweep_guard([&sctx] { sctx.preexisting = toplevels(); });
+
+	set_phase("ruler: new frame");
+	XAP_Frame *frame = app->newFrame();
+	if (!frame) {
+		g_printerr("ruler: no frame\n");
+		return 1;
+	}
+	(void)scratch;
+	/* load a brand-new empty document rather than the staged rich.abw:
+	 * the ruler hit-tests the block under the caret, and a blank first
+	 * paragraph has no indents, no table cell and a full-width column,
+	 * so every marker has room to move and tab anchors snap
+	 * predictably */
+	UT_Error err = frame->loadDocument(
+		static_cast<const char *>(nullptr), IEFT_Unknown);
+	frame->show();
+	pump_for(700);
+	if (err != UT_OK) {
+		g_printerr("ruler: new-document err %d\n", err);
+		return 1;
+	}
+
+	FV_View *view = static_cast<FV_View *>(frame->getCurrentView());
+	AP_FrameData *fd = static_cast<AP_FrameData *>(frame->getFrameData());
+	if (!view || !fd) {
+		g_printerr("ruler: no view/frame data\n");
+		return 1;
+	}
+	if (!fd->m_bShowRuler || !fd->m_pTopRuler || !fd->m_pLeftRuler) {
+		frame->toggleRuler(true);
+		pump_for(300);
+	}
+	AP_TopRuler *tr = fd->m_pTopRuler;
+	AP_LeftRuler *lr = fd->m_pLeftRuler;
+	if (!tr || !lr) {
+		g_printerr("ruler: rulers not enabled\n");
+		return 77;
+	}
+	AP_UnixTopRuler *utr = dynamic_cast<AP_UnixTopRuler *>(tr);
+	AP_UnixLeftRuler *ulr = dynamic_cast<AP_UnixLeftRuler *>(lr);
+	GtkWidget *tw = utr ? utr->getWidget() : nullptr;
+	GtkWidget *lw = ulr ? ulr->getWidget() : nullptr;
+	if (!tw || !lw ||
+		!gtk_widget_get_realized(tw) || !gtk_widget_get_realized(lw)) {
+		g_printerr("ruler: ruler widgets not realized\n");
+		return 77;
+	}
+	int tw_w = gtk_widget_get_width(tw), tw_h = gtk_widget_get_height(tw);
+	int lw_w = gtk_widget_get_width(lw), lw_h = gtk_widget_get_height(lw);
+	if (tw_w < 200 || tw_h < 10 || lw_h < 200 || lw_w < 10) {
+		g_printerr("ruler: rulers not laid out (%dx%d / %dx%d)\n",
+				   tw_w, tw_h, lw_w, lw_h);
+		return 1;
+	}
+
+	GtkWidget *native = GTK_WIDGET(gtk_widget_get_native(tw));
+	GdkSurface *surf = gtk_native_get_surface(GTK_NATIVE(native));
+	if (!surf || !GDK_IS_X11_SURFACE(surf)) {
+		g_printerr("ruler: no X11 surface\n");
+		return 77;
+	}
+	RulerInject inj { dpy, gdk_x11_surface_get_xid(surf), fakeBtn };
+
+	/* let the freshly-mapped window finish resizing before measuring
+	 * anything — each resize moves the column origin mid-run */
+	set_phase("ruler: settle");
+	settle_ruler(tr, tw);
+
+	sctx.root = native;
+	guint sweeper = g_timeout_add(150, stray_sweep_cb, &sctx);
+
+	GR_Graphics *rg = tr->getGraphics();
+	int fails = 0;
+
+	/* ---- tab click-add, then drag-off-band deletes ---- */
+	set_phase("ruler: tab click-add");
+
+	AP_TopRulerInfo ti0;
+	view->getTopRulerInfo(&ti0);
+
+	int tabX = -1;
+	for (int px = 40; px < tw_w - 8; px += 2) {
+		UT_sint32 ti = 0;
+		if (probe_top_ruler(tr, px, tw_h / 2, &ti) == AP_TopRuler::DW_TABSTOP &&
+			ti < 0) {
+			tabX = px;
+			break;
+		}
+	}
+	if (tabX < 0) {
+		g_printerr("FAIL ruler: no free tab-zone point found\n");
+		fails++;
+	} else {
+		rul_move(inj, tw, tabX, tw_h / 2);
+		rul_btn(inj, true);
+		rul_btn(inj, false);
+		rul_gap();
+		AP_TopRulerInfo ti1;
+		view->getTopRulerInfo(&ti1);
+		if (ti1.m_iTabStops == ti0.m_iTabStops + 1) {
+			g_print("ruler: click on band added a tab stop (%d -> %d)\n",
+					ti0.m_iTabStops, ti1.m_iTabStops);
+		} else {
+			g_printerr("FAIL ruler: click on band did not add a tab "
+					   "(%d -> %d)\n", ti0.m_iTabStops, ti1.m_iTabStops);
+			fails++;
+		}
+
+		/* the committed tab snaps to the ruler grid, so its hit box can
+		 * sit a few px off the click point — locate the box with the
+		 * probe (presses in the tab zone that create a pending tab are
+		 * dropped off-band inside probe_top_ruler) and press at its
+		 * center; retry with a fresh probe in case the box shifted
+		 * while the frame's layout was still settling. */
+		set_phase("ruler: tab grab + drag-off");
+		bool grabbed = false;
+		int grabX = -1, grabY = tw_h / 2;
+		for (int attempt = 0; attempt < 4 && !grabbed; attempt++) {
+			if (grabX < 0)
+				grabX = probe_top_center(tr, grabY,
+										 tabX - 30, tabX + 30,
+										 AP_TopRuler::DW_TABSTOP, true);
+			if (grabX < 0) {
+				g_printerr("ruler: probe found no tab near %d "
+						   "(attempt %d)\n", tabX, attempt);
+				break;
+			}
+			wait_pt_idle(view);
+			rul_move(inj, tw, grabX, grabY);
+			rul_btn(inj, true);
+			if (g_trace)
+				fprintf(stderr, "tab-grab @(%d,%d): what=%d idx=%d "
+						"landed=(%d,%d)\n",
+						grabX, grabY, tr->draggingWhatForTest(),
+						static_cast<int>(tr->draggingTabForTest()),
+						rg->tdu(tr->lastPressXForTest()),
+						rg->tdu(tr->lastPressYForTest()));
+			if (tr->draggingWhatForTest() == AP_TopRuler::DW_TABSTOP &&
+				tr->draggingTabForTest() >= 0) {
+				grabbed = true;
+				break;
+			}
+			/* a pending-new tab is dropped off-band; any other grab
+			 * gets a zero-delta release — both side-effect free */
+			if (tr->draggingWhatForTest() == AP_TopRuler::DW_TABSTOP)
+				rul_move(inj, tw, grabX, tw_h + 30);
+			rul_btn(inj, false);
+			rul_gap();
+			/* the delivered press coordinate can sit several px off
+			 * the warp target while the frame's layout settles —
+			 * feed the landing error back into the aim before
+			 * re-probing */
+			grabX = 2 * grabX - rg->tdu(tr->lastPressXForTest());
+			grabY = 2 * grabY - rg->tdu(tr->lastPressYForTest());
+			int cx = probe_top_center(tr, grabY,
+									  grabX - 20, grabX + 20,
+									  AP_TopRuler::DW_TABSTOP, true);
+			if (cx >= 0)
+				grabX = cx;
+		}
+		if (!grabbed) {
+			g_printerr("FAIL ruler: press never grabbed the new tab\n");
+			fails++;
+		} else {
+			rul_move(inj, tw, grabX, tw_h + 30); /* off the band */
+			rul_btn(inj, false);
+			rul_gap();
+			AP_TopRulerInfo ti2;
+			view->getTopRulerInfo(&ti2);
+			if (ti2.m_iTabStops == ti0.m_iTabStops) {
+				g_print("ruler: tab dragged off the band deleted "
+						"(%d -> %d)\n", ti1.m_iTabStops, ti2.m_iTabStops);
+			} else {
+				g_printerr("FAIL ruler: off-band release did not delete "
+						   "the tab (%d -> %d)\n",
+						   ti1.m_iTabStops, ti2.m_iTabStops);
+				fails++;
+			}
+		}
+	}
+
+	/* ---- marker drag that leaves the band applies at tracked x ---- */
+	set_phase("ruler: marker drag off-band");
+
+	/* the tab delete above reformats the block; the resulting relayout
+	 * can shift the column's window position a frame or two later.  let
+	 * it settle before probing marker positions or the drag's tracked x
+	 * gets recomputed against a moving origin */
+	settle_ruler(tr, tw);
+
+	/* the indent markers occupy the lower half of the band (the upper
+	 * part, just above the 3/4 line, grabs the single indent; the
+	 * bottom box grabs the paired one) — try both rows */
+	struct { int px, py; AP_TopRuler::DraggingWhat what; } hit {
+		-1, -1, AP_TopRuler::DW_NOTHING };
+	const int probeY[] = { (3 * tw_h / 4) - 3, (3 * tw_h / 4) + 3 };
+	const AP_TopRuler::DraggingWhat markerKinds[] = {
+		AP_TopRuler::DW_LEFTINDENT,
+		AP_TopRuler::DW_LEFTINDENTWITHFIRST,
+		AP_TopRuler::DW_RIGHTINDENT,
+		AP_TopRuler::DW_FIRSTLINEINDENT,
+		AP_TopRuler::DW_LEFTMARGIN,
+		AP_TopRuler::DW_RIGHTMARGIN
+	};
+	for (int py : probeY) {
+		for (AP_TopRuler::DraggingWhat kind : markerKinds) {
+			int cx = probe_top_center(tr, py, 8, tw_w - 8, kind, false);
+			if (cx >= 0) {
+				hit = { cx, py, kind };
+				break;
+			}
+		}
+		if (hit.px >= 0)
+			break;
+	}
+	/* drag direction chosen so the tracked property grows: left
+	 * markers right, right markers left — either way ~80 px and
+	 * comfortably inside the column */
+	const int dx = (hit.what == AP_TopRuler::DW_RIGHTINDENT ||
+					hit.what == AP_TopRuler::DW_RIGHTMARGIN) ? -80 : 80;
+	if (hit.px < 0) {
+		g_printerr("FAIL ruler: no paragraph marker found to drag\n");
+		fails++;
+	} else {
+		bool markerGrabbed = false;
+		for (int attempt = 0; attempt < 4 && !markerGrabbed; attempt++) {
+			wait_pt_idle(view);
+			rul_move(inj, tw, hit.px, hit.py);
+			rul_btn(inj, true);
+			if (g_trace)
+				fprintf(stderr, "marker press @(%d,%d): want=%d got=%d "
+						"landed=(%d,%d)\n",
+						hit.px, hit.py, hit.what, tr->draggingWhatForTest(),
+						rg->tdu(tr->lastPressXForTest()),
+						rg->tdu(tr->lastPressYForTest()));
+			if (tr->draggingWhatForTest() == hit.what) {
+				markerGrabbed = true;
+				break;
+			}
+			/* landed off the marker: release cleanly and re-probe —
+			 * a pending tab goes off-band, anything else is a
+			 * zero-delta no-op */
+			if (tr->draggingWhatForTest() == AP_TopRuler::DW_TABSTOP)
+				rul_move(inj, tw, hit.px, tw_h + 30);
+			rul_btn(inj, false);
+			rul_gap();
+			hit.px = 2 * hit.px - rg->tdu(tr->lastPressXForTest());
+			hit.py = 2 * hit.py - rg->tdu(tr->lastPressYForTest());
+			int cx = probe_top_center(tr, hit.py,
+									  hit.px - 16, hit.px + 16,
+									  hit.what, false);
+			if (cx >= 0)
+				hit.px = cx;
+		}
+		if (!markerGrabbed) {
+			g_printerr("FAIL ruler: real press did not grab marker "
+					   "(want %d got %d)\n",
+					   hit.what, tr->draggingWhatForTest());
+			fails++;
+		} else {
+			rul_move(inj, tw, hit.px + dx / 2, hit.py);     /* in-band */
+			rul_move(inj, tw, hit.px + dx, tw_h + 30);      /* off-band */
+			rul_btn(inj, false);
+			rul_gap();
+
+			AP_TopRulerInfo ti3;
+			view->getTopRulerInfo(&ti3);
+			UT_sint32 d = 0;
+			const char *what = "?";
+			switch (hit.what) {
+			case AP_TopRuler::DW_LEFTINDENT:
+			case AP_TopRuler::DW_LEFTINDENTWITHFIRST:
+				d = ti3.m_xrLeftIndent - ti0.m_xrLeftIndent;
+				what = "left indent"; break;
+			case AP_TopRuler::DW_FIRSTLINEINDENT:
+				d = ti3.m_xrFirstLineIndent - ti0.m_xrFirstLineIndent;
+				what = "first-line indent"; break;
+			case AP_TopRuler::DW_RIGHTINDENT:
+				d = ti3.m_xrRightIndent - ti0.m_xrRightIndent;
+				what = "right indent"; break;
+			case AP_TopRuler::DW_LEFTMARGIN:
+				d = ti3.u.c.m_xaLeftMargin - ti0.u.c.m_xaLeftMargin;
+				what = "left margin"; break;
+			case AP_TopRuler::DW_RIGHTMARGIN:
+				d = ti3.u.c.m_xaRightMargin - ti0.u.c.m_xaRightMargin;
+				what = "right margin"; break;
+			default: break;
+			}
+			/* applied at the tracked x means ~80 px of motion, not the
+			 * silent cancel (delta 0) the broken wiring produced.
+			 * The column origin can still drift by a frame while the
+			 * window settles, so assert magnitude rather than sign:
+			 * anything in the same ballpark as the pointer travel is
+			 * a faithful apply, 0 is a cancel. */
+			UT_sint32 mag = d < 0 ? -d : d;
+			if (mag >= rg->tlu(30) && mag <= rg->tlu(400)) {
+				g_print("ruler: %s drag off-band applied at tracked x "
+						"(delta %d lu)\n", what, d);
+			} else {
+				g_printerr("FAIL ruler: %s off-band drag delta %d lu, "
+						   "expected magnitude %d..%d\n",
+						   what, d, rg->tlu(30), rg->tlu(400));
+				fails++;
+			}
+		}
+	}
+
+	/* ---- left ruler: margin drag straying horizontally applies ---- */
+	set_phase("ruler: left margin drag");
+	pump_for(300);
+
+	AP_LeftRulerInfo li0;
+	view->getLeftRulerInfo(&li0);
+	int margY = -1;
+	for (int py = 8; py < lw_h - 8; py += 2) {
+		if (probe_left_ruler(lr, lw_w / 2, py) ==
+				AP_LeftRuler::DW_TOPMARGIN) {
+			margY = py;
+			break;
+		}
+	}
+	if (margY < 0) {
+		g_printerr("FAIL ruler: no top-margin marker on left ruler\n");
+		fails++;
+	} else {
+		bool marginGrabbed = false;
+		GR_Graphics *lg = lr->getGraphics();
+		for (int attempt = 0; attempt < 4 && !marginGrabbed; attempt++) {
+			wait_pt_idle(view);
+			rul_move(inj, lw, lw_w / 2, margY);
+			rul_btn(inj, true);
+			if (g_trace)
+				fprintf(stderr, "margin press @%d: got=%d landed=%d\n",
+						margY, lr->draggingWhatForTest(),
+						lg->tdu(lr->lastPressYForTest()));
+			if (lr->draggingWhatForTest() == AP_LeftRuler::DW_TOPMARGIN) {
+				marginGrabbed = true;
+				break;
+			}
+			rul_btn(inj, false);
+			rul_gap();
+			margY = 2 * margY - lg->tdu(lr->lastPressYForTest());
+			for (int py = margY - 10; py <= margY + 10; py += 2) {
+				if (probe_left_ruler(lr, lw_w / 2, py) ==
+						AP_LeftRuler::DW_TOPMARGIN) {
+					margY = py;
+					break;
+				}
+			}
+		}
+		if (!marginGrabbed) {
+			g_printerr("FAIL ruler: left press did not grab top margin\n");
+			fails++;
+		} else {
+			rul_move(inj, lw, lw_w / 2, margY + 40);        /* in-band */
+			rul_move(inj, lw, lw_w + 40, margY + 80);       /* off-band */
+			rul_btn(inj, false);
+			rul_gap();
+			AP_LeftRulerInfo li1;
+			view->getLeftRulerInfo(&li1);
+			UT_sint32 d = li1.m_yTopMargin - li0.m_yTopMargin;
+			UT_sint32 lo = rg->tlu(55), hi = rg->tlu(115);
+			if (d >= lo && d <= hi) {
+				g_print("ruler: left-ruler margin drag off-band applied "
+						"at tracked y (delta %d lu)\n", d);
+			} else {
+				g_printerr("FAIL ruler: left margin off-band delta %d "
+						   "lu, expected %d..%d\n", d, lo, hi);
+				fails++;
+			}
+		}
+	}
+
+	/* ---- double-click opens the Paragraph dialog ---- */
+	set_phase("ruler: double-click");
+
+	{
+		/* the dialog runs modally inside the second press's dispatch;
+		 * the stray sweep answers it within ~150ms and bumps the
+		 * counter, which is also the proof the dialog appeared */
+		int closedBefore = sctx.straysClosed;
+		int cx = tabX >= 0 ? tabX : tw_w / 2;
+		rul_move(inj, tw, cx, tw_h / 2);
+		rul_btn(inj, true);
+		rul_btn(inj, false);
+		rul_btn(inj, true);
+		rul_btn(inj, false);
+		pump_for(800);
+		if (sctx.straysClosed > closedBefore)
+			g_print("ruler: double-click opened a dialog\n");
+		else {
+			g_printerr("FAIL ruler: double-click opened no dialog\n");
+			fails++;
+		}
+		pump_for(150);
+	}
+
+	set_phase("ruler: done");
+	g_source_remove(sweeper);
+	g_print("ruler: %s (%d failures)\n", fails ? "FAILURES" : "all ok",
+			fails);
+	return fails ? 1 : 0;
+#else
+	(void)app; (void)scratch;
+	g_printerr("ruler: built without X11 backend\n");
+	return 77;
+#endif
+}
+
 /* ---------------- AbiWidget drive ---------------- */
 
 static int drive_abiwidget(const char *scratch_uri)
 {
 	alarm(0); /* the sections' call_guard alarms are the real bound;
 			   * the wrapper's timeout covers a total wedge */
-	DriveCtx ctx {nullptr, {}, 0, false, false, 0};
+	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
 	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
 	GtkWidget *win = gtk_window_new();
 	GtkWidget *w = abi_widget_new();
@@ -1522,7 +2138,7 @@ static gchar *file_b64(const char *path)
 static int drive_ev(AP_UnixApp *app, const char *scratch)
 {
 	alarm(0);
-	DriveCtx ctx {nullptr, {}, 0, false, false, 0};
+	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
 	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
 
 	XAP_Frame *frame = app->newFrame();
@@ -2038,7 +2654,7 @@ static void snapshot_widget(GtkWidget *w)
 static int drive_fmt(AP_UnixApp *app, const char *scratch)
 {
 	alarm(0);
-	DriveCtx ctx {nullptr, {}, 0, false, false, 0};
+	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
 	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
 
 	GdkDisplay *disp = gdk_display_get_default();
@@ -2444,7 +3060,8 @@ int main(int argc, char **argv)
 	alarm(120); /* last-resort watchdog; drvwrap wraps us in `timeout` */
 
 	bool wantList = false, wantFrame = false, wantAbi = false,
-		 wantEv = false, wantFmt = false, wantFileNew = false;
+		 wantEv = false, wantFmt = false, wantFileNew = false,
+		 wantRuler = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -2459,13 +3076,15 @@ int main(int argc, char **argv)
 			wantFmt = true;
 		else if (strcmp(argv[i], "--filenew") == 0)
 			wantFileNew = true;
+		else if (strcmp(argv[i], "--ruler") == 0)
+			wantRuler = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
 	if (!wantList && !wantFrame && !wantAbi && !wantEv && !wantFmt &&
-		!wantFileNew && wantId < 0) {
+		!wantFileNew && !wantRuler && wantId < 0) {
 		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev"
-				   " | --fmt | --filenew\n", argv[0]);
+				   " | --fmt | --filenew | --ruler\n", argv[0]);
 		return 2;
 	}
 
@@ -2535,6 +3154,8 @@ int main(int argc, char **argv)
 		return drive_fmt(app, src);
 	if (wantFileNew)
 		return drive_filenew(app, src);
+	if (wantRuler)
+		return drive_ruler(app, src);
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {

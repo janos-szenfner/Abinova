@@ -67,10 +67,19 @@ protected:
         static void unrealize(AP_UnixRuler *self);
         static void button_pressed(GtkGestureClick *g, gint n_press, gdouble x, gdouble y, gpointer data);
         static void button_released(GtkGestureClick *g, gint n_press, gdouble x, gdouble y, gpointer data);
+        static void drag_begin(GtkGestureDrag *g, gdouble x, gdouble y, gpointer data);
+        static void drag_update(GtkGestureDrag *g, gdouble offset_x, gdouble offset_y, gpointer data);
+        static void drag_end(GtkGestureDrag *g, gdouble offset_x, gdouble offset_y, gpointer data);
         static void resized(GtkDrawingArea* w, int width, int height, gpointer data);
         static void motion_notify(GtkEventControllerMotion* c, gdouble x, gdouble y, gpointer data);
     };
 
     GtkWidget* m_wRuler;
     guint m_iBackgroundRedrawID;
+    /* set by drag-begin once GtkGestureDrag claims the press sequence;
+     * the click gesture is reset on claim and normally emits no
+     * "released", but if one still reaches us this keeps the release
+     * from being applied twice (drag-end already did it).  Cleared on
+     * the next button press. */
+    bool m_bDragClaimed;
 };

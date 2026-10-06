@@ -549,19 +549,15 @@ bool PP_AttrProp::areAlreadyPresent(const PP_PropertyVector & attributes,
 		// UT_return_val_if_fail (p[1] /* && *p[1]*/, false);	// require value for each name
 
 		// first deal with the case where the value is set to nullptr or "" -- we want
-		// that attribute to be absent, not present
+		// that property to be absent, not present.  a stored non-empty value
+		// therefore means a merge is required, whether we are replacing it
+		// or removing it.
 		const gchar * szValue = nullptr;
 
-		if(!(iter + 1)->empty() && getProperty(*iter, szValue)
-		   && szValue && *szValue) {
+		if (getProperty(*iter, szValue) && szValue && *szValue) {
 			return false;
-		} else if(!(iter + 1)->empty())	{
-			if (!getProperty(*iter, szValue)) {
-				return false;		// item not present
-			}
-			if (*(iter + 1) != szValue) {
-				return false;		// item has different value
-			}
+		} else if (!(iter + 1)->empty()) {
+			return false;		// item not present
 		}
 	}
 

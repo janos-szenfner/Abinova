@@ -239,6 +239,40 @@ public:
 	virtual void	mouseRelease(EV_EditModifierState ems, EV_EditMouseButton emb, UT_sint32 x, UT_sint32 y) override;
 
 	bool            isMouseOverTab(UT_uint32 x, UT_uint32 y);
+
+	enum DraggingWhat: uint8_t { DW_NOTHING,
+								 DW_LEFTMARGIN,
+								 DW_RIGHTMARGIN,
+								 DW_COLUMNGAP,
+								 DW_COLUMNGAPLEFTSIDE,
+								 DW_LEFTINDENT,
+								 DW_RIGHTINDENT,
+								 DW_FIRSTLINEINDENT,
+								 DW_LEFTINDENTWITHFIRST,
+								 DW_TABSTOP,
+								 DW_TABTOGGLE,
+								 DW_CELLMARK
+	};
+
+	/* scripted-input test support: which drag target a press grabbed
+	 * (DraggingWhat; DW_NOTHING means empty band).  Lets a pointer-
+	 * injection harness aim at markers without duplicating the
+	 * hit-test geometry. */
+	DraggingWhat    draggingWhatForTest() const
+		{ return m_draggingWhat; }
+	/* index of the tab a DW_TABSTOP press grabbed; tr_TABINDEX_NEW (-1)
+	 * is a pending new tab at the press point. */
+	UT_sint32       draggingTabForTest() const
+		{ return m_draggingTab; }
+	/* where the most recent mousePress actually landed, in layout
+	 * units — under real pointer injection the delivered coordinate
+	 * can differ from the warp target by several device px while the
+	 * frame's layout settles, so a harness needs the landing point to
+	 * correct its aim. */
+	UT_sint32       lastPressXForTest() const
+		{ return m_lastPressX; }
+	UT_sint32       lastPressYForTest() const
+		{ return m_lastPressY; }
 	/* used with AV_Listener */
 	virtual bool notify(AV_View * pView, const AV_ChangeMask mask) override;
 	virtual AV_ListenerType getType(void) const override { return AV_LISTENER_TOPRULER;}
@@ -407,26 +441,14 @@ private:
 	bool				m_bValidMouseClick;
 	bool				m_bEventIgnored;
 
-	enum DraggingWhat: uint8_t { DW_NOTHING,
-								 DW_LEFTMARGIN,
-								 DW_RIGHTMARGIN,
-								 DW_COLUMNGAP,
-								 DW_COLUMNGAPLEFTSIDE,
-								 DW_LEFTINDENT,
-								 DW_RIGHTINDENT,
-								 DW_FIRSTLINEINDENT,
-								 DW_LEFTINDENTWITHFIRST,
-								 DW_TABSTOP,
-								 DW_TABTOGGLE,
-								 DW_CELLMARK
-	};
-
 	DraggingWhat		m_draggingWhat;
 	UT_sint32			m_draggingCenter; /* center of primary thing being dragged */
 	UT_Rect				m_draggingRect;	/* rectangle of primary thing being dragged */
 	UT_sint32			m_dragging2Center; /* center of drag-along */
 	UT_Rect				m_dragging2Rect; /* rect of drag-along */
 	UT_sint32			m_draggingTab;	/* index of tab being dragged */
+	UT_sint32			m_lastPressX;	/* layout-x of last mousePress */
+	UT_sint32			m_lastPressY;	/* layout-y of last mousePress */
 	eTabType			m_draggingTabType;
 	eTabLeader			m_draggingTabLeader;
 	UT_sint32			m_dragStart;

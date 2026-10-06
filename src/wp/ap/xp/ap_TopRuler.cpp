@@ -81,6 +81,8 @@ AP_TopRuler::AP_TopRuler(XAP_Frame * pFrame)
 	m_xScrollLimit = 0;
 	m_bValidMouseClick = false;
 	m_draggingWhat = DW_NOTHING;
+	m_lastPressX = 0;
+	m_lastPressY = 0;
 	m_iDefaultTabType = FL_TAB_LEFT;
 	m_pAutoScrollTimer = nullptr;
 
@@ -2218,6 +2220,8 @@ void AP_TopRuler::mousePress(EV_EditModifierState /* ems */,
 							 EV_EditMouseButton emb , UT_uint32 x, UT_uint32 y)
 {
 	//UT_DEBUGMSG(("mousePress: [ems 0x%08lx][emb 0x%08lx][x %ld][y %ld]\n",ems,emb,x,y));
+	m_lastPressX = static_cast<UT_sint32>(x);
+	m_lastPressY = static_cast<UT_sint32>(y);
 
 	// get the complete state of what should be on the ruler at the time of the grab.
 	// we assume that nothing in the document can change during our grab unless we
@@ -2230,6 +2234,9 @@ void AP_TopRuler::mousePress(EV_EditModifierState /* ems */,
 	FV_View * pView = (static_cast<FV_View *>(m_pView));
     if(pView->getDocument()->isPieceTableChanging())
 	{
+		if (getenv("RULER_TRACE"))
+			fprintf(stderr, "topRuler press (%u,%u) PT-CHANGING bail\n",
+					x, y);
 		return;
 	}
 	pView->getTopRulerInfo(&m_infoCache);
@@ -2298,6 +2305,10 @@ void AP_TopRuler::mousePress(EV_EditModifierState /* ems */,
  	eTabType iType;
 	eTabLeader iLeader;
 	UT_sint32 iTab = _findTabStop(&m_infoCache, x, m_pG->tlu(s_iFixedHeight/2 + s_iFixedHeight/4 - 3), anchor, iType, iLeader);
+	if (getenv("RULER_TRACE"))
+		fprintf(stderr, "topRuler press (%u,%u) iTab=%d stops=%d\n",
+				x, y, static_cast<int>(iTab),
+				static_cast<int>(m_infoCache.m_iTabStops));
 	if (iTab >= 0)
 	{
 		if(emb == EV_EMB_BUTTON1)
@@ -2582,9 +2593,18 @@ void AP_TopRuler::mouseRelease(EV_EditModifierState ems, EV_EditMouseButton /* e
 
 	m_bValidMouseClick = false;
 
-	// if they drag vertically off the ruler, we ignore the whole thing.
+	// a tab stop released off the ruler band is the delete gesture —
+	// _ignoreEvent(true) drops it.  Anything else released out here
+	// applies at the last tracked x (Word parity): the drag kept
+	// tracking horizontally while the pointer strayed vertically.
 
-	if ((getHeight() > 0) && ((y < 0) || (y > static_cast<UT_sint32>(getHeight ()))))
+	if (getenv("RULER_TRACE"))
+		fprintf(stderr, "topRuler release (%d,%d) what=%d h=%d ctr=%d "
+				"ignored=%d\n", x, y,
+				static_cast<int>(m_draggingWhat), getHeight(),
+				m_draggingCenter, static_cast<int>(m_bEventIgnored));
+	if ((getHeight() > 0) && ((y < 0) || (y > static_cast<UT_sint32>(getHeight ()))) &&
+	    m_draggingWhat == DW_TABSTOP)
 	{
 		_ignoreEvent(true);
 		m_draggingWhat = DW_NOTHING;
@@ -3478,6 +3498,11 @@ void AP_TopRuler::_setTabStops(ap_RulerTicks tick, UT_sint32 iTab, eTabLeader iL
 		"tabstops", buf.c_str()
 	};
 	UT_DEBUGMSG(("TopRuler: Tab Stop [%s]\n",properties[1].c_str()));
+	if (getenv("RULER_TRACE"))
+		fprintf(stderr, "topRuler setTabStops bDelete=%d dragTab=%d "
+				"stops=%d buf=\"%s\"\n",
+				static_cast<int>(bDelete), m_draggingTab,
+				m_infoCache.m_iTabStops, buf.c_str());
 
 	m_draggingWhat = DW_NOTHING;
 	(static_cast<FV_View *>(m_pView))->setBlockFormat(properties);
@@ -3512,9 +3537,15 @@ void AP_TopRuler::mouseMotion(EV_EditModifierState /*ems*/, UT_sint32 x, UT_sint
 
   	xxx_UT_DEBUGMSG(("mouseMotion: [ems 0x%08lx][x %ld][y %ld]\n",ems,x,y));
 
-	// if they drag vertically off the ruler, we ignore the whole thing.
+	// if they drag vertically off the ruler mid-drag, a tab stop is the
+	// delete gesture: freeze its preview at the origin and mark the event
+	// ignored so a release out here drops the tab.  Every other drag
+	// (margins, indents, column gaps, cell marks) keeps tracking the
+	// horizontal position while the pointer strays off the band — Word
+	// applies those at the tracked x on release — so fall through.
 
-	if (m_pG && ((y < 0) || (y > static_cast<UT_sint32>(getHeight ()))))
+	if (m_pG && ((y < 0) || (y > static_cast<UT_sint32>(getHeight ()))) &&
+	    m_draggingWhat == DW_TABSTOP)
 	{
 		if(!m_bEventIgnored)
 		{
@@ -3875,6 +3906,11 @@ void AP_TopRuler::mouseMotion(EV_EditModifierState /*ems*/, UT_sint32 x, UT_sint
 			double dgrid = tick.scalePixelDistanceToUnits(xrel);
 			UT_DEBUGMSG(("SettingLeftIndent: %s\n",pView->getGraphics()->invertDimension(tick.dimType,dgrid)));
 #endif
+			if (getenv("RULER_TRACE"))
+				fprintf(stderr, "topRuler motion LEFTINDENT x=%d "
+						"xAbsLeft=%d xrel=%d xgrid=%d scrl=%d wppr=%d\n",
+						x, xAbsLeft, xrel, xgrid,
+						m_xScrollOffset, widthPrevPagesInRow);
 
 			UT_sint32 iRightPos;
 

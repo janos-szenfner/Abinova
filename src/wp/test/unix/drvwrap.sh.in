@@ -115,6 +115,24 @@ timeout -k 15 180 $LIBTOOL $BIN --abi >/dev/null 2>&1 && \
 timeout -k 15 300 $LIBTOOL $BIN --ev >/dev/null 2>&1 && \
 	echo "ok: ev drive" || echo "timeout/fail: ev drive"
 
+# RUL01: ruler pointer-drag leg — injects real pointer events with
+# XTest on the live frame: click-adds a tab stop, drags it off the
+# band (delete gesture), drags an indent/margin marker horizontally
+# while the pointer strays off the band (must apply at the tracked
+# position), and double-clicks for the Paragraph dialog.  Needs the
+# X11 backend + libXtst; the leg exits 77 on other displays.
+ruler_log="${TMPDIR:-/tmp}/ui-drive-ruler-$$.log"
+timeout -k 15 120 $LIBTOOL $BIN --ruler >"$ruler_log" 2>&1
+ruler_rc=$?
+case "$ruler_rc" in
+	0)   echo "ok: ruler drag drive" ;;
+	77)  echo "skip: ruler drag drive (no X11/XTest)" ;;
+	*)   echo "FAIL: ruler drag drive (rc=$ruler_rc)"
+	     tail -20 "$ruler_log" | sed 's/^/  /' >&2
+	     fails=$((fails + 1)) ;;
+esac
+rm -f "$ruler_log"
+
 # COV14: text/fmt/gtk leg — selection handles on the document
 # GtkOverlay, the paste-options tag, and the text/image/frame drag
 # paths (temp file, content providers, gdk_drag_begin).  Wayland-

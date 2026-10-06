@@ -67,6 +67,7 @@ AP_LeftRuler::AP_LeftRuler(XAP_Frame * pFrame)
 	m_yScrollLimit = 0;
 	m_bValidMouseClick = false;
 	m_draggingWhat = DW_NOTHING;
+	m_lastPressY = 0;
 
 	m_bGuide = false;
 	m_yGuide = 0;
@@ -235,6 +236,7 @@ UT_uint32 AP_LeftRuler::getWidth(void) const
 void AP_LeftRuler::mousePress(EV_EditModifierState /* ems */, EV_EditMouseButton /* emb */, UT_uint32 x, UT_uint32 y)
 {
 	// by the way, we expect x, y in layout units
+	m_lastPressY = static_cast<UT_sint32>(y);
 
 	// get the complete state of what should be on the ruler at the
 	// time of the grab.  we assume that nothing in the document can
@@ -320,7 +322,7 @@ void AP_LeftRuler::mousePress(EV_EditModifierState /* ems */, EV_EditMouseButton
 
 /*****************************************************************/
 
-void AP_LeftRuler::mouseRelease(EV_EditModifierState /*ems*/, EV_EditMouseButton /*emb*/, UT_sint32 x, UT_sint32 y)
+void AP_LeftRuler::mouseRelease(EV_EditModifierState /*ems*/, EV_EditMouseButton /*emb*/, UT_sint32 /*x*/, UT_sint32 y)
 {
 	if(m_pView == nullptr)
 	{
@@ -357,18 +359,9 @@ void AP_LeftRuler::mouseRelease(EV_EditModifierState /*ems*/, EV_EditMouseButton
 	}
 	m_bValidMouseClick = false;
 
-	// if they drag horizontally off the ruler, we ignore the whole thing.
-
-	if ((x < 0) || (x > static_cast<UT_sint32>(getWidth())))
-	{
-		_ignoreEvent(true);
-		m_draggingWhat = DW_NOTHING;
-		if(m_pG)
-		{
-			m_pG->setCursor( GR_Graphics::GR_CURSOR_DEFAULT);
-		}
-		return;
-	}
+	// a drag released horizontally off the ruler band applies at the
+	// last tracked y (Word parity): motion kept reporting while the
+	// pointer strayed, so there is nothing to cancel here.
 
 	// mouse up was in the ruler portion of the window, or horizontally
 	// off - we cannot ignore it.
@@ -891,10 +884,14 @@ void AP_LeftRuler::mouseMotion(EV_EditModifierState ems, UT_sint32 x, UT_sint32 
 	}
 	UT_ASSERT(m_infoCache.m_yTopMargin >= 0);
 
-	// if they drag vertically off the ruler, we ignore the whole thing.
+	// if the pointer strays horizontally off the ruler band while no drag
+	// is active, ignore it.  During a drag, keep tracking vertically —
+	// Word applies margin/cell drags at the tracked y on release even
+	// when the release lands off the band.
 	xxx_UT_DEBUGMSG(("In Left mouseMotion x %d y %d width %d \n",x,y,getWidth()));
 
-	if ((x < 0) || (x > static_cast<UT_sint32>(getWidth())))
+	if (!m_bValidMouseClick &&
+	    ((x < 0) || (x > static_cast<UT_sint32>(getWidth()))))
 	{
 		if(!m_bEventIgnored)
 		{
@@ -907,7 +904,7 @@ void AP_LeftRuler::mouseMotion(EV_EditModifierState ems, UT_sint32 x, UT_sint32 
 		}
 		return;
 	}
-	
+
 	if (!m_bValidMouseClick)
 	{
 	
@@ -970,21 +967,8 @@ void AP_LeftRuler::mouseMotion(EV_EditModifierState ems, UT_sint32 x, UT_sint32 
 	UT_DEBUGMSG(("mouseMotion: [ems 0x%08x][x %d][y %d]\n",static_cast<int>(ems),x,y));
 	ap_RulerTicks tick(pG,m_dim);
 
-	// if they drag vertically off the ruler, we ignore the whole thing.
-
-	if ((x < 0) || (x > static_cast<UT_sint32>(getWidth())))
-	{
-		if(!m_bEventIgnored)
-		{
-			_ignoreEvent(false);
-			m_bEventIgnored = true;
-		}
-		if(m_pG)
-		{
-			m_pG->setCursor( GR_Graphics::GR_CURSOR_DEFAULT);
-		}
-		return;
-	}
+	// a drag that strays horizontally off the band keeps tracking y —
+	// the off-band guard above only covers the no-drag case.
 
 	// lots of stuff omitted here; we should see about including it.
 	// it has to do with autoscroll.
