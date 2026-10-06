@@ -169,7 +169,8 @@ void AP_Dialog_Lists::_createPreviewFromGC(GR_Graphics* gc,
 	// preview
 	//
 	generateFakeLabels();
-	m_isListAtPoint = getBlock()->isListItem();
+	fl_BlockLayout * pBL = getBlock();
+	m_isListAtPoint = pBL && pBL->isListItem();
 	if(m_isListAtPoint == false)
 	{
 		m_NewListType = NOT_A_LIST;
@@ -195,8 +196,10 @@ void AP_Dialog_Lists::event_PreviewAreaExposed(void)
 void AP_Dialog_Lists::StartList(void)
 {
 	UT_ASSERT_HARMLESS(!IS_NONE_LIST_TYPE(m_DocListType));
-	getBlock()->listUpdate();
-	const gchar* pStyle = getBlock()->getListStyleString(m_DocListType);
+	fl_BlockLayout * pBL = getBlock();
+	UT_return_if_fail (pBL && getView());
+	pBL->listUpdate();
+	const gchar* pStyle = pBL->getListStyleString(m_DocListType);
 	UT_return_if_fail (pStyle);
 	getView()->cmdStartList(pStyle);
 }
@@ -204,13 +207,16 @@ void AP_Dialog_Lists::StartList(void)
 
 void AP_Dialog_Lists::StopList(void)
 {
-	getBlock()->listUpdate();
+	fl_BlockLayout * pBL = getBlock();
+	UT_return_if_fail (pBL && getView());
+	pBL->listUpdate();
 	getView()->cmdStopList();
 }
 
 fl_AutoNumPtr AP_Dialog_Lists::getAutoNum(void) const
 {
-	return getBlock()->getAutoNum();
+	fl_BlockLayout * pBL = getBlock();
+	return pBL ? pBL->getAutoNum() : fl_AutoNumPtr();
 }
 
 /*!
@@ -256,7 +262,9 @@ void AP_Dialog_Lists::Apply(void)
 // OK fold up the text according the level specified.
 //
 	        m_bFoldingLevelChanged = false;
-		fl_AutoNumPtr pAuto = getBlock()->getAutoNum();
+		if (!getView())
+			return;
+		fl_AutoNumPtr pAuto = getAutoNum();
 		UT_uint32 ID = 0;
 		if(!pAuto)
 		{
@@ -313,7 +321,8 @@ void AP_Dialog_Lists::Apply(void)
 		m_Output[0] = static_cast<gchar *>( szStart);
 		m_OutProps.push_back(m_Output[0].c_str());
 		m_OutProps.push_back("list-style");
-		m_Output[1] = getBlock()->getListStyleString(m_NewListType);
+		m_Output[1] = getBlock()
+			? getBlock()->getListStyleString(m_NewListType) : "";
 		m_OutProps.push_back(m_Output[1].c_str());
 		m_OutProps.push_back("list-delim");
 		m_OutProps.push_back(m_pszDelim.c_str());
@@ -547,7 +556,7 @@ void  AP_Dialog_Lists::fillUncustomizedValues(void)
 	// the "NULL" string does not work too well on Windows in numbered lists
 	PP_PropertyVector props_in;
 	std::string font_family;
-	if (getView()->getCharFormat(props_in))
+	if (getView() && getView()->getCharFormat(props_in))
 		font_family = PP_getAttribute("font-family", props_in);
 	if (font_family.empty())
 		font_family = "NULL";
@@ -640,7 +649,8 @@ void  AP_Dialog_Lists::fillFakeLabels(void)
  */
 	if(m_bisCustomized == false && !isModal())
 	{
-		m_iLevel = getBlock()->getLevel();
+		fl_BlockLayout * pBL = getBlock();
+		m_iLevel = pBL ? pBL->getLevel() : 0;
 		if(m_iLevel == 0 )
 		{
 			m_iLevel++;
@@ -803,7 +813,9 @@ void AP_Dialog_Lists::fillDialogFromVector( std::vector<const gchar*> * vp)
 		i = findVecItem(vp,"list-style");
 		if( i>= 0)
 		{
-			m_DocListType = getBlock()->getListTypeFromStyle((*vp)[i+1]);
+			m_DocListType = getBlock()
+				? getBlock()->getListTypeFromStyle((*vp)[i+1])
+				: NOT_A_LIST;
 			m_NewListType = m_DocListType;
 		}
 		else
@@ -822,16 +834,14 @@ void AP_Dialog_Lists::fillDialogFromBlock(void)
 {
 	PP_PropertyVector va,vp;
 
-	if (getBlock()->getPreviousList() != nullptr)
+	fl_BlockLayout * pBL = getBlock();
+	m_previousListExistsAtPoint =
+		pBL && pBL->getPreviousList() != nullptr;
+	if (pBL)
 	{
-		m_previousListExistsAtPoint = true;
+		pBL->getListAttributesVector(va);
+		pBL->getListPropertyVector(vp);
 	}
-	else
-	{
-		m_previousListExistsAtPoint = false;
-	}
-	getBlock()->getListAttributesVector(va);
-	getBlock()->getListPropertyVector(vp);
 
 //
 // First get the fold level.
@@ -987,7 +997,8 @@ void AP_Dialog_Lists::fillDialogFromBlock(void)
  */
 void AP_Dialog_Lists::PopulateDialogData(void)
 {
-	m_isListAtPoint = getBlock()->isListItem();
+	fl_BlockLayout * pBL = getBlock();
+	m_isListAtPoint = pBL && pBL->isListItem();
 	if(m_isListAtPoint == true)
 	{
 		fillDialogFromBlock();
@@ -999,7 +1010,7 @@ void AP_Dialog_Lists::PopulateDialogData(void)
 	}
 	if(m_isListAtPoint == true)
 	{
-		const UT_UCS4Char * tmp1 =  getBlock()->getListLabel();
+		const UT_UCS4Char * tmp1 =  pBL->getListLabel();
 		if(tmp1 != nullptr)
 		{
 			UT_sint32 cnt = UT_MIN(UT_UCS4_strlen(tmp1),80);
@@ -1007,10 +1018,14 @@ void AP_Dialog_Lists::PopulateDialogData(void)
 			for(i =0; i<=cnt; i++)
 				m_curListLabel[i] = *tmp1++;
 		}
-		m_curListLevel = getBlock()->getLevel();
-		m_curStartValue = getAutoNum()->getStartValue32();
-		m_iStartValue = getAutoNum()->getStartValue32();
-		m_DocListType = getAutoNum()->getType();
+		m_curListLevel = pBL->getLevel();
+		fl_AutoNumPtr pAuto = getAutoNum();
+		if (pAuto)
+		{
+			m_curStartValue = pAuto->getStartValue32();
+			m_iStartValue = pAuto->getStartValue32();
+			m_DocListType = pAuto->getType();
+		}
 	}
 	else
 	{
@@ -1021,14 +1036,13 @@ void AP_Dialog_Lists::PopulateDialogData(void)
 
 UT_uint32 AP_Dialog_Lists::getID(void)
 {
-       if(getBlock()->isListItem() == false)
+       fl_BlockLayout * pBL = getBlock();
+       if(!pBL || pBL->isListItem() == false)
        {
 	       return 0;
        }
-       else
-       {
-	       return getAutoNum()->getID();
-       }
+       fl_AutoNumPtr pAuto = getAutoNum();
+       return pAuto ? pAuto->getID() : 0;
 }
 
 /*!
@@ -1238,7 +1252,9 @@ void AP_Lists_preview::drawImmediate(const UT_Rect* clip)
 	// Now finally draw the preview
 	//
 
-	UT_BidiCharType iDirection = getLists()->getBlock()->getDominantDirection();
+	fl_BlockLayout * pBL = getLists()->getBlock();
+	UT_BidiCharType iDirection = pBL ? pBL->getDominantDirection()
+		: UT_BIDI_LTR;
 
 	for(i=0; i<8; i++)
 	{

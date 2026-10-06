@@ -83,7 +83,9 @@ void
 AP_Dialog_Modal::closePopupPreviewBubbles()
 {
   	FV_View* view = getView();
-    m_bubbleBlocker = view->getBubbleBlocker();
+	/* same null-view window as AP_Dialog_Modeless */
+    m_bubbleBlocker = view ? view->getBubbleBlocker()
+						   : FV_View_BubbleBlocker();
 }
 
 void

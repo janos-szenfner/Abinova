@@ -87,7 +87,10 @@ void
 AP_Dialog_Modeless::closePopupPreviewBubbles()
 {
   	FV_View* view = getView();
-    m_bubbleBlocker = view->getBubbleBlocker();
+	/* getView() is null when the frame has no live view (teardown,
+	 * failed load) — a no-op blocker is the safe default */
+    m_bubbleBlocker = view ? view->getBubbleBlocker()
+						   : FV_View_BubbleBlocker();
 }
 
 void

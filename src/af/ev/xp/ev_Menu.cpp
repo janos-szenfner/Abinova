@@ -73,12 +73,18 @@ bool EV_Menu::invokeMenuMethod(AV_View * pView,
 							   UT_UCS4Char * pData,
 							   UT_uint32 dataLength) const
 {
-	UT_ASSERT(pView);
 	UT_return_val_if_fail(pEM, false);
 
 	//UT_DEBUGMSG(("invokeMenuMethod: %s\n",pEM->getName()));
 
 	EV_EditMethodType t = pEM->getType();
+
+	/* a document method with no live view has nothing to run on —
+	 * dereferencing would crash (observed under ui-drive: a menu
+	 * activation on a view-less frame died in FV_View) */
+	if (!pView && !(t & EV_EMT_APP_METHOD))
+		return false;
+	UT_ASSERT(pView || (t & EV_EMT_APP_METHOD));
 
 	if (((t & EV_EMT_REQUIREDATA) != 0) && (!pData || !dataLength))
 	{
@@ -99,9 +105,11 @@ bool EV_Menu::invokeMenuMethod(AV_View * pView,
 {
 	UT_return_val_if_fail(pEM,false);
 	EV_EditMethodType t = pEM->getType();
-	if (!(t & EV_EMT_APP_METHOD)) {
-		UT_ASSERT(pView);
-	}
+	/* same guard as the pData overload above — a UT_ASSERT alone
+	 * compiles out in coverage/ship builds */
+	if (!pView && !(t & EV_EMT_APP_METHOD))
+		return false;
+	UT_ASSERT(pView || (t & EV_EMT_APP_METHOD));
 	if ((t & EV_EMT_REQUIREDATA) && stScriptName.size() == 0)
 	{
 		UT_DEBUGMSG(("    invoke aborted due to lack of script name\n"));

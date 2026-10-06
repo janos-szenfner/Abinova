@@ -114,8 +114,10 @@ static GLogWriterOutput drive_log_writer(GLogLevelFlags level,
  * - outside the guard (or budget spent): keep counters and die. */
 static sigjmp_buf g_jmp;
 static sigjmp_buf g_sweep_jmp;
+static sigjmp_buf g_probe_jmp;
 static volatile sig_atomic_t g_in_interact = 0;
 static volatile sig_atomic_t g_sweep_depth = 0;
+static volatile sig_atomic_t g_in_probe = 0;
 static volatile sig_atomic_t g_rescued = 0;
 static int g_wedged_widgets = 0;
 static int g_crashed_widgets = 0;
@@ -170,6 +172,13 @@ static void drive_fatal(int sig)
 	 * dialog destroyed inside abiRunModalDialog's own modal loop —
 	 * g_list_model_get_item refs the dead object and any deref is
 	 * UAF).  Rescue and skip the scan. */
+	/* the emission probe is the innermost guard — it runs in the
+	 * rescue return path, after the other guards were unwound */
+	if (g_in_probe) {
+		g_in_probe = 0;
+		alarm(0);
+		siglongjmp(g_probe_jmp, 1);
+	}
 	if (g_sweep_depth > 0 && g_rescued < 8) {
 		g_rescued++;
 		alarm(0);
@@ -190,6 +199,41 @@ static void drive_fatal(int sig)
 	dump_diag(sig);
 	__gcov_dump();
 	_exit(sig == SIGSEGV ? 139 : sig == SIGABRT ? 134 : 124);
+}
+
+/* A rescue that longjmped out of a faulting signal handler can leave
+ * GLib's emission locks stranded — the very next g_signal_emit then
+ * futex-blocks forever, and the deadlock lands in UNGUARDED code
+ * (observed: post-walk gtk_menu_button_popdown, sweep emits inside
+ * pump()).  Probe emission on a scratch widget under its own alarm:
+ * if it wedges, the process can never emit again — keep counters and
+ * exit rather than hang until the wrapper timeout. */
+static bool glib_emission_alive(void)
+{
+	if (sigsetjmp(g_probe_jmp, 1) != 0) {
+		g_in_probe = 0;
+		alarm(0);
+		return false;
+	}
+	g_in_probe = 1;
+	alarm(5);
+	GtkWidget *scratch = gtk_button_new();
+	g_object_ref_sink(scratch);
+	g_signal_emit_by_name(scratch, "clicked");
+	g_object_unref(scratch);
+	alarm(0);
+	g_in_probe = 0;
+	return true;
+}
+
+static void post_rescue_check(void)
+{
+	if (!glib_emission_alive()) {
+		g_printerr("drive: signal emission dead after rescue — "
+				   "exiting with counters\n");
+		__gcov_dump();
+		_exit(3);
+	}
 }
 
 /* pump the default main context until no work is pending.
@@ -366,11 +410,13 @@ static bool call_guard(F &&f, const char *what)
 		g_in_interact = 0;
 		g_wedged_widgets++;
 		g_printerr("drive: wedged in %s — section skipped\n", what);
+		post_rescue_check();
 		return false;
 	default:
 		g_in_interact = 0;
 		g_crashed_widgets++;
 		g_printerr("drive: crashed in %s — section skipped\n", what);
+		post_rescue_check();
 		return false;
 	}
 	g_in_interact = 1;
@@ -395,6 +441,7 @@ static bool sweep_guard(F &&f)
 	if (sigsetjmp(g_sweep_jmp, 1) != 0) {
 		g_sweep_depth--;
 		g_printerr("drive: fault scanning toplevels — scan skipped\n");
+		post_rescue_check();
 		return false;
 	}
 	g_sweep_depth++;
@@ -461,8 +508,11 @@ static bool never_activate(GtkWidget *w)
 		"closeWindow", "closeWindowX",
 		/* frame spawners — new toplevels the drive cannot own; fileNew
 		 * also trips a latent statusbar fault once prior interactions
-		 * have run, so skip the whole family */
-		"fileNew",
+		 * have run, so skip the whole family.  newWindow builds a
+		 * second frame on the same doc and crashed in layout collapse
+		 * under the drive (fp_Container::countCons on a stale
+		 * container inside fl_DocSectionLayout::collapse) */
+		"fileNew", "newWindow",
 		/* native file dialogs */
 		"fileOpen", "openRecent", "openTemplate",
 		"fileNewUsingTemplate", "fileSaveAs", "fileSaveAsWeb",
@@ -474,7 +524,12 @@ static bool never_activate(GtkWidget *w)
 		"fileInsertPositionedGraphic", "fileRevert",
 		/* printers */
 		"print", "printDirectly", "printPreview", "printTB",
-		"cairoPrint", "cairoPrintDirectly", "cairoPrintPreview"
+		"cairoPrint", "cairoPrintDirectly", "cairoPrintPreview",
+		/* URI launchers — a real activation opens a browser window
+		 * on the user's live session via the shared session bus;
+		 * helpSearch's internal browser still resolves external
+		 * links through openURL, so keep it out too */
+		"helpCheckVer", "helpReportBug", "helpSearch"
 	};
 	const char *m = static_cast<const char *>(
 		g_object_get_data(G_OBJECT(w), "abi-em-method"));
@@ -493,7 +548,10 @@ static bool never_activate(GtkWidget *w)
 		AP_MENU_ID_FILE_PRINT_DIRECTLY, AP_MENU_ID_FILE_REVERT,
 		AP_MENU_ID_FILE_EXIT, AP_MENU_ID_FILE_CLOSE,
 		AP_MENU_ID_INSERT_FILE, AP_MENU_ID_INSERT_CLIPART,
-		AP_MENU_ID_INSERT_PICTURES, AP_MENU_ID_INSERT_SCREENSHOT
+		AP_MENU_ID_INSERT_PICTURES, AP_MENU_ID_INSERT_SCREENSHOT,
+		AP_MENU_ID_WINDOW_NEW,
+		/* URI launchers — see helpCheckVer/helpReportBug above */
+		AP_MENU_ID_HELP_CHECKVER, AP_MENU_ID_HELP_REPORT_BUG
 	};
 	const std::string *act = static_cast<const std::string *>(
 		g_object_get_data(G_OBJECT(w), "abi-menu-action"));
@@ -507,17 +565,26 @@ static bool never_activate(GtkWidget *w)
 		}
 	}
 	/* GMenuModel popover items carry no abi-menu-action data — their
-	 * identity is the action name ("menu.item_<id>") */
-	if (GTK_IS_ACTIONABLE(w)) {
-		const char *an = gtk_actionable_get_action_name(
-			GTK_ACTIONABLE(w));
+	 * identity is the action name ("menu.item_<id>").  The GTK4
+	 * popover's item widget (GtkPopoverMenuItemWidget) is NOT a
+	 * GtkActionable but does expose the item's action in an
+	 * "action-name" property, which GtkActionable also has — read it
+	 * generically so both paths are covered */
+	if (g_object_class_find_property(
+			G_OBJECT_GET_CLASS(w), "action-name")) {
+		gchar *an = nullptr;
+		g_object_get(w, "action-name", &an, nullptr);
 		const char *p = an ? strstr(an, "item_") : nullptr;
 		if (p) {
 			unsigned idnum = static_cast<unsigned>(atoi(p + 5));
-			for (_Ap_Menu_Id id : bad_ids)
-				if (idnum == static_cast<unsigned>(id))
+			for (_Ap_Menu_Id id : bad_ids) {
+				if (idnum == static_cast<unsigned>(id)) {
+					g_free(an);
 					return true;
+				}
+			}
 		}
+		g_free(an);
 	}
 	return false;
 }
@@ -561,8 +628,10 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 				   G_OBJECT_TYPE_NAME(w));
 		/* every rescued jump can leave a GLib lock held (observed:
 		 * longjmp out of g_signal_handlers_destroy's futex deadlocked
-		 * the next signal call) — count faults across kinds and stop
-		 * the walk instead of inviting a silent deadlock */
+		 * the next signal call) — bail now if emission is dead, else
+		 * count faults across kinds and stop the walk instead of
+		 * inviting a silent deadlock */
+		post_rescue_check();
 		if (g_crashed_widgets + g_wedged_widgets >= 4)
 			ctx.rootDead = true;
 		return;
@@ -574,6 +643,7 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 		/* several faults in one drive means the dialog's C++ object
 		 * is gone and every remaining widget dispatches to freed
 		 * handlers — stop walking rather than burn alarm seconds */
+		post_rescue_check();
 		if (g_crashed_widgets + g_wedged_widgets >= 4)
 			ctx.rootDead = true;
 		return;
@@ -2380,8 +2450,19 @@ int main(int argc, char **argv)
 	{
 		GtkApplication *gtkApp =
 			static_cast<XAP_UnixApp *>(app)->getGtkApp();
-		g_application_register(G_APPLICATION(gtkApp), nullptr, nullptr);
-		g_signal_emit_by_name(gtkApp, "startup");
+		GError *gerr = nullptr;
+		if (!g_application_register(G_APPLICATION(gtkApp), nullptr, &gerr))
+			g_printerr("drive: g_application_register failed: %s\n",
+					   gerr ? gerr->message : "?");
+		g_clear_error(&gerr);
+		/* emitting "startup" on an unregistered app crashes inside
+		 * gtk_application_startup (it lists actions, which asserts
+		 * is_registered and returns NULL) — gate on the real state */
+		if (g_application_get_is_registered(G_APPLICATION(gtkApp)))
+			g_signal_emit_by_name(gtkApp, "startup");
+		else
+			g_printerr("drive: app not registered — "
+					   "startup emit skipped\n");
 		pump();
 	}
 

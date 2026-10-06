@@ -181,6 +181,9 @@ void AP_Dialog_Border_Shading::setCurBlockProps(void)
 	XAP_Frame *frame = XAP_App::getApp()->getLastFocussedFrame();
 	if (frame) {
 		FV_View * pView = static_cast<FV_View *>(frame->getCurrentView());
+		if (!pView) {
+			return;
+		}
 
 		if (m_bSettingsChanged || m_iOldPos == pView->getPoint()) {
 			return;
@@ -193,6 +196,12 @@ void AP_Dialog_Border_Shading::setCurBlockProps(void)
 		 */
 
 		fl_BlockLayout* current_block = pView->getCurrentBlock();
+		/* getCurrentBlock() is null when the layout has no block at
+		 * the insertion point (mid-teardown, empty doc) — the
+		 * auto-update timer can fire in exactly that window */
+		if (!current_block) {
+			return;
+		}
 
 		const char* style_left	= current_block->getProperty("left-style");
 		const char* style_right	= current_block->getProperty("right-style");
