@@ -122,11 +122,11 @@ fi
 
 
 PLATFORM="unix"
-TOOLKIT="gtk"
 AC_SUBST([PLATFORM])
 AC_DEFINE_UNQUOTED(PLATFORM, "$PLATFORM", The platform that is compiled for)
-AC_SUBST([TOOLKIT])
-AC_DEFINE_UNQUOTED(TOOLKIT, "$TOOLKIT", The toolkit that is used)
+dnl the toolkit is unconditionally gtk; the win32/cocoa toolkit dirs are
+dnl gone, so there is no TOOLKIT variable or selector left to configure
+AC_DEFINE([TOOLKIT], ["gtk"], [The toolkit that is used])
 
 # Platform-specific tests
 
@@ -258,39 +258,6 @@ if test "$abi_cv_gio" = "yes"; then
 	opt_pkgs="$opt_pkgs $gio_req"
 fi
 
-AC_ARG_WITH([darwinports],
-	[AS_HELP_STRING([--with-darwinports], [(Mac OSX only) add `/opt/local' prefix to CPP/LDFLAGS])], 
-[
-        if test "x$withval" != "xno"; then
-            CPPFLAGS="$CPPFLAGS -I/opt/local/include"
-            LDFLAGS="$LDFLAGS -headerpad_max_install_names -L/opt/local/lib"
-        fi
-])
-
-AC_ARG_WITH([fink],
-	[AS_HELP_STRING([--with-fink], [(Mac OSX only) add `/sw' prefix to CPP/LDFLAGS])], 
-[
-        if test "x$withval" != "xno"; then
-                CPPFLAGS="$CPPFLAGS -I/sw/include"
-                LDFLAGS="$LDFLAGS -L/sw/lib"
-        fi
-])
-
-AC_ARG_WITH([abisdk],
-	[AS_HELP_STRING([--with-abisdk], [(Mac OSX only) use the AbiSDK])], 
-[
-	if test "x$withval" = "x"; then
-		AC_MSG_ERROR([The AbiSDK path must be specified.])
-	fi
-	if test "x$withval" != "xno"; then
-		PKG_CONFIG=/opt/abi/bin/pkg-config
-		PKG_CONFIG_PATH=/usr/lib/pkgconfig ; export PKG_CONFIG_PATH
-		CPPFLAGS="$CPPFLAGS -mmacosx-version-min=10.4 -isysroot $withval -I/opt/abi/include"
-		LDFLAGS="$LDFLAGS -mmacosx-version-min=10.4 -isysroot $withval -L/opt/abi/lib"
-	fi
-])
-
-
 redland_req='redland >= 1.0.10 rasqal >= 0.9.17'
 AC_ARG_WITH([redland], 
 	[AS_HELP_STRING([--with-redland], [use redland and raptor libraries])], 
@@ -339,73 +306,6 @@ fi
 
 AM_CONDITIONAL([WITH_LIBICAL], test "$abi_cv_libical" = "yes")
 AM_CONDITIONAL([HAVE_LIBICAL], test "$abi_cv_libical" = "yes")
-
-
-champlain_req=' champlain-gtk-0.12 '
-AC_ARG_WITH([champlain], 
-	[AS_HELP_STRING([--with-champlain], [use champlain to display maps])],
-	,[with_champlain="check"])
-
-if test "x$with_champlain" != "xno"; then
-    PKG_CHECK_MODULES(CHAMPLAIN, [ $champlain_req ],,
-    [if test "x$with_champlain" = "xyes"; then
-    	AC_MSG_FAILURE([--with-champlain was given, but test for champlain failed])
-    fi])
-    abi_cv_champlain=yes
-
-	if test "$pkg_failed" = "no"; then
-	#
-	# try to make sure that champlain-gtk through pkg-config and
- 	# the GTK+ version that the user wants abiword to directly
- 	# link with match on major number.
-	# 
-	# The test is simple, make sure that a little client using the
-	# GTK+ that champlain natively uses is using the GTK+ version
-	# that we want to link with.
- 	#
-	AC_LANG_PUSH(C++)
-	CXXFLAGS_cache=$CXXFLAGS
-	CXXFLAGS=" $CHAMPLAIN_CFLAGS "
-	LDFLAGS_cache=$LDFLAGS
-	LDFLAGS=" $CHAMPLAIN_LIBS "
-
- 	  echo -n "checking whether CHAMPLAIN uses GTK+3... "
-		AC_COMPILE_IFELSE([AC_LANG_PROGRAM([#include <champlain-gtk/champlain-gtk.h>],[
- #if GTK_MAJOR_VERSION < 3
- #error bad
- #endif
-                               ])], gtk_matches=yes, gtk_matches=no)
-        echo "$gtk_matches"        
-
-	LDFLAGS=$LDFLAGS_cache
-	CXXFLAGS=$CXXFLAGS_cache
-        AC_LANG_POP
-
- 	# Don't do mapping if their libchamplain is not using the right GTK+
-	if test "$gtk_matches" = "no"; then
-		if test "x$with_champlain" = "xyes"; then
-			AC_MSG_FAILURE([--with-champlain was given, but champlain does not use the correct gtk version])
-		fi
-	   abi_cv_champlain=no
-           CHAMPLAIN_CFLAGS=
-           CHAMPLAIN_LIBS=
-	fi
-	else
-		abi_cv_champlain=no
-	fi
-else
-	abi_cv_champlain=no
-fi
-
-if test "$abi_cv_champlain" = "yes"; then
-dnl	opt_pkgs="$opt_pkgs $champlain_req"
-	AC_DEFINE([WITH_CHAMPLAIN], [1], [Using champlain])
-fi
-
-AC_SUBST([CHAMPLAIN_CFLAGS])
-AC_SUBST([CHAMPLAIN_LIBS])
-AM_CONDITIONAL([WITH_CHAMPLAIN], test "$abi_cv_champlain" = "yes")
-AM_CONDITIONAL([HAVE_CHAMPLAIN], test "$abi_cv_champlain" = "yes")
 
 
 AC_ARG_WITH([icondir],
@@ -617,13 +517,13 @@ AC_SUBST([BASE_CPPFLAGS])
 AF_CPPFLAGS_='
   ${BASE_CPPFLAGS}
   ${COVERAGE_CFLAGS}
-  -I${top_srcdir}/src/af/ev/${TOOLKIT} 
+  -I${top_srcdir}/src/af/ev/gtk 
   -I${top_srcdir}/src/af/ev/xp 
-  -I${top_srcdir}/src/af/gr/${TOOLKIT} 
+  -I${top_srcdir}/src/af/gr/gtk 
   -I${top_srcdir}/src/af/gr/xp 
   -I${top_srcdir}/src/af/util/${PLATFORM} 
   -I${top_srcdir}/src/af/util/xp 
-  -I${top_srcdir}/src/af/xap/${TOOLKIT} 
+  -I${top_srcdir}/src/af/xap/gtk 
   -I${top_srcdir}/src/af/xap/xp'
 AF_CPPFLAGS=
 for f in $(echo $AF_CPPFLAGS_); do AF_CPPFLAGS="$AF_CPPFLAGS $f"; done
@@ -638,7 +538,7 @@ AC_SUBST([AF_TEST_CPPFLAGS])
 
 TEXT_CPPFLAGS_='
   ${AF_CPPFLAGS} 
-  -I${top_srcdir}/src/text/fmt/${TOOLKIT}
+  -I${top_srcdir}/src/text/fmt/gtk
   -I${top_srcdir}/src/text/fmt/xp 
   -I${top_srcdir}/src/text/ptbl/xp'
 TEXT_CPPFLAGS=
@@ -654,7 +554,7 @@ AC_SUBST([TEXT_TEST_CPPFLAGS])
 
 IMPEXP_CPPFLAGS_='
   ${TEXT_CPPFLAGS} 
-  -I${top_srcdir}/src/wp/impexp/${TOOLKIT} 
+  -I${top_srcdir}/src/wp/impexp/gtk 
   -I${top_srcdir}/src/wp/impexp/xp'
 IMPEXP_CPPFLAGS=
 for f in $(echo $IMPEXP_CPPFLAGS_); do IMPEXP_CPPFLAGS="$IMPEXP_CPPFLAGS $f"; done
@@ -669,7 +569,7 @@ AC_SUBST([IMPEXP_TEST_CPPFLAGS])
 
 WP_CPPFLAGS_='
   ${IMPEXP_CPPFLAGS} 
-  -I${top_srcdir}/src/wp/ap/${TOOLKIT} 
+  -I${top_srcdir}/src/wp/ap/gtk 
   -I${top_srcdir}/src/wp/ap/xp
 '
 WP_CPPFLAGS=
@@ -697,8 +597,6 @@ if test "$enable_static" = ""; then
 	enable_static="no"
 fi
 
-AC_DEFINE([TOOLKIT_GTK], [1], [Build gtk+ user interface])
-AC_DEFINE([TOOLKIT_GTK_ALL], [1], [Build gtk+ user interface])
 AM_CONDITIONAL([ENABLE_DYNAMIC], test "$enable_shared" = "yes")
 AM_CONDITIONAL([ENABLE_STATIC], test "$enable_static" = "yes")
 
@@ -961,17 +859,13 @@ AC_CONFIG_FILES([libabinova.pc
 ])
 AC_OUTPUT
 
-AC_CONFIG_FILES(
-)
-AC_OUTPUT
-
 echo "
 Configuration:
   host                  ${host}
   dynamic binary        ${enable_shared}
   static binary         ${enable_static}
   platform              ${PLATFORM} (embedded: $abi_cv_embedded_platform)
-  toolkit               ${TOOLKIT}
+  toolkit               gtk
   debug                 ${abi_cv_debug}
   coverage              ${abi_cv_coverage}
   sanitizer             ${with_sanitizer}
@@ -989,6 +883,5 @@ Optional dependencies:
   gio			${abi_cv_gio}
   redland               ${abi_cv_redland}
   libical               ${abi_cv_libical}
-  champlain             ${abi_cv_champlain}
 "
 

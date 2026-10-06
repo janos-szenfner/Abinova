@@ -26,7 +26,6 @@ libabinova_@ABINOVA_SERIES@_la_CPPFLAGS = \
 
 libabinova_@ABINOVA_SERIES@_la_LDFLAGS = \
 	$(DEPS_LIBS) \
-	$(CHAMPLAIN_LIBS) \
 	$(COVERAGE_LDFLAGS) \
 	-no-undefined \
 	-avoid-version \

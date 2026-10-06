@@ -5158,6 +5158,18 @@ below are on `main` but the release has not been cut yet.
   runs, and the DOCX image-name path reject null or out-of-range
   embeds instead of crashing.
 
+- **Dead configure options removed** — `configure.ac` no longer
+  advertises options that can never work in this tree:
+  `--with-darwinports` and `--with-fink` (defunct Mac package
+  managers), `--with-abisdk` (the last
+  `-mmacosx-version-min=10.4` stanza — the real macOS floor lives in
+  `tools/build-macos.sh`), and `--with-champlain` plus the
+  `champlain-gtk-0.12` pkg-config probe (a GTK3/Clutter stack that
+  cannot exist beside GTK4). The hardcoded `TOOLKIT="gtk"`
+  indirection is flattened to literal `gtk` include paths and the
+  never-defined `TOOLKIT_GTK`/`TOOLKIT_GTK_ALL` macros are gone.
+  `configure --help` now lists only options that do something.
+
 ### Resolved root causes worth noting
 
 - **"double free or corruption" after ODF export** — was a stale

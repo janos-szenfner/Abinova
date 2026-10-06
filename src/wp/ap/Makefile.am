@@ -267,8 +267,7 @@ endif
 AM_CPPFLAGS += 						\
 	$(WP_CPPFLAGS) 						\
 	-DABINOVA_PLUGINSDIR="\"$(ABINOVA_LIBDIR)/plugins"\"	\
-	-DICONDIR="\"$(ABINOVA_ICONDIR)\"" \
-        $(CHAMPLAIN_CFLAGS)
+	-DICONDIR="\"$(ABINOVA_ICONDIR)\""
 
 libap_la_SOURCES += \
 	gtk/GTKCommon.h \
