@@ -3999,6 +3999,16 @@ below are on `main` but the release has not been cut yet.
   dereferenced the dead host and crashed. Dying columns and pages now
   clear every back-link that outliving containers may hold, and the
   collapse path validates a container's parent before detaching it.
+- **Screen offset math no longer crashes on emptied sections** —
+  during the transient window where a document section owns no pages
+  (e.g. mid-delete while a redraw is pending), asking the view for a
+  page's on-screen offset could dereference a null page pointer; the
+  section walk now treats such sections as contributing zero height.
+- **Drag-and-drop no longer crashes at drag start** — starting a
+  visual text/image drag could use-after-free the clipboard content
+  providers: the code released the file/RTF providers right after
+  handing them to the union provider, which owns (not references)
+  them, so `gdk_drag_begin` dereferenced dead objects.
 
 ### GTK4 port (core migration)
 

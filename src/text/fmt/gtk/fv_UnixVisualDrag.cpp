@@ -175,10 +175,11 @@ void FV_UnixVisualDrag::mouseDrag(UT_sint32 x, UT_sint32 y)
 		 gdk_content_provider_new_for_bytes("text/rtf", rtfBytes);
 	 g_bytes_unref(rtfBytes);
 	 GdkContentProvider * contents[2] = { fileContent, rtfContent };
+	 // the union provider takes ownership of its members - unreffing
+	 // them here leaves dangling pointers it dereferences in
+	 // gdk_drag_begin()
 	 GdkContentProvider * content =
 		 gdk_content_provider_new_union(contents, 2);
-	 g_object_unref(fileContent);
-	 g_object_unref(rtfContent);
 	 if (surface && device)
 		 gdk_drag_begin(surface, device, content, GDK_ACTION_COPY, x, y);
 	 g_object_unref(content);

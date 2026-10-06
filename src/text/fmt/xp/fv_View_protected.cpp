@@ -1539,7 +1539,9 @@ void FV_View::_getPageXandYOffset(const fp_Page* pThePage, UT_sint32& xoff, UT_s
 		while(pDSL && num > 0)
 		{
 			fp_Page * pPage = pDSL->getFirstOwnedPage();
-			UT_sint32 height = pPage->getHeight() - pDSL->getTopMargin() - pDSL->getBottomMargin() +getPageViewSep();
+			UT_sint32 height = pPage
+				? pPage->getHeight() - pDSL->getTopMargin() - pDSL->getBottomMargin() +getPageViewSep()
+				: 0;
 			if (num > pDSL->getPageCount())
 			{
 				y += pDSL->getPageCount() * height;
