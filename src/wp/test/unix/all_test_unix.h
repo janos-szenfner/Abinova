@@ -19,5 +19,6 @@
 
 
 
-//#include "src/af/xap/gtk/t/xap_UnixWidget.t.cpp"
+#include "src/af/xap/gtk/t/xap_UnixWidget.t.cpp"
+#undef TFSUITE
 

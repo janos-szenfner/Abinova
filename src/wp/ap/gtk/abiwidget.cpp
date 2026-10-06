@@ -544,8 +544,9 @@ fire(var); \
 class Stateful_ViewListener : public AV_Listener
 {
 public:
-	Stateful_ViewListener(AV_View * pView)
+	Stateful_ViewListener(AV_View * pView, XAP_Frame * pFrame)
 		: m_pView(static_cast<FV_View *>(pView)),
+		m_pFrame(pFrame),
 		m_lid(static_cast<AV_ListenerId>(-1))
 	{
 		init();
@@ -717,9 +718,10 @@ public:
 			FIRE_BOOL(m_pView->canDo(false), can_redo_, can_redo);
 			FIRE_BOOL(m_pView->getDocument()->isDirty(), is_dirty_, is_dirty);
 			
-			XAP_Frame* pFrame = XAP_App::getApp()->getLastFocussedFrame();
-			UT_return_val_if_fail(pFrame, false);
-			FIRE_SINT32(pFrame->getZoomPercentage(), zoomPercentage_, zoomPercentage); // surely there is a better signal for this than AV_CHG_ALL
+			/* report OUR frame's zoom - the last-focussed frame can
+			 * belong to the host application or another AbiWidget */
+			if (m_pFrame)
+				FIRE_SINT32(m_pFrame->getZoomPercentage(), zoomPercentage_, zoomPercentage); // surely there is a better signal for this than AV_CHG_ALL
 		}
 
 		if (mask & AV_CHG_EMPTYSEL)
@@ -889,6 +891,7 @@ private:
 	gint32 zoomPercentage_;
 
 	FV_View *			m_pView;
+	XAP_Frame *			m_pFrame;
 	AV_ListenerId       m_lid;
 };
 
@@ -899,7 +902,11 @@ class AbiWidget_ViewListener : public Stateful_ViewListener
 public:
 	AbiWidget_ViewListener(AbiWidget * pWidget,
 						   AV_View * pView)
-		: Stateful_ViewListener(pView), m_pWidget(pWidget)
+		: Stateful_ViewListener(pView,
+								(pWidget && pWidget->priv)
+									? static_cast<XAP_Frame *>(pWidget->priv->m_pFrame)
+									: nullptr),
+		m_pWidget(pWidget)
 	{
 	}
 	virtual void bold(bool value) override {g_signal_emit (G_OBJECT(m_pWidget), abiwidget_signals[SIGNAL_BOLD], 0, static_cast<gboolean>(value));}
@@ -995,8 +1002,19 @@ public:
 	
 	~AbiWidget_FrameListener()
 	{
-		
-		// TODO: unregister
+		release();
+	}
+
+	/* detach from the frame's listener vector before the frame (or
+	 * we) go away - safe to call twice */
+	void release(void)
+	{
+		if (m_iListenerId >= 0 &&
+			m_pWidget && m_pWidget->priv && m_pWidget->priv->m_pFrame)
+		{
+			m_pWidget->priv->m_pFrame->unregisterListener(m_iListenerId);
+		}
+		m_iListenerId = -1;
 	}
 	
 	virtual void signalFrame(AP_FrameSignal signal) override
@@ -1219,7 +1237,7 @@ _abi_widget_set_show_margin(AbiWidget * abi, gboolean bShowMargin)
 	UT_return_val_if_fail(pFrame, false);
 
 	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
-	UT_return_val_if_fail(pFrame, false);
+	UT_return_val_if_fail(pView, false);
 	
 	static_cast<AP_Frame *>(pFrame)->setShowMargin(bShowMargin);
 	pView->setViewMode(pView->getViewMode());
@@ -1251,7 +1269,8 @@ abi_widget_get_show_margin(AbiWidget * abi)
 extern "C" gboolean
 abi_widget_set_show_authors(AbiWidget * abi, gboolean bShowAuthors)
 {
-	bool bChanged = (bShowAuthors == abi->priv->m_pDoc->isShowAuthors());
+	UT_return_val_if_fail(abi && abi->priv && abi->priv->m_pDoc, FALSE);
+	bool bChanged = (bShowAuthors != abi->priv->m_pDoc->isShowAuthors());
 	abi->priv->m_pDoc->setShowAuthors(bShowAuthors);
 	return static_cast<gboolean>(bChanged);
 }
@@ -1260,6 +1279,7 @@ abi_widget_set_show_authors(AbiWidget * abi, gboolean bShowAuthors)
 extern "C" gboolean
 abi_widget_get_show_authors(AbiWidget * abi)
 {
+	UT_return_val_if_fail(abi && abi->priv && abi->priv->m_pDoc, FALSE);
 	return static_cast<gboolean>(abi->priv->m_pDoc->isShowAuthors());
 }
 
@@ -1294,6 +1314,8 @@ abi_widget_get_word_selections(AbiWidget * abi)
 extern "C" gboolean
 abi_widget_file_open(AbiWidget * abi)
 {
+	UT_return_val_if_fail(abi && abi->priv, FALSE);
+
 	//
 	// Need to release the listner first because it's View pointer
 	// will be invalidated once the new document is loaded.
@@ -1366,10 +1388,12 @@ abi_widget_get_content(AbiWidget * w, const char * extension_or_mimetype, const 
 	guint32 size = gsf_output_size (GSF_OUTPUT(sink));
 	const guint8* ibytes = gsf_output_memory_get_bytes (sink);
 	gchar * szOut = g_new (gchar, size+1);
-	memcpy(szOut,ibytes,size);
+	if (size)
+		memcpy(szOut,ibytes,size);
 	szOut[size] = 0;
 	g_object_unref(G_OBJECT(sink));
-	*iLength = size+1;
+	if (iLength)
+		*iLength = size+1;
 	w->priv->m_iContentLength = size+1;
 	return szOut;
 }
@@ -1431,10 +1455,12 @@ abi_widget_get_selection(AbiWidget * w, const gchar * extension_or_mimetype, gin
 	delete pie;
 	guint32 size = buf.getLength();
 	gchar * szOut = g_new (gchar, size+1);
-	memcpy(szOut,buf.getPointer(0),size);
+	if (size)
+		memcpy(szOut,buf.getPointer(0),size);
 	szOut[size] = 0;
 	g_object_unref(G_OBJECT(sink));
-	*iLength = size+1;
+	if (iLength)
+		*iLength = size+1;
 	w->priv->m_iSelectionLength = size+1;
 	return szOut;
 }
@@ -1452,11 +1478,13 @@ abi_widget_get_selection(AbiWidget * w, const gchar * extension_or_mimetype, gin
 extern "C" gboolean
 abi_widget_get_mouse_pos(AbiWidget * w, gint32 * x, gint32 * y)
 {
+	if (!w || !w->priv)
+		return FALSE;
 	AP_UnixFrame * pFrame = static_cast<AP_UnixFrame *>( w->priv->m_pFrame);
 	if(pFrame == nullptr)
 		return FALSE;
 	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
-	if(pView == nullptr)
+	if(pView == nullptr || pView->getGraphics() == nullptr)
 		return FALSE;
 	UT_sint32 ix,iy;
 	pView->getMousePos(&ix,&iy);
@@ -1484,10 +1512,15 @@ abi_widget_render_page_to_image(AbiWidget *abi, int iPage)
 		return nullptr;
 	}
 	iPage--;
+	if(abi == nullptr || abi->priv == nullptr)
+		return nullptr;
 	AP_UnixFrame * pFrame = static_cast<AP_UnixFrame *>( abi->priv->m_pFrame);
 	if(pFrame == nullptr)
 		return nullptr;
 	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
+	if(pView == nullptr || pView->getGraphics() == nullptr ||
+	   pView->getLayout() == nullptr)
+		return nullptr;
 
 	GR_UnixCairoGraphics  * pVG = static_cast<GR_UnixCairoGraphics *>(pView->getGraphics());
 	UT_sint32 iWidth = pVG->tdu(pView->getWindowWidth());
@@ -1503,6 +1536,12 @@ abi_widget_render_page_to_image(AbiWidget *abi, int iPage)
 	GR_UnixCairoAllocInfo ai(nullptr);
 
 	GR_CairoGraphics * pG = static_cast<GR_CairoGraphics*>(GR_UnixCairoGraphics::graphicsAllocator(ai));
+	if(pG == nullptr)
+	{
+		cairo_destroy(cr);
+		cairo_surface_destroy(surface);
+		return nullptr;
+	}
 	pG->setCairo(cr);
 	pG->beginPaint(); // needed to avoid cairo reference loss
 	pG->setZoomPercentage(iZoom);
@@ -1519,7 +1558,8 @@ abi_widget_render_page_to_image(AbiWidget *abi, int iPage)
 		if(pPage)
 		{
 			fl_DocSectionLayout *pDSL = pPage->getOwningSection();
-			da.yoff -= pDSL->getTopMargin();
+			if(pDSL)
+				da.yoff -= pDSL->getTopMargin();
 		}
 	}
 	pView->getLayout()->setQuickPrint(pG);
@@ -1596,6 +1636,8 @@ abi_widget_insert_table(AbiWidget * abi, gint32 rows, gint32 cols)
 	if(pFrame == nullptr)
 		return FALSE;
 	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
+	if(pView == nullptr)
+		return FALSE;
 	pView->cmdInsertTable(rows, cols, PP_NOPROPS);
 	return TRUE;
 }
@@ -1713,17 +1755,19 @@ abi_widget_load_file(AbiWidget * w, const gchar * pszFile, const gchar * extensi
 		res = (pFrame->loadDocument(pszFile, ieft, true) == UT_OK);
 		
 		FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
-		w->priv->m_pDoc = pView->getDocument();
+		if (pView)
+			w->priv->m_pDoc = pView->getDocument();
 		
 		s_StartStopLoadingCursor( false, pFrame);
 	}
 	else
 	{
 		UT_DEBUGMSG(("Attempting to load %s \n", pszFile));
-		// FIXME: DELETEP(abi->priv->m_pDoc);
+		// the unmapped widget owns the preloaded doc; drop the old one
+		UNREFP(w->priv->m_pDoc);
 
 		w->priv->m_pDoc = new PD_Document();
-		w->priv->m_pDoc->readFromFile(pszFile, ieft);		
+		res = (w->priv->m_pDoc->readFromFile(pszFile, ieft) == UT_OK);
 	}
 
 	if (w->priv->m_bUnlinkFileAfterLoad)
@@ -1755,6 +1799,14 @@ abi_widget_load_file_from_gsf(AbiWidget * w, GsfInput * input)
 	s_StartStopLoadingCursor( true, pFrame);
 	pFrame->setCursor(GR_Graphics::GR_CURSOR_WAIT);
 	res = (pFrame->loadDocument(input,IEFT_Unknown) == UT_OK);
+
+	// keep priv->m_pDoc in step with the frame's new document, like
+	// abi_widget_load_file does - otherwise it dangles once the frame
+	// drops the old doc
+	FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
+	if (pView)
+		w->priv->m_pDoc = pView->getDocument();
+
 	s_StartStopLoadingCursor( false, pFrame);
 
 	return res;
@@ -1788,17 +1840,19 @@ abi_widget_load_file_from_memory(AbiWidget * w, const gchar * extension_or_mimet
 		res = (pFrame->loadDocument(source.get(), ieft) == UT_OK);
 		
 		FV_View * pView = static_cast<FV_View *>(pFrame->getCurrentView());
-		w->priv->m_pDoc = pView->getDocument();
+		if (pView)
+			w->priv->m_pDoc = pView->getDocument();
 		
 		s_StartStopLoadingCursor(false, pFrame);
 	}
 	else
 	{
 		UT_DEBUGMSG(("Attempting to load from stream in unmapped state\n"));
-		// FIXME: DELETEP(abi->priv->m_pDoc);
+		// the unmapped widget owns the preloaded doc; drop the old one
+		UNREFP(w->priv->m_pDoc);
 
 		w->priv->m_pDoc = new PD_Document();
-		w->priv->m_pDoc->readFromFile(source.get(), ieft);
+		res = (w->priv->m_pDoc->readFromFile(source.get(), ieft) == UT_OK);
 	}
 
     return res;
@@ -1900,6 +1954,7 @@ static void abi_widget_get_prop (GObject  *object,
 			gint i;
 			gchar * bytes = abi_widget_get_content(abi, nullptr, nullptr, &i);
 			g_value_set_string(arg,bytes);
+			g_free(bytes);
 			break;
 		}
 	    case SELECTION:
@@ -1907,6 +1962,7 @@ static void abi_widget_get_prop (GObject  *object,
 			gint i;
 			gchar * bytes = abi_widget_get_selection(abi, nullptr, &i);
 			g_value_set_string(arg,bytes);
+			g_free(bytes);
 			break;
 		}
 	    case CONTENT_LENGTH:
@@ -1921,6 +1977,13 @@ static void abi_widget_get_prop (GObject  *object,
 		}
 	    case SHADOW_TYPE:
 		{
+			/* no frame until the widget is mapped - report the pspec
+			 * default rather than dereference nullptr */
+			if (!abi->priv->m_pFrame)
+			{
+				g_value_set_int (arg, 0);
+				break;
+			}
 			AP_UnixFrameImpl * pFrameImpl = static_cast<AP_UnixFrameImpl *>(abi->priv->m_pFrame->getFrameImpl());
 			g_value_set_int (arg, pFrameImpl->getShadowType());
 			break;
@@ -1994,6 +2057,8 @@ static void abi_widget_set_prop (GObject  *object,
 		}
 		case SHADOW_TYPE:
 		{
+			if (!abi->priv->m_pFrame)
+				break;
 			AP_UnixFrameImpl * pFrameImpl = static_cast<AP_UnixFrameImpl *>(abi->priv->m_pFrame->getFrameImpl());
 			int shadow = g_value_get_int (arg);
 			pFrameImpl->setShadowType(shadow);
@@ -2109,8 +2174,18 @@ abi_widget_destroy_gtk (GObject *object)
 
 	if (abi->priv) 
 	{
+		// unbind while the view is still alive: removing the listener
+		// id from the view is the only safe way to stop notifications -
+		// deleting the listener alone would leave a dangling slot that
+		// the view calls into during teardown
+		_abi_widget_unbindListener(abi);
 		_abi_widget_releaseListener(abi);
-		// TODO: release the frame listener
+		// same for the frame listener: unregister before the frame dies
+		if (abi->priv->m_pFrameListener)
+		{
+			abi->priv->m_pFrameListener->release();
+			DELETEP(abi->priv->m_pFrameListener);
+		}
 		if(abi->priv->m_pFrame)
 		{
 			// the loading-cursor timer holds a static pointer to this
@@ -2139,6 +2214,14 @@ abi_widget_destroy_gtk (GObject *object)
 			fprintf(getlogfile(),"frame count = %d \n",pApp->getFrameCount());
 #endif
 		}
+		/* a document loaded while unmapped is widget-owned; once the
+		 * frame exists it either adopted the doc via loadDocument()
+		 * (_replaceDocument assigns unconditionally) or never saw it.
+		 * m_pFrame is intentionally left non-null after delete above,
+		 * so it still marks "a frame was attached" here - only free a
+		 * doc that never had a frame. */
+		if (!abi->priv->m_pFrame)
+			UNREFP(abi->priv->m_pDoc);
 		DELETEP(abi->priv->m_sSearchText);
 		DELETEP(abi->priv);
 	}
@@ -2396,9 +2479,9 @@ abi_widget_construct (AbiWidget * /*abi*/, const char * /*file*/)
 extern "C" void 
 abi_widget_turn_on_cursor(AbiWidget * abi)
 {
+	UT_return_if_fail(abi != nullptr && abi->priv != nullptr);
 	if (abi->priv->m_pFrame)
 	{
-		UT_return_if_fail(abi != nullptr);
 		FV_View * pV = static_cast<FV_View*>(abi->priv->m_pFrame->getCurrentView());
 		if (pV)
 			pV->focusChange(AV_FOCUS_HERE);
@@ -2467,6 +2550,14 @@ abi_widget_new_with_file (const gchar * file)
 	abi = static_cast<AbiWidget *>(g_object_new (abi_widget_get_type (), nullptr));
 	abi_widget_construct (abi, file);
 
+	/* the widget isn't mapped yet, so this goes through the unmapped
+	 * path: the doc is stashed on priv and the map handler loads it
+	 * into the frame */
+	if (!abi_widget_load_file(abi, file, nullptr))
+	{
+		UT_DEBUGMSG(("abi_widget_new_with_file: could not preload %s\n", file));
+	}
+
 	return GTK_WIDGET (abi);
 }
 
@@ -2474,6 +2565,7 @@ extern "C" XAP_Frame *
 abi_widget_get_frame ( AbiWidget * w )
 {
 	UT_return_val_if_fail ( w != nullptr, nullptr ) ;
+	UT_return_val_if_fail ( w->priv != nullptr, nullptr ) ;
 	return w->priv->m_pFrame ;
 }
 
@@ -2549,7 +2641,7 @@ abi_widget_invoke_ex (AbiWidget * w, const char * mthdName,
 	UT_return_val_if_fail(method != nullptr, FALSE);
 
 	// get a valid frame
-	UT_return_val_if_fail(w->priv->m_pFrame != nullptr, FALSE);
+	UT_return_val_if_fail(w->priv != nullptr && w->priv->m_pFrame != nullptr, FALSE);
 
 	// obtain a valid view
 	view = w->priv->m_pFrame->getCurrentView();
@@ -2571,10 +2663,9 @@ extern "C" void
 abi_widget_draw (AbiWidget * w)
 {
 	// obtain a valid view
+	UT_return_if_fail (w != nullptr && w->priv != nullptr);
 	if (w->priv->m_pFrame)
 	{
-		// obtain a valid view
-		UT_return_if_fail (w != nullptr);
 		FV_View * view = static_cast<FV_View *>(w->priv->m_pFrame->getCurrentView());
 		if (view)
 			view->queueDraw();
@@ -2599,6 +2690,7 @@ abi_widget_save_to_gsf ( AbiWidget * w, GsfOutput * output, const char * extensi
 	UT_return_val_if_fail ( w != nullptr, FALSE );
 	UT_return_val_if_fail ( IS_ABI_WIDGET(w), FALSE );
 	UT_return_val_if_fail ( output != nullptr, FALSE );
+	UT_return_val_if_fail ( w->priv->m_pDoc, FALSE );
 
 	IEFileType ieft = s_abi_widget_get_file_type(extension_or_mimetype, nullptr, 0, false);
 	return w->priv->m_pDoc->saveAs(output, ieft, false, (!exp_props || *exp_props == '\0' ? nullptr : exp_props)) == UT_OK ? TRUE : FALSE;
@@ -2629,6 +2721,8 @@ abi_widget_get_zoom_percentage (AbiWidget * w)
 static FV_View* 
 _get_fv_view(AbiWidget* w)
 {
+	UT_return_val_if_fail(w != nullptr && w->priv != nullptr, nullptr);
+	UT_return_val_if_fail(w->priv->m_pFrame != nullptr, nullptr);
 	AV_View* v = w->priv->m_pFrame->getCurrentView();
 	UT_return_val_if_fail(v != nullptr, nullptr);
 	return static_cast<FV_View*>( v );
@@ -2637,6 +2731,7 @@ _get_fv_view(AbiWidget* w)
 extern "C" void
 abi_widget_set_find_string(AbiWidget * w, gchar * search_str)
 {
+	UT_return_if_fail(w != nullptr && w->priv != nullptr && w->priv->m_sSearchText != nullptr);
 	*w->priv->m_sSearchText = UT_UTF8String(search_str).ucs4_str();	// ucs4_str returns object instance
 	FV_View* v = _get_fv_view(w);
 	UT_return_if_fail(v);

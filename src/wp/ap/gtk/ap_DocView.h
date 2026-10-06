@@ -30,10 +30,10 @@ G_BEGIN_DECLS
 #define AP_DOCVIEW_A11Y_VIEW_KEY "a11y-view"
 
 #define AP_TYPE_DOCVIEW      (ap_DocView_get_type ())
-#define AP_DOCVIEW(obj)       (G_TYPE_CHECK_INSTANCE_CAST((obj), AT_TYPE_DOCVIEW, ApDocView))
-#define IS_AP_DOCVIEW(obj)     (G_TYPE_CHECK_INSTANCE_TYPE((obj), AT_TYPE_DOCVIEW))
-#define IS_AP_DOCVIEW_CLASS(k) (G_TYPE_CHECK_CLASS_TYPE ((k), AT_TYPE_DOCVIEW))
-#define AP_DOCVIEW_CLASS(k)    (G_TYPE_CHECK_CLASS_CAST ((k), AT_TYPE_DOCVIEW, AbiWidgetClass))
+#define AP_DOCVIEW(obj)       (G_TYPE_CHECK_INSTANCE_CAST((obj), AP_TYPE_DOCVIEW, ApDocView))
+#define IS_AP_DOCVIEW(obj)     (G_TYPE_CHECK_INSTANCE_TYPE((obj), AP_TYPE_DOCVIEW))
+#define IS_AP_DOCVIEW_CLASS(k) (G_TYPE_CHECK_CLASS_TYPE ((k), AP_TYPE_DOCVIEW))
+#define AP_DOCVIEW_CLASS(k)    (G_TYPE_CHECK_CLASS_CAST ((k), AP_TYPE_DOCVIEW, ApDocViewClass))
 
   /* forward declarations */
   typedef GtkDrawingAreaClass ApDocViewClass;

@@ -2121,6 +2121,17 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Embeddable `AbiWidget` API audited and kept** — the `abi_widget_*`
+  C API in `libabinova-4.0` that lets host applications embed an
+  Abinova canvas now actually honours `abi_widget_new_with_file()`
+  (the file argument was silently dropped), no longer leaks the
+  frame/view listeners or a pre-loaded document when the widget is
+  destroyed before being shown, and stops dereferencing a missing
+  frame/view/document in a dozen entry points (`shadow_type`
+  property, `get_mouse_pos`, `render_page_to_image`, `insert_table`,
+  `get_selection`/`get_content` out-parameters, find/save helpers).
+  The zoom signal also now reports the embedding widget's own frame
+  rather than whichever window was last focussed.
 - **EPUB import no longer leaks its temp directory** — every `.epub`
   import (and every EPUB clipboard paste) extracted all manifest items
   into a per-document folder under the system temp dir that was never
