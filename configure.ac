@@ -851,7 +851,6 @@ AC_CONFIG_FILES([libabinova.pc
   user/Makefile
   user/wp/Makefile
   user/wp/clipart/Makefile
-  user/wp/dictionary/Makefile
   user/wp/templates/Makefile
   tools/Makefile
   fonts/Makefile

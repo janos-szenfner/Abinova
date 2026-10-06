@@ -1949,7 +1949,7 @@ Older upstream history is not listed here.
 |------|----------|
 | `src/` | Application and library source (GTK port) |
 | `fonts/` | Bundled fonts + licenses + substitution config |
-| `user/` | Templates, dictionaries, clipart |
+| `user/` | Templates, clipart |
 | `tools/` | Development/test helpers |
 | `help/` | Bundled English user manual (`en-US`, ~200 HTML pages) |
 

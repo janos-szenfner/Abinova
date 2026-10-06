@@ -5182,6 +5182,11 @@ below are on `main` but the release has not been cut yet.
   indirection is flattened to literal `gtk` include paths and the
   never-defined `TOOLKIT_GTK`/`TOOLKIT_GTK_ALL` macros are gone.
   `configure --help` now lists only options that do something.
+- **Dead ispell dictionary removed** — `user/wp/dictionary/american.hash`
+  was a 2003-era ispell-format hash file shipped in tarballs but never
+  installed or referenced; spell checking runs on enchant + hunspell
+  today. The whole `user/wp/dictionary/` directory and its build
+  wiring (`configure.ac` output, `SUBDIRS`/`DIST_SUBDIRS`) are gone.
 
 ### Resolved root causes worth noting
 
