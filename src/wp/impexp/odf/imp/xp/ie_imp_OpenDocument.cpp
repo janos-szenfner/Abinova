@@ -568,14 +568,19 @@ UT_Error IE_Imp_OpenDocument::_loadRDFFromFile ( GsfInput* pInput,
         }
 
         UT_DEBUGMSG(("_handleRDFStreams() stream:%s RDF/XML:::%s:::\n", pStream, data.get() ));
-        if( librdf_parser_parse_string_into_model( args->parser,
-                                                   static_cast<const unsigned char*>(data.get()),
-                                                   base_uri, args->model ))
+        // RDF/XML inside an ODF package is document-controlled — keep
+        // the libxml2 entity loader locked down while raptor parses it.
         {
-            UT_DEBUGMSG(("Failed to parse RDF into model. stream:%s sz:%d\n",
-                         pStream, sz ));
-            librdf_free_uri( base_uri );
-            return UT_ERROR;
+            UT_XML_UntrustedParseScope xxeGuard;
+            if( librdf_parser_parse_string_into_model( args->parser,
+                                                       static_cast<const unsigned char*>(data.get()),
+                                                       base_uri, args->model ))
+            {
+                UT_DEBUGMSG(("Failed to parse RDF into model. stream:%s sz:%d\n",
+                             pStream, sz ));
+                librdf_free_uri( base_uri );
+                return UT_ERROR;
+            }
         }
         librdf_free_uri( base_uri );
     }

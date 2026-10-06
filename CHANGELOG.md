@@ -3329,6 +3329,18 @@ below are on `main` but the release has not been cut yet.
   are skipped (the user-invoked "Insert Online Picture" feature is
   unaffected).  ODF embedded images (package-internal) and OOXML
   external relationships (already rejected) needed no change.
+- **XXE regression pin and Redland-path guard (SEC07)** — an audit of
+  every document-facing XML entry point confirmed all native
+  `.abw`/`.abwn`, XHTML, ODF and OOXML parses funnel through
+  `UT_XML::parse`'s internal `UT_XML_UntrustedParseScope`, and pinned
+  that invariant with a new `ie_xxe.t.cpp` suite that generates hostile
+  fixtures in-test — external general and parameter entities pointing
+  at a local canary file inside `.abw`, `.xhtml`, `.odt` and `.docx`
+  documents — asserting the canary never reaches document text (benign
+  controls confirm the fixtures otherwise import).  The one remaining
+  bypass, the optional `WITH_REDLAND` RDF/XML parse in the ODF importer
+  (`librdf_parser_parse_string_into_model`, whose raptor parser shares
+  libxml2's entity loader), is now wrapped in the same scope guard.
 - **Hyperlink scheme allowlist (URI01)** — clicking a document link
   previously handed whatever scheme it carried to the system
   "open this URI" handler (`UT_go_url_show`), and several schemes are
