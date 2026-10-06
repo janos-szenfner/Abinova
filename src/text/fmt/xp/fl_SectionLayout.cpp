@@ -1864,6 +1864,7 @@ void fl_DocSectionLayout::markAllRunsDirty(void)
 
 void fl_DocSectionLayout::updateLayout(bool bDoFull)
 {
+	gint64 t_ul0 = g_get_monotonic_time(); // PERFDBG
 	fl_ContainerLayout*	pBL = getFirstLayout();
 	FV_View * pView = m_pLayout->getView();
 	bool bShowHidden = pView && pView->getShowPara();
@@ -1947,6 +1948,7 @@ void fl_DocSectionLayout::updateLayout(bool bDoFull)
 		}
 	}
 	m_vecFormatLayout.clear();
+	fprintf(stderr,"PERFDBG updateLayout fmtphase: %.2f ms\n",(g_get_monotonic_time()-t_ul0)/1000.0);
 	if(needsSectionBreak() && !getDocument()->isDontImmediateLayout() )
 	{
 		if (!isFirstPageValid())
@@ -1961,7 +1963,9 @@ void fl_DocSectionLayout::updateLayout(bool bDoFull)
 			format();
 			return;
 		}
+		gint64 t_bs0 = g_get_monotonic_time();
 		m_ColumnBreaker.breakSection();
+		fprintf(stderr,"PERFDBG breakSection: %.2f ms\n",(g_get_monotonic_time()-t_bs0)/1000.0);
 	}
 	if(needsRebuild() && !getDocument()->isDontImmediateLayout() )
 	{

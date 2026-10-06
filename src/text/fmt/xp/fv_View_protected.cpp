@@ -3528,7 +3528,10 @@ void FV_View::_generalUpdate(void)
 	if(!shouldScreenUpdateOnGeneralUpdate())
 		return;
 
+	gint64 t_gu0 = g_get_monotonic_time(); // PERFDBG
 	m_pDoc->signalListeners(PD_SIGNAL_UPDATE_LAYOUT);
+	fprintf(stderr,"PERFDBG gu-signalListeners: %.2f ms\n",(g_get_monotonic_time()-t_gu0)/1000.0);
+	gint64 t_gu1 = g_get_monotonic_time();
 
 //
 // No need to update other stuff if we're doing a preview
@@ -3559,7 +3562,10 @@ void FV_View::_generalUpdate(void)
 	if(!m_pDoc->isDoingPaste())
 	{
 		notifyListeners(AV_CHG_TYPING | AV_CHG_FMTCHAR | AV_CHG_FMTBLOCK | AV_CHG_PAGECOUNT | AV_CHG_FMTSTYLE );
+		fprintf(stderr,"PERFDBG gu-notifyListeners: %.2f ms\n",(g_get_monotonic_time()-t_gu1)/1000.0);
+		gint64 t_gu2 = g_get_monotonic_time();
 		setCursorToContext();
+		fprintf(stderr,"PERFDBG gu-cursorctx: %.2f ms\n",(g_get_monotonic_time()-t_gu2)/1000.0);
 	}
 }
 
@@ -6130,6 +6136,8 @@ bool FV_View::_makePointLegal(void)
 
 bool FV_View::_charInsert(const UT_UCS4Char * text, UT_uint32 count, bool bForce)
 {
+	gint64 t_ci0 = g_get_monotonic_time(); // PERFDBG
+	gint64 t_ci1 = t_ci0, t_ci2 = t_ci0, t_ci3 = t_ci0; // PERFDBG
 	// see if prefs specify we should set language based on kbd layout
 	UT_return_val_if_fail(m_pApp, false);
 	bool bSetLang = false;
@@ -6285,6 +6293,8 @@ bool FV_View::_charInsert(const UT_UCS4Char * text, UT_uint32 count, bool bForce
 	{
 		m_FrameEdit.setMode(FV_FrameEdit_NOT_ACTIVE);
 	}
+	fprintf(stderr,"PERFDBG charins-pre: %.2f ms\n",(g_get_monotonic_time()-t_ci0)/1000.0);
+	t_ci1 = g_get_monotonic_time();
 
 	// Signal PieceTable Changes have finished
 	_restorePieceTableState();
@@ -6297,10 +6307,15 @@ bool FV_View::_charInsert(const UT_UCS4Char * text, UT_uint32 count, bool bForce
 	{
 	  notifyListeners(AV_CHG_ALL);
 	}
+	fprintf(stderr,"PERFDBG charins-restore+dirtylists: %.2f ms\n",(g_get_monotonic_time()-t_ci1)/1000.0);
+	t_ci2 = g_get_monotonic_time();
 
 	_generalUpdate();
+	fprintf(stderr,"PERFDBG charins-generalUpdate: %.2f ms\n",(g_get_monotonic_time()-t_ci2)/1000.0);
+	t_ci3 = g_get_monotonic_time();
 	_fixInsertionPointCoords();
 	_ensureInsertionPointOnScreen();
+	fprintf(stderr,"PERFDBG charins-ensure: %.2f ms\n",(g_get_monotonic_time()-t_ci3)/1000.0);
 
 	return bResult;
 }
