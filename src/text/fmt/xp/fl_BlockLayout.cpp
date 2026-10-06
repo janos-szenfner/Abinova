@@ -5989,10 +5989,6 @@ bool	fl_BlockLayout::_doInsertFieldRun(PT_BlockOffset blockOffset, const PX_Chan
 	  {
 		pNewRun = new fp_FieldBuildCompileTimeRun(this,   blockOffset, 1);
 	  }
-	else if(strcmp(pszType, "mail_merge") == 0)
-	  {
-	    pNewRun = new fp_FieldMailMergeRun(this,   blockOffset, 1);
-	  }
 	else if(strcmp(pszType, "meta_title") == 0)
 	  {
 	    pNewRun = new fp_FieldMetaTitleRun(this,   blockOffset, 1);

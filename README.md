@@ -1275,7 +1275,7 @@ footnotes, endnotes and annotations are all sections). Inside:
 | `<c>` | character run with `props` |
 | `<a xlink:href>` | hyperlink |
 | `<image dataid>` | embedded image → `<data>` item |
-| `<field>` | computed content (`time`, `page_number`, `page_ref`, `mail_merge`, `list_label`, `test`, `if`, …) |
+| `<field>` | computed content (`time`, `page_number`, `page_ref`, `list_label`, `test`, `if`, …) |
 | `<math>` | equation: `dataid` → MathML item, `latexid` → LaTeX source, `display:inline|block`, plus an `<image>` snapshot for renderers without math support |
 | `<frame>` | positioned container (text boxes) |
 | `<table>` / `<cell>` | table strux / cell strux |

@@ -4456,20 +4456,16 @@ bool IE_Imp_MsWord_97::_handleFieldEnd (char *command, UT_uint32 /*iDocPosition*
 		{
 		    case F_MERGEFIELD:
 			{
-				PP_PropertyVector atts = {
-					"type", "mail_merge",
-					"param"
-				};
-
+				// no mail merge support: keep the stored result text
+				// (<<FieldName>> or the last merged value) as literal
+				// text, like we do for unsupported TOC fields
 				token = strtok (nullptr, "\"\" ");
 
 				UT_return_val_if_fail(f->argument[f->fieldI - 1] == 0x15, false);
-				
+
 				f->argument[f->fieldI - 1] = 0;
 				UT_UCS2Char * a = f->argument;
 
-				UT_UTF8String param;
-				
 				if(*a == 0x14)
 					{
 						a++;
@@ -4477,21 +4473,9 @@ bool IE_Imp_MsWord_97::_handleFieldEnd (char *command, UT_uint32 /*iDocPosition*
 
 				while(*a)
 					{
-						if (!((171 == *a) || (187 == *a))) {
-							// @argument looks like <<FieldName>>.
-							// strip off the '<<' (171) and '>>' (187)
-							param.appendUCS2(a, 1);
-						}
-
-						a++;
+						this->_appendChar(*a++);
 					}
-
-				atts.push_back(param.utf8_str());
-
-				if (!_appendObject (PTO_Field, atts))
-					{
-						UT_DEBUGMSG(("Dom: couldn't append field (type = '%s')\n", atts[1].c_str()));
-					}
+				this->_flush();
 			}
 			break;
 

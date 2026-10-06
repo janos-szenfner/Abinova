@@ -263,18 +263,6 @@ UT_Error OXML_Element_Field::serialize(IE_Exp_OpenXML* exporter)
 			//TODO
 			return UT_OK;
 		}	
-		case fd_Field::FD_MailMerge:
-		{
-			format = "MERGEFIELD ";
-			if((fieldValue.length() > 1) && (fieldValue[0] == '<') && 
-				(fieldValue[fieldValue.length()-1] == '>'))
-			{
-				fieldValue = fieldValue.substr(1, fieldValue.length()-2);
-			}
-			format += fieldValue;
-			fieldValue = "\u00AB" + fieldValue + "\u00BB"; //unicode double angle quotation marks
-			break;
-		}	
 		case fd_Field::FD_Endnote_Ref:
 		{
 			UT_Error err = UT_OK;
@@ -550,12 +538,6 @@ UT_Error OXML_Element_Field::addToPT(PD_Document * pDocument)
 			format = "meta_comments";
 			break;
 		}
-		case fd_Field::FD_MailMerge:
-		{
-			format = "mail_merge";
-			break;
-		}	
-		
 		case fd_Field::FD_Footnote_Ref:
 		{
 			format = "footnote_ref";
@@ -616,16 +598,6 @@ UT_Error OXML_Element_Field::addToPT(PD_Document * pDocument)
 			return UT_ERROR;			
 		}
 	}	
-	else if(fieldType == fd_Field::FD_MailMerge)
-	{
-		const PP_PropertyVector field_fmt = {
-			"type",	format,
-			"param", fieldValue
-		};
-
-		if(!pDocument->appendObject(PTO_Field, field_fmt))
-			return UT_ERROR;
-	}
 	else
 	{
 		const PP_PropertyVector field_fmt = {
@@ -739,25 +711,6 @@ void OXML_Element_Field::setFieldType(const std::string & typ)
 		fieldType = fd_Field::FD_Meta_Keywords;
 	else if(!type.compare("COMMENTS \\* MERGEFORMAT"))
 		fieldType = fd_Field::FD_Meta_Description;
-
-	//mail merge fields
-	else if(type.find("MERGEFIELD") != std::string::npos)
-	{
-		fieldType = fd_Field::FD_MailMerge;
-		size_t quoteStart = type.find_first_of('"');
-		size_t quoteEnd = type.find_last_of('"');
-		if((quoteStart != std::string::npos) &&
-			(quoteEnd != std::string::npos) &&
-			(quoteEnd > quoteStart))
-		{
-			fieldValue = type.substr(quoteStart+1, quoteEnd-quoteStart-1);
-		}
-		else
-		{
-			fieldValue = type.replace(0, type.find("MERGEFIELD")+10, ""); //keep everything after MERGEFIELD
-			fieldValue = removeExtraSpaces(fieldValue);
-		}
-	}
 
 	//TODO: more to come here		
 }

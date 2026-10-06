@@ -775,9 +775,9 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 	/* Okay, as far as I can tell this is a non-persistent document property since it is not
 	 * written to the Abinova file when the document is saved. In fact, it is only set if a
 	 * mail-merge source/link is given on the command line.
-	 * Mail merge fields are, naturally, saved and loaded; the document no
-	 * longer carries a merge map — MERGEFIELD fields render as
-	 * <fieldname>, matching Word's unmerged display.
+	 * Mail merge is gone entirely — imported MERGEFIELD instructions
+	 * degrade to their stored result text («fieldname»), matching
+	 * Word's unmerged display.
 	 */
 
 	void invalidateCache(void);

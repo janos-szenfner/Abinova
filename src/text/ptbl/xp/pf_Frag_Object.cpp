@@ -202,11 +202,7 @@ pf_Frag_Object::pf_Frag_Object(pt_PieceTable * pPT,
         		}
     			break;
     		case 'm':
-		        if (0 == strcmp(pszType, "mail_merge"))
-		        {
-        		    fieldType = fd_Field::FD_MailMerge;
-		        }
-			else if(0 == strcmp(pszType, "meta_title"))
+			if(0 == strcmp(pszType, "meta_title"))
 			  {
 			    fieldType = fd_Field::FD_Meta_Title;
 			  }

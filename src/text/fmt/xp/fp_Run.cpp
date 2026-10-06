@@ -5489,39 +5489,6 @@ bool fp_FieldPageCountRun::calculateValue(void)
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 
-fp_FieldMailMergeRun::fp_FieldMailMergeRun(fl_BlockLayout* pBL, UT_uint32 iOffsetFirst, UT_uint32 iLen)
-  : fp_FieldRun(pBL, iOffsetFirst, iLen)
-{
-}
-
-bool fp_FieldMailMergeRun::calculateValue(void)
-{
-	fd_Field * fld = getField();
-	if (fld) {
-	  const gchar * param = fld->getParameter ();
-
-	  if (!param)
-	    return false;
-
-	  UT_UTF8String value ;
-
-	  // no merge mapping exists anymore; display the field name,
-	  // matching Word's unmerged MERGEFIELD rendering
-	  value = "<";
-	  value += param;
-	  value += ">";
-
-	  fld->setValue(static_cast<const gchar*>(value.utf8_str()));
-
-	  return _setValue(value.ucs4_str().ucs4_str());
-	}
-
-	return false;
-}
-
-//////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////
-
 fp_FieldMetaRun::fp_FieldMetaRun(fl_BlockLayout* pBL, UT_uint32 iOffsetFirst, UT_uint32 iLen, const char * which)
   : fp_FieldRun(pBL, iOffsetFirst, iLen), m_which(which)
 {

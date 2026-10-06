@@ -4638,6 +4638,18 @@ below are on `main` but the release has not been cut yet.
   `fp_FieldMailMergeRun` now always renders `«fieldname»`, matching
   Word's unmerged display, instead of consulting a map nothing could
   populate.
+- **Remaining mail-merge field machinery removed** — the dedicated
+  `mail_merge` field type is gone entirely (`fd_Field::FD_MailMerge`,
+  `fp_FieldMailMergeRun`, `FIELD_UPDATE_MAILMERGE`, the `mail_merge`
+  field catalogue entry and strings, the DOCX importer/exporter
+  branches, and the whole `w:mailMerge`/`w:odso`/`convMailMergeEsc`
+  settings-element validation block). Old documents still open
+  safely: DOCX `MERGEFIELD` fields (both `w:fldSimple` and complex
+  `w:fldChar`/`w:instrText` forms) now degrade to their stored result
+  text (`«FieldName»` or the last merged value), and the `.doc`
+  importer's `F_MERGEFIELD` emits the same literal text — matching
+  how other unsupported field types fall back, and how Word renders
+  an unmerged merge field.
 - **Evolution Data Server integration removed** — configure.ac no
   longer detects `evolution-data-server`/`libebook`; the
   `WITH_EVOLUTION_DATA_SERVER` blocks resolved to their non-EDS
