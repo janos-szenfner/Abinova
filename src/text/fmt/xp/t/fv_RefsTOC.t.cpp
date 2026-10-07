@@ -36,7 +36,10 @@
 #include "fl_SectionLayout.h"
 #include "fl_TOCLayout.h"
 #include "fv_View.h"
+#include "fp_Page.h"
 #include "fp_types.h"
+#include "gr_DrawArgs.h"
+#include "gr_Painter.h"
 #include "gr_UnixCairoGraphics.h"
 #include "xap_App.h"
 #include "ut_growbuf.h"
@@ -48,6 +51,7 @@
 #include <unistd.h>
 
 #include <cstdio>
+#include <cstdlib>
 #include <map>
 #include <string>
 #include <vector>
@@ -143,6 +147,71 @@ struct RefsView
 	FL_DocLayout *layout = nullptr;
 	FV_View *view = nullptr;
 };
+
+/* The harness graphics is widget-less and reports neither screen nor
+ * paper, so transparent fills take the early-out shared with the
+ * print path.  To exercise the on-screen behaviour — where a
+ * transparent frame used to repaint the page's white fallback over
+ * sibling frames — render through a GR_UnixCairoGraphics that reports
+ * DGP_SCREEN, backed by a plain image surface. */
+class ScreenGfx : public GR_UnixCairoGraphics
+{
+public:
+	ScreenGfx() : GR_UnixCairoGraphics(nullptr) {}
+	bool queryProperties(GR_Graphics::Properties gp) const override
+	{
+		if (gp == GR_Graphics::DGP_SCREEN ||
+			gp == GR_Graphics::DGP_OPAQUEOVERLAY)
+			return true;
+		return GR_UnixCairoGraphics::queryProperties(gp);
+	}
+};
+
+/* paint page iPage of the view into a fresh ARGB32 image surface */
+cairo_surface_t * refs_render_page(FV_View * v, FL_DocLayout * layout,
+								   int iPage, int & w, int & h)
+{
+	fp_Page * pPage = layout->getNthPage(iPage);
+	if (!pPage)
+		return nullptr;
+	ScreenGfx * g = new ScreenGfx;
+	g->setZoomPercentage(100);
+	w = g->tdu(pPage->getWidth());
+	h = g->tdu(pPage->getHeight());
+	cairo_surface_t * surf =
+		cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
+	cairo_t * cr = cairo_create(surf);
+	g->setCairo(cr);
+	g->beginPaint();
+	{
+		GR_Painter painter(g);
+		painter.clearArea(0, 0, w, h);
+	}
+	dg_DrawArgs da;
+	da.pG = g;
+	da.xoff = 0;
+	da.yoff = 0;
+	layout->setQuickPrint(g);
+	v->drawPage(iPage, &da);
+	layout->setQuickPrint(nullptr);
+	g->endPaint();
+	cairo_destroy(cr);
+	delete g;
+	cairo_surface_flush(surf);
+	return surf;
+}
+
+/* read one device pixel out of an ARGB32 image surface */
+void refs_pixel(cairo_surface_t * surf, int x, int y,
+				int & r, int & g, int & b)
+{
+	const unsigned char * d =
+		cairo_image_surface_get_data(surf) +
+		y * cairo_image_surface_get_stride(surf) + x * 4;
+	b = d[0];
+	g = d[1];
+	r = d[2];
+}
 
 std::string refs_doc_text(FV_View * v)
 {
@@ -433,6 +502,101 @@ TFTEST_MAIN("shape cover presets insert, replace, undo, round-trip")
 		TFPASS(v->cmdRemoveCoverPage());
 		TFPASS(!v->hasCoverPage());
 	}
+}
+
+TFTEST_MAIN("transparent cover textbox does not occlude artwork")
+{
+	/* COVER04: the Badge preset floats a bg-style:0 title textbox over
+	 * the scalloped seal; on screen the transparent frame used to
+	 * repaint the page's white fallback across its whole rectangle,
+	 * hiding the seal's middle.  Render page 0 through a
+	 * DGP_SCREEN-reporting graphics and sample the seal's pixels. */
+	RefsView hv;
+	TFPASS(hv.load("cover host text"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	v->setPoint(2);
+	TFPASS(v->cmdInsertCoverPage("badge") == UT_OK);
+	TFPASS(hv.layout->countPages() >= 2);
+
+	int w = 0, h = 0;
+	cairo_surface_t * surf = refs_render_page(v, hv.layout, 0, w, h);
+	TFPASS(surf != nullptr);
+	if (!surf)
+		return;
+
+	/* inches -> device px over an 8.5in x 11in page */
+	auto px = [&w](double in) { return static_cast<int>(in / 8.5 * w); };
+	auto py = [&h](double in) { return static_cast<int>(in / 11.0 * h); };
+	int r = 0, g = 0, b = 0;
+
+	/* inside the seal (1.86-6.73 x 1.35-6.23 in), inside the title
+	 * textbox (0.38-7.88 x 1.66-6.06 in), below the glyphs: used to
+	 * read white (255,255,255), must read the seal's light-grey
+	 * E7E6E6 = (231,230,230) */
+	refs_pixel(surf, px(4.25), py(5.5), r, g, b);
+	TFPASS(abs(r - 231) < 24 && abs(g - 230) < 24 && abs(b - 230) < 24);
+	refs_pixel(surf, px(4.25), py(2.0), r, g, b);
+	TFPASS(abs(r - 231) < 24 && abs(g - 230) < 24 && abs(b - 230) < 24);
+
+	/* the blue page panel still shows to the left of the seal */
+	refs_pixel(surf, px(1.0), py(4.0), r, g, b);
+	TFPASS(abs(r - 68) < 24 && abs(g - 114) < 24 && abs(b - 196) < 24);
+
+	/* a second preset that layers a transparent textbox over a
+	 * coloured shape: crop's title box overlaps its blue corner
+	 * block, so that corner must stay blue (68,114,196), not white */
+	{
+		RefsView hv2;
+		TFPASS(hv2.load("cover host text"));
+		if (hv2.view)
+		{
+			hv2.view->setPoint(2);
+			TFPASS(hv2.view->cmdInsertCoverPage("crop") == UT_OK);
+			cairo_surface_t * surf2 =
+				refs_render_page(hv2.view, hv2.layout, 0, w, h);
+			TFPASS(surf2 != nullptr);
+			if (surf2)
+			{
+				refs_pixel(surf2, px(1.5), py(1.3), r, g, b);
+				TFPASS(abs(r - 68) < 24 && abs(g - 114) < 24 &&
+					   abs(b - 196) < 24);
+				cairo_surface_destroy(surf2);
+			}
+		}
+	}
+
+	/* ABINOVA_DUMP_COVERS=1 writes one on-screen render per preset to
+	 * /tmp/abn_screen_<preset>.png for eyeballing */
+	if (getenv("ABINOVA_DUMP_COVERS"))
+	{
+		static const char * const presets[] =
+			{ "frame", "austin", "badge", "banded", "crop",
+			  "facet", "feathered", "filgree", "headiness", "integral",
+			  "ion-dark", "ion-light", "retrospect", "semaphore",
+			  "slice-dark", "slice-light", "viewmaster", "whip" };
+		for (const char * szPreset : presets)
+		{
+			RefsView hvx;
+			if (!hvx.load("cover host text") || !hvx.view)
+				continue;
+			hvx.view->setPoint(2);
+			if (hvx.view->cmdInsertCoverPage(szPreset) != UT_OK)
+				continue;
+			cairo_surface_t * sx =
+				refs_render_page(hvx.view, hvx.layout, 0, w, h);
+			if (sx)
+			{
+				std::string png = std::string("/tmp/abn_screen_") +
+					szPreset + ".png";
+				cairo_surface_write_to_png(sx, png.c_str());
+				cairo_surface_destroy(sx);
+			}
+		}
+	}
+
+	cairo_surface_destroy(surf);
 }
 
 TFTEST_MAIN("header/footer presets, edit mode and removal")

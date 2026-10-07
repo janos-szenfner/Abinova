@@ -1164,6 +1164,19 @@ void fg_FillType::Fill(GR_Graphics * pG, UT_sint32 & srcX, UT_sint32 & srcY, UT_
 	if(m_FillType == FG_FILL_TRANSPARENT)
 	{
 		 xxx_UT_DEBUGMSG(("Fill type transparent ! \n"));
+		 /* A transparent frame leaves the pixels beneath it alone: the
+		  * page - and any lower sibling frames - painted before this
+		  * one, so inheriting the (transparent-rooted) page fill stamps
+		  * an opaque white rectangle over that artwork, e.g. the Badge
+		  * cover's title textbox blanking the middle of the scalloped
+		  * seal.  Lines and runs inside the frame chain into this same
+		  * fill object, so the early-out also keeps text in a no-fill
+		  * textbox from repainting its backing. */
+		 if(m_pContainer &&
+			 (m_pContainer->getContainerType() == FP_CONTAINER_FRAME))
+		 {
+			 return;
+		 }
 		 if(getParent() && m_pContainer)
 		 {
 			 xxx_UT_DEBUGMSG(("Fill type transparent chaining up to parent %x ! \n",getParent()));

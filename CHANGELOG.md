@@ -1137,6 +1137,14 @@ below are on `main` but the release has not been cut yet.
   original license-clean equivalents — and each cover stores its
   art as a document data item so it travels with saved `.abwn`
   files.
+- **Transparent frames no longer paint an opaque box** — a
+  no-fill textbox or shape frame used to stamp the page's white
+  fallback over its whole bounding rectangle on screen, so any
+  artwork drawn underneath (another frame, an image, the page
+  background) was blanked out — most visibly the Badge cover,
+  where the title textbox hid the middle of the scalloped seal.
+  Transparent frame fills now leave the underlying pixels alone,
+  matching how the same documents already printed.
 - **Header and Footer built-in galleries** — the Header and Footer
   ribbon buttons open Word-style dropdown galleries of preview cards:
   21 header designs (Blank, Blank (Three Columns), Austin, Badge,
