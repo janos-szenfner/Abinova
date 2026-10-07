@@ -532,9 +532,11 @@ labels, like Word's ribbon.
 
 - **Pages**: **Cover Page** opens a scrolling gallery of
   A4-portrait preview cards (Frame, Motion, Sideline, Yearly,
-  plus the Word-style Austin, Badge, Banded and Crop designs built
-  from positioned shapes) — all drawn in code, no third-party
-  artwork.
+  plus the Word-style Austin, Badge, Banded, Crop, Facet,
+  Feathered, Filgree, Headiness, Integral, Ion Dark/Light,
+  Retrospect, Semaphore, Slice Dark/Light, Viewmaster and Whip
+  designs built from positioned shapes) — all drawn in code, no
+  third-party artwork.
   Cover pages pull title/author from document metadata
   (`dc.title`/`dc.creator`, placeholders as fallback), add the
   current month/year, and are wrapped in a `_cover-page` marker

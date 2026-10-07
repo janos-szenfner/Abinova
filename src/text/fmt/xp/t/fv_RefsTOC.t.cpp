@@ -348,7 +348,10 @@ TFTEST_MAIN("cover page insert and remove")
 TFTEST_MAIN("shape cover presets insert, replace, undo, round-trip")
 {
 	static const char * const presets[] =
-		{ "frame", "austin", "badge", "banded", "crop" };
+		{ "frame", "austin", "badge", "banded", "crop",
+		  "facet", "feathered", "filgree", "headiness", "integral",
+		  "ion-dark", "ion-light", "retrospect", "semaphore",
+		  "slice-dark", "slice-light", "viewmaster", "whip" };
 	for (const char * szPreset : presets)
 	{
 		RefsView hv;

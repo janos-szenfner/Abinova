@@ -7482,6 +7482,575 @@ static const FV_CoverShape s_coverCropShapes[] = {
 	{ nullptr, nullptr }
 };
 
+/* ------------------------- Word design batch 2 -------------------------
+ * Facet, Feathered, Filgree, Headiness, Integral, Ion (dark/light),
+ * Retrospect, Semaphore, Slice (dark/light), Viewmaster and Whip.
+ * Geometry measured from the OOXML references (EMU -> inches on an A4
+ * page, 8.27x11.69in).  Designs whose artwork is an embedded raster
+ * (Facet's triangle banner, Feathered's plumes, Filgree's flourishes,
+ * Integral's photo) are approximated with vector shapes/fills because
+ * covers are generated in code and ship no image assets. */
+
+/* Facet: overlapping translucent blue facets across the top edge;
+ * right-aligned title/subtitle, then a right-aligned abstract block
+ * and author/e-mail near the bottom. */
+static const FV_CoverLine s_coverFacetTitle[] = {
+	{ "text-align:right; font-size:32pt",
+	  "font-family:Carlito; font-size:32pt; color:4472C4", "@title" },
+	{ "text-align:right; margin-top:2pt; font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; color:262626", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverFacetAbstract[] = {
+	{ "text-align:right; font-size:14pt",
+	  "font-family:Carlito; font-size:14pt; color:4472C4", "Abstract" },
+	{ "text-align:right; margin-top:4pt",
+	  "font-family:Carlito; font-size:10pt; color:262626",
+	  "[Draw your reader in with an engaging abstract. It is typically a "
+	  "short summary of the document. When you are ready to add your "
+	  "content, just click here and start typing.]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverFacetAuthor[] = {
+	{ "text-align:right; font-size:14pt",
+	  "font-family:Carlito; font-size:14pt; color:262626", "@author" },
+	{ "text-align:right; margin-top:2pt",
+	  "font-family:Carlito; font-size:9pt; color:595959",
+	  "[Email address]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverFacetShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.135in; frame-page-ypos:0.27in; "
+	  "frame-width:8.0in; frame-height:1.33in; xpos:0.135in; ypos:0.27in; "
+	  "background-color:8FAADC; fill-alpha:0.6; frame-stack-order:1; "
+	  "shape-path:M 0 0 L 1000 0 L 1000 380 L 320 1000 L 0 1000 Z",
+	  nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.135in; frame-page-ypos:0.27in; "
+	  "frame-width:8.0in; frame-height:1.33in; xpos:0.135in; ypos:0.27in; "
+	  "background-color:4472C4; fill-alpha:0.75; frame-stack-order:2; "
+	  "shape-path:M 0 0 L 1000 0 L 800 1000 L 0 320 Z",
+	  nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.135in; frame-page-ypos:0.27in; "
+	  "frame-width:8.0in; frame-height:1.33in; xpos:0.135in; ypos:0.27in; "
+	  "background-color:4472C4; frame-stack-order:3; "
+	  "shape-path:M 560 0 L 1000 0 L 1000 420 L 800 1000 Z",
+	  nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:1.0in; frame-page-ypos:4.55in; "
+	  "frame-width:6.3in; frame-height:2.0in; xpos:1.0in; ypos:4.55in; "
+	  "xpad-right:0.1in; frame-valign:bottom; frame-stack-order:4",
+	  s_coverFacetTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:1.0in; frame-page-ypos:8.18in; "
+	  "frame-width:6.3in; frame-height:1.10in; xpos:1.0in; ypos:8.18in; "
+	  "xpad-right:0.1in; frame-valign:top; frame-stack-order:5",
+	  s_coverFacetAbstract },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:1.0in; frame-page-ypos:9.56in; "
+	  "frame-width:6.3in; frame-height:1.0in; xpos:1.0in; ypos:9.56in; "
+	  "xpad-right:0.1in; frame-valign:top; frame-stack-order:6",
+	  s_coverFacetAuthor },
+	{ nullptr, nullptr }
+};
+
+/* Feathered: dark-blue card top-left with a light inner keyline and a
+ * pale rule before the title; author/company bottom-right.  (The Word
+ * original floats light-grey feather photos behind everything; here
+ * the page stays white.) */
+static const FV_CoverLine s_coverFeatheredTitle[] = {
+	{ "font-size:39pt",
+	  "font-family:Carlito; font-size:39pt; color:E7E6E6", "@title" },
+	{ "margin-top:4pt; font-size:20pt",
+	  "font-family:Carlito; font-size:20pt; color:E7E6E6; "
+	  "char-spacing:1pt", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverFeatheredMeta[] = {
+	{ "margin-bottom:9pt; font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; color:44546A; "
+	  "char-spacing:1pt", "@author" },
+	{ "font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; color:44546A; "
+	  "char-spacing:1pt; text-transform:uppercase", "[Company Name]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverFeatheredShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.125in; frame-page-ypos:0.595in; "
+	  "frame-width:5.33in; frame-height:6.48in; xpos:0.125in; ypos:0.595in; "
+	  "background-color:33569F; frame-stack-order:1", nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.325in; frame-page-ypos:0.81in; "
+	  "frame-width:5.13in; frame-height:6.06in; xpos:0.325in; ypos:0.81in; "
+	  "top-style:solid; bot-style:solid; left-style:solid; "
+	  "right-style:solid; top-color:E7E6E6; bot-color:E7E6E6; "
+	  "left-color:E7E6E6; right-color:E7E6E6; "
+	  "top-thickness:1.5pt; bot-thickness:1.5pt; "
+	  "left-thickness:1.5pt; right-thickness:1.5pt; "
+	  "frame-stack-order:2", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.88in; frame-page-ypos:5.14in; "
+	  "frame-width:4.05in; frame-height:0.035in; xpos:0.88in; ypos:5.14in; "
+	  "background-color:E7E6E6; frame-stack-order:3", nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:3.51in; frame-page-ypos:4.63in; "
+	  "frame-width:4.27in; frame-height:3.89in; xpos:3.51in; ypos:4.63in; "
+	  "xpad-left:0.1in; frame-valign:top; frame-stack-order:4",
+	  s_coverFeatheredTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:3.51in; frame-page-ypos:8.58in; "
+	  "frame-width:4.27in; frame-height:1.65in; xpos:3.51in; ypos:8.58in; "
+	  "xpad-left:0.1in; frame-valign:top; frame-stack-order:5",
+	  s_coverFeatheredMeta },
+	{ nullptr, nullptr }
+};
+
+/* Filgree: centered layout - flourish ornaments (lozenge motifs stand
+ * in for the Word artwork), an accent rule above and below the title,
+ * then date/company centered near the bottom of the page. */
+static const FV_CoverLine s_coverFilgree[] = {
+	{ ABI_COVER_RESET "; line-height:1.5in", nullptr, nullptr },
+	{ ABI_COVER_RESET "; text-align:center; "
+	  "top-style:solid; top-color:4472C4; top-thickness:0.75pt; "
+	  "bot-style:solid; bot-color:4472C4; bot-thickness:0.75pt",
+	  "font-family:Carlito; font-size:40pt; color:4472C4; "
+	  "text-transform:uppercase", "@title" },
+	{ ABI_COVER_RESET "; text-align:center; margin-top:4pt",
+	  "font-family:Carlito; font-size:14pt; color:4472C4", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverFilgreeMeta[] = {
+	{ "text-align:center; margin-bottom:2pt; font-size:14pt",
+	  "font-family:Carlito; font-size:14pt; color:4472C4; "
+	  "text-transform:uppercase", "@date" },
+	{ "text-align:center",
+	  "font-family:Carlito; font-size:11pt; color:4472C4; "
+	  "text-transform:uppercase", "[Company name]" },
+	{ "text-align:center",
+	  "font-family:Carlito; font-size:11pt; color:4472C4",
+	  "[Company address]" },
+	{ nullptr, nullptr, nullptr }
+};
+/* symmetric lozenge used as a stand-in flourish */
+#define ABI_COVER_FILGREE_LOZENGE \
+	"M 500 0 C 700 220 880 360 1000 500 C 880 640 700 780 500 1000 " \
+	"C 300 780 120 640 0 500 C 120 360 300 220 500 0 Z"
+static const FV_CoverShape s_coverFilgreeShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:3.735in; frame-page-ypos:0.55in; "
+	  "frame-width:0.8in; frame-height:0.72in; xpos:3.735in; ypos:0.55in; "
+	  "background-color:A5A5A5; frame-stack-order:1; "
+	  "shape-path:" ABI_COVER_FILGREE_LOZENGE, nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.9in; frame-page-ypos:3.15in; "
+	  "frame-width:0.55in; frame-height:0.5in; xpos:0.9in; ypos:3.15in; "
+	  "background-color:A5A5A5; frame-stack-order:2; "
+	  "shape-path:" ABI_COVER_FILGREE_LOZENGE, nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.55in; frame-page-ypos:9.94in; "
+	  "frame-width:7.17in; frame-height:0.61in; xpos:0.55in; ypos:9.94in; "
+	  "frame-valign:top; frame-stack-order:3",
+	  s_coverFilgreeMeta },
+	{ nullptr, nullptr }
+};
+
+/* Headiness: tall italic black masthead with a thin vertical rule at
+ * its left; italic author/company lines rest on the bottom margin. */
+static const FV_CoverLine s_coverHeadinessTitle[] = {
+	{ "font-size:60pt; margin-bottom:14pt",
+	  "font-family:Carlito; font-size:60pt; font-style:italic; "
+	  "color:262626; text-transform:uppercase", "@title" },
+	{ "font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; font-style:italic; "
+	  "color:262626", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverHeadinessMeta[] = {
+	{ "margin-bottom:24pt; font-size:16pt",
+	  "font-family:Carlito; font-size:16pt; font-style:italic; "
+	  "color:262626", "@author" },
+	{ "font-size:13pt",
+	  "font-family:Carlito; font-size:13pt; font-style:italic; "
+	  "color:262626", "[Company Name]  |  [Company Address]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverHeadinessShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.826in; frame-page-ypos:1.75in; "
+	  "frame-width:0.028in; frame-height:1.69in; xpos:0.826in; ypos:1.75in; "
+	  "background-color:262626; frame-stack-order:1", nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.83in; frame-page-ypos:1.75in; "
+	  "frame-width:6.05in; frame-height:2.98in; xpos:0.83in; ypos:1.75in; "
+	  "xpad-left:0.35in; frame-valign:top; frame-stack-order:2",
+	  s_coverHeadinessTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.83in; frame-page-ypos:8.7in; "
+	  "frame-width:6.05in; frame-height:2.0in; xpos:0.83in; ypos:8.7in; "
+	  "xpad-left:0.15in; frame-valign:bottom; frame-stack-order:3",
+	  s_coverHeadinessMeta },
+	{ nullptr, nullptr }
+};
+
+/* Integral: a centred portrait photo (represented by a muted
+ * gradient placeholder - covers ship no image assets), title/subtitle
+ * right-aligned above it and a narrow right-hand column holding the
+ * abstract and author/course metadata. */
+static const FV_CoverLine s_coverIntegralTitle[] = {
+	{ "text-align:right; font-size:36pt",
+	  "font-family:Carlito; font-size:36pt; color:191919", "@title" },
+	{ "text-align:right; margin-top:2pt; font-size:14pt",
+	  "font-family:Carlito; font-size:14pt; color:191919", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverIntegralAside[] = {
+	{ "font-size:13pt",
+	  "font-family:Carlito; font-size:13pt; color:ED7D31; "
+	  "text-transform:uppercase", "Abstract" },
+	{ "margin-top:4pt; margin-bottom:10pt",
+	  "font-family:Carlito; font-size:10pt; color:262626",
+	  "[Draw your reader in with an engaging abstract. It is typically a "
+	  "short summary of the document. When you are ready to add your "
+	  "content, just click here and start typing.]" },
+	{ "margin-bottom:4pt; font-size:13pt",
+	  "font-family:Carlito; font-size:13pt; color:ED7D31", "@author" },
+	{ "font-size:11pt",
+	  "font-family:Carlito; font-size:11pt; color:262626",
+	  "[Course title]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverIntegralShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:2.85in; frame-page-ypos:4.1in; "
+	  "frame-width:3.36in; frame-height:4.19in; xpos:2.85in; ypos:4.1in; "
+	  "background-color:9A9277; "
+	  "fill-gradient:lin:5400000,0:6E695C,100000:97A271; "
+	  "frame-stack-order:1", nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:3.9in; frame-page-ypos:1.35in; "
+	  "frame-width:3.7in; frame-height:1.0in; xpos:3.9in; ypos:1.35in; "
+	  "frame-valign:top; frame-stack-order:2",
+	  s_coverIntegralTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:6.45in; frame-page-ypos:6.9in; "
+	  "frame-width:1.3in; frame-height:3.9in; xpos:6.45in; ypos:6.9in; "
+	  "frame-valign:top; frame-stack-order:3",
+	  s_coverIntegralAside },
+	{ nullptr, nullptr }
+};
+
+/* Ion (dark and light): a small accent year-tag at the top-right
+ * margin and the same title/subtitle/author stack - dark theme puts a
+ * big dk2 panel with a bowed bottom edge over the top two-thirds. */
+static const FV_CoverLine s_coverIonYear[] = {
+	{ "text-align:right; font-size:12pt",
+	  "font-family:Carlito; font-size:12pt; color:FFFFFF", "@year" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverIonDarkMeta[] = {
+	{ "font-size:14pt; margin-bottom:2pt",
+	  "font-family:Carlito; font-size:14pt; color:4472C4; "
+	  "text-transform:uppercase", "@subtitle" },
+	{ "font-size:12pt",
+	  "font-family:Carlito; font-size:12pt; color:5B9BD5; "
+	  "text-transform:uppercase", "@author" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverIonDarkCompany[] = {
+	{ "text-align:center",
+	  "font-family:Carlito; font-size:9pt; color:262626; "
+	  "text-transform:uppercase",
+	  "[Company name]   |   [Company address]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverIonDarkTitle[] = {
+	{ "font-size:36pt",
+	  "font-family:Carlito; font-size:36pt; color:FFFFFF", "@title" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverIonDarkShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.385in; frame-page-ypos:0.526in; "
+	  "frame-width:7.5in; frame-height:7.73in; xpos:0.385in; ypos:0.526in; "
+	  "background-color:44546A; frame-stack-order:1; "
+	  "shape-path:M 0 0 L 1000 0 L 1000 940 C 660 1010 340 1010 0 940 Z",
+	  nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.385in; frame-page-ypos:0.526in; "
+	  "frame-width:7.5in; frame-height:7.73in; xpos:0.385in; ypos:0.526in; "
+	  "background-color:FFFFFF; fill-alpha:0.30; frame-stack-order:2; "
+	  "shape-path:M 0 955 C 340 1015 660 1015 1000 955 "
+	  "L 1000 975 C 660 1040 340 1040 0 975 Z",
+	  nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:6.62in; frame-page-ypos:0.27in; "
+	  "frame-width:0.65in; frame-height:1.08in; xpos:6.62in; ypos:0.27in; "
+	  "background-color:4472C4; "
+	  "xpad-right:0.08in; ypad-bottom:0.08in; "
+	  "frame-valign:bottom; frame-stack-order:3",
+	  s_coverIonYear },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.9in; frame-page-ypos:5.7in; "
+	  "frame-width:6.0in; frame-height:1.3in; xpos:0.9in; ypos:5.7in; "
+	  "frame-valign:bottom; frame-stack-order:4",
+	  s_coverIonDarkTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.99in; frame-page-ypos:9.24in; "
+	  "frame-width:6.29in; frame-height:0.53in; xpos:0.99in; ypos:9.24in; "
+	  "frame-valign:top; frame-stack-order:5",
+	  s_coverIonDarkMeta },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.99in; frame-page-ypos:10.9in; "
+	  "frame-width:6.29in; frame-height:0.3in; xpos:0.99in; ypos:10.9in; "
+	  "frame-valign:bottom; frame-stack-order:6",
+	  s_coverIonDarkCompany },
+	{ nullptr, nullptr }
+};
+
+static const FV_CoverLine s_coverIonLightTitle[] = {
+	{ "font-size:36pt; margin-bottom:2pt",
+	  "font-family:Carlito; font-size:36pt; color:4472C4", "@title" },
+	{ "font-size:14pt; margin-bottom:4pt",
+	  "font-family:Carlito; font-size:14pt; color:7CAFDD; "
+	  "text-transform:uppercase", "@subtitle" },
+	{ "font-size:12pt",
+	  "font-family:Carlito; font-size:12pt; color:5B9BD5; "
+	  "text-transform:uppercase", "@author" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverIonLightShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:6.62in; frame-page-ypos:0.27in; "
+	  "frame-width:0.65in; frame-height:1.08in; xpos:6.62in; ypos:0.27in; "
+	  "background-color:4472C4; "
+	  "xpad-right:0.08in; ypad-bottom:0.08in; "
+	  "frame-valign:bottom; frame-stack-order:1",
+	  s_coverIonYear },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:1.48in; frame-page-ypos:6.31in; "
+	  "frame-width:5.13in; frame-height:1.6in; xpos:1.48in; ypos:6.31in; "
+	  "frame-valign:top; frame-stack-order:2",
+	  s_coverIonLightTitle },
+	{ nullptr, nullptr }
+};
+
+/* Retrospect: huge centred title with a hairline rule under it and a
+ * centred subtitle; the bottom of the page carries a thin accent bar
+ * over a deep orange band holding the author/company block. */
+static const FV_CoverLine s_coverRetrospectTitle[] = {
+	{ "text-align:center; font-size:54pt",
+	  "font-family:Carlito; font-size:54pt; color:404040", "@title" },
+	{ "text-align:center; margin-top:6pt; font-size:18pt; "
+	  "top-style:solid; top-color:A6A6A6; top-thickness:0.75pt",
+	  "font-family:Carlito; font-size:18pt; color:595959; "
+	  "text-transform:uppercase", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverRetrospectMeta[] = {
+	{ "margin-bottom:6pt; font-size:16pt",
+	  "font-family:Carlito; font-size:16pt; color:FFFFFF", "@author" },
+	{ "font-size:12pt",
+	  "font-family:Carlito; font-size:12pt; color:FFFFFF; "
+	  "text-transform:uppercase", "[Company name]  |  [Company address]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverRetrospectShapes[] = {
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:1.635in; frame-page-ypos:0.845in; "
+	  "frame-width:5.0in; frame-height:8.0in; xpos:1.635in; ypos:0.845in; "
+	  "xpad-left:0.15in; xpad-right:0.15in; "
+	  "frame-valign:center; frame-stack-order:1",
+	  s_coverRetrospectTitle },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.385in; frame-page-ypos:8.0in; "
+	  "frame-width:7.5in; frame-height:0.157in; xpos:0.385in; ypos:8.0in; "
+	  "background-color:4472C4; frame-stack-order:2", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.385in; frame-page-ypos:8.135in; "
+	  "frame-width:7.5in; frame-height:2.0in; xpos:0.385in; ypos:8.135in; "
+	  "background-color:ED7D31; "
+	  "xpad-left:0.25in; ypad-bottom:0.35in; "
+	  "frame-valign:bottom; frame-stack-order:3",
+	  s_coverRetrospectMeta },
+	{ nullptr, nullptr }
+};
+
+/* Semaphore: a tall orange marker bar down the left edge with a small
+ * accent square at its foot; right-aligned date, title/subtitle and
+ * author/company blocks stack down the right side. */
+static const FV_CoverLine s_coverSemaphoreDate[] = {
+	{ "text-align:right; font-size:20pt",
+	  "font-family:Carlito; font-size:20pt; color:323E4F; "
+	  "text-transform:uppercase", "@date" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverSemaphoreTitle[] = {
+	{ "text-align:right; font-size:26pt",
+	  "font-family:Carlito; font-size:26pt; color:323E4F; "
+	  "text-transform:uppercase", "@title" },
+	{ "text-align:right; margin-top:2pt; font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; color:44546A", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverSemaphoreMeta[] = {
+	{ "text-align:right; margin-bottom:4pt; font-size:14pt",
+	  "font-family:Carlito; font-size:14pt; color:262626; "
+	  "text-transform:uppercase", "@author" },
+	{ "text-align:right; font-size:10pt",
+	  "font-family:Carlito; font-size:10pt; color:262626; "
+	  "text-transform:uppercase", "[Company name]" },
+	{ "text-align:right; margin-top:1pt; font-size:10pt",
+	  "font-family:Carlito; font-size:10pt; color:262626",
+	  "[Company address]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverSemaphoreShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.372in; frame-page-ypos:0.845in; "
+	  "frame-width:0.25in; frame-height:9.6in; xpos:0.372in; ypos:0.845in; "
+	  "background-color:ED7D31; frame-stack-order:1", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.372in; frame-page-ypos:10.6in; "
+	  "frame-width:0.25in; frame-height:0.25in; xpos:0.372in; ypos:10.6in; "
+	  "background-color:4472C4; frame-stack-order:2", nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:1.24in; frame-page-ypos:1.06in; "
+	  "frame-width:4.0in; frame-height:4.0in; xpos:1.24in; ypos:1.06in; "
+	  "frame-valign:bottom; frame-stack-order:3",
+	  s_coverSemaphoreDate },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:1.24in; frame-page-ypos:5.32in; "
+	  "frame-width:6.29in; frame-height:0.9in; xpos:1.24in; ypos:5.32in; "
+	  "frame-valign:top; frame-stack-order:4",
+	  s_coverSemaphoreTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:1.24in; frame-page-ypos:9.79in; "
+	  "frame-width:6.29in; frame-height:0.71in; xpos:1.24in; ypos:9.79in; "
+	  "frame-valign:top; frame-stack-order:5",
+	  s_coverSemaphoreMeta },
+	{ nullptr, nullptr }
+};
+
+/* Slice (dark and light): dark theme fills the page with a dk2
+ * gradient panel and bottom-left white title; light theme is airy -
+ * title/subtitle at the top margin and school/course right-aligned at
+ * the bottom margin.  Both carry the faint "slice" fan of concentric
+ * arcs. */
+static const FV_CoverLine s_coverSliceDarkTitle[] = {
+	{ "font-size:32pt",
+	  "font-family:Carlito; font-size:32pt; color:FFFFFF; "
+	  "text-transform:uppercase", "@title" },
+	{ "margin-top:4pt; font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; color:4472C4", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverSliceDarkShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.385in; frame-page-ypos:0.845in; "
+	  "frame-width:7.5in; frame-height:10.0in; xpos:0.385in; ypos:0.845in; "
+	  "background-color:44546A; "
+	  "fill-gradient:lin:6120000,0:6E7C97,100000:3B4551; "
+	  "frame-stack-order:1", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.385in; frame-page-ypos:0.845in; "
+	  "frame-width:7.5in; frame-height:10.0in; xpos:0.385in; ypos:0.845in; "
+	  "background-color:FFFFFF; fill-alpha:0.07; frame-stack-order:2; "
+	  "shape-path:M 0 0 L 720 0 C 720 400 400 720 0 720 Z",
+	  nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.4in; frame-page-ypos:6.9in; "
+	  "frame-width:7.0in; frame-height:2.1in; xpos:0.4in; ypos:6.9in; "
+	  "xpad-left:0.2in; frame-valign:bottom; frame-stack-order:3",
+	  s_coverSliceDarkTitle },
+	{ nullptr, nullptr }
+};
+
+static const FV_CoverLine s_coverSliceLightTitle[] = {
+	{ "font-size:34pt",
+	  "font-family:Carlito; font-size:34pt; color:44546A; "
+	  "text-transform:uppercase", "@title" },
+	{ "margin-top:4pt; font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; color:4472C4", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverSliceLightMeta[] = {
+	{ "text-align:right; font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; color:4472C4", "[School]" },
+	{ "text-align:right; margin-top:2pt; font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; color:4472C4",
+	  "[Course title]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverSliceLightShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:1.82in; frame-page-ypos:3.5in; "
+	  "frame-width:6.0in; frame-height:6.23in; xpos:1.82in; ypos:3.5in; "
+	  "background-color:E7E6E6; fill-alpha:0.5; frame-stack-order:1; "
+	  "shape-path:M 0 0 L 1000 0 C 1000 540 540 1000 0 1000 Z",
+	  nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.885in; frame-page-ypos:0.75in; "
+	  "frame-width:6.5in; frame-height:1.1in; xpos:0.885in; ypos:0.75in; "
+	  "frame-valign:top; frame-stack-order:2",
+	  s_coverSliceLightTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.885in; frame-page-ypos:10.28in; "
+	  "frame-width:6.5in; frame-height:0.8in; xpos:0.885in; ypos:10.28in; "
+	  "frame-valign:bottom; frame-stack-order:3",
+	  s_coverSliceLightMeta },
+	{ nullptr, nullptr }
+};
+
+/* Viewmaster: near-full-page black panel with a grey left edge strip;
+ * white title/subtitle at mid-page and white author/company low. */
+static const FV_CoverLine s_coverViewmasterTitle[] = {
+	{ "font-size:42pt; margin-bottom:6pt",
+	  "font-family:Carlito; font-size:42pt; color:FFFFFF", "@title" },
+	{ "font-size:14pt",
+	  "font-family:Carlito; font-size:14pt; color:FFFFFF", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverViewmasterMeta[] = {
+	{ "margin-bottom:6pt; font-size:16pt",
+	  "font-family:Carlito; font-size:16pt; color:FFFFFF", "@author" },
+	{ "font-size:9pt",
+	  "font-family:Carlito; font-size:9pt; color:FFFFFF; "
+	  "text-transform:uppercase", "[Company name]   [Company address]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverViewmasterShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.385in; frame-page-ypos:0.845in; "
+	  "frame-width:0.25in; frame-height:10.0in; xpos:0.385in; ypos:0.845in; "
+	  "background-color:808080; frame-stack-order:1", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.635in; frame-page-ypos:0.845in; "
+	  "frame-width:7.25in; frame-height:10.0in; xpos:0.635in; ypos:0.845in; "
+	  "background-color:000000; frame-stack-order:2", nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.95in; frame-page-ypos:4.6in; "
+	  "frame-width:6.6in; frame-height:1.5in; xpos:0.95in; ypos:4.6in; "
+	  "xpad-left:0.15in; frame-valign:bottom; frame-stack-order:3",
+	  s_coverViewmasterTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.635in; frame-page-ypos:8.68in; "
+	  "frame-width:7.25in; frame-height:1.7in; xpos:0.635in; ypos:8.68in; "
+	  "xpad-left:0.32in; frame-valign:top; frame-stack-order:4",
+	  s_coverViewmasterMeta },
+	{ nullptr, nullptr }
+};
+
+/* Whip: a thin dark vertical bar hugs the left edge, an accent
+ * home-plate tag carries the date, a spray of fine strokes whips off
+ * the bar mid-page, and title/author sit on the right. */
+static const FV_CoverLine s_coverWhipDate[] = {
+	{ "text-align:right; font-size:14pt",
+	  "font-family:Carlito; font-size:14pt; color:FFFFFF", "@date" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverWhipTitle[] = {
+	{ "font-size:36pt; margin-bottom:2pt",
+	  "font-family:Carlito; font-size:36pt; color:262626", "@title" },
+	{ "font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; color:262626", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverWhipMeta[] = {
+	{ "font-size:13pt",
+	  "font-family:Carlito; font-size:13pt; color:4472C4", "@author" },
+	{ "margin-top:2pt; font-size:10pt",
+	  "font-family:Carlito; font-size:10pt; color:262626; "
+	  "text-transform:uppercase", "[Company name]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverWhipShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.33in; frame-page-ypos:0.855in; "
+	  "frame-width:0.213in; frame-height:9.98in; xpos:0.33in; ypos:0.855in; "
+	  "background-color:44546A; frame-stack-order:1", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.33in; frame-page-ypos:2.46in; "
+	  "frame-width:2.4in; frame-height:0.6in; xpos:0.33in; ypos:2.46in; "
+	  "background-color:4472C4; xpad-right:0.5in; xpad-left:0.15in; "
+	  "frame-valign:center; frame-stack-order:2; "
+	  "shape-path:M 0 0 L 750 0 L 1000 500 L 750 1000 L 0 1000 Z",
+	  s_coverWhipDate },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.62in; frame-page-ypos:5.3in; "
+	  "frame-width:0.7in; frame-height:2.4in; xpos:0.62in; ypos:5.3in; "
+	  "background-color:44546A; fill-alpha:0.35; frame-stack-order:3; "
+	  "shape-path:M 0 0 L 60 0 L 1000 1000 L 940 1000 Z",
+	  nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.78in; frame-page-ypos:5.7in; "
+	  "frame-width:0.55in; frame-height:1.9in; xpos:0.78in; ypos:5.7in; "
+	  "background-color:44546A; fill-alpha:0.25; frame-stack-order:4; "
+	  "shape-path:M 0 0 L 80 0 L 1000 1000 L 920 1000 Z",
+	  nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:3.47in; frame-page-ypos:2.05in; "
+	  "frame-width:4.0in; frame-height:1.17in; xpos:3.47in; ypos:2.05in; "
+	  "frame-valign:top; frame-stack-order:5",
+	  s_coverWhipTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:3.47in; frame-page-ypos:10.29in; "
+	  "frame-width:4.0in; frame-height:0.5in; xpos:3.47in; ypos:10.29in; "
+	  "frame-valign:top; frame-stack-order:6",
+	  s_coverWhipMeta },
+	{ nullptr, nullptr }
+};
+
 /* Shape-driven presets still want a leading spacer paragraph so the
  * anchored frames have a cover block to hang from; everything else is
  * inside the shapes. */
@@ -7499,6 +8068,19 @@ static const FV_CoverPreset s_coverPresets[] = {
 	{ "badge",      "Badge",        s_coverSpacerOnly,  s_coverBadgeShapes },
 	{ "banded",     "Banded",       s_coverSpacerOnly,  s_coverBandedShapes },
 	{ "crop",       "Crop",         s_coverSpacerOnly,  s_coverCropShapes },
+	{ "facet",      "Facet",        s_coverSpacerOnly,  s_coverFacetShapes },
+	{ "feathered",  "Feathered",    s_coverSpacerOnly,  s_coverFeatheredShapes },
+	{ "filgree",    "Filgree",      s_coverFilgree,     s_coverFilgreeShapes },
+	{ "headiness",  "Headiness",    s_coverSpacerOnly,  s_coverHeadinessShapes },
+	{ "integral",   "Integral",     s_coverSpacerOnly,  s_coverIntegralShapes },
+	{ "ion-dark",   "Ion (Dark)",   s_coverSpacerOnly,  s_coverIonDarkShapes },
+	{ "ion-light",  "Ion (Light)",  s_coverSpacerOnly,  s_coverIonLightShapes },
+	{ "retrospect", "Retrospect",   s_coverSpacerOnly,  s_coverRetrospectShapes },
+	{ "semaphore",  "Semaphore",    s_coverSpacerOnly,  s_coverSemaphoreShapes },
+	{ "slice-dark", "Slice (Dark)", s_coverSpacerOnly,  s_coverSliceDarkShapes },
+	{ "slice-light","Slice (Light)",s_coverSpacerOnly,  s_coverSliceLightShapes },
+	{ "viewmaster", "Viewmaster",   s_coverSpacerOnly,  s_coverViewmasterShapes },
+	{ "whip",       "Whip",         s_coverSpacerOnly,  s_coverWhipShapes },
 	{ nullptr, nullptr, nullptr, nullptr }
 };
 
