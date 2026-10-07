@@ -48,6 +48,7 @@
 #include <unistd.h>
 
 #include <cstdio>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -412,6 +413,21 @@ TFTEST_MAIN("shape cover presets insert, replace, undo, round-trip")
 			TFPASS(doc2->readFromFile((tmp + ".abwn").c_str(),
 									  IEFT_Unknown, nullptr) == UT_OK);
 			TFPASS(!doc2->isBookmarkUnique("_cover-page"));
+			/* image-backed presets store their bundled art as a
+			 * document data item that round-trips with the file */
+			static const std::map<std::string, const char *> s_assets =
+				{ { "feathered", "cover-feathers" },
+				  { "filgree",   "cover-filgree" },
+				  { "integral",  "cover-integral" },
+				  { "facet",     "cover-facet-band" } };
+			auto it = s_assets.find(szPreset);
+			if (it != s_assets.end())
+			{
+				UT_ConstByteBufPtr bb;
+				TFPASS(doc2->getDataItemDataByName(it->second, bb,
+												 nullptr, nullptr));
+				TFPASS(bb && bb->getLength() > 100);
+			}
 			doc2->unref();
 		}
 		TFPASS(v->cmdRemoveCoverPage());

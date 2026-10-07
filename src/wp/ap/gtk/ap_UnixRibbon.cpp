@@ -6388,8 +6388,17 @@ static void _cover_card_draw(GtkDrawingArea *, cairo_t * cr,
 		cairo_set_source_rgb(cr, DK2, DK2b, DK2c);
 		cairo_rectangle(cr, 3, 10, 5, ph - 20);           /* dark strip */
 		cairo_fill(cr);
+		/* scalloped seal (16-lobe rosette) like the real custGeom */
 		cairo_set_source_rgb(cr, 0.91, 0.90, 0.90);
-		cairo_arc(cr, cx, 58, 38, 0, 2 * M_PI);           /* seal */
+		for (int k = 0; k <= 64; ++k)
+		{
+			double a = k / 64.0 * 2 * M_PI;
+			double r = 38 + 4 * cos(16 * a);
+			double sx = cx + r * cos(a), sy = 58 + r * sin(a);
+			if (k == 0) cairo_move_to(cr, sx, sy);
+			else        cairo_line_to(cr, sx, sy);
+		}
+		cairo_close_path(cr);
 		cairo_fill(cr);
 		tbar(cx - 30, 46, 60, 8, 0.1, 0.1, 0.1);          /* title */
 		tbar(cx - 22, 60, 44, 6, 0.1, 0.1, 0.1);          /* title 2 */
@@ -6425,22 +6434,27 @@ static void _cover_card_draw(GtkDrawingArea *, cairo_t * cr,
 	}
 	else if (!strcmp(szPreset, "facet"))
 	{
-		/* layered translucent triangles across the top edge */
-		cairo_set_source_rgba(cr, 0.56, 0.67, 0.86, 0.6);
-		cairo_rectangle(cr, 2, 4, pw - 4, 21);
-		cairo_fill(cr);
-		cairo_set_source_rgba(cr, BLU, BLU2, BLU3, 0.75);
+		/* accent pentagon dipping down right-of-centre under a
+		 * translucent facet texture */
+		cairo_set_source_rgb(cr, BLU, BLU2, BLU3);
 		cairo_move_to(cr, 2, 4);
 		cairo_line_to(cr, pw - 2, 4);
-		cairo_line_to(cr, pw - 34, 25);
-		cairo_line_to(cr, 2, 11);
+		cairo_line_to(cr, pw - 2, 23);
+		cairo_line_to(cr, 66, 16);
+		cairo_line_to(cr, 2, 22);
 		cairo_close_path(cr);
 		cairo_fill(cr);
-		cairo_set_source_rgb(cr, BLU, BLU2, BLU3);
-		cairo_move_to(cr, 90, 4);
-		cairo_line_to(cr, pw - 2, 4);
-		cairo_line_to(cr, pw - 2, 13);
-		cairo_line_to(cr, 101, 25);
+		cairo_set_source_rgba(cr, 1, 1, 1, 0.35);
+		cairo_move_to(cr, 2, 4);
+		cairo_line_to(cr, 90, 4);
+		cairo_line_to(cr, 54, 25);
+		cairo_line_to(cr, 2, 19);
+		cairo_close_path(cr);
+		cairo_fill(cr);
+		cairo_set_source_rgba(cr, 1, 1, 1, 0.55);
+		cairo_move_to(cr, 2, 15);
+		cairo_line_to(cr, 54, 25);
+		cairo_line_to(cr, 2, 26);
 		cairo_close_path(cr);
 		cairo_fill(cr);
 		tbar(70, 78, 52, 8, BLU, BLU2, BLU3);             /* title */
@@ -6452,6 +6466,16 @@ static void _cover_card_draw(GtkDrawingArea *, cairo_t * cr,
 	}
 	else if (!strcmp(szPreset, "feathered"))
 	{
+		/* faint plume strokes over the page (the bundled feather art) */
+		cairo_set_source_rgba(cr, 0.66, 0.66, 0.72, 0.7);
+		cairo_set_line_width(cr, 0.7);
+		for (int k = 0; k < 7; ++k)
+		{
+			double x0 = 60 + k * 10, y0 = 24 + k * 22;
+			cairo_move_to(cr, x0 - 22, y0 + 20);
+			cairo_curve_to(cr, x0, y0, x0 + 26, y0 - 8, x0 + 48, y0 - 4);
+			cairo_stroke(cr);
+		}
 		cairo_set_source_rgb(cr, 0.20, 0.34, 0.62);
 		cairo_rectangle(cr, 2, 9, 84, 103);               /* blue card */
 		cairo_fill(cr);
@@ -6467,24 +6491,24 @@ static void _cover_card_draw(GtkDrawingArea *, cairo_t * cr,
 	}
 	else if (!strcmp(szPreset, "filgree"))
 	{
-		/* flourish lozenge, ruled centered title, centered meta */
-		cairo_set_source_rgb(cr, 0.65, 0.65, 0.65);
-		cairo_move_to(cr, cx, 8);
-		cairo_line_to(cr, cx + 7, 14);
-		cairo_line_to(cr, cx, 20);
-		cairo_line_to(cr, cx - 7, 14);
-		cairo_close_path(cr);
+		/* flourish ornaments, ruled centered title, centered meta */
+		cairo_set_source_rgb(cr, 0.58, 0.60, 0.67);
+		cairo_move_to(cr, cx - 16, 18);
+		cairo_curve_to(cr, cx - 8, 12, cx - 10, 6, cx - 14, 6);
+		cairo_curve_to(cr, cx - 17, 6, cx - 16, 11, cx - 13, 11);
+		cairo_move_to(cr, cx + 16, 18);
+		cairo_curve_to(cr, cx + 8, 12, cx + 10, 6, cx + 14, 6);
+		cairo_curve_to(cr, cx + 17, 6, cx + 16, 11, cx + 13, 11);
+		cairo_set_line_width(cr, 1.1);
+		cairo_stroke(cr);
+		cairo_arc(cr, cx, 12, 2.5, 0, 2 * M_PI);
 		cairo_fill(cr);
 		tbar(14, 28, pw - 28, 1, BLU, BLU2, BLU3);        /* top rule */
 		tbar(30, 34, pw - 60, 8, BLU, BLU2, BLU3);        /* title */
 		tbar(14, 46, pw - 28, 1, BLU, BLU2, BLU3);        /* bot rule */
 		tbar(50, 52, 32, 4, BLU, BLU2, BLU3);             /* subtitle */
-		cairo_set_source_rgb(cr, 0.65, 0.65, 0.65);
-		cairo_move_to(cr, 16, 66);
-		cairo_line_to(cr, 21, 71);
-		cairo_line_to(cr, 16, 76);
-		cairo_line_to(cr, 11, 71);
-		cairo_close_path(cr);
+		cairo_set_source_rgb(cr, 0.58, 0.60, 0.67);
+		cairo_arc(cr, 16, 71, 4, 0, 2 * M_PI);            /* sprig */
 		cairo_fill(cr);
 		tbar(cx - 12, 158, 24, 4, BLU, BLU2, BLU3);       /* date */
 		tbar(cx - 18, 166, 36, 3, BLU, BLU2, BLU3);       /* company */
@@ -6501,12 +6525,23 @@ static void _cover_card_draw(GtkDrawingArea *, cairo_t * cr,
 	}
 	else if (!strcmp(szPreset, "integral"))
 	{
-		/* photo placeholder + narrow right column */
-		cairo_set_source_rgb(cr, 0.55, 0.55, 0.45);
-		cairo_rectangle(cr, 45, 65, 53, 67);
+		/* stylized landscape photo + narrow right column */
+		cairo_set_source_rgb(cr, 0.86, 0.79, 0.63);       /* sky */
+		cairo_rectangle(cr, 45, 65, 53, 34);
 		cairo_fill(cr);
-		tbar(66, 24, 56, 9, 0.10, 0.10, 0.10);            /* title */
-		tbar(88, 38, 34, 5, 0.10, 0.10, 0.10);            /* subtitle */
+		cairo_set_source_rgb(cr, 0.45, 0.50, 0.32);       /* hills */
+		cairo_rectangle(cr, 45, 99, 53, 33);
+		cairo_fill(cr);
+		cairo_set_source_rgb(cr, 0.20, 0.24, 0.16);       /* cypresses */
+		for (int k = 0; k < 4; ++k)
+		{
+			double tx = 52 + k * 9;
+			cairo_move_to(cr, tx, 82 - k * 4);
+			cairo_line_to(cr, tx + 3, 100);
+			cairo_line_to(cr, tx - 3, 100);
+			cairo_close_path(cr);
+			cairo_fill(cr);
+		}
 		tbar(103, 110, 20, 4, 0.93, 0.49, 0.19);          /* ABSTRACT */
 		tbar(103, 118, 20, 3, 0.15, 0.15, 0.15);
 		tbar(103, 124, 20, 3, 0.15, 0.15, 0.15);
@@ -6613,20 +6648,19 @@ static void _cover_card_draw(GtkDrawingArea *, cairo_t * cr,
 		cairo_close_path(cr);
 		cairo_fill(cr);
 		tbar(12, 41, 20, 3, 1, 1, 1);                     /* date */
-		/* whip strokes */
-		cairo_set_source_rgba(cr, DK2, DK2b, DK2c, 0.4);
-		cairo_move_to(cr, 10, 84);
-		cairo_line_to(cr, 11.5, 84);
-		cairo_line_to(cr, 21, 122);
-		cairo_line_to(cr, 19.5, 122);
-		cairo_close_path(cr);
-		cairo_fill(cr);
-		cairo_move_to(cr, 12.5, 90);
-		cairo_line_to(cr, 14, 90);
-		cairo_line_to(cr, 20.5, 120);
-		cairo_line_to(cr, 19, 120);
-		cairo_close_path(cr);
-		cairo_fill(cr);
+		/* whip strokes: thin sweeping arcs like the real custGeom */
+		cairo_set_source_rgba(cr, DK2, DK2b, DK2c, 0.75);
+		cairo_set_line_width(cr, 0.9);
+		cairo_move_to(cr, 4, 88);
+		cairo_curve_to(cr, 14, 96, 22, 110, 24, 128);
+		cairo_stroke(cr);
+		cairo_move_to(cr, 8, 84);
+		cairo_curve_to(cr, 16, 92, 24, 106, 27, 124);
+		cairo_stroke(cr);
+		cairo_set_source_rgba(cr, DK2, DK2b, DK2c, 0.25);
+		cairo_move_to(cr, 2, 92);
+		cairo_curve_to(cr, 12, 100, 19, 112, 21, 130);
+		cairo_stroke(cr);
 		tbar(55, 34, 60, 9, 0.15, 0.15, 0.15);            /* title */
 		tbar(55, 47, 44, 5, 0.15, 0.15, 0.15);            /* subtitle */
 		tbar(55, 162, 36, 4, BLU, BLU2, BLU3);            /* author */

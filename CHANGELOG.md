@@ -1122,6 +1122,21 @@ below are on `main` but the release has not been cut yet.
   bookmark; **Remove Current Cover** deletes the page break and
   restores the body. **Blank Page** inserts an empty page at the
   caret (new `insertBlankPage` edit method).
+- **Cover-page fidelity pass** — the divergent presets now match
+  their Word originals much more closely: Feathered gained the
+  full-page gray feather line-art background, Filgree uses real
+  flourish ornaments instead of gray diamonds, Integral shows a
+  cypress-road landscape instead of a flat gradient (and drops
+  the title the original doesn't show on page 1), Facet renders
+  the real pentagon silhouette under a translucent facet texture
+  instead of three flat triangles, and Whip's swoosh uses the
+  measured custGeom stroke geometry instead of simplified
+  slivers. The artwork is generated in code
+  (`tools/mkcoverart.py`) and embedded in the binary — the Word
+  originals ship non-redistributable raster art, so these are
+  original license-clean equivalents — and each cover stores its
+  art as a document data item so it travels with saved `.abwn`
+  files.
 - **Header and Footer built-in galleries** — the Header and Footer
   ribbon buttons open Word-style dropdown galleries of preview cards:
   21 header designs (Blank, Blank (Three Columns), Austin, Badge,

@@ -430,6 +430,11 @@ EXTRA_DIST = \
 	xp/orient-vertical.xpm \
 	xp/sidebar.png \
 	xp/ap_wp_sidebar_static.cpp \
+	gtk/covers/cover-facet-band.png \
+	gtk/covers/cover-feathers.png \
+	gtk/covers/cover-filgree.png \
+	gtk/covers/cover-filgree-small.png \
+	gtk/covers/cover-integral.jpg \
 	gtk/ap_UnixDialog_Annotation.ui \
 	gtk/ap_UnixDialog_Border_Shading.ui \
 	gtk/ap_UnixDialog_Break.ui \

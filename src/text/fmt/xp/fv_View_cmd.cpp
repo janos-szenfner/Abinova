@@ -85,6 +85,7 @@
 #include "fd_Field.h"
 #include "pf_Frag_Strux.h"
 #include "fp_FootnoteContainer.h"
+#include "fv_CoverAssets.h"
 #include "fv_ViewDoubleBuffering.h"
 
 #ifdef ENABLE_SPELL
@@ -7173,6 +7174,16 @@ struct FV_CoverPreset
 #define ABI_COVER_RECT \
 	ABI_COVER_SHAPE "; wrap-mode:below-text; bg-style:1"
 
+/* Picture frame painted under the page content; the pseudo-prop
+ * "cover-asset:<id>" names a bundled artwork blob (fv_CoverAssets)
+ * that _coverInsertShapes registers as a document data item and
+ * references through the frame's strux-image-dataid attribute. */
+#define ABI_COVER_IMG \
+	"frame-type:image; position-to:page-above-text; " \
+	"frame-text-direction:horz; " \
+	"top-style:none; bot-style:none; left-style:none; right-style:none; " \
+	"wrap-mode:below-text"
+
 /* Transparent floating text box painted over the decorations. */
 #define ABI_COVER_TXTBOX \
 	ABI_COVER_SHAPE "; wrap-mode:above-text; bg-style:0; " \
@@ -7491,9 +7502,10 @@ static const FV_CoverShape s_coverCropShapes[] = {
  * Integral's photo) are approximated with vector shapes/fills because
  * covers are generated in code and ship no image assets. */
 
-/* Facet: overlapping translucent blue facets across the top edge;
- * right-aligned title/subtitle, then a right-aligned abstract block
- * and author/e-mail near the bottom. */
+/* Facet: the accent1 pentagon (geometry measured from the OOXML
+ * custGeom) with the translucent-white facet texture stretched over
+ * the whole band; right-aligned title/subtitle, then a right-aligned
+ * abstract block and author/e-mail near the bottom. */
 static const FV_CoverLine s_coverFacetTitle[] = {
 	{ "text-align:right; font-size:32pt",
 	  "font-family:Carlito; font-size:32pt; color:4472C4", "@title" },
@@ -7520,21 +7532,19 @@ static const FV_CoverLine s_coverFacetAuthor[] = {
 	{ nullptr, nullptr, nullptr }
 };
 static const FV_CoverShape s_coverFacetShapes[] = {
+	/* the real custGeom pentagon: a:path 7312660x1129665 EMU inside the
+	 * 7315200x1215391 anchor -> normalized to the 0..1000 box */
 	{ ABI_COVER_RECT "; frame-page-xpos:0.135in; frame-page-ypos:0.27in; "
 	  "frame-width:8.0in; frame-height:1.33in; xpos:0.135in; ypos:0.27in; "
-	  "background-color:8FAADC; fill-alpha:0.6; frame-stack-order:1; "
-	  "shape-path:M 0 0 L 1000 0 L 1000 380 L 320 1000 L 0 1000 Z",
+	  "background-color:4472C4; frame-stack-order:1; "
+	  "shape-path:M 0 0 L 1000 0 L 1000 930 L 495 604 L 0 898 Z",
 	  nullptr },
-	{ ABI_COVER_RECT "; frame-page-xpos:0.135in; frame-page-ypos:0.27in; "
+	/* the translucent facet texture over the whole band (the original
+	 * stretches its blip 7.57% past the right edge) */
+	{ ABI_COVER_IMG "; frame-page-xpos:0.135in; frame-page-ypos:0.27in; "
 	  "frame-width:8.0in; frame-height:1.33in; xpos:0.135in; ypos:0.27in; "
-	  "background-color:4472C4; fill-alpha:0.75; frame-stack-order:2; "
-	  "shape-path:M 0 0 L 1000 0 L 800 1000 L 0 320 Z",
-	  nullptr },
-	{ ABI_COVER_RECT "; frame-page-xpos:0.135in; frame-page-ypos:0.27in; "
-	  "frame-width:8.0in; frame-height:1.33in; xpos:0.135in; ypos:0.27in; "
-	  "background-color:4472C4; frame-stack-order:3; "
-	  "shape-path:M 560 0 L 1000 0 L 1000 420 L 800 1000 Z",
-	  nullptr },
+	  "cover-asset:facet-band; image-fill-rect:0 0 -7574 0; "
+	  "frame-stack-order:2", nullptr },
 	{ ABI_COVER_TXTBOX "; frame-page-xpos:1.0in; frame-page-ypos:4.55in; "
 	  "frame-width:6.3in; frame-height:2.0in; xpos:1.0in; ypos:4.55in; "
 	  "xpad-right:0.1in; frame-valign:bottom; frame-stack-order:4",
@@ -7550,10 +7560,10 @@ static const FV_CoverShape s_coverFacetShapes[] = {
 	{ nullptr, nullptr }
 };
 
-/* Feathered: dark-blue card top-left with a light inner keyline and a
- * pale rule before the title; author/company bottom-right.  (The Word
- * original floats light-grey feather photos behind everything; here
- * the page stays white.) */
+/* Feathered: light feather line-art fills the page behind a dark-blue
+ * card top-left with a light inner keyline and a pale rule before the
+ * title; author/company bottom-right.  (The Word original floats two
+ * copies of an embedded feather photo; ours is original line-art.) */
 static const FV_CoverLine s_coverFeatheredTitle[] = {
 	{ "font-size:39pt",
 	  "font-family:Carlito; font-size:39pt; color:E7E6E6", "@title" },
@@ -7572,6 +7582,9 @@ static const FV_CoverLine s_coverFeatheredMeta[] = {
 	{ nullptr, nullptr, nullptr }
 };
 static const FV_CoverShape s_coverFeatheredShapes[] = {
+	{ ABI_COVER_IMG "; frame-page-xpos:0.125in; frame-page-ypos:0.595in; "
+	  "frame-width:8.02in; frame-height:10.5in; xpos:0.125in; ypos:0.595in; "
+	  "cover-asset:feathers; frame-stack-order:0", nullptr },
 	{ ABI_COVER_RECT "; frame-page-xpos:0.125in; frame-page-ypos:0.595in; "
 	  "frame-width:5.33in; frame-height:6.48in; xpos:0.125in; ypos:0.595in; "
 	  "background-color:33569F; frame-stack-order:1", nullptr },
@@ -7623,19 +7636,16 @@ static const FV_CoverLine s_coverFilgreeMeta[] = {
 	  "[Company address]" },
 	{ nullptr, nullptr, nullptr }
 };
-/* symmetric lozenge used as a stand-in flourish */
-#define ABI_COVER_FILGREE_LOZENGE \
-	"M 500 0 C 700 220 880 360 1000 500 C 880 640 700 780 500 1000 " \
-	"C 300 780 120 640 0 500 C 120 360 300 220 500 0 Z"
+/* The Word original places two embedded flourish ornaments (centred
+ * above the title rule, plus a small sprig at the left under the
+ * subtitle); ours are original bundled art in the same spots. */
 static const FV_CoverShape s_coverFilgreeShapes[] = {
-	{ ABI_COVER_RECT "; frame-page-xpos:3.735in; frame-page-ypos:0.55in; "
-	  "frame-width:0.8in; frame-height:0.72in; xpos:3.735in; ypos:0.55in; "
-	  "background-color:A5A5A5; frame-stack-order:1; "
-	  "shape-path:" ABI_COVER_FILGREE_LOZENGE, nullptr },
-	{ ABI_COVER_RECT "; frame-page-xpos:0.9in; frame-page-ypos:3.15in; "
-	  "frame-width:0.55in; frame-height:0.5in; xpos:0.9in; ypos:3.15in; "
-	  "background-color:A5A5A5; frame-stack-order:2; "
-	  "shape-path:" ABI_COVER_FILGREE_LOZENGE, nullptr },
+	{ ABI_COVER_IMG "; frame-page-xpos:3.36in; frame-page-ypos:0.55in; "
+	  "frame-width:1.55in; frame-height:0.82in; xpos:3.36in; ypos:0.55in; "
+	  "cover-asset:filgree; frame-stack-order:1", nullptr },
+	{ ABI_COVER_IMG "; frame-page-xpos:0.9in; frame-page-ypos:3.1in; "
+	  "frame-width:0.83in; frame-height:0.52in; xpos:0.9in; ypos:3.1in; "
+	  "cover-asset:filgree-small; frame-stack-order:2", nullptr },
 	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.55in; frame-page-ypos:9.94in; "
 	  "frame-width:7.17in; frame-height:0.61in; xpos:0.55in; ypos:9.94in; "
 	  "frame-valign:top; frame-stack-order:3",
@@ -7678,17 +7688,10 @@ static const FV_CoverShape s_coverHeadinessShapes[] = {
 	{ nullptr, nullptr }
 };
 
-/* Integral: a centred portrait photo (represented by a muted
- * gradient placeholder - covers ship no image assets), title/subtitle
- * right-aligned above it and a narrow right-hand column holding the
- * abstract and author/course metadata. */
-static const FV_CoverLine s_coverIntegralTitle[] = {
-	{ "text-align:right; font-size:36pt",
-	  "font-family:Carlito; font-size:36pt; color:191919", "@title" },
-	{ "text-align:right; margin-top:2pt; font-size:14pt",
-	  "font-family:Carlito; font-size:14pt; color:191919", "@subtitle" },
-	{ nullptr, nullptr, nullptr }
-};
+/* Integral: a centred portrait photo (a stylized landscape - the Word
+ * original's cypress-road JPEG is non-redistributable, see LIC01) and
+ * a narrow right-hand column holding the abstract and author/course
+ * metadata.  The original shows no title text on page one. */
 static const FV_CoverLine s_coverIntegralAside[] = {
 	{ "font-size:13pt",
 	  "font-family:Carlito; font-size:13pt; color:ED7D31; "
@@ -7706,15 +7709,9 @@ static const FV_CoverLine s_coverIntegralAside[] = {
 	{ nullptr, nullptr, nullptr }
 };
 static const FV_CoverShape s_coverIntegralShapes[] = {
-	{ ABI_COVER_RECT "; frame-page-xpos:2.85in; frame-page-ypos:4.1in; "
+	{ ABI_COVER_IMG "; frame-page-xpos:2.85in; frame-page-ypos:4.1in; "
 	  "frame-width:3.36in; frame-height:4.19in; xpos:2.85in; ypos:4.1in; "
-	  "background-color:9A9277; "
-	  "fill-gradient:lin:5400000,0:6E695C,100000:97A271; "
-	  "frame-stack-order:1", nullptr },
-	{ ABI_COVER_TXTBOX "; frame-page-xpos:3.9in; frame-page-ypos:1.35in; "
-	  "frame-width:3.7in; frame-height:1.0in; xpos:3.9in; ypos:1.35in; "
-	  "frame-valign:top; frame-stack-order:2",
-	  s_coverIntegralTitle },
+	  "cover-asset:integral; frame-stack-order:1", nullptr },
 	{ ABI_COVER_TXTBOX "; frame-page-xpos:6.45in; frame-page-ypos:6.9in; "
 	  "frame-width:1.3in; frame-height:3.9in; xpos:6.45in; ypos:6.9in; "
 	  "frame-valign:top; frame-stack-order:3",
@@ -8030,15 +8027,63 @@ static const FV_CoverShape s_coverWhipShapes[] = {
 	  "frame-valign:center; frame-stack-order:2; "
 	  "shape-path:M 0 0 L 750 0 L 1000 500 L 750 1000 L 0 1000 Z",
 	  s_coverWhipDate },
-	{ ABI_COVER_RECT "; frame-page-xpos:0.62in; frame-page-ypos:5.3in; "
-	  "frame-width:0.7in; frame-height:2.4in; xpos:0.62in; ypos:5.3in; "
-	  "background-color:44546A; fill-alpha:0.35; frame-stack-order:3; "
-	  "shape-path:M 0 0 L 60 0 L 1000 1000 L 940 1000 Z",
+	/* the whip swoosh: the original group's 22 thin custGeom strokes,
+	 * merged into two multi-subpath frames by fill alpha (all
+	 * normalized into the group's 2.4x9.98in anchor box) */
+	{ ABI_COVER_RECT "; frame-page-xpos:0.331in; frame-page-ypos:0.855in; "
+	  "frame-width:2.4in; frame-height:9.98in; xpos:0.331in; ypos:0.855in; "
+	  "background-color:44546A; fill-alpha:0.2; frame-stack-order:3; "
+	  "shape-path:M 54 569 L 84 596 L 116 622 L 145 643 L 145 647 L 111 623 "
+	  "L 84 601 L 59 578 L 54 569 Z M 150 646 L 155 649 L 176 662 L 200 675 "
+	  "L 235 693 L 228 693 L 194 676 L 171 663 L 150 650 L 150 646 Z "
+	  "M 37 549 L 48 562 L 51 570 L 50 569 L 37 554 L 37 549 Z "
+	  "M 51 570 L 59 578 L 67 593 L 77 607 L 91 622 L 106 638 L 126 653 "
+	  "L 140 663 L 155 672 L 163 680 L 166 682 L 154 676 L 137 665 L 120 653 "
+	  "L 101 638 L 85 623 L 72 607 L 61 589 L 51 570 Z "
+	  "M 171 681 L 195 693 L 189 693 L 179 687 L 171 681 Z "
+	  "M 48 562 L 54 568 L 54 569 L 59 578 L 51 570 L 48 562 Z "
+	  "M 435 510 L 435 510 L 407 516 L 380 523 L 354 531 L 329 538 L 297 548 "
+	  "L 268 559 L 241 570 L 217 581 L 196 593 L 177 605 L 164 617 L 154 629 "
+	  "L 150 642 L 150 646 L 145 643 L 145 642 L 150 629 L 160 617 L 173 604 "
+	  "L 192 592 L 213 581 L 239 569 L 265 558 L 296 548 L 328 538 L 352 530 "
+	  "L 379 523 L 406 516 L 435 510 Z "
+	  "M 145 647 L 149 650 L 150 650 L 153 661 L 160 670 L 168 680 L 171 681 "
+	  "L 160 675 L 155 672 L 148 661 L 145 654 L 145 647 Z "
+	  "M 166 682 L 188 693 L 183 693 L 166 682 Z "
+	  "M 145 643 L 150 646 L 150 650 L 149 650 L 145 647 L 145 643 Z "
+	  "M 155 672 L 160 675 L 171 681 L 179 687 L 189 693 L 188 693 L 166 682 "
+	  "L 163 680 L 155 672 Z",
 	  nullptr },
-	{ ABI_COVER_RECT "; frame-page-xpos:0.78in; frame-page-ypos:5.7in; "
-	  "frame-width:0.55in; frame-height:1.9in; xpos:0.78in; ypos:5.7in; "
-	  "background-color:44546A; fill-alpha:0.25; frame-stack-order:4; "
-	  "shape-path:M 0 0 L 80 0 L 1000 1000 L 920 1000 Z",
+	{ ABI_COVER_RECT "; frame-page-xpos:0.331in; frame-page-ypos:0.855in; "
+	  "frame-width:2.4in; frame-height:9.98in; xpos:0.331in; ypos:0.855in; "
+	  "background-color:44546A; frame-stack-order:4; "
+	  "shape-path:M 168 681 L 197 708 L 229 734 L 257 754 L 257 758 "
+	  "L 223 734 L 197 713 L 173 690 L 168 681 Z "
+	  "M 261 757 L 267 760 L 288 773 L 310 786 L 345 804 L 339 804 L 304 786 "
+	  "L 283 774 L 262 761 L 261 757 Z "
+	  "M 64 462 L 64 462 L 65 475 L 66 489 L 73 517 L 81 544 L 92 572 "
+	  "L 106 599 L 124 626 L 142 650 L 162 674 L 166 683 L 164 681 L 140 654 "
+	  "L 120 627 L 103 599 L 90 572 L 79 544 L 71 517 L 66 489 L 64 475 "
+	  "L 64 462 Z "
+	  "M 188 533 L 188 533 L 181 544 L 174 556 L 166 579 L 160 602 L 158 626 "
+	  "L 160 649 L 166 672 L 168 681 L 168 681 L 162 674 L 161 672 L 156 649 "
+	  "L 155 626 L 158 602 L 164 579 L 174 556 L 180 544 L 188 533 Z "
+	  "M 166 683 L 173 690 L 181 705 L 190 719 L 204 734 L 220 749 L 238 764 "
+	  "L 252 773 L 268 783 L 276 790 L 277 792 L 267 786 L 249 775 L 233 764 "
+	  "L 214 749 L 200 734 L 186 719 L 174 701 L 166 683 Z "
+	  "M 283 792 L 307 804 L 300 804 L 291 798 L 283 792 Z "
+	  "M 162 674 L 168 681 L 168 681 L 173 690 L 166 683 L 162 674 Z "
+	  "M 542 623 L 542 623 L 514 630 L 487 637 L 462 644 L 437 651 L 406 661 "
+	  "L 378 672 L 351 682 L 328 693 L 307 705 L 289 717 L 276 729 L 267 741 "
+	  "L 262 753 L 261 757 L 257 754 L 257 753 L 262 741 L 272 728 L 286 716 "
+	  "L 304 705 L 325 693 L 349 682 L 375 671 L 404 661 L 436 651 L 461 644 "
+	  "L 487 637 L 513 630 L 542 623 Z "
+	  "M 257 758 L 261 761 L 262 761 L 265 772 L 271 781 L 281 790 L 283 792 "
+	  "L 272 786 L 268 783 L 260 772 L 257 765 L 257 758 Z "
+	  "M 277 792 L 299 804 L 294 804 L 277 792 Z "
+	  "M 257 754 L 261 757 L 262 761 L 261 761 L 257 758 L 257 754 Z "
+	  "M 268 783 L 272 786 L 283 792 L 291 798 L 300 804 L 299 804 L 277 792 "
+	  "L 276 790 L 268 783 Z",
 	  nullptr },
 	{ ABI_COVER_TXTBOX "; frame-page-xpos:3.47in; frame-page-ypos:2.05in; "
 	  "frame-width:4.0in; frame-height:1.17in; xpos:3.47in; ypos:2.05in; "
@@ -8165,13 +8210,59 @@ static std::string _coverLineText(const char * szText,
 	return szText;
 }
 
+/* Pull the pseudo-prop "cover-asset:<id>" out of a shape's frame
+ * props: it names a bundled artwork blob the frame paints as its
+ * picture fill.  It never reaches the strux (it isn't a real
+ * property). */
+static std::string _coverTakeAsset(PP_PropertyVector & props)
+{
+	for(size_t i = 0; i + 1 < props.size(); ++i)
+	{
+		if(props[i] == "cover-asset")
+		{
+			std::string sId = props[i + 1];
+			props.erase(props.begin() + i, props.begin() + i + 2);
+			return sId;
+		}
+	}
+	return "";
+}
+
+/* Register a bundled cover artwork asset as a document data item so
+ * the picture travels with the saved .abwn, returning the dataid.
+ * Idempotent: re-inserting a cover reuses the existing item. */
+static std::string _coverAssetDataId(PD_Document * pDoc,
+									 const std::string & sAsset)
+{
+	const FV_CoverAsset * pA = FV_coverAssetById(sAsset.c_str());
+	if(!pA)
+	{
+		return "";
+	}
+	std::string sId = std::string("cover-") + pA->szId;
+	UT_ConstByteBufPtr bb;
+	if(!pDoc->getDataItemDataByName(sId.c_str(), bb, nullptr, nullptr))
+	{
+		UT_ByteBufPtr buf(new UT_ByteBuf);
+		buf->ins(0, pA->pData, pA->iLen);
+		if(!pDoc->createDataItem(sId.c_str(), false, buf,
+								 pA->szMime, nullptr))
+		{
+			return "";
+		}
+	}
+	return sId;
+}
+
 /*!
  * Insert the positioned shapes of a cover preset at dpos as
  * page-anchored textbox frames (the piecetable drops each frame just
  * before the block following dpos), filling each shape with the
  * paragraphs of its FV_CoverLine table.  A shape with no lines still
  * gets an empty block - a frameless section-frame breaks the
- * surrounding frame chain.
+ * surrounding frame chain.  A shape carrying "cover-asset" becomes a
+ * picture frame (frame-type:image + strux-image-dataid) whose bundled
+ * art fills the box.
  */
 static void _coverInsertShapes(PD_Document * pDoc, PT_DocPosition dpos,
 							   const FV_CoverShape * pShapes,
@@ -8183,9 +8274,20 @@ static void _coverInsertShapes(PD_Document * pDoc, PT_DocPosition dpos,
 	{
 		PP_PropertyVector fprops;
 		_coverParseProps(fprops, pS->szFrameProps);
+		PP_PropertyVector fattrs;
+		std::string sAsset = _coverTakeAsset(fprops);
+		if(!sAsset.empty())
+		{
+			std::string sDataId = _coverAssetDataId(pDoc, sAsset);
+			if(!sDataId.empty())
+			{
+				fattrs.push_back("strux-image-dataid");
+				fattrs.push_back(sDataId);
+			}
+		}
 		pf_Frag_Strux * pfFrame = nullptr;
 		if(!pDoc->insertStrux(dpos, PTX_SectionFrame,
-							  PP_NOPROPS, fprops, &pfFrame) || !pfFrame)
+							  fattrs, fprops, &pfFrame) || !pfFrame)
 		{
 			continue;
 		}

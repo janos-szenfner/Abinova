@@ -108,6 +108,8 @@ libtext_la_SOURCES = \
 	fmt/xp/fp_types.h \
 	fmt/xp/fv_Base.cpp \
 	fmt/xp/fv_Base.h \
+	fmt/xp/fv_CoverAssets.cpp \
+	fmt/xp/fv_CoverAssets.h \
 	fmt/xp/fv_FrameEdit.cpp \
 	fmt/xp/fv_FrameEdit.h \
 	fmt/xp/fv_InlineImage.cpp \

@@ -535,8 +535,11 @@ labels, like Word's ribbon.
   plus the Word-style Austin, Badge, Banded, Crop, Facet,
   Feathered, Filgree, Headiness, Integral, Ion Dark/Light,
   Retrospect, Semaphore, Slice Dark/Light, Viewmaster and Whip
-  designs built from positioned shapes) — all drawn in code, no
-  third-party artwork.
+  designs built from positioned shapes) — all drawn in code
+  with a few small programmatically generated artwork pieces
+  bundled in the binary (`tools/mkcoverart.py`; the Word
+  originals ship non-redistributable raster art, so ours are
+  original equivalents), no third-party artwork.
   Cover pages pull title/author from document metadata
   (`dc.title`/`dc.creator`, placeholders as fallback), add the
   current month/year, and are wrapped in a `_cover-page` marker
