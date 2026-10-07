@@ -1798,7 +1798,20 @@ PD_RDFSemanticItem::importFromFile( const std::string& filename_const )
 {
     std::string filename = getImportFromFileName( filename_const, getImportTypes() );
     // std::ifstream cannot open UTF-8 filenames on Windows; read through
-    // glib which does the UTF-8 -> UTF-16 conversion there
+    // glib which does the UTF-8 -> UTF-16 conversion there.
+    // Bound the load first: this runs on the UI thread and the picked
+    // file is arbitrary, so an oversized or network-mounted file would
+    // otherwise freeze the frame while it is read into memory.
+    GStatBuf st;
+    if( g_stat( filename.c_str(), &st ) == 0 &&
+        static_cast<guint64>( st.st_size ) > 64u * 1024u * 1024u )
+    {
+        UT_DEBUGMSG(( "PD_RDFSemanticItem::importFromFile() refusing oversized file: %s\n",
+                      filename.c_str() ));
+        std::istringstream iss;
+        importFromData( iss, m_rdf );
+        return;
+    }
     gchar * data = nullptr;
     gsize len = 0;
     std::istringstream iss(

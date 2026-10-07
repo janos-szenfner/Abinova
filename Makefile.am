@@ -123,6 +123,18 @@ check-ubsan:
 check-valgrind:
 	$(srcdir)/tools/check-valgrind.sh
 
+# Freeze regression gate (TST12): unit time bounds for the FRZ01-03
+# fixes (redraw notify, status-bar urgent message, content serial,
+# clipboard payload ownership, the backup serialize) plus the
+# ui-drive --freeze heartbeat leg — a 40ms GSource measuring
+# main-context service gaps across the scripted ops the fixes touch.
+# The drive leg needs a display (xvfb-run preferred, live session
+# otherwise); it skips cleanly without one so the unit half still
+# gates.  FREEZE_NO_DRIVE=1 skips the drive leg entirely.
+.PHONY: check-freeze
+check-freeze:
+	$(srcdir)/tools/check-freeze.sh
+
 
 # the Changelog help page is generated from CHANGELOG.md so the
 # in-app viewer never drifts out of sync with the repository file

@@ -301,6 +301,9 @@ public:
 
 	virtual bool			isDirty(void) const override;
 	virtual void            forceDirty() override;
+	// content epoch of the change history — see AD_Document
+	virtual UT_sint64       getContentSerial(void) const override;
+	virtual time_t          getLastContentChange(void) const override;
 	bool                    isConnected(void) const;
 	virtual bool			canDo(bool bUndo) const override;
 	virtual UT_uint32		undoCount(bool bUndo) const;

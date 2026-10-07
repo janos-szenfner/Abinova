@@ -12550,30 +12550,35 @@ static UT_ByteBufPtr s_makeFilePoster(const char * szName,
 	return pBuf;
 }
 
-/*! Store \a pathName as a piece-table embedded object: the bytes become
- * a data item, a generated poster becomes the snapshot, and the
- * embed-type prop dispatches audio/video to the GtkMediaFile player
- * and everything else to the system handler.
- * szKind "media" restricts embedding to real audio/video types
- * (returns false so the caller can fall back to the file:// link);
- * nullptr embeds any file. */
-static bool s_embedFileInDoc(FV_View * pView, const char * pathName,
-							 const char * szKind)
+/*! Insert the picked file's name as a hyperlink to the file — the
+ * "Insert > Link to File" behavior kept for files that aren't real
+ * audio/video (the link opens in the system's media player). */
+static void s_insertFileLink(FV_View * pView, const char * uri,
+							 const char * displayPath)
 {
-	/* the file dialog hands back a URI (file:///…); g_file_get_contents
-	 * needs a local path */
-	char * local = UT_go_filename_from_uri(pathName);
-	const char * fsPath = local ? local : pathName;
+	const char * base = UT_basename(displayPath);
+	UT_UCS4String s(base);
+	pView->cmdCharInsert(s.ucs4_str(), s.length());
+	PT_DocPosition end = pView->getPoint();
+	PT_DocPosition start = end - s.length();
+	pView->cmdSelect(start, end);
+	pView->cmdInsertHyperlink(uri, base);
+	pView->cmdUnselectSelection();
+	pView->setPoint(end);
+}
 
-	gchar * contents = nullptr;
-	gsize len = 0;
-	if (!g_file_get_contents(fsPath, &contents, &len, nullptr))
-	{
-		g_free(local);
-		return false;
-	}
-
-	const char * base = UT_basename(fsPath);
+/*! Store the loaded bytes of \a shownPath as a piece-table embedded
+ * object: they become a data item, a generated poster becomes the
+ * snapshot, and the embed-type prop dispatches audio/video to the
+ * GtkMediaFile player and everything else to the system handler.
+ * \a bMediaOnly restricts embedding to real audio/video types
+ * (returns false so the caller can fall back to the file:// link);
+ * false embeds any file. */
+static bool s_embedBufferInDoc(FV_View * pView, const char * shownPath,
+							   const gchar * contents, gsize len,
+							   bool bMediaOnly)
+{
+	const char * base = UT_basename(shownPath);
 	gboolean bUncertain = FALSE;
 	gchar * ctype = g_content_type_guess(
 		base, reinterpret_cast<const guchar *>(contents), len, &bUncertain);
@@ -12582,20 +12587,23 @@ static bool s_embedFileInDoc(FV_View * pView, const char * pathName,
 		mime = g_strdup("application/octet-stream");
 	bool bAudio = !strncmp(mime, "audio/", 6);
 	bool bVideo = !strncmp(mime, "video/", 6);
-	bool bMediaOnly = szKind && *szKind;
 	if (bMediaOnly && !bAudio && !bVideo)
 	{
 		g_free(ctype);
 		g_free(mime);
-		g_free(contents);
-		g_free(local);
 		return false;
 	}
 	const char * kind = bVideo ? "video" : bAudio ? "audio" : "file";
 
 	UT_ByteBufPtr pBuf(new UT_ByteBuf);
-	pBuf->ins(0, reinterpret_cast<const UT_Byte *>(contents), len);
-	g_free(contents);
+	if (len > static_cast<gsize>(G_MAXUINT32) ||
+		!pBuf->ins(0, reinterpret_cast<const UT_Byte *>(contents),
+				   static_cast<UT_uint32>(len)))
+	{
+		g_free(ctype);
+		g_free(mime);
+		return false;
+	}
 
 	UT_ByteBufPtr pPoster = s_makeFilePoster(base, kind);
 
@@ -12614,8 +12622,76 @@ static bool s_embedFileInDoc(FV_View * pView, const char * pathName,
 									sProps.c_str(), pPoster, "image/png");
 	g_free(ctype);
 	g_free(mime);
-	g_free(local);
 	return ok;
+}
+
+struct _EmbedFileCtx
+{
+	XAP_Frame * pFrame;
+	bool        bMediaOnly;
+};
+
+static void s_embed_load_done(GObject * src, GAsyncResult * res,
+							  gpointer data)
+{
+	_EmbedFileCtx * ctx = static_cast<_EmbedFileCtx *>(data);
+	GFile * file = G_FILE(src);
+	gchar * contents = nullptr;
+	gsize len = 0;
+	GError * err = nullptr;
+	const gboolean ok = g_file_load_contents_finish(
+		file, res, &contents, &len, nullptr, &err);
+	if (err)
+	{
+		UT_DEBUGMSG(("embed load failed: %s\n", err->message));
+		g_error_free(err);
+	}
+
+	/* the frame may be gone by the time the read finishes — only
+	 * insert into a view that is still registered with the app */
+	FV_View * pView = nullptr;
+	XAP_Frame * pFrame = ctx->pFrame;
+	if (pFrame && XAP_App::getApp()->safefindFrame(pFrame) >= 0)
+		pView = static_cast<FV_View *>(pFrame->getCurrentView());
+
+	if (pView)
+	{
+		gchar * uri = g_file_get_uri(file);
+		gchar * path = g_file_get_path(file);
+		const gchar * shown = path ? path : uri;
+		bool inserted = false;
+		if (ok && contents)
+			inserted = s_embedBufferInDoc(pView, shown, contents, len,
+										  ctx->bMediaOnly);
+		if (!inserted && ctx->bMediaOnly)
+			s_insertFileLink(pView, uri, shown);
+		g_free(path);
+		g_free(uri);
+	}
+	g_free(contents);
+	delete ctx;
+}
+
+/*! Kick off an asynchronous embed: the picked file can be an
+ * arbitrary size or sit on a network mount, so its bytes are read
+ * through GIO's async machinery instead of a UI-thread
+ * g_file_get_contents.  The document insert runs on the finish
+ * callback — the embed lands at whatever the caret is then, and a
+ * closed frame abandons it.  A media-only embed that fails or turns
+ * out not to be audio/video falls back to the file:// link in the
+ * callback. */
+static void s_embedFileInDoc(FV_View * pView, XAP_Frame * pFrame,
+							 const char * pathName, const char * szKind)
+{
+	GFile * file = UT_go_path_is_uri(pathName)
+		? g_file_new_for_uri(pathName)
+		: g_file_new_for_path(pathName);
+	_EmbedFileCtx * ctx = new _EmbedFileCtx;
+	ctx->pFrame = pFrame;
+	ctx->bMediaOnly = szKind && *szKind;
+	(void)pView;	/* re-resolved from the live frame on finish */
+	g_file_load_contents_async(file, nullptr, s_embed_load_done, ctx);
+	g_object_unref(file);
 }
 
 /* Media popover "Video/Audio from File": real media types embed into
@@ -12637,25 +12713,7 @@ Defun1(insMediaFile)
 						  nullptr, &pathName, &fType) || !pathName)
 		return false;
 
-	if (!s_embedFileInDoc(pView, pathName, "media"))
-	{
-		// pathName is already a URI from the file dialog;
-		// g_filename_to_uri handles the plain-path fallback
-		gchar * uri = UT_go_path_is_uri(pathName)
-			? g_strdup(pathName)
-			: g_filename_to_uri(pathName, nullptr, nullptr);
-		const char * base = UT_basename(pathName);
-		/* insert the filename as linked text */
-		UT_UCS4String s(base);
-		pView->cmdCharInsert(s.ucs4_str(), s.length());
-		PT_DocPosition end = pView->getPoint();
-		PT_DocPosition start = end - s.length();
-		pView->cmdSelect(start, end);
-		pView->cmdInsertHyperlink(uri ? uri : pathName, base);
-		pView->cmdUnselectSelection();
-		pView->setPoint(end);
-		g_free(uri);
-	}
+	s_embedFileInDoc(pView, pFrame, pathName, "media");
 	FREEP(pathName);
 	return true;
 }
@@ -12678,9 +12736,9 @@ Defun1(insEmbeddedObject)
 						  nullptr, &pathName, &fType) || !pathName)
 		return false;
 
-	bool ok = s_embedFileInDoc(pView, pathName, nullptr);
+	s_embedFileInDoc(pView, pFrame, pathName, nullptr);
 	FREEP(pathName);
-	return ok;
+	return true;
 }
 
 Defun1(insFootnote)

@@ -30,7 +30,11 @@
 #include "xap_StatusBar.h"
 #include "xap_FakeClipboard.h"
 #include "xap_FontPreview.h"
+#include "xap_App.h"
+#include "xap_Frame.h"
 #include "ev_EditMethod.h"
+#include "pd_Document.h"
+#include "pp_Property.h"
 #include "ut_string_class.h"
 
 #define TFSUITE "core.af.xap.misc"
@@ -247,18 +251,91 @@ TFTEST_MAIN("XAP_StatusBar")
 	TFPASS(sb2.lastMsg == "hello bar");
 	TFPASS(sb1.count == 2 && sb2.count == 2); /* +1 from "too many" */
 
+	/* FRZ01: an urgent message must not sleep the UI thread */
+	const gint64 t0 = g_get_monotonic_time();
+	XAP_StatusBar::message("urgent msg", true);
+	TFPASS(g_get_monotonic_time() - t0 < 200 * 1000);
+	TFPASS(sb1.lastUrgent && sb2.lastUrgent);
+
 	/* debugmsg only reaches the second bar */
 	XAP_StatusBar::debugmsg("debug only");
 	TFPASS(sb2.lastMsg == "debug only");
-	TFPASS(sb1.lastMsg == "hello bar");
+	TFPASS(sb1.lastMsg == "urgent msg");
 
 	XAP_StatusBar::unsetStatusBar(&sb1);
 	XAP_StatusBar::message("one bar left");
-	TFPASS(sb1.lastMsg == "hello bar"); /* unchanged */
+	TFPASS(sb1.lastMsg == "urgent msg"); /* unchanged */
 	TFPASS(sb2.lastMsg == "one bar left");
 
 	XAP_StatusBar::unsetStatusBar(&sb2);
 	XAP_StatusBar::unsetStatusBar(&sb3);
+}
+
+/* ------------------------------------------------------------------ */
+/* XAP_Frame::backup                                                   */
+/* ------------------------------------------------------------------ */
+
+namespace {
+/* concrete XAP_Frame stub — the pure virtuals are all UI-facing and
+ * none of them run inside backup()/autosave bookkeeping */
+class TestFrame : public XAP_Frame
+{
+public:
+	TestFrame() : XAP_Frame(static_cast<XAP_FrameImpl *>(nullptr)) {}
+	XAP_Frame *cloneFrame() override { return nullptr; }
+	XAP_Frame *buildFrame(XAP_Frame *) override { return nullptr; }
+	UT_Error loadDocument(AD_Document *) override { return UT_ERROR; }
+	UT_Error loadDocument(const char *, int) override { return UT_ERROR; }
+	UT_Error loadDocument(const char *, int, bool) override { return UT_ERROR; }
+	UT_Error loadDocument(GsfInput *, int) override { return UT_ERROR; }
+	UT_Error importDocument(const char *, int, bool) override { return UT_ERROR; }
+	void setXScrollRange() override {}
+	void setYScrollRange() override {}
+	void quickZoom(UT_uint32) override {}
+	void setStatusMessage(const char *) override {}
+	void toggleTopRuler(bool) override {}
+	void toggleLeftRuler(bool) override {}
+};
+}
+
+/* TST12: the autosave serialize is a synchronous main-thread
+ * operation — keep a bound on a synthetic doc so a regression (an
+ * extra pass, a blocking wait, a sleep loop) trips the suite.  The
+ * number is logged, not just gated. */
+TFTEST_MAIN("XAP_Frame backup timing")
+{
+	PD_Document *doc = new PD_Document;
+	TFPASS(doc->createRawDocument() == UT_OK);
+	TFPASS(doc->appendStrux(PTX_Section, PP_NOPROPS));
+	for (int i = 0; i < 400; i++)
+	{
+		TFPASS(doc->appendStrux(PTX_Block, PP_NOPROPS));
+		UT_UCS4String s("autosave timing paragraph of moderate length");
+		TFPASS(doc->appendSpan(s.ucs4_str(), s.length()));
+	}
+	doc->finishRawCreation();
+	doc->ref(); /* the frame dtor UNREFPs m_pDoc */
+
+	XAP_Frame *frame = new TestFrame;
+	frame->setDoc(doc);
+
+	const gint64 t0 = g_get_monotonic_time();
+	UT_Error err = frame->backup();
+	const gint64 us = g_get_monotonic_time() - t0;
+	printf("backup: %lld ms for a 400-paragraph doc\n",
+		   static_cast<long long>(us / 1000));
+	TFPASS(err == UT_OK);
+	/* generous tripwire — a legit serialize of this size is single-
+	 * digit ms; the bound only exists to catch a regression into
+	 * blocking or sleeping behavior */
+	TFPASS(us < 5 * G_TIME_SPAN_SECOND);
+
+	frame->discardAutosaveFile();
+	/* ~XAP_Frame does not unlist itself; the app must forget it
+	 * before delete or the frame list keeps a dangling pointer */
+	XAP_App::getApp()->forgetFrame(frame);
+	delete frame;
+	doc->unref();
 }
 
 /* ------------------------------------------------------------------ */

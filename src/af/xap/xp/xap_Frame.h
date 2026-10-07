@@ -271,6 +271,8 @@ protected:
 private:
 	void						_removeAutoSaveFile();
 	void						_writeBackupInfo(const std::string &backupPath);
+	void						_armAutosaveRetry();
+	void						_restoreAutosavePeriod();
 
 	std::string					m_sTitle;
 	std::string					m_sNonDecoratedTitle;
@@ -281,6 +283,13 @@ private:
 	std::string					m_stAutoSaveNamePrevious;
 	bool						m_bBackupRunning;
 	bool						m_bBackupInProgress;
+	/* identity of the last recovery copy: the doc it was written
+	 * from, its content serial then, and when.  A matching token plus
+	 * a surviving backup file means the on-disk copy is current and a
+	 * dirty-tick serialize can be skipped entirely. */
+	AD_Document *				m_pBackupDoc;
+	UT_sint64					m_iBackupSerial;
+	time_t						m_tBackupTime;
 
 	static int					s_iUntitled;
 

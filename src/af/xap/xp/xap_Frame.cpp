@@ -81,6 +81,9 @@ XAP_Frame::XAP_Frame(XAP_FrameImpl *pFrameImpl)
 	  m_stAutoSaveExt(),
 	  m_bBackupRunning(false),
 	  m_bBackupInProgress(false),
+	  m_pBackupDoc(nullptr),
+	  m_iBackupSerial(0),
+	  m_tBackupTime(0),
 	  m_isrcId(static_cast<XAP_Toolbar_Id>(0)),
 	  m_isrcTBNr(0),
 	  m_idestId(static_cast<XAP_Toolbar_Id>(0)),
@@ -117,6 +120,9 @@ XAP_Frame::XAP_Frame(XAP_Frame * f)
 	m_iAutoSavePeriod(f->m_iAutoSavePeriod),
 	m_bBackupRunning(false),
 	m_bBackupInProgress(false),
+	m_pBackupDoc(nullptr),
+	m_iBackupSerial(0),
+	m_tBackupTime(0),
 	m_isrcId(static_cast<XAP_Toolbar_Id>(0)),
 	m_isrcTBNr(0),
 	m_idestId(static_cast<XAP_Toolbar_Id>(0)),
@@ -378,22 +384,105 @@ static void autoSaveCallback(UT_Worker *wkr)
 }
 }
 
+/* While edits are streaming in, a deferred autosave tick waits for a
+ * typing pause instead of taking the main-thread serialize stall
+ * mid-edit: the serialize only runs once the last change is at least
+ * AUTOSAVE_QUIET_SECS old, and a deferred tick re-checks after
+ * AUTOSAVE_RETRY_MS.  Staleness stays bounded by the configured
+ * period — once the recovery copy is that old the serialize runs even
+ * mid-typing — and a document with no backup at all never defers. */
+static const UT_sint64 AUTOSAVE_QUIET_SECS = 20;
+static const UT_uint32 AUTOSAVE_RETRY_MS   = 20 * 1000;
+
+/*!
+ * Re-arm the autosave timer on the short retry fuse after a deferred
+ * tick, so a skipped cycle re-checks promptly instead of slipping a
+ * whole period.
+ */
+void XAP_Frame::_armAutosaveRetry(void)
+{
+	UT_Timer * timer = m_iIdAutoSaveTimer
+		? UT_Timer::findTimer(m_iIdAutoSaveTimer) : nullptr;
+	if (timer)
+		timer->set(AUTOSAVE_RETRY_MS);
+}
+
+/*!
+ * Restore the autosave timer's normal period after a tick that ran to
+ * completion, so a retry fuse doesn't keep the timer on the short
+ * cadence.
+ */
+void XAP_Frame::_restoreAutosavePeriod(void)
+{
+	UT_Timer * timer = m_iIdAutoSaveTimer
+		? UT_Timer::findTimer(m_iIdAutoSaveTimer) : nullptr;
+	if (timer)
+		timer->set(m_iAutoSavePeriod * 60000);
+}
+
 /*!
  * One autosave cycle. Saves a recovery copy when the document is dirty
  * and drops the leftover backup once the document has been saved by
  * other means, so the autosave directory only ever holds files that
  * represent actual unsaved work.
+ *
+ * The serialize (backup() -> PD_Document::saveAs) runs on the main
+ * thread and stalls the UI proportionally to document size, so this
+ * tick does the cheap checks first and only pays the stall when the
+ * on-disk copy is genuinely out of date: a tick while the piece table
+ * is mid-mutation retries shortly rather than waiting a whole period,
+ * a dirty document whose content hasn't moved since the last backup
+ * is skipped outright, and a document whose edits are still streaming
+ * in defers the stall into a pause within the staleness bound.
  */
 void XAP_Frame::autosaveTick()
 {
 	AD_Document * pDoc = getCurrentDoc();
-	if (!pDoc || pDoc->isPieceTableChanging())
-		return; // mid-mutation saves can produce a corrupt export; retry next period
+	if (!pDoc || pDoc->isPieceTableChanging() || m_bBackupInProgress)
+	{
+		// mid-mutation saves can produce a corrupt export; retry on a
+		// short fuse rather than slipping the whole period
+		_armAutosaveRetry();
+		return;
+	}
 
 	if (isDirty())
 	{
+		const UT_sint64 iSerial = pDoc->getContentSerial();
+		if (pDoc == m_pBackupDoc && iSerial == m_iBackupSerial &&
+			!m_stAutoSaveNamePrevious.empty() &&
+			makeBackupName() == m_stAutoSaveNamePrevious &&
+			UT_go_file_exists(m_stAutoSaveNamePrevious.c_str()))
+		{
+			/* content identical to the recovery copy already on disk —
+			 * skipping the serialize is what keeps an idle dirty doc
+			 * from stalling the UI every period.  The name compare
+			 * keeps a doc swap from false-matching: a document loaded
+			 * over the old one can recycle both the pointer and the
+			 * serial, but not the backup name it would write to */
+			_restoreAutosavePeriod();
+			return;
+		}
+
+		const time_t now = time(nullptr);
+		const time_t tLastChange = pDoc->getLastContentChange();
+		if (m_tBackupTime != 0 && tLastChange != 0 &&
+			now - tLastChange < AUTOSAVE_QUIET_SECS &&
+			now - m_tBackupTime < static_cast<time_t>(m_iAutoSavePeriod) * 60)
+		{
+			_armAutosaveRetry();
+			return;
+		}
+
 		UT_Error error = backup();
-		if (error) {
+		if (error == UT_OK)
+		{
+			m_pBackupDoc = pDoc;
+			m_iBackupSerial = iSerial;
+			m_tBackupTime = now;
+		}
+		else
+		{
 			UT_DEBUGMSG(("Autosave of document failed [%d].\n", error));
 		}
 	}
@@ -401,6 +490,7 @@ void XAP_Frame::autosaveTick()
 	{
 		discardAutosaveFile();
 	}
+	_restoreAutosavePeriod();
 }
 
 void XAP_Frame::discardAutosaveFile()

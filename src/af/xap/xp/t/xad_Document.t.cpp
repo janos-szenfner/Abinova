@@ -156,6 +156,13 @@ TFTEST_MAIN("AD_Document basics")
 	TFPASS(doc->getNewUUID32() != 0);
 	TFPASS(doc->getNewUUID64() != 0);
 
+	/* FRZ02: the default content-serial never hands out the same value
+	 * twice, so document classes without a real implementation keep
+	 * the conservative "assume changed" behavior the autosave skip
+	 * compares against */
+	TFPASS(doc->getContentSerial() != doc->getContentSerial());
+	TFPASS(doc->getLastContentChange() == 0);
+
 	doc->unref(); /* deletes */
 }
 

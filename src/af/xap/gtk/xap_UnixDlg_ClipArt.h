@@ -43,6 +43,8 @@ public:
 	GtkWidget * getDialog		() const { return dlg; }
 	gboolean 	fillStore		();
 	void 		clearFillIdleId	() { fill_idle_id = 0; }
+	void 		armFillIdle		(guint id) { fill_idle_id = id; }
+	bool 		fillFailed		() const { return m_fillFailed; }
 	void 		onItemActivated	();
 
 protected:
@@ -53,6 +55,9 @@ protected:
 	GListStore	 	*store;
 	int				 count;
 	guint			 fill_idle_id;
+	GDir			*m_fillDir;
+	bool			 m_fillFailed;
+	int				 m_fillDone;
 };
 
 #endif /* XAP_UNIXDIALOG_CLIPART_H */

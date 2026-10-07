@@ -20,6 +20,7 @@ EXTRA_DIST = \
 	check-fuzz.sh \
 	check-san.sh \
 	check-valgrind.sh \
+	check-freeze.sh \
 	valgrind.supp \
 	fuzz-add-reproducer.sh \
 	coverage.sh \

@@ -150,6 +150,24 @@ public:
 	virtual void            forceDirty() {m_bForcedDirty = true;};
 	bool                    isForcedDirty() const {return m_bForcedDirty;}
 
+	/*! Serial identifying the document's content epoch; it bumps on
+	 *  every content mutation, so comparing a cached value cheaply
+	 *  answers "did the content change since then" without walking the
+	 *  document.  Only meaningful against an earlier value from the
+	 *  same document.  The default never hands out the same value
+	 *  twice, so callers must conservatively assume the content may
+	 *  have changed for document classes that don't implement it. */
+	virtual UT_sint64       getContentSerial(void) const
+	{
+		static UT_sint64 iNextSerial = 1;
+		return iNextSerial++;
+	}
+	/*! Wall-clock time of the last content mutation, or 0 if none. */
+	virtual time_t          getLastContentChange(void) const
+	{
+		return 0;
+	}
+
 	virtual bool			canDo(bool bUndo) const = 0;
 	virtual bool			undoCmd(UT_uint32 repeatCount) = 0;
 	virtual bool			redoCmd(UT_uint32 repeatCount) = 0;

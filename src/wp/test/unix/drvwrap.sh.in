@@ -152,9 +152,29 @@ fi
 [ "$fmt_rc" -eq 0 ] && echo "ok: fmt drive" || \
 	echo "timeout/fail: fmt drive (rc=$fmt_rc)"
 
+# TST12: heartbeat freeze leg — a 40ms timeout source tracks the gap
+# between main-context services while the driver scripts the FRZ01-03
+# operations (doc load, burst typing, scrolling, autosave ticks,
+# dialogs, an async media embed, a .doc import).  A synchronous stall
+# — a usleep, a blocking whole-file read, a serializing loop — fails
+# the leg.  Unlike the dialog legs a heartbeat trip IS the failure, so
+# any nonzero exit counts.
+freeze_log="${TMPDIR:-/tmp}/ui-drive-freeze-$$.log"
+timeout -k 15 240 $LIBTOOL $BIN --freeze >"$freeze_log" 2>&1
+freeze_rc=$?
+case "$freeze_rc" in
+	0)   echo "ok: freeze heartbeat drive" ;;
+	77)  echo "skip: freeze heartbeat drive (no interactive context)" ;;
+	*)   echo "FAIL: freeze heartbeat drive (rc=$freeze_rc)"
+	     tail -20 "$freeze_log" | sed 's/^/  /' >&2
+	     fails=$((fails + 1)) ;;
+esac
+rm -f "$freeze_log"
+
 rm -f "$scratch" /tmp/ui-drive-abi.abw /tmp/ui-drive-red.png \
 	"${TMPDIR:-/tmp}/ui-drive-media.abwn" "${TMPDIR:-/tmp}/ui-drive-blip.abw" \
-	"${TMPDIR:-/tmp}/ui-drive-fmt-blip.abw"
+	"${TMPDIR:-/tmp}/ui-drive-fmt-blip.abw" \
+	"${TMPDIR:-/tmp}/ui-drive-freeze-embed.bin"
 
 echo "dialog drive: $((total - fails - skips - xfails))/$total dialogs clean, $skips skipped, $xfails xfail"
 [ "$fails" -eq 0 ]

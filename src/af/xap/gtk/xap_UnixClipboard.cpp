@@ -60,11 +60,44 @@ abi_content_provider_ref_formats(GdkContentProvider *provider)
 	return gdk_content_formats_ref(self->formats);
 }
 
+/* State for the payload write to the pasting peer.  The task is
+ * completed from the write callback so a peer that drains its pipe
+ * slowly never blocks the UI thread inside g_output_stream_write_all. */
+struct AbiProviderWrite
+{
+	GTask *task;
+	GOutputStream *stream;		/* ref'd for the transfer */
+	guchar *payload;			/* owned copy */
+};
+
+static void
+abi_provider_write_cb(GObject *src, GAsyncResult *res, gpointer data)
+{
+	AbiProviderWrite *w = static_cast<AbiProviderWrite*>(data);
+	GError *err = nullptr;
+	gsize written = 0;
+	if (g_output_stream_write_all_finish(G_OUTPUT_STREAM(src), res,
+										 &written, &err))
+	{
+		g_task_return_boolean(w->task, TRUE);
+	}
+	else
+	{
+		g_task_return_error(w->task, err ? err :
+			g_error_new(G_IO_ERROR, G_IO_ERROR_FAILED,
+						"clipboard write failed"));
+	}
+	g_object_unref(w->stream);
+	g_object_unref(w->task);
+	g_free(w->payload);
+	g_free(w);
+}
+
 static void
 abi_content_provider_write_mime_type_async(GdkContentProvider *provider,
 										   const char *mime_type,
 										   GOutputStream *stream,
-										   int /*io_priority*/,
+										   int io_priority,
 										   GCancellable *cancellable,
 										   GAsyncReadyCallback callback,
 										   gpointer user_data)
@@ -73,16 +106,27 @@ abi_content_provider_write_mime_type_async(GdkContentProvider *provider,
 	GTask *task = g_task_new(provider, cancellable, callback, user_data);
 	g_task_set_source_tag(task, reinterpret_cast<gpointer>(abi_content_provider_write_mime_type_async));
 
+	guchar *payload = nullptr;
+	gsize payload_len = 0;
 	GError *error = nullptr;
-	if (self->owner &&
-		self->owner->writeData(mime_type, stream, self->primary,
-							   cancellable, &error))
-		g_task_return_boolean(task, TRUE);
-	else
+	if (!self->owner ||
+		!self->owner->snapshotData(mime_type, self->primary,
+								   &payload, &payload_len, &error))
+	{
 		g_task_return_error(task, error ? error :
 			g_error_new(G_IO_ERROR, G_IO_ERROR_NOT_FOUND,
 						"mime type %s not available", mime_type));
-	g_object_unref(task);
+		g_object_unref(task);
+		return;
+	}
+
+	AbiProviderWrite *w = g_new0(AbiProviderWrite, 1);
+	w->task = task;
+	w->stream = G_OUTPUT_STREAM(g_object_ref(stream));
+	w->payload = payload;
+	g_output_stream_write_all_async(stream, payload, payload_len,
+									io_priority, cancellable,
+									abi_provider_write_cb, w);
 }
 
 static gboolean
@@ -245,9 +289,12 @@ static std::vector<const char *> s_mime_ptrs(
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
 
-bool XAP_UnixClipboard::writeData(const char * mime_type, GOutputStream * stream,
-								  bool bPrimary, GCancellable *cancellable,
-								  GError ** error)
+/* Materialize the payload for mime_type and hand the caller an owned
+ * copy - the fake-clipboard storage pointers are unstable across calls
+ * and the provider's async write outlives this stack frame. */
+bool XAP_UnixClipboard::snapshotData(const char * mime_type, bool bPrimary,
+									 guchar ** out, gsize * out_len,
+									 GError ** error)
 {
 	T_AllowGet tFrom = ( bPrimary ? TAG_PrimaryOnly : TAG_ClipboardOnly );
 	XAP_FakeClipboard & which_clip = ( bPrimary ? m_fakePrimaryClipboard : m_fakeClipboard );
@@ -281,9 +328,9 @@ bool XAP_UnixClipboard::writeData(const char * mime_type, GOutputStream * stream
 						"clipboard payload too large");
 			return false;
 		}
-		gsize written = 0;
-		return g_output_stream_write_all(stream, data, data_len, &written,
-										 cancellable, error) == TRUE;
+		*out = static_cast<guchar*>(g_memdup2(data, data_len));
+		*out_len = data_len;
+		return true;
 	}
 	return false;
 }
@@ -429,6 +476,13 @@ struct ReadCtx
 	GInputStream *stream;
 	const char *mime_type;	/* borrowed from the clipboard */
 	char *text;
+	/* streamed transfer: when set, the payload is read in async chunks
+	 * inside the same bounded loop so a peer that stalls mid-transfer
+	 * cannot freeze the UI thread */
+	UT_ByteBuf *out;
+	bool oversized;
+	bool failed;
+	guchar buf[8192];
 };
 
 static void read_ctx_cleanup(ReadCtx *ctx)
@@ -457,12 +511,54 @@ static void read_done(ReadCtx *ctx)
 	g_main_loop_quit(ctx->loop);
 }
 
+static void s_issue_read_chunk(ReadCtx *ctx);
+
 static void read_stream_cb(GObject *src, GAsyncResult *res, gpointer data)
 {
 	ReadCtx *ctx = static_cast<ReadCtx*>(data);
 	ctx->stream = gdk_clipboard_read_finish(GDK_CLIPBOARD(src), res,
 											&ctx->mime_type, nullptr);
+	if (ctx->stream && ctx->out)
+	{
+		/* transfer the payload in async chunks under the same loop +
+		 * timeout instead of a bare g_input_stream_read, which would
+		 * block the UI for as long as the peer stalls the pipe */
+		s_issue_read_chunk(ctx);
+		return;
+	}
 	read_done(ctx);
+}
+
+static void read_chunk_cb(GObject *src, GAsyncResult *res, gpointer data)
+{
+	ReadCtx *ctx = static_cast<ReadCtx*>(data);
+	gssize n = g_input_stream_read_finish(G_INPUT_STREAM(src), res,
+										  nullptr);
+	if (!ctx->abandoned && n > 0)
+	{
+		if (ctx->out->getLength() + static_cast<gsize>(n)
+				> ABI_CLIPBOARD_MAX_BYTES)
+		{
+			ctx->out->truncate(0);
+			ctx->oversized = true;
+		}
+		else
+		{
+			ctx->out->append(ctx->buf, n);
+			s_issue_read_chunk(ctx);
+			return;
+		}
+	}
+	else if (!ctx->abandoned && n < 0)
+		ctx->failed = true;
+	read_done(ctx);
+}
+
+static void s_issue_read_chunk(ReadCtx *ctx)
+{
+	g_input_stream_read_async(ctx->stream, ctx->buf, sizeof(ctx->buf),
+							  G_PRIORITY_DEFAULT, ctx->cancellable,
+							  read_chunk_cb, ctx);
 }
 
 static void read_text_cb(GObject *src, GAsyncResult *res, gpointer data)
@@ -484,29 +580,6 @@ static gboolean read_timeout_cb(gpointer data)
 		g_main_loop_quit(ctx->loop);
 	}
 	return G_SOURCE_REMOVE;
-}
-
-/* Read up to ABI_CLIPBOARD_MAX_BYTES from a stream.  Sets oversized
- * when the payload was cut for exceeding the cap. */
-static bool s_read_stream_into(GInputStream *stream, UT_ByteBuf & out,
-							   GCancellable *cancellable, bool & oversized)
-{
-	out.truncate(0);
-	oversized = false;
-	guchar buf[8192];
-	gssize n;
-	while ((n = g_input_stream_read(stream, buf, sizeof(buf),
-									cancellable, nullptr)) > 0)
-	{
-		if (out.getLength() + static_cast<gsize>(n) > ABI_CLIPBOARD_MAX_BYTES)
-		{
-			out.truncate(0);
-			oversized = true;
-			return false;
-		}
-		out.append(buf, n);
-	}
-	return (n >= 0) && (out.getLength() > 0);
 }
 
 bool XAP_UnixClipboard::getTextData(T_AllowGet tFrom, void ** ppData,
@@ -621,6 +694,8 @@ bool XAP_UnixClipboard::_getDataFromServer(T_AllowGet tFrom, const char** format
 		ctx->cancellable = g_cancellable_new();
 		ctx->timeout_id = g_timeout_add(ABI_CLIPBOARD_TIMEOUT_MS,
 										read_timeout_cb, ctx);
+		m_databuf.truncate(0);
+		ctx->out = &m_databuf;
 
 		gdk_clipboard_read_async(clipboard, mimes, G_PRIORITY_DEFAULT,
 								 ctx->cancellable, read_stream_cb, ctx);
@@ -629,28 +704,22 @@ bool XAP_UnixClipboard::_getDataFromServer(T_AllowGet tFrom, const char** format
 		if (ctx->abandoned)
 			return false;	/* ctx freed by the late callback */
 
-		GInputStream *stream = ctx->stream;
-		ctx->stream = nullptr;
-		g_clear_object(&ctx->cancellable);
-		g_main_loop_unref(ctx->loop);
-		g_free(ctx);
+		bool bOversized = ctx->oversized;
+		bool bOk = !ctx->failed && !ctx->oversized &&
+				   m_databuf.getLength() > 0;
+		read_ctx_cleanup(ctx);
 
-		if (stream)
+		if (bOk)
 		{
-			bool bOversized = false;
-			if (s_read_stream_into(stream, m_databuf, nullptr, bOversized))
-			{
-				*pLen = m_databuf.getLength();
-				*ppData = const_cast<void *>(reinterpret_cast<const void*>((m_databuf.getPointer(0))));
-				*pszFormatFound = formatList[i];
-				rval = true;
-				UT_DEBUGMSG(("Found format %s on clipbaord \n",formatList[i]));
-			}
-			else if (bOversized)
-			{
-				m_bOversizedData = true;
-			}
-			g_object_unref(stream);
+			*pLen = m_databuf.getLength();
+			*ppData = const_cast<void *>(reinterpret_cast<const void*>((m_databuf.getPointer(0))));
+			*pszFormatFound = formatList[i];
+			rval = true;
+			UT_DEBUGMSG(("Found format %s on clipbaord \n",formatList[i]));
+		}
+		else if (bOversized)
+		{
+			m_bOversizedData = true;
 		}
 	}
 

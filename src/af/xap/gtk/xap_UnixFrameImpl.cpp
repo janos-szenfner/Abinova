@@ -558,6 +558,13 @@ struct DropReadCtx
 	bool done;			/* async callback already ran */
 	bool abandoned;		/* caller timed out; callback frees ctx */
 	GInputStream * stream;
+	/* streamed transfer: payload chunks read async inside the same
+	 * bounded loop so a drag source stalling mid-transfer cannot
+	 * freeze the UI thread in g_input_stream_read */
+	UT_ByteBuf * out;	/* owned by the caller's stack frame */
+	bool oversized;
+	bool failed;
+	guchar buf[8192];
 };
 
 static void s_drop_ctx_cleanup(DropReadCtx * ctx)
@@ -585,12 +592,51 @@ static void s_drop_read_done(DropReadCtx * ctx)
 	g_main_loop_quit(ctx->loop);
 }
 
+static void s_drop_issue_chunk(DropReadCtx * ctx);
+
 static void s_drop_read_cb(GObject *src, GAsyncResult *res, gpointer data)
 {
 	DropReadCtx * ctx = static_cast<DropReadCtx*>(data);
 	const char * mime = nullptr;
 	ctx->stream = gdk_drop_read_finish(GDK_DROP(src), res, &mime, nullptr);
+	if (ctx->stream)
+	{
+		s_drop_issue_chunk(ctx);
+		return; /* transfer continues inside the same bounded loop */
+	}
 	s_drop_read_done(ctx);
+}
+
+static void s_drop_chunk_cb(GObject *src, GAsyncResult *res, gpointer data)
+{
+	DropReadCtx * ctx = static_cast<DropReadCtx*>(data);
+	gssize n = g_input_stream_read_finish(G_INPUT_STREAM(src), res,
+										  nullptr);
+	if (!ctx->abandoned && n > 0)
+	{
+		if (ctx->out->getLength() + static_cast<gsize>(n)
+				> ABI_DROP_MAX_BYTES)
+		{
+			ctx->out->truncate(0);
+			ctx->oversized = true;
+		}
+		else
+		{
+			ctx->out->append(ctx->buf, n);
+			s_drop_issue_chunk(ctx);
+			return;
+		}
+	}
+	else if (!ctx->abandoned && n < 0)
+		ctx->failed = true;
+	s_drop_read_done(ctx);
+}
+
+static void s_drop_issue_chunk(DropReadCtx * ctx)
+{
+	g_input_stream_read_async(ctx->stream, ctx->buf, sizeof(ctx->buf),
+							  G_PRIORITY_DEFAULT, ctx->cancellable,
+							  s_drop_chunk_cb, ctx);
 }
 
 static gboolean s_drop_timeout_cb(gpointer data)
@@ -641,11 +687,13 @@ s_drop_cb(GtkDropTargetAsync * /*target*/, GdkDrop *drop,
 	 * synchronous), bounded by a timeout so a stuck drag source cannot
 	 * freeze the editor.  The DropReadCtx is heap-allocated: if we give
 	 * up waiting, the late callback frees it itself. */
+	UT_ByteBuf buf;
 	DropReadCtx * ctx = g_new0(DropReadCtx, 1);
 	ctx->loop = g_main_loop_new(nullptr, FALSE);
 	ctx->cancellable = g_cancellable_new();
 	ctx->timeout_id = g_timeout_add(ABI_DROP_TIMEOUT_MS,
 									s_drop_timeout_cb, ctx);
+	ctx->out = &buf;
 
 	const char * mimes[] = { mime, nullptr };
 	gdk_drop_read_async(drop, mimes, G_PRIORITY_DEFAULT, ctx->cancellable,
@@ -655,28 +703,9 @@ s_drop_cb(GtkDropTargetAsync * /*target*/, GdkDrop *drop,
 	if (ctx->abandoned)
 		return;	/* freed by the late callback */
 
-	GInputStream * stream = ctx->stream;
-	ctx->stream = nullptr;
+	gboolean bOverflow = ctx->oversized;
+	gboolean bFailed = ctx->failed;
 	s_drop_ctx_cleanup(ctx);
-
-	if (!stream)
-		return;
-
-	UT_ByteBuf buf;
-	guchar chunk[8192];
-	gssize n;
-	gboolean bOverflow = FALSE;
-	while ((n = g_input_stream_read(stream, chunk, sizeof(chunk),
-									nullptr, nullptr)) > 0)
-	{
-		if (buf.getLength() + static_cast<gsize>(n) > ABI_DROP_MAX_BYTES)
-		{
-			bOverflow = TRUE;
-			break;
-		}
-		buf.append(chunk, n);
-	}
-	g_object_unref(stream);
 
 	if (bOverflow)
 	{
@@ -684,7 +713,7 @@ s_drop_cb(GtkDropTargetAsync * /*target*/, GdkDrop *drop,
 							   XAP_Dialog_MessageBox::b_O,
 							   XAP_Dialog_MessageBox::a_OK);
 	}
-	else if (buf.getLength() > 0)
+	else if (!bFailed && buf.getLength() > 0)
 	{
 		/* text-uri-list / text payload is consumed as C strings by the
 		 * dispatch helpers - guarantee NUL termination regardless of

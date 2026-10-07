@@ -21,8 +21,6 @@
  * 02110-1301 USA.
  */
 
-#include "ut_sleep.h"
-
 #include "xap_StatusBar.h"
 
 /* This allows for up to two concurrently active status bars, since
@@ -62,8 +60,6 @@ void XAP_StatusBar::message (const char * pbuf, bool urgent)
 		{
 			if (s_SB1) s_SB1->statusMessage (pbuf, urgent);
 			if (s_SB2) s_SB2->statusMessage (pbuf, urgent);
-
-			if (urgent) UT_usleep (1000000);
 		}
 }
 
@@ -72,7 +68,5 @@ void XAP_StatusBar::debugmsg (const char * pbuf, bool urgent)
 	if (s_SB2)
 		{
 			s_SB2->statusMessage (pbuf, urgent);
-
-			if (urgent) UT_usleep (1000000);
 		}
 }

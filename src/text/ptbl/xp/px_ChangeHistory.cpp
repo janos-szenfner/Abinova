@@ -45,7 +45,9 @@ px_ChangeHistory::px_ChangeHistory(pt_PieceTable * pPT)
 	  m_iMinUndo(0),
 	  m_bScanUndoGLOB(false),
 	  m_iUndoOps(0),
-	  m_iGlobDepth(0)
+	  m_iGlobDepth(0),
+	  m_iSerial(0),
+	  m_tLastChange(0)
 {
 }
 
@@ -68,6 +70,13 @@ void px_ChangeHistory::clearHistory()
 	m_bScanUndoGLOB = false;
 	m_iUndoOps = 0;
 	m_iGlobDepth = 0;
+	_noteMutation();
+}
+
+void px_ChangeHistory::_noteMutation(void)
+{
+	m_iSerial++;
+	m_tLastChange = time(nullptr);
 }
 
 void px_ChangeHistory::_invalidateRedo(void)
@@ -137,6 +146,7 @@ bool px_ChangeHistory::addChangeRecord(PX_ChangeRecord * pcr)
 {
 	// add a change record to the history.
 	// blow away any redo, since it is now invalid.
+	_noteMutation();
 	xxx_UT_DEBUGMSG(("Add CR Pos %d Type %d indexAP %x \n",pcr->getPosition(),pcr->getType(),pcr->getIndexAP()));
 	xxx_UT_DEBUGMSG(("Before invalidate Undo pos %d savepos %d iAdjust %d \n",m_undoPosition,m_savePosition,m_iAdjustOffset));
 	if (pcr && pcr->getDocument() == nullptr)
@@ -558,6 +568,7 @@ bool px_ChangeHistory::didUndo(void)
 		UT_return_val_if_fail(m_savePosition > 0,false);
 		m_savePosition--;
 	}
+	_noteMutation();
 	return true;
 }
 
@@ -589,6 +600,7 @@ bool px_ChangeHistory::didRedo(void)
 	}
 	if (pcr && !pcr->getPersistance() && (m_savePosition >= 0))
 		m_savePosition++;
+	_noteMutation();
 	return true;
 }
 
@@ -629,6 +641,7 @@ void px_ChangeHistory::coalesceHistory(const PX_ChangeRecord * pcr)
 {
 	// coalesce this record with the current undo record.
 
+	_noteMutation();
 	UT_sint32 iAdj = m_iAdjustOffset;
 	PX_ChangeRecord * pcrUndo = _getCR(m_undoPosition-1);
 	UT_return_if_fail (pcrUndo);

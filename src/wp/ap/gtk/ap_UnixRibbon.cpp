@@ -42,6 +42,7 @@
 #include "ut_screenshot.h"
 #include "ut_string.h"
 #include "ut_string_class.h"
+#include "ut_bytebuf.h"
 #include "ut_go_file.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
@@ -6752,68 +6753,44 @@ struct _OnlinePicCtx
 	GtkWidget * win;
 };
 
-void AP_UnixRibbon::_s_online_pic_insert(GtkWidget * /*w*/,
-										 gpointer data)
+/* The download may be a remote URI on a slow mount or network share —
+ * read it through GIO's async machinery so the UI thread never blocks
+ * inside g_file_load_contents, then insert from memory on finish. */
+struct _OnlinePicLoad
 {
-	_OnlinePicCtx * ctx = static_cast<_OnlinePicCtx *>(data);
-	const char * url = gtk_editable_get_text(GTK_EDITABLE(ctx->entry));
-	XAP_Frame * pFrame = ctx->self->m_pFrame;
-	FV_View * pView = pFrame
-		? static_cast<FV_View *>(pFrame->getCurrentView()) : nullptr;
+	GFile * file;
+	XAP_Frame * frame;
+};
 
-	GFile * gf = url ? g_file_new_for_uri(url) : nullptr;
+static void s_online_pic_loaded(GObject * src, GAsyncResult * res,
+								gpointer data)
+{
+	_OnlinePicLoad * load = static_cast<_OnlinePicLoad *>(data);
 	gchar * contents = nullptr;
 	gsize len = 0;
 	GError * err = nullptr;
-	bool bOK = gf && pView &&
-		g_file_load_contents(gf, nullptr, &contents, &len, nullptr,
-							 &err);
-	if (gf)
-		g_object_unref(gf);
+	bool bOK = g_file_load_contents_finish(G_FILE(src), res, &contents,
+										   &len, nullptr, &err);
 
-	if (bOK)
+	XAP_Frame * pFrame = load->frame;
+	FV_View * pView = (pFrame &&
+		XAP_App::getApp()->safefindFrame(pFrame) >= 0)
+		? static_cast<FV_View *>(pFrame->getCurrentView()) : nullptr;
+
+	bool inserted = false;
+	if (bOK && pView && len > 0 && len <= G_MAXUINT32)
 	{
-		// Secure temp file: a predictable name in the shared tmp
-		// dir would be a symlink-attack vector, so write to the
-		// exclusively-created descriptor instead.
-		gchar * tmp = nullptr;
-		int fd = g_file_open_tmp("abinova-online-pic-XXXXXX",
-								 &tmp, nullptr);
-		bOK = false;
-		if (fd != -1)
-		{
-			gsize off = 0;
-			bOK = true;
-			while (off < len)
-			{
-				gssize w = write(fd, contents + off, len - off);
-				if (w <= 0)
-				{
-					bOK = false;
-					break;
-				}
-				off += w;
-			}
-			g_close(fd, nullptr);
-		}
-		if (bOK)
-		{
-			FG_ConstGraphicPtr pFG;
-			if (IE_ImpGraphic::loadGraphic(tmp, IEGFT_Unknown, pFG)
-				== UT_OK && pFG)
-				pView->cmdInsertGraphic(pFG);
-			else
-				bOK = false;
-		}
-		if (tmp)
-		{
-			g_remove(tmp);
-			g_free(tmp);
-		}
+		UT_ByteBufPtr pBB(new UT_ByteBuf);
+		pBB->ins(0, reinterpret_cast<const UT_Byte *>(contents),
+				 static_cast<UT_uint32>(len));
+		FG_ConstGraphicPtr pFG;
+		if (IE_ImpGraphic::loadGraphic(pBB, IEGFT_Unknown, pFG) == UT_OK
+			&& pFG)
+			inserted = (pView->cmdInsertGraphic(pFG) == UT_OK);
 	}
-	g_free(contents);
 
-	if (!bOK && pFrame)
+	if (!inserted && pFrame &&
+		XAP_App::getApp()->safefindFrame(pFrame) >= 0)
 	{
 		std::string msg = "The picture could not be downloaded";
 		if (err && err->message)
@@ -6823,8 +6800,39 @@ void AP_UnixRibbon::_s_online_pic_insert(GtkWidget * /*w*/,
 	}
 	if (err)
 		g_error_free(err);
+	g_free(contents);
+	g_object_unref(load->file);
+	delete load;
+}
+
+void AP_UnixRibbon::_s_online_pic_insert(GtkWidget * /*w*/,
+										 gpointer data)
+{
+	_OnlinePicCtx * ctx = static_cast<_OnlinePicCtx *>(data);
+	const char * url = gtk_editable_get_text(GTK_EDITABLE(ctx->entry));
+
+	_OnlinePicLoad * load = new _OnlinePicLoad;
+	load->frame = ctx->self->m_pFrame;
+	load->file = (url && *url) ? g_file_new_for_uri(url) : nullptr;
 	gtk_window_destroy(GTK_WINDOW(ctx->win));
 	delete ctx;
+
+	if (!load->file || !load->frame)
+	{
+		if (load->frame)
+		{
+			load->frame->showMessageBox(
+				"The picture could not be downloaded: no address given",
+				XAP_Dialog_MessageBox::b_O,
+				XAP_Dialog_MessageBox::a_OK);
+		}
+		if (load->file)
+			g_object_unref(load->file);
+		delete load;
+		return;
+	}
+	g_file_load_contents_async(load->file, nullptr,
+							   s_online_pic_loaded, load);
 }
 
 void AP_UnixRibbon::_showOnlinePictureDialog()

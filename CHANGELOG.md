@@ -4311,6 +4311,22 @@ below are on `main` but the release has not been cut yet.
   reformat-pending list deduplicated with a linear `std::find`,
   now backed by a mirror set. Large documents open and re-lay out
   proportionally faster; small documents are unaffected.
+- **UI freezes removed** — three classes of guaranteed main-thread
+  stalls are gone. Piece-table changes no longer busy-sleep for a
+  full second waiting on a redraw flag that can only clear on the
+  same thread; urgent status-bar messages no longer sleep the UI
+  thread; and autosave now skips serialization entirely when the
+  content hasn't changed since the last recovery file, defers while
+  edits are in flight, and writes through a temporary file renamed
+  into place so a crash mid-save can't corrupt the recovery copy.
+  Large picked files (media embeds, online pictures), drag/drop and
+  clipboard payloads now load asynchronously in bounded chunks
+  instead of one synchronous read that could hang the UI on big or
+  slow sources. A new `make check-freeze` gate keeps this honest:
+  a main-loop heartbeat watchdog under xvfb fails the suite if the
+  event loop stops servicing events past its bound, plus unit-level
+  time bounds on the piece-table change path, urgent status
+  messages and the autosave serializer.
 
 ### Fonts
 

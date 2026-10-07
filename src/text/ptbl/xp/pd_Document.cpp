@@ -69,7 +69,6 @@
 #include "ap_Strings.h"
 #include "ut_units.h"
 #include "ut_string_class.h"
-#include "ut_sleep.h"
 #include "ut_path.h"
 #include "ut_locale.h"
 #include "pp_Author.h"
@@ -1257,6 +1256,16 @@ UT_Error PD_Document::_save(void)
 bool PD_Document::isDirty(void) const
 {
 	return m_pPieceTable->isDirty() || isForcedDirty();
+}
+
+UT_sint64 PD_Document::getContentSerial(void) const
+{
+	return m_pPieceTable->getChangeHistory()->getSerial();
+}
+
+time_t PD_Document::getLastContentChange(void) const
+{
+	return m_pPieceTable->getChangeHistory()->getLastChangeTime();
 }
 
 void PD_Document::_setClean(void)
@@ -5848,19 +5857,18 @@ bool PD_Document::getAllowChangeInsPoint(void) const
 void PD_Document::notifyPieceTableChangeStart(void)
 {
 //
-// Wait for all redraws to finish before starting.
+// A redraw in progress can never be waited out here:
+// FL_DocLayout::_redrawUpdate sets and clears m_bRedrawHappenning on
+// this same (main) thread, so the flag can only be observed set via
+// re-entrancy and no amount of sleeping lets it clear.  The old
+// UT_usleep loop stalled the UI thread for a guaranteed second
+// whenever it fired, then proceeded anyway.  The flag stays owned by
+// the redraw scope that set it; the redraw clears it on exit.
 //
-	UT_uint32 i = 0;
-	while(m_bRedrawHappenning && i < 10000)
+	if(m_bRedrawHappenning)
 	{
-		UT_usleep(100); // wait 100 microseonds
-		i++;
+		UT_DEBUGMSG(("PieceTable change starting during redraw update\n"));
 	}
-	if(i>0)
-	{
-		UT_DEBUGMSG(("!!!!Waited %d microseconds for redraw to finish \n",i*100));
-	}
-	m_bRedrawHappenning = false;
 	_setPieceTableChanging(true);
 //
 // Invalidate visible direction cache variables. PieceTable manipulations of

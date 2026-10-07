@@ -36,6 +36,9 @@
  *                            paste-options tag, text/image/frame
  *                            drags (GDK wayland paths when a wayland
  *                            compositor is live)
+ *   ui-drive --freeze        TST12: heartbeat-monitored op script —
+ *                            fails when a synchronous stall stretches
+ *                            a main-loop poll gap past the bound
  *
  * Exit codes: 0 ok, 1 failure, 77 no display / interactive prerequisite.
  * drvwrap.sh runs one process per dialog under `timeout` so a hang or
@@ -155,6 +158,53 @@ static void set_phase_widget(const char *prefix, GtkWidget *w)
 	const char *nm = w ? gtk_widget_get_name(w) : nullptr;
 	snprintf(g_phase, sizeof(g_phase), "%s %s name=%s",
 			 prefix ? prefix : "widget", tn, nm ? nm : "-");
+}
+
+/* TST12 heartbeat: a g_timeout only fires while the default main
+ * context is being serviced, so the gap between consecutive firings
+ * measures real UI-thread stalls — a usleep, a blocking whole-file
+ * read, or a serializing loop all stretch the next firing.  The
+ * --freeze leg scripts the operations FRZ01-03 touched and fails
+ * when a gap crosses the bound in effect at fire time: interactive
+ * ops keep the 750ms task bound while document load/import get a
+ * generous bound (a legit open is ~1s under gcov instrumentation —
+ * the tripwire exists to catch pathological stalls, not slow work). */
+static const guint HB_POLL_MS = 40;
+static const gint64 HB_BOUND_US = 750 * G_TIME_SPAN_MILLISECOND;
+static const gint64 HB_LOAD_BOUND_US = 6 * G_TIME_SPAN_SECOND;
+static gint64 g_hb_prev = 0;
+static gint64 g_hb_bound = HB_BOUND_US;
+static gint64 g_hb_worst = 0;		/* largest gap seen, for reporting */
+static char g_hb_worst_phase[192] = "-";
+static gint64 g_hb_worst_over = 0;	/* largest gap−bound — the gate */
+static gint64 g_hb_trip_gap = 0;
+static char g_hb_trip_phase[192] = "-";
+
+/* set the bound the heartbeat applies to upcoming gaps — stays in
+ * effect through the phase's own tail pump so a synchronous stall is
+ * attributed to the phase that ran it */
+static void hb_expect(gint64 bound_us)
+{
+	g_hb_bound = bound_us;
+}
+
+static gboolean heartbeat_cb(gpointer)
+{
+	gint64 now = g_get_monotonic_time();
+	gint64 gap = g_hb_prev ? now - g_hb_prev : 0;
+	if (gap > g_hb_worst) {
+		g_hb_worst = gap;
+		snprintf(g_hb_worst_phase, sizeof(g_hb_worst_phase),
+				 "%s", g_phase);
+	}
+	if (gap - g_hb_bound > g_hb_worst_over) {
+		g_hb_worst_over = gap - g_hb_bound;
+		g_hb_trip_gap = gap;
+		snprintf(g_hb_trip_phase, sizeof(g_hb_trip_phase),
+				 "%s", g_phase);
+	}
+	g_hb_prev = now;
+	return G_SOURCE_CONTINUE;
 }
 
 static void dump_diag(int sig)
@@ -3035,6 +3085,260 @@ static int drive_filenew(AP_UnixApp *app, const char *src)
 	return 0;
 }
 
+/* ---------------- TST12: heartbeat freeze leg ---------------- */
+
+/* async-load completion mirror of the edit-method embed path — the
+ * leg drives the same GIO pattern s_embedFileInDoc uses so a
+ * regression back to a synchronous whole-file read shows up as a
+ * heartbeat gap */
+struct EmbedWait {
+	gboolean done;
+	gboolean ok;
+	gchar *bytes;
+	gsize len;
+};
+
+static void embed_load_done(GObject *src, GAsyncResult *res, gpointer data)
+{
+	EmbedWait *w = static_cast<EmbedWait *>(data);
+	GError *err = nullptr;
+	w->ok = g_file_load_contents_finish(G_FILE(src), res, &w->bytes,
+										&w->len, nullptr, &err);
+	g_clear_error(&err);
+	w->done = TRUE;
+}
+
+/* answer the newest stray toplevel without driving its widgets — the
+ * freeze leg only measures dialog open/close cost; a synchronous
+ * drive_widget tree walk would itself show up as a heartbeat gap and
+ * measure the harness, not the app */
+static gboolean freeze_answer_cb(gpointer data)
+{
+	DriveCtx *ctx = static_cast<DriveCtx *>(data);
+	GtkWidget *w = nullptr;
+	if (!sweep_guard([&] { attach_live_stray(ctx->preexisting, &w); }))
+		return G_SOURCE_CONTINUE;
+	if (!w)
+		return G_SOURCE_CONTINUE;
+	if (GTK_IS_DIALOG(w))
+		g_signal_emit_by_name(w, "response", GTK_RESPONSE_DELETE_EVENT);
+	else if (GTK_IS_WINDOW(w))
+		gtk_window_close(GTK_WINDOW(w));
+	/* answering can finalize the dialog — the weak ref then already
+	 * nulled w, and removing a dead weak pointer is a critical */
+	if (w)
+		g_object_remove_weak_pointer(G_OBJECT(w),
+									 reinterpret_cast<gpointer *>(&w));
+	return G_SOURCE_REMOVE;
+}
+
+static int drive_freeze(AP_UnixApp *app, const char *src)
+{
+	alarm(0); /* the wrapper's `timeout` bounds the leg */
+	g_timeout_add(HB_POLL_MS, heartbeat_cb, nullptr);
+	g_hb_prev = g_get_monotonic_time();
+
+	set_phase("freeze: newFrame");
+	XAP_Frame *frame = app->newFrame();
+	if (!frame) {
+		g_printerr("drive: no frame\n");
+		return 1;
+	}
+
+	hb_expect(HB_LOAD_BOUND_US);
+	set_phase("freeze: loadDocument");
+	char *uri = g_strdup_printf("file://%s", src);
+	UT_Error err = frame->loadDocument(uri, IEFT_Unknown, true);
+	g_free(uri);
+	frame->show();
+	pump_for(400);
+	hb_expect(HB_BOUND_US);
+	FV_View *fv = static_cast<FV_View *>(frame->getCurrentView());
+	if (err != UT_OK || !fv) {
+		g_printerr("drive: load err %d\n", err);
+		return 1;
+	}
+
+	/* the biggest bundled binary fixture through the real importer —
+	 * the .doc path reads + parses the whole file.  Runs first while
+	 * the frame's document is still clean so the in-place reload can
+	 * never pop a "save changes?" modal */
+	hb_expect(HB_LOAD_BOUND_US);
+	set_phase("freeze: doc import");
+	{
+		const char *top = getenv("ABINOVA_TEST_SRC_DIR");
+		char *dpath = g_strdup_printf("%s/test/wp/fields.doc",
+									  top ? top : ".");
+		if (g_file_test(dpath, G_FILE_TEST_EXISTS)) {
+			char *u2 = g_strdup_printf("file://%s", dpath);
+			frame->loadDocument(u2, IEFT_Unknown, false);
+			g_free(u2);
+			pump_for(300);
+			fv = static_cast<FV_View *>(frame->getCurrentView());
+		}
+		g_free(dpath);
+	}
+	hb_expect(HB_BOUND_US);
+	if (!fv) {
+		g_printerr("drive: no view after import\n");
+		return 1;
+	}
+
+	/* burst typing through the insertData edit method — the same
+	 * path a keyboard burst takes: piece-table inserts, layout,
+	 * change-history serial bumps, redraw scheduling */
+	set_phase("freeze: burst type");
+	{
+		const EV_EditMethodContainer *emc =
+			XAP_App::getApp()->getEditMethodContainer();
+		EV_EditMethod *em = emc ? emc->findEditMethodByName("insertData")
+								: nullptr;
+		static const char burst[] =
+			"The freeze leg types this sentence eight times over. ";
+		for (int i = 0; i < 8 && em; i++) {
+			EV_EditMethodCallData emcd(burst,
+									 static_cast<UT_uint32>(sizeof(burst) - 1));
+			em->Fn(fv, &emcd);
+			pump_for(60);
+		}
+	}
+
+	set_phase("freeze: scroll");
+	for (int i = 0; i < 6; i++)
+		fv->cmdScroll(AV_SCROLLCMD_PAGEDOWN);
+	pump_for(200);
+	fv->cmdScroll(AV_SCROLLCMD_TOBOTTOM);
+	fv->cmdScroll(AV_SCROLLCMD_TOTOP);
+	pump_for(150);
+
+	/* FRZ02: the first tick on a dirty doc pays the real serialize;
+	 * the second with unchanged content must take the serial-skip
+	 * path — both stay under the heartbeat bound */
+	set_phase("freeze: autosave serialize");
+	frame->autosaveTick();
+	pump_for(100);
+	set_phase("freeze: autosave skip");
+	frame->autosaveTick();
+	pump_for(100);
+
+	/* open + close a couple of small dialogs: request + answer only,
+	 * no widget walk (a synchronous drive_widget tree walk would
+	 * itself show up as a heartbeat gap and measure the harness, not
+	 * the app) — construction, show and teardown are what get timed */
+	set_phase("freeze: dialogs");
+	{
+		XAP_DialogFactory *factory =
+			static_cast<XAP_DialogFactory *>(frame->getDialogFactory());
+		const XAP_Dialog_Id want[] = {XAP_DIALOG_ID_ZOOM,
+									  XAP_DIALOG_ID_ABOUT};
+		int done = 0;
+		for (size_t w = 0; factory && w < G_N_ELEMENTS(want); w++) {
+			const XAP_DialogFactory::_dlg_table *e = nullptr;
+			for (UT_uint32 i = 0; i < factory->getDialogTableSize(); i++) {
+				const XAP_DialogFactory::_dlg_table *t =
+					factory->getDialogTableEntry(i);
+				if (t && t->m_id == want[w]) {
+					e = t;
+					break;
+				}
+			}
+			if (!e)
+				continue;
+			XAP_Dialog *dlg = factory->requestDialog(e->m_id);
+			if (!dlg)
+				continue;
+			DriveCtx dctx {nullptr, {}, 0, false, false, 0, 0};
+			sweep_guard([&dctx] { dctx.preexisting = toplevels(); });
+			if (XAP_Dialog_Modeless *ml =
+					dynamic_cast<XAP_Dialog_Modeless *>(dlg)) {
+				ml->runModeless(frame);
+				pump_for(250);
+				GtkWidget *top = nullptr;
+				sweep_guard([&] {
+					attach_live_stray(dctx.preexisting, &top);
+				});
+				if (top) {
+					gtk_window_close(GTK_WINDOW(top));
+					if (top)
+						g_object_remove_weak_pointer(
+							G_OBJECT(top),
+							reinterpret_cast<gpointer *>(&top));
+				}
+				pump_for(150);
+			} else {
+				g_timeout_add(150, freeze_answer_cb, &dctx);
+				dlg->runModal(frame);
+				pump();
+			}
+			factory->releaseDialog(dlg);
+			pump_for(100);
+			done++;
+		}
+		if (!done)
+			g_printerr("drive: no cheap dialogs registered\n");
+	}
+
+	/* FRZ03's fixed path: a multi-MB blob must reach the doc through
+	 * async I/O plus a bounded insert.  Load 8MB with the same GIO
+	 * async call insMediaFile uses, then embed it like
+	 * s_embedBufferInDoc does — a sync re-read of this size or a
+	 * stray UI-thread sleep shows up in the heartbeat */
+	set_phase("freeze: async media embed");
+	{
+		gchar *mpath = g_strdup_printf("%s/ui-drive-freeze-embed.bin",
+									   g_get_tmp_dir());
+		FILE *f = fopen(mpath, "wb");
+		if (f) {
+			static char blk[4096];
+			memset(blk, 0x5a, sizeof(blk));
+			for (int i = 0; i < 2048; i++) /* 8MB */
+				fwrite(blk, 1, sizeof(blk), f);
+			fclose(f);
+		}
+		GFile *gf = g_file_new_for_path(mpath);
+		EmbedWait w {FALSE, FALSE, nullptr, 0};
+		g_file_load_contents_async(gf, nullptr, embed_load_done, &w);
+		g_object_unref(gf);
+		gint64 deadline = g_get_monotonic_time() + 30 * G_USEC_PER_SEC;
+		while (!w.done && g_get_monotonic_time() < deadline)
+			g_main_context_iteration(nullptr, TRUE);
+		if (w.ok && w.bytes) {
+			UT_ByteBufPtr buf(new UT_ByteBuf);
+			buf->ins(0, reinterpret_cast<const UT_Byte *>(w.bytes),
+					 static_cast<UT_uint32>(w.len));
+			set_phase("freeze: embed insert");
+			fv->cmdInsertEmbed(buf, fv->getPoint(),
+							   "application/octet-stream",
+							   "embed-type: file; media-kind: file; "
+							   "media-name: freeze.bin");
+			pump_for(150);
+		}
+		g_free(w.bytes);
+		unlink(mpath);
+		g_free(mpath);
+	}
+
+	set_phase("freeze: report");
+	g_print("freeze: worst main-loop gap %lld ms at \"%s\" "
+			"(interactive bound %lld ms)\n",
+			static_cast<long long>(g_hb_worst / 1000),
+			g_hb_worst_phase,
+			static_cast<long long>(HB_BOUND_US / 1000));
+	/* drop the recovery copy the first tick wrote — the leg proved
+	 * the serialize happened; no need to leave it in the user dir */
+	frame->discardAutosaveFile();
+	__gcov_dump();
+	if (g_hb_worst_over > 0) {
+		g_printerr("drive: heartbeat stall %lld ms in \"%s\" "
+				   "(%lld ms over its bound)\n",
+				   static_cast<long long>(g_hb_trip_gap / 1000),
+				   g_hb_trip_phase,
+				   static_cast<long long>(g_hb_worst_over / 1000));
+		return 1;
+	}
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	g_log_set_writer_func(drive_log_writer, nullptr, nullptr);
@@ -3061,7 +3365,7 @@ int main(int argc, char **argv)
 
 	bool wantList = false, wantFrame = false, wantAbi = false,
 		 wantEv = false, wantFmt = false, wantFileNew = false,
-		 wantRuler = false;
+		 wantRuler = false, wantFreeze = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -3078,13 +3382,15 @@ int main(int argc, char **argv)
 			wantFileNew = true;
 		else if (strcmp(argv[i], "--ruler") == 0)
 			wantRuler = true;
+		else if (strcmp(argv[i], "--freeze") == 0)
+			wantFreeze = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
 	if (!wantList && !wantFrame && !wantAbi && !wantEv && !wantFmt &&
-		!wantFileNew && !wantRuler && wantId < 0) {
+		!wantFileNew && !wantRuler && !wantFreeze && wantId < 0) {
 		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev"
-				   " | --fmt | --filenew | --ruler\n", argv[0]);
+				   " | --fmt | --filenew | --ruler | --freeze\n", argv[0]);
 		return 2;
 	}
 
@@ -3156,6 +3462,8 @@ int main(int argc, char **argv)
 		return drive_filenew(app, src);
 	if (wantRuler)
 		return drive_ruler(app, src);
+	if (wantFreeze)
+		return drive_freeze(app, src);
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {

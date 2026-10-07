@@ -21,6 +21,7 @@
 #ifndef PX_CHANGEHISTORY_H
 #define PX_CHANGEHISTORY_H
 
+#include <ctime>
 #include <memory>
 #include <vector>
 
@@ -90,6 +91,17 @@ public:
 	// 0 means unbounded.
 	UT_uint32				getUndoDepthLimit(void) const;
 	void					pruneHistory(UT_uint32 maxOps);
+
+	// serial identifying the content epoch: bumped on every mutation
+	// (record append, coalesced edit, undo, redo, history reset), so
+	// comparing a cached value answers "did the content change since
+	// then" without a walk.  Only meaningful against an earlier value
+	// from the same history.
+	UT_sint64				getSerial(void) const
+		{ return m_iSerial; }
+	// wall-clock time of the last content mutation, or 0 if none
+	time_t					getLastChangeTime(void) const
+		{ return m_tLastChange; }
 	UT_sint32				getOpCount(void) const
 		{ return m_iUndoOps; }
 	UT_sint32				getRecordCount(void) const
@@ -106,6 +118,7 @@ public:
 protected:
 	void					_invalidateRedo(void);
 	void					_invalidateHistory(void);
+	void					_noteMutation(void);
 	void                                    _printHistory(UT_sint32 i) const;
 	PX_ChangeRecord *		_getCR(UT_sint32 ndx) const
 	{
@@ -128,6 +141,9 @@ protected:
 	// pruneHistory()'s scan
 	UT_sint32				m_iUndoOps;
 	UT_sint32				m_iGlobDepth;
+	// see getSerial()/getLastChangeTime()
+	UT_sint64				m_iSerial;
+	time_t					m_tLastChange;
 };
 
 #endif /* PX_CHANGEHISTORY_H */

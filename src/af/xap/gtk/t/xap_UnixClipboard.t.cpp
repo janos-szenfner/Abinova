@@ -84,3 +84,47 @@ TFTEST_MAIN("oversized clipboard payload is rejected and flagged")
 	TFPASS(!clip->wasDataOversized());
 	TFPASS(!clip->canPaste(XAP_UnixClipboard::TAG_ClipboardOnly));
 }
+
+TFTEST_MAIN("snapshotData hands the provider an owned payload copy")
+{
+	XAP_UnixClipboard * clip =
+		static_cast<XAP_UnixApp*>(XAP_App::getApp())->getClipboard();
+	if (!clip)
+		return;		/* headless builds keep m_pClipboard null */
+
+	/* FRZ03: the provider write is async now, so snapshotData returns
+	 * an owned copy instead of writing a borrowed pointer — the copy
+	 * must carry the exact stored bytes and survive the fake
+	 * clipboard being cleared. */
+	const char payload[] = "provider payload \xc3\xa9\x00 tail";
+	const gsize payloadLen = sizeof(payload) - 1;
+	TFPASS(clip->addData(XAP_UnixClipboard::TAG_ClipboardOnly,
+						 "application/octet-stream", payload,
+						 payloadLen));
+
+	guchar * out = nullptr;
+	gsize outLen = 0;
+	GError * err = nullptr;
+	TFPASS(clip->snapshotData("application/octet-stream", false,
+							  &out, &outLen, &err));
+	TFPASS(out && outLen == payloadLen);
+	TFPASS(!std::memcmp(out, payload, payloadLen));
+
+	clip->clearData(true, false);
+	TFPASS(!std::memcmp(out, payload, payloadLen));
+	g_free(out);
+	out = nullptr;
+
+	/* a mime the clipboard does not hold is a clean miss, not a
+	 * fabricated payload */
+	outLen = 0;
+	TFPASS(!clip->snapshotData("text/plain", false, &out, &outLen,
+							   &err));
+	TFPASS(out == nullptr && outLen == 0);
+	if (err)
+	{
+		g_error_free(err);
+		err = nullptr;
+	}
+}
+

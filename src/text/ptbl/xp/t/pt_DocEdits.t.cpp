@@ -1448,3 +1448,27 @@ TFTEST_MAIN("MaxUndoOps=0 leaves the history unbounded")
 	TFPASS(editDocText(d.doc) == "yfree");
 	TFPASS(hist->getOpCount() == n0 + 6);
 }
+
+TFTEST_MAIN("notifyPieceTableChangeStart does not stall on the redraw flag")
+{
+	EditDoc d;
+	TFPASS(d.build());
+	TFPASS(d.para("hello"));
+	d.finish();
+
+	/* FRZ01: m_bRedrawHappenning is set and cleared by _redrawUpdate
+	 * on this same (main) thread, so a piece-table change that sees it
+	 * set can never wait it out — the old UT_usleep spin burned a
+	 * guaranteed second and then proceeded anyway. */
+	d.doc->setRedrawHappenning(true);
+	const gint64 t0 = g_get_monotonic_time();
+	d.doc->notifyPieceTableChangeStart();
+	const gint64 elapsed = g_get_monotonic_time() - t0;
+	TFPASS(elapsed < 50 * 1000); /* microseconds */
+	/* the flag stays owned by the redraw scope that set it */
+	TFPASS(d.doc->isRedrawHappenning());
+	TFPASS(d.doc->isPieceTableChanging());
+	d.doc->notifyPieceTableChangeEnd();
+	TFPASS(!d.doc->isPieceTableChanging());
+	d.doc->setRedrawHappenning(false);
+}

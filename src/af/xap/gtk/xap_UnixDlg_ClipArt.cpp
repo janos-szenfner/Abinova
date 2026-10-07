@@ -145,8 +145,8 @@ static gboolean
 fill_store (XAP_UnixDialog_ClipArt *self)
 {
 	self->clearFillIdleId();
-	gboolean ret = self->fillStore();
-	if (!ret) {
+	gboolean more = self->fillStore();
+	if (self->fillFailed()) {
 		GtkWidget *dlg = self->getDialog ();
 		const XAP_StringSet *pSS = XAP_App::getApp()->getStringSet ();
 		std::string s;
@@ -157,6 +157,11 @@ fill_store (XAP_UnixDialog_ClipArt *self)
 		err = nullptr;
 
 		gtk_dialog_response(GTK_DIALOG(dlg), GTK_RESPONSE_CANCEL);
+		return FALSE;
+	}
+	if (more) {
+		self->armFillIdle(g_idle_add (
+			reinterpret_cast<GSourceFunc>(fill_store), self));
 	}
 	return FALSE;
 }
@@ -187,6 +192,9 @@ XAP_Dialog * XAP_UnixDialog_ClipArt::static_constructor(XAP_DialogFactory * pFac
 XAP_UnixDialog_ClipArt::XAP_UnixDialog_ClipArt(XAP_DialogFactory * pDlgFactory, XAP_Dialog_Id id)
   : XAP_Dialog_ClipArt(pDlgFactory, id)
   , fill_idle_id(0)
+  , m_fillDir(nullptr)
+  , m_fillFailed(false)
+  , m_fillDone(0)
 {}
 
 /**
@@ -197,6 +205,7 @@ XAP_UnixDialog_ClipArt::~XAP_UnixDialog_ClipArt()
 	if (this->fill_idle_id) {
 		g_source_remove (this->fill_idle_id);
 	}
+	g_clear_pointer (&this->m_fillDir, g_dir_close);
 	this->dir_path = nullptr;
 	this->progress = nullptr;
 	this->grid_view = nullptr;
@@ -326,32 +335,45 @@ void XAP_UnixDialog_ClipArt::runModal(XAP_Frame * pFrame)
 }
 
 /**
- * Fill list store updating progress bar as we go.
+ * Fill the list store with clipart entries from dir_path, at most a
+ * small batch per call.  The idle wrapper re-arms while this returns
+ * TRUE, so the main context stays responsive between batches instead
+ * of being pumped inside the loop with g_main_context_iteration —
+ * which let unrelated handlers run mid-fill.  Returns FALSE on
+ * completion or failure; m_fillFailed tells the wrapper which it was.
  */
 gboolean XAP_UnixDialog_ClipArt::fillStore()
 {
-	GDir 		*dir;
-	const gchar *name;
 	GdkPixbuf	*pixbuf;
 	GError		*error;
-	gint		 _count;
 
 	if (!this->dir_path ||
 		!g_file_test (this->dir_path, G_FILE_TEST_IS_DIR)) {
+		m_fillFailed = true;
 		return FALSE;
 	}
 
-	error = nullptr;
-	dir = g_dir_open (this->dir_path, 0, &error);
-	if (error) {
-		g_warning ("%s", error->message);
-		g_error_free (error);
-		return FALSE;
+	if (!m_fillDir) {
+		error = nullptr;
+		m_fillDir = g_dir_open (this->dir_path, 0, &error);
+		if (error) {
+			g_warning ("%s", error->message);
+			g_error_free (error);
+			m_fillFailed = true;
+			return FALSE;
+		}
+		gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (this->progress), 0.);
+		m_fillDone = 0;
 	}
 
-	gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (this->progress), 0.);
-	_count = 0;
-	while ((name = g_dir_read_name (dir)) != nullptr) {
+	for (int i = 0; i < 8; i++) {
+		const gchar *name = g_dir_read_name (m_fillDir);
+		if (!name) {
+			g_clear_pointer (&m_fillDir, g_dir_close);
+			clipartCount = m_fillDone;
+			gtk_widget_set_visible (this->progress, FALSE);
+			return FALSE;
+		}
 
 		gchar *file_path, *display_name;
 
@@ -390,25 +412,17 @@ gboolean XAP_UnixDialog_ClipArt::fillStore()
 		g_object_unref(G_OBJECT (pixbuf));
 		pixbuf = nullptr;
 
+		m_fillDone++;
+
 		if (clipartCount) {
 			gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (this->progress),
-										   _count / clipartCount * 100.);
+										   m_fillDone / (gdouble) clipartCount);
 		}
 		else {
 			gtk_progress_bar_pulse (GTK_PROGRESS_BAR (this->progress));
 		}
-		_count++;
-		if (_count % 10 == 0) {
-			g_main_context_iteration(nullptr, false);
-		}
 	}
-	g_dir_close (dir);
-	clipartCount = _count;
-
-	gtk_widget_set_visible(this->progress, FALSE);
-
-	this->fill_idle_id = 0;
-	return FALSE; /* one-shot: TRUE would re-run and re-fill forever */
+	return TRUE;
 }
 
 /**

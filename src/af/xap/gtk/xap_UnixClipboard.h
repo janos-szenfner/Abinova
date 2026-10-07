@@ -75,10 +75,11 @@ public:
 	bool				wasDataOversized(void) const
 		{ return m_bOversizedData; }
 
-	// called by the GdkContentProvider when a pasting peer requests data
-	bool				writeData(const char * mime_type, GOutputStream * stream,
-								  bool bPrimary, GCancellable *cancellable,
-								  GError ** error);
+	// called by the GdkContentProvider when a pasting peer requests data;
+	// returns an owned copy of the payload for the async write to send
+	bool				snapshotData(const char * mime_type, bool bPrimary,
+								 guchar ** out, gsize * out_len,
+								 GError ** error);
 
 	// called from AbiContentProvider's ctor/weak-notify to keep the
 	// provider's raw owner pointer from outliving this object
