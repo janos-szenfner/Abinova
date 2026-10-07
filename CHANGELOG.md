@@ -1861,6 +1861,14 @@ below are on `main` but the release has not been cut yet.
   math now clamps the column divisor, bails cleanly on a stale
   info cache, bounds the convergence loop, and every table-cell
   lookup is bounds-checked including the right-edge marker.
+- **Ruler drags track outside the ruler band** — ruler drags are now
+  driven by `GtkGestureDrag` on both the top and left rulers, so a
+  claimed drag keeps receiving updates after the pointer drifts
+  vertically out of the thin ruler strip (GTK4 dropped GTK3's
+  implicit press grab, which previously froze the preview and could
+  cancel the whole drag at release). Dragging a tab stop off the
+  band deletes it — matching Word — instead of silently cancelling,
+  and double-clicking the ruler opens the Paragraph dialog.
 - **Line numbers are now rendered in the margin** — Layout >
   Line Numbers used to store the settings on the section without
   drawing anything. The layout engine now draws running line
@@ -4290,6 +4298,19 @@ below are on `main` but the release has not been cut yet.
   accumulates duplicates per call.
 - **Image drag-out** — duplicated ~60-line block extracted to a shared
   helper.
+- **Layout no longer scales quadratically with page/paragraph
+  count** — a callgrind profile of large documents showed three
+  compounding O(n²) hot spots, all removed: page-neighbour and
+  page-geometry queries (`fp_Page::getNext`/`getPrev`/
+  `getPageNumber`) ran a linear scan of the page list on every call —
+  the dominant cost in both document open and per-keystroke layout —
+  now resolved in O(1) from an index cached on each `fp_Page`;
+  the column breaker's container fill loop did a per-element
+  find-and-erase on the container vector and now bulk-moves
+  contiguous ranges with insertion hints; and the
+  reformat-pending list deduplicated with a linear `std::find`,
+  now backed by a mirror set. Large documents open and re-lay out
+  proportionally faster; small documents are unaffected.
 
 ### Fonts
 

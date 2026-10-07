@@ -18,7 +18,7 @@
 .\"
 .\" Copyright 2009 Patrik Fimml
 .
-.TH ABINOVA 1 "2012-04-26" "Abinova 2.9"
+.TH ABINOVA 1 "2026-10-07" "Abinova 4.0"
 .
 .SH NAME
 abinova \(em flexible cross-platform word processor
@@ -65,20 +65,21 @@ extension, if necessary). See also \fBEXAMPLES\fR.
 The more popular values for \fIFORMAT\fR include:
 .TS
 lb	lx.
-abw	T{
-Abiword XML format (\fBzabw\fR for gzip, \fBbzabw\fR for bzip2 compression)
+abwn	T{
+Abinova XML format (\fBzabwn\fR for gzip compression)
 T}
-dbk	DocBook XML
 doc	Microsoft Word binary format
 docx	T{
 Office Open XML (newer Microsoft Word versions)
 T}
+epub	EPUB ebook
 html	Hypertext Markup Language
-kwd	KWord
+md	Markdown
+mht	MHTML web archive
 odt	OpenDocument Text
 pdf	Portable Document Format
 rtf	Rich Text Format
-sxw	OpenOffice.org Writer 1.0
+tex	LaTeX
 txt	Plain text
 .TE
 .RE
@@ -116,9 +117,9 @@ empty, a default equal to
 .BR HOME "/.config will be used.)"  
 .
 .SH EXAMPLES
-To convert the document \fIexample.abw\fR to RTF:
+To convert the document \fIexample.abwn\fR to RTF:
 .in +4n
-abinova \-\-to=rtf example.abw
+abinova \-\-to=rtf example.abwn
 .in
 The resulting file will be named \fIexample.rtf\fR.
 .P
@@ -128,8 +129,8 @@ abinova \-\-to=ps \-\-to\-name=fd://1 \fIFILENAME\fR | lp
 .in
 .
 .SH REPORTING BUGS
-Report bugs to the Bugzilla bug tracking system at
-.RI < http://bugzilla.abisource.com >.
+Report bugs to the issue tracker at
+.RI < https://github.com/janos-szenfner/Abinova/issues >.
 .SH SEE ALSO
 .BR enchant (1)
 .SH HISTORY

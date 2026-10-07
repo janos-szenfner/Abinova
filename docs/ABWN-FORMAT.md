@@ -16,9 +16,9 @@ element, doctype and namespace, so AWML-aware readers that accept an
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE abinova PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN"
+<!DOCTYPE abinova PUBLIC "-//ABINOVA//DTD AWNL 1.0 Strict//EN"
         "https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd">
-<abinova version="1.0" fileformat="4.0" template="false"
+<abinova version="4.0.0" fileformat="1.2" template="false"
          xmlns="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd">
   <metadata><m key="dc.title">…</m>…</metadata>
   <styles><s name="Normal" type="P" props="…"/>…</styles>

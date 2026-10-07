@@ -9,7 +9,8 @@
 writes the document formats you actually exchange with other people
 — Office Open XML, OpenDocument, EPUB, Markdown, LaTeX — without
 needing any plugin to be installed, and keeps its own compact
-<i>.abw</i> format (with an encrypted variant) for everyday work.</p>
+<i>.abwn</i> format (optionally password-encrypted) for everyday
+work.</p>
 
 <p>This project is experimental and supplied <b>without any
 warranty</b>. See the Changelog (Help ribbon) for what changed in
@@ -19,12 +20,14 @@ each version.</p>
 
 <h2>Documents and file formats</h2>
 
-<p><b>Native format</b> — <code>.abw</code> (AbiWord XML) is the
-default. <code>.abwn</code> is the same document inside an encrypted
-envelope; pick a password when saving and the file cannot be opened
-without it. Encryption is PBKDF2-HMAC-SHA-256 key derivation
-(600,000 rounds) plus AES-256-GCM, so both the content and the
-header are authenticated.</p>
+<p><b>Native format</b> — <code>.abwn</code> (Abinova XML) is the
+default. Legacy AbiWord <code>.abw</code> files open normally but
+re-save as <code>.abwn</code>. Optional encryption wraps the
+document in an authenticated envelope: pick a password when saving
+and the file cannot be opened without it. Encryption is
+PBKDF2-HMAC-SHA-256 key derivation (600,000 rounds) plus
+AES-256-GCM, so both the content and the header are
+authenticated.</p>
 
 <p><b>Office formats</b> — DOCX / DOTX / DOCM and legacy DOC open
 and save natively; the code lives in the core, not in a plugin.
@@ -126,15 +129,16 @@ Alt+↑ / Alt+↓ move between comments.</li>
 
 <p><b>Ribbon</b> — a LibreOffice/Word-style NotebookBar replaces the
 old menu bar: File, Home, Insert, References, Layout, Review, View
-and Help, with contextual tabs for tables and equations. A
-menu-bar / classic mode is still available from the View options.</p>
+and Help, with contextual tabs for tables and equations. The ribbon
+is the only interface — there is no classic menu-bar mode.</p>
 
 <p><b>Layout views</b> — Print Layout (Ctrl+Alt+P) and Normal/draft
 (Ctrl+Alt+N), rulers, zoom, split view (Ctrl+Alt+S, remove with
 Alt+Shift+C) and fullscreen (F11).</p>
 
 <p><b>Multiple documents</b> — Ctrl+F6 / Ctrl+Shift+F6 cycle through
-open windows; the Window menu lists them all and can arrange them.</p>
+open windows; the View ribbon's <b>Switch Windows</b> dropdown lists
+them all.</p>
 
 <hr>
 
@@ -182,8 +186,8 @@ never destroys the existing file.</p>
 <h2>Links</h2>
 
 <ul>
-<li>Changelog — use the <b>Changelog</b> button on the Help ribbon,
-or the Help menu.</li>
+<li>Changelog — use the <b>Changelog</b> button on the Help
+ribbon.</li>
 <li>Report a bug —
 <a href="https://github.com/janos-szenfner/Abinova/issues/new">github.com/janos-szenfner/Abinova/issues</a></li>
 </ul>

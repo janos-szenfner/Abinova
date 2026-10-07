@@ -465,8 +465,9 @@ The only interface — modelled on LibreOffice Writer's
 NotebookBar (`sw/uiconfig/swriter/ui/notebookbar.ui`). A
 `GtkNotebook` presents **File / Home / Insert / References /
 Layout / Review / View / Help** tabs — **Home is the default** —
-plus contextual **Table** and **Equation** tabs that appear only
-while the caret is inside a table or on an equation. The ribbon
+plus contextual **Table Design**, **Table Layout** and
+**Equation** tabs that appear only while the caret is inside a
+table or on an equation. The ribbon
 is the only interface — the classic menubar/toolbar UI and its
 Help → Interface switch were removed along with the `RibbonUI`
 preference.
@@ -737,6 +738,15 @@ labels, like Word's ribbon.
 
 #### Contextual tabs
 
+- **Table Design** — appears while the caret is inside a table,
+  next to Table Layout. Groups: **Table Style Options** (Header
+  Row, Total Row, Banded Rows, First/Last Column, Banded Columns
+  toggles persisted per-table), a **Table Styles** gallery strip
+  (Grid Table / List Table / Plain Table families — 99 styles
+  carrying real OOXML ids — with hover live-preview, plus Modify,
+  Clear and New Table Style… rows) and a **Borders** group
+  (Shading picker, Border Styles, thickness combo, Pen Colour,
+  Borders presets, Border Painter).
 - **Table Layout** — appears only while the caret is inside a
   table and hands focus back to Home when the caret leaves,
   mirroring LibreOffice/Word contextual tabs. Groups:
@@ -862,14 +872,15 @@ not exist remain unbound on all platforms.
   `hexpand` from their internal entry, letting the font-size combo
   swallow the whole toolbar; `hexpand` is now explicitly disabled and
   the entry width capped.
-- **Internal help bundled**: the upstream `abiword-docs` manual was
-  imported and converted to HTML (`help/en-US`, ~200 pages —
-  English only; the `fr-FR`/`pl-PL` trees and the language
-  selector were removed). Help buttons open a built-in help
-  browser (`xap_UnixHelpWindow`) — a popup window with Back/Home
-  navigation, clickable cross-page links and live search across
-  every page with titled results and match snippets. Dialog F1
-  help targets route there too.
+- **Internal help bundled**: `help/en-US/` ships a single-page
+  manual (`index.html`) covering the shipped UI plus a
+  `changelog.html` regenerated from `CHANGELOG.md` at build time
+  (`tools/changelog2html.sh`) — English only; the upstream
+  `abiword-docs` pages and the language selector are gone. Help
+  buttons open a built-in help browser (`xap_UnixHelpWindow`) —
+  a popup window with Back/Home navigation, clickable cross-page
+  links and live search with titled results and match snippets.
+  Dialog F1 help targets route there too.
 - **Ruler redesign** (`ap_TopRuler.cpp`): full-height bar, bottom-
   anchored tick hierarchy, gray margin bands, and inch/half-inch
   numeric labels drawn with the GUI font so they stay a constant
@@ -1138,7 +1149,7 @@ were fixed in this tree:
 - **LP#926419** — typed text invisible on Wayland: resolved by the
   GTK4 draw path.
 - **LP#1141885** — `.docx` not associated with abiword: the format is
-  now built-in; `abiword.keys` registers the DOCX/ODT/EPUB mimetypes.
+  now built-in; `abinova.keys` registers the DOCX/ODT/EPUB mimetypes.
 
 Feature-removal closures (component deleted): LP#1711244, LP#673045,
 LP#673052, LP#674721, LP#295596, LP#388971 (collab/goffice plugins).
@@ -1147,8 +1158,8 @@ LP#673052, LP#674721, LP#295596, LP#388971 (collab/goffice plugins).
 
 - **Carlito is the default document font** (replacing Times New Roman):
   default property table, `Normal` style construction, the view's
-  default font resolution, and all 63 `normal.awt-*` templates were
-  updated.
+  default font resolution, and all 64 `normal.awt-*` locale
+  templates were updated.
 - **99 bundled font files** under `fonts/`, installed to
   `<AbiSuiteLibDir>/fonts` and registered at startup via
   `FcConfigAppFontAddDir` (`src/af/xap/gtk/xap_UnixApp.cpp`). The set
@@ -1168,7 +1179,7 @@ LP#673052, LP#674721, LP#295596, LP#388971 (collab/goffice plugins).
   | Source Sans 3, Source Serif 4, Source Code Pro | Adobe open families |
   | Linux Libertine, Linux Biolinum | serif/sans text families |
 
-- **Font substitution rules** (`fonts/abiword-fonts.conf`): loaded via
+- **Font substitution rules** (`fonts/abinova-fonts.conf`): loaded via
   `FcConfigParseAndLoad` at startup; maps common document font names
   (Calibri→Carlito, Cambria→Caladea, Aptos→Intos, Times New
   Roman→Liberation Serif, Arial→Liberation Sans, Courier
@@ -1195,9 +1206,11 @@ the AWNL vocabulary (derived from AWML, but declared as its own
 format - root element `<abinova>`, doctype
 `-//ABINOVA//DTD AWNL 1.0 Strict//EN`, namespaces on this
 repository - see `abwn.dtd`). New documents save as `.abwn` by
-default - `DefaultSaveFormat` is `.abwn`, the Save As dialog
-offers only the `.abwn` family, and `--to=abwn`/`--to`
-conversions use it. **The old `.abw` serialization is read-only:**
+default - `DefaultSaveFormat` is `.abwn`, the Save As type list
+no longer offers the legacy `.abw` writer (the `.abwn` family is
+the only native choice; other formats such as `.docx`, `.odt`
+and `.rtf` are still offered), and `--to` conversions default to
+it. **The old `.abw` serialization is read-only:**
 `.abw` files (as well as `.awt` templates and the
 `.zabw`/`.abw.gz`/`.bzabw`/`.abw.bz2` compressed variants, plus
 their `.abwn` counterparts) open exactly as before - the importer
@@ -1206,7 +1219,7 @@ recognizes all of them and the content sniffer accepts both the
 the old format; re-saving an `.abw` produces an `.abwn`.
 
 The file itself is a single UTF-8 XML document with a `PUBLIC`
-doctype pointing at `awml.dtd` — unless it was saved with a
+doctype pointing at `abwn.dtd` — unless it was saved with a
 password, in which case the XML (possibly gzip-compressed) is
 wrapped in the binary `ABWNCRP1` envelope described under
 *Encrypted `.abwn` envelope* below. The plain serialization is
@@ -1950,10 +1963,16 @@ Older upstream history is not listed here.
 | Path | Contents |
 |------|----------|
 | `src/` | Application and library source (GTK port) |
+| `thirdparty/` | Vendored libraries (wv, libwpd/libwpg/libwps, librevenge, hunspell) |
 | `fonts/` | Bundled fonts + licenses + substitution config |
 | `user/` | Templates, clipart |
+| `artwork/` | Shapes, icons and imagery used by the ribbon/insert galleries |
+| `test/` | Document test corpus used by `make check` |
+| `fuzz/` | libFuzzer harnesses, seed corpora and pinned reproducers |
+| `dist/` | Bundle/installer scripts and packaging manifests |
+| `docs/` | Format and design documentation (`ABWN-FORMAT.md`) |
 | `tools/` | Development/test helpers |
-| `help/` | Bundled English user manual (`en-US`, ~200 HTML pages) |
+| `help/` | Bundled English help pages (`en-US`: manual + generated changelog) |
 
 The deleted `plugins/` and `src/plugins/` trees, the old `po/`
 catalogs and the upstream `flatpak/` manifest are gone entirely —
@@ -1971,13 +1990,13 @@ make -C src           # builds libabinova + the abinova binary
 sudo make install     # installs binary, data files, and fonts/
 ```
 
-Running from the build tree without installing: set `ABIWORD_DATADIR`
+Running from the build tree without installing: set `ABINOVA_DATADIR`
 to the repository root so the app picks up `<repo>/fonts`.
 
 Headless conversions (also usable for smoke tests):
 
 ```bash
-ABIWORD_DATADIR=$PWD src/.libs/abinova --to=odt input.abwn -o out.odt
+ABINOVA_DATADIR=$PWD src/.libs/abinova --to=odt input.abwn -o out.odt
 ABINOVA_PASSWORD=secret src/.libs/abinova --to=abwn encrypted.odt -o out.abwn
 ```
 
@@ -2449,9 +2468,10 @@ cleanly when valgrind or the built binary is absent.
 
 ## Known issues
 
-- The GTK4 dialog migration is in progress — `.ui` files were
-  mechanically converted from GTK3 markup; some dialogs may still have
-  layout or widget-type quirks.
+- The GTK4 dialog migration is mechanically complete — every dialog
+  opens under the `dialog-smoke` suite — but some dialogs may still
+  have layout or widget-type quirks inherited from the mechanical
+  GTK3→GTK4 `.ui` conversion.
 - macOS (GTK/Quartz) and Windows (MSYS2/GTK4-win32) builds now have
   toolchain scripts and the source is guarded for the missing X11
   backend, but neither has been verified on real hardware yet.
@@ -2512,9 +2532,8 @@ are enforced by `configure`)
 - [librsvg](https://gitlab.gnome.org/GNOME/librsvg) **≥ 2.58.0** —
   SVG rendering
 - [Boost](https://www.boost.org/) **≥ 1.83** — headers only
-  (rsvg plugin)
-- [Boost](https://www.boost.org/) headers
-- X11 — X11/XWayland platform glue
+- X11 — needed only for GTK X11-backend builds (skipped on
+  Quartz/Win32)
 
 **Vendored in `thirdparty/` / `fonts/`**
 
@@ -2524,7 +2543,11 @@ are enforced by `configure`)
   patched for the reported buffer overflows
 - [libwpd](https://libwpd.sourceforge.io/) +
   [libwps](https://libwps.sourceforge.io/) — WordPerfect/MS Works
-  import (wordperfect plugin)
+  import (formerly the `wordperfect` plugin)
+- [libwpg](https://libwpg.sourceforge.io/) +
+  [librevenge](https://sourceforge.net/projects/libwpd/) —
+  WordPerfect Graphics import and the shared document-converter
+  framework behind libwpd/libwps/libwpg
 - Blowfish CFB64 — vendored from
   [OpenSSL](https://www.openssl.org/) (Apache-2.0) for encrypted ODF
 - [xsltml](http://xsltml.sourceforge.net/) — MathML→LaTeX XSLT
