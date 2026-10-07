@@ -179,7 +179,7 @@ static GdkContentFormats * s_getDropFormats()
 {
 	static GdkContentFormats * formats = nullptr;
 	if (formats)
-		return formats;
+		return gdk_content_formats_ref(formats);
 
 	DragInfo * dragInfo = s_getDragInfo();
 	std::vector<const char*> mimes;
@@ -198,7 +198,10 @@ static GdkContentFormats * s_getDropFormats()
 		mimes.push_back(textMimes[i]);
 
 	formats = gdk_content_formats_new(mimes.data(), mimes.size());
-	return formats;
+	// Each gtk_drop_target_async_new() consumes the formats it is
+	// given — hand every caller its own ref, else the second window
+	// created (File>Open's newFrame path) unrefs a dead pointer.
+	return gdk_content_formats_ref(formats);
 }
 
 static int s_targetForMime(const char * mime)
