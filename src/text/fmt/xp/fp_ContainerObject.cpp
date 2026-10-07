@@ -1004,6 +1004,7 @@ void fg_FillType::Fill(GR_Graphics * pG, UT_sint32 & srcX, UT_sint32 & srcY, UT_
 	GR_Painter painter(pG);
 	UT_RGBColor white(255,255,255);
 	bool bIsFrame = false;
+	const fp_FrameContainer * pFrame = nullptr;
 	if(m_pContainer && (m_pContainer->getContainerType() == FP_CONTAINER_CELL))
 	{
 		const fp_CellContainer * pCell = static_cast<const fp_CellContainer *>(m_pContainer);
@@ -1017,7 +1018,7 @@ void fg_FillType::Fill(GR_Graphics * pG, UT_sint32 & srcX, UT_sint32 & srcY, UT_
 	}
 	if(m_pContainer && (m_pContainer->getContainerType() == FP_CONTAINER_FRAME))
 	{
-		const fp_FrameContainer * pFrame = static_cast<const fp_FrameContainer *>(m_pContainer);
+		pFrame = static_cast<const fp_FrameContainer *>(m_pContainer);
 		UT_sint32 xoff = pFrame->getXPad();
 		UT_sint32 yoff = pFrame->getYPad();
 		if(m_FillType == FG_FILL_IMAGE)
@@ -1300,7 +1301,28 @@ void fg_FillType::Fill(GR_Graphics * pG, UT_sint32 & srcX, UT_sint32 & srcY, UT_
 
 		if(*m_pDocImage)
 		{
-		        if(m_bTransColorSet)
+			if(bIsFrame)
+			{
+			    /* A positioned picture frame composites its artwork
+			     * onto whatever it is stacked over: only a background
+			     * the frame itself declares paints beneath the image.
+			     * The white/page underlay used for inline fills below
+			     * would hide lower frames - the Facet cover's
+			     * translucent line-work overlay stamped opaque white
+			     * over the blue base shape beneath it. */
+			    const PP_AttrProp * pFrameAP = nullptr;
+			    if(pFrame->getSectionLayout())
+				pFrame->getSectionLayout()->getAP(pFrameAP);
+			    const gchar * szFrameBg = nullptr;
+			    if(pFrameAP && pFrameAP->getProperty("background-color", szFrameBg) &&
+			       szFrameBg && strcmp(szFrameBg, "transparent"))
+			    {
+				UT_RGBColor frameBg;
+				UT_parseColor(szFrameBg, frameBg);
+				painter.fillRect(frameBg,x,y,width,height);
+			    }
+			}
+			else if(m_bTransColorSet)
 			{
 			    painter.fillRect(m_TransColor,x,y,width,height);
 			}

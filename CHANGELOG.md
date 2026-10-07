@@ -1145,6 +1145,15 @@ below are on `main` but the release has not been cut yet.
   where the title textbox hid the middle of the scalloped seal.
   Transparent frame fills now leave the underlying pixels alone,
   matching how the same documents already printed.
+- **Picture frames composite onto the frames beneath them** — a
+  positioned image used to repaint opaque white underneath its
+  artwork before drawing, so an image stacked over another frame or
+  shape hid it: the Facet cover's translucent white line-work overlay
+  blanked the blue band base it should sit on.  Picture frames now
+  paint only a declared background color under the image — matching
+  the `a:solidFill`-under-`a:blipFill` order in OOXML, which also
+  makes imported `.docx` pictures keep their shape fill — and
+  otherwise let the image composite onto whatever is stacked below.
 - **Header and Footer built-in galleries** — the Header and Footer
   ribbon buttons open Word-style dropdown galleries of preview cards:
   21 header designs (Blank, Blank (Three Columns), Austin, Badge,

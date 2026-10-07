@@ -964,11 +964,32 @@ static bool s_paintFrameImageFill(GR_Graphics * pG,
 		cairo_rectangle(cr, dx0, dy0, dw, dh);
 		cairo_clip(cr);
 	}
-	if (pG->queryProperties(GR_Graphics::DGP_SCREEN))
+	/* Underlay for an image with alpha: the frame's own fill when a
+	 * background-color was explicitly set (a pic shape's solidFill
+	 * sits under its a:blipFill), else nothing - the image composites
+	 * onto whatever the frame is stacked over.  The old unconditional
+	 * white mimicked paper for images floating on a blank page, but it
+	 * also hid any lower frames: the Facet cover's translucent
+	 * line-work overlay stamped opaque white over the blue base shape
+	 * beneath it, on screen only. */
+	const gchar * szBg = nullptr;
+	if (pAP->getProperty("background-color", szBg) && szBg &&
+		strcmp(szBg, "transparent"))
 	{
-		/* white underlay behind alpha images, matching the generic
-		 * fill's screen behaviour */
-		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		UT_RGBColor bg;
+		UT_parseColor(szBg, bg);
+		double dBgA = 1.0;
+		const gchar * szAlpha = nullptr;
+		if (pAP->getProperty("fill-alpha", szAlpha) && szAlpha)
+		{
+			dBgA = s_abwnDouble(szAlpha);
+			if (dBgA < 0.0)
+				dBgA = 0.0;
+			if (dBgA > 1.0)
+				dBgA = 1.0;
+		}
+		cairo_set_source_rgba(cr, bg.m_red / 255.0, bg.m_grn / 255.0,
+							  bg.m_blu / 255.0, dBgA);
 		cairo_paint(cr);
 	}
 	if (bTile)

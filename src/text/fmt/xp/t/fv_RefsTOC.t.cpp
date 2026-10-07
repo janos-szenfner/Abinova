@@ -567,6 +567,35 @@ TFTEST_MAIN("transparent cover textbox does not occlude artwork")
 		}
 	}
 
+	/* COVER05: facet's top band is a translucent-white line-work PNG
+	 * composited over a 4472C4 base shape; the image frame used to
+	 * repaint opaque white beneath the alpha artwork, hiding the
+	 * base, so the band read white.  The samples inside the band
+	 * must stay blue-dominant and the area below must stay white. */
+	{
+		RefsView hv3;
+		TFPASS(hv3.load("cover host text"));
+		if (hv3.view)
+		{
+			hv3.view->setPoint(2);
+			TFPASS(hv3.view->cmdInsertCoverPage("facet") == UT_OK);
+			cairo_surface_t * surf3 =
+				refs_render_page(hv3.view, hv3.layout, 0, w, h);
+			TFPASS(surf3 != nullptr);
+			if (surf3)
+			{
+				for (double x : {1.0, 3.0, 5.0, 7.0})
+				{
+					refs_pixel(surf3, px(x), py(0.5), r, g, b);
+					TFPASS(b > 150 && b - r > 50 && b - g > 30);
+				}
+				refs_pixel(surf3, px(4.0), py(2.0), r, g, b);
+				TFPASS(r > 240 && g > 240 && b > 240);
+				cairo_surface_destroy(surf3);
+			}
+		}
+	}
+
 	/* ABINOVA_DUMP_COVERS=1 writes one on-screen render per preset to
 	 * /tmp/abn_screen_<preset>.png for eyeballing */
 	if (getenv("ABINOVA_DUMP_COVERS"))
