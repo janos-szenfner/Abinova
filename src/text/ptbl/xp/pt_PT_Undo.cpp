@@ -409,6 +409,16 @@ bool pt_PieceTable::_doTheDo(PX_ChangeRecord* pcr, bool bUndo)
 			{
 			    UNDO_return_val_if_fail (pfo->getIndexAP() == pcrObject->getIndexAP(),false);
 			}
+			// _deleteObject() bypasses the bookmark-name bookkeeping
+			// that insertObject()/deleteSpan() maintain; keep the
+			// document's name list in sync when undoing the insertion
+			// of a bookmark or redoing its deletion.
+			if(pfo->getObjectType() == PTO_Bookmark)
+			{
+				po_Bookmark * pB = pfo->getBookmark();
+				if(pB && pB->getBookmarkType() == po_Bookmark::POBOOKMARK_START)
+					m_pDocument->removeBookmark(pB->getName());
+			}
 			_deleteObject(pfo,nullptr,nullptr);
 			// the frag no longer exists; don't leave a stale handle in
 			// the record (listeners must only see live or null handles)

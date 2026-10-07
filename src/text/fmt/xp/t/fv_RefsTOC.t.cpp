@@ -43,6 +43,10 @@
 #include "ie_exp.h"
 #include "ie_types.h"
 
+#include <gsf/gsf-output-stdio.h>
+
+#include <unistd.h>
+
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -339,6 +343,77 @@ TFTEST_MAIN("cover page insert and remove")
 	v->cmdInsertCoverPage("no-such-preset");
 	v->cmdRemoveCoverPage();
 	TFPASS(!v->hasCoverPage());
+}
+
+TFTEST_MAIN("shape cover presets insert, replace, undo, round-trip")
+{
+	static const char * const presets[] =
+		{ "frame", "austin", "badge", "banded", "crop" };
+	for (const char * szPreset : presets)
+	{
+		RefsView hv;
+		TFPASS(hv.load("cover host text"));
+		if (!hv.view)
+			continue;
+		FV_View * v = hv.view;
+
+		v->setPoint(2);
+		TFPASS(v->cmdInsertCoverPage(szPreset) == UT_OK);
+		TFPASS(v->hasCoverPage());
+		TFPASS(hv.layout->countPages() >= 1);
+
+		TFPASS(v->cmdRemoveCoverPage());
+		TFPASS(!v->hasCoverPage());
+		TFPASS(v->cmdInsertCoverPage(szPreset) == UT_OK);
+		TFPASS(v->hasCoverPage());
+
+		/* the marker must wrap the frames too: re-inserting replaces
+		 * rather than stacking a second cover */
+		TFPASS(v->cmdInsertCoverPage(szPreset) == UT_OK);
+		TFPASS(v->hasCoverPage());
+		TFPASS(hv.layout->countPages() >= 2);
+
+		/* undo removes the whole generated cover */
+		int nUndo = 0;
+		for (; nUndo < 8 && v->hasCoverPage(); ++nUndo)
+			v->cmdUndo(1);
+		TFPASS(!v->hasCoverPage());
+
+		/* redo the insert, then save/load round-trip and remove */
+		for (int i = 0; i < nUndo; ++i)
+			v->cmdRedo(1);
+		TFPASS(v->hasCoverPage());
+		std::string tmp = std::string("/tmp/abn_cover_") + szPreset +
+			"_" + std::to_string(::getpid());
+		GError * gerr = nullptr;
+		GsfOutput * out = gsf_output_stdio_new((tmp + ".abwn").c_str(),
+											   &gerr);
+		if (out)
+		{
+			TFPASS(hv.doc->saveAs(out,
+					static_cast<int>(IE_Exp::fileTypeForSuffix(".abwn")),
+					false, nullptr) == UT_OK);
+			g_object_unref(out);
+		}
+		out = gsf_output_stdio_new((tmp + ".pdf").c_str(), &gerr);
+		if (out)
+		{
+			TFPASS(hv.doc->saveAs(out,
+					static_cast<int>(IE_Exp::fileTypeForSuffix(".pdf")),
+					false, nullptr) == UT_OK);
+			g_object_unref(out);
+		}
+		/* reload the saved .abwn: frames + marker must survive */
+		{
+			PD_Document * doc2 = new PD_Document;
+			TFPASS(doc2->readFromFile((tmp + ".abwn").c_str(),
+									  IEFT_Unknown, nullptr) == UT_OK);
+			TFPASS(!doc2->isBookmarkUnique("_cover-page"));
+			doc2->unref();
+		}
+		TFPASS(v->cmdRemoveCoverPage());
+		TFPASS(!v->hasCoverPage());
+	}
 }
 
 TFTEST_MAIN("header/footer presets, edit mode and removal")

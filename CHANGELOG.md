@@ -1110,9 +1110,13 @@ below are on `main` but the release has not been cut yet.
   Line, Date and Time, Field, Object, LRM/RLM) and Symbols (Edit
   Equation, Symbol), all laid out as Word-style large
   icon-over-caption buttons with two-line labels. **Cover Page**
-  opens a scrolling gallery of A4-portrait preview cards for four
+  opens a scrolling gallery of A4-portrait preview cards for eight
   designs generated entirely in code — Frame, Motion, Sideline,
-  Yearly — so no third-party artwork or licensing is involved.
+  Yearly plus the Word-style Austin, Badge, Banded and Crop
+  designs, which are built from positioned textbox/rect shapes
+  (gradient fills, borders, Badge's scalloped seal path) rather
+  than flat paragraphs — so no third-party artwork or licensing is
+  involved.
   Covers pull the title/author from document metadata with
   placeholder fallbacks and are wrapped in a `_cover-page` marker
   bookmark; **Remove Current Cover** deletes the page break and

@@ -7128,11 +7128,24 @@ struct FV_CoverLine
 	const char * szText;        // nullptr => empty spacer/band para
 };
 
+/* A positioned decoration or text box of a cover design, rendered as
+ * a page-anchored textbox frame.  szFrameProps carries the frame-level
+ * props (position-to/frame-page-xpos/frame-page-ypos/frame-width/
+ * frame-height, bg-style/background-color or fill-gradient, borders,
+ * shape-path, padding, frame-valign, frame-stack-order); pLines is an
+ * optional FV_CoverLine table for the paragraphs inside the box. */
+struct FV_CoverShape
+{
+	const char * szFrameProps;
+	const FV_CoverLine * pLines;
+};
+
 struct FV_CoverPreset
 {
 	const char * szId;
 	const char * szName;
 	const FV_CoverLine * pLines;
+	const FV_CoverShape * pShapes;  // nullptr => text-only preset
 };
 
 // Paragraph-formatting reset applied to every cover line so
@@ -7148,6 +7161,22 @@ struct FV_CoverPreset
 
 #define ABI_COVER_SIDELINE \
 	"left-style:solid; left-color:4472C4; left-thickness:0.3in; left-space:0.25in"
+
+/* Frame scaffolding shared by every cover shape: a page-anchored
+ * textbox with no borders unless the design adds its own. */
+#define ABI_COVER_SHAPE \
+	"frame-type:textbox; position-to:page-above-text; " \
+	"frame-text-direction:horz; " \
+	"top-style:none; bot-style:none; left-style:none; right-style:none"
+
+/* Opaque background decoration painted under the page content. */
+#define ABI_COVER_RECT \
+	ABI_COVER_SHAPE "; wrap-mode:below-text; bg-style:1"
+
+/* Transparent floating text box painted over the decorations. */
+#define ABI_COVER_TXTBOX \
+	ABI_COVER_SHAPE "; wrap-mode:above-text; bg-style:0; " \
+	"background-color:transparent"
 
 static const FV_CoverLine s_coverFrame[] = {
 	{ ABI_COVER_RESET "; line-height:0.6in", nullptr, nullptr },
@@ -7236,12 +7265,241 @@ static const FV_CoverLine s_coverYearly[] = {
 };
 
 
-static const FV_CoverPreset s_coverPresets[] = {
-	{ "frame",      "Frame",        s_coverFrame  },
-	{ "motion",     "Motion",       s_coverMotion },
-	{ "sideline",   "Sideline",     s_coverSideline },
-	{ "yearly",     "Yearly",       s_coverYearly },
+/* ------------------------- Word design batch 1 -------------------------
+ * Austin, Badge, Banded and Crop are built from positioned drawing
+ * shapes, so they carry FV_CoverShape tables; geometry/fills were
+ * measured from the OOXML references (EMU positions -> inches, theme
+ * colors resolved: accent1 4472C4, dark2 44546A, light2 E7E6E6). */
+
+/* Austin: light-blue gradient page, bordered white card holding a
+ * navy abstract box, title/subtitle, an author line and a thin accent
+ * bar under the card. */
+static const FV_CoverLine s_coverAustinAbstract[] = {
+	{ "text-align:center; margin-top:12pt",
+	  "font-family:Carlito; font-size:9pt; color:FFFFFF",
+	  "[Draw your reader in with an engaging abstract. It is typically a short summary of the document. When you are ready to add your content, just click here and start typing.]" },
 	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverAustinTitle[] = {
+	{ "font-size:36pt",
+	  "font-family:Carlito; font-size:36pt; color:4472C4", "@title" },
+	{ "font-size:16pt; margin-top:4pt",
+	  "font-family:Carlito; font-size:16pt; color:44546A", "@subtitle" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverAustinAuthor[] = {
+	{ nullptr,
+	  "font-family:Carlito; font-size:11pt; color:44546A", "@author" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverAustinShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.0965in; frame-page-ypos:0.6215in; "
+	  "frame-width:8.075in; frame-height:10.45in; xpos:0.0965in; ypos:0.6215in; "
+	  "background-color:DAE3F3; "
+	  "fill-gradient:lin:5400000,0:DAE3F3,100000:8FAADC; "
+	  "frame-stack-order:1", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:3.638in; frame-page-ypos:0.2923in; "
+	  "frame-width:3.4in; frame-height:7.7in; xpos:3.638in; ypos:0.2923in; "
+	  "background-color:FFFFFF; "
+	  "top-style:solid; bot-style:solid; left-style:solid; right-style:solid; "
+	  "top-color:747373; bot-color:747373; left-color:747373; right-color:747373; "
+	  "top-thickness:1.25pt; bot-thickness:1.25pt; "
+	  "left-thickness:1.25pt; right-thickness:1.25pt; "
+	  "frame-stack-order:2", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:3.762in; frame-page-ypos:8.068in; "
+	  "frame-width:3.145in; frame-height:0.13in; xpos:3.762in; ypos:8.068in; "
+	  "background-color:4472C4; frame-stack-order:3", nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:3.762in; frame-page-ypos:0.2923in; "
+	  "frame-width:3.145in; frame-height:3.3in; xpos:3.762in; ypos:0.2923in; "
+	  "background-color:44546A; bg-style:1; "
+	  "xpad-left:0.2in; xpad-right:0.2in; "
+	  "ypad-top:0.2in; ypad-bottom:0.2in; "
+	  "frame-valign:bottom; frame-stack-order:4",
+	  s_coverAustinAbstract },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:3.762in; frame-page-ypos:4.093in; "
+	  "frame-width:3.06in; frame-height:2.71in; xpos:3.762in; ypos:4.093in; "
+	  "xpad-left:0.1in; xpad-right:0.1in; "
+	  "ypad-top:0.05in; ypad-bottom:0.05in; "
+	  "frame-valign:top; frame-stack-order:5",
+	  s_coverAustinTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:3.762in; frame-page-ypos:7.717in; "
+	  "frame-width:3.06in; frame-height:0.294in; xpos:3.762in; ypos:7.717in; "
+	  "xpad-left:0.1in; xpad-right:0.1in; "
+	  "ypad-top:0.05in; ypad-bottom:0.05in; "
+	  "frame-valign:bottom; frame-stack-order:6",
+	  s_coverAustinAuthor },
+	{ nullptr, nullptr }
+};
+
+/* Badge: blue page with a darker left strip, a light-grey seal
+ * (DrawingML custGeom scalloped badge) and huge tracked centered
+ * title; subtitle/author/company stack at the bottom. */
+static const FV_CoverLine s_coverBadgeTitle[] = {
+	{ "text-align:center; font-size:80pt",
+	  "font-family:Carlito; font-size:80pt; text-transform:uppercase; "
+	  "char-spacing:8pt", "@title" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverBadgeMeta[] = {
+	{ "text-align:center; margin-top:12pt; font-size:20pt",
+	  "font-family:Carlito; font-size:20pt; font-weight:bold; "
+	  "text-transform:uppercase; color:44546A; char-spacing:7pt",
+	  "@subtitle" },
+	{ "text-align:center; margin-top:12pt; font-size:16pt",
+	  "font-family:Carlito; font-size:16pt; font-weight:bold; "
+	  "color:E7E6E6", "@author" },
+	{ "text-align:center; margin-top:36pt; font-size:12pt",
+	  "font-family:Carlito; font-size:12pt; font-weight:bold; "
+	  "text-transform:uppercase; color:44546A; char-spacing:1pt",
+	  "[Company Name] | [Company Address]" },
+	{ nullptr, nullptr, nullptr }
+};
+#define ABI_COVER_BADGE_SEAL \
+	"M 1000.0 500.4 C 1000.0 532.4 968.7 561.5 962.1 592.1 " \
+	"C 956.3 623.5 974.5 662.8 962.1 691.2 C 950.4 721.0 909.6 735.6 " \
+	"892.1 761.8 C 873.9 788.1 876.1 831.0 853.5 853.6 " \
+	"C 831.6 876.2 788.6 874.0 761.7 891.5 C 735.4 909.0 720.8 949.7 " \
+	"691.7 962.1 C 662.5 973.8 623.9 955.6 591.8 962.1 " \
+	"C 561.2 968.0 532.8 1000.0 500.0 1000.0 C 467.9 1000.0 438.8 968.0 " \
+	"408.2 962.1 C 376.8 955.6 337.5 973.8 308.3 962.1 " \
+	"C 279.2 949.7 264.6 909.0 238.3 891.5 C 212.1 874.0 169.1 876.2 " \
+	"146.5 853.6 C 123.9 831.0 126.1 788.1 108.6 761.8 " \
+	"C 91.1 735.6 50.3 721.0 37.9 691.2 C 25.5 662.8 44.5 623.5 37.9 592.1 " \
+	"C 32.1 561.5 0.0 532.4 0.0 500.4 C 0.0 467.6 32.1 439.2 37.9 408.6 " \
+	"C 44.5 376.5 25.5 337.9 37.9 308.8 C 50.3 279.0 91.1 265.1 108.6 238.9 " \
+	"C 126.1 211.9 123.9 169.0 146.5 146.4 C 169.1 124.5 212.1 126.7 " \
+	"238.3 108.5 C 264.6 91.0 279.2 50.3 308.3 37.9 " \
+	"C 337.5 26.2 376.8 44.4 408.2 38.6 C 438.8 32.0 467.9 0.0 500.0 0.0 " \
+	"C 532.8 0.0 561.2 32.0 591.8 38.6 C 623.9 44.4 662.5 26.2 691.7 37.9 " \
+	"C 720.8 50.3 735.4 91.0 761.7 108.5 C 788.6 126.7 831.6 124.5 " \
+	"853.5 146.4 C 876.1 169.0 873.9 211.9 892.1 238.9 " \
+	"C 909.6 265.1 950.4 279.0 962.1 308.8 C 974.5 337.9 956.3 376.5 " \
+	"962.1 408.6 C 968.7 439.2 1000.0 467.6 1000.0 500.4 Z "
+static const FV_CoverShape s_coverBadgeShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.1354in; frame-page-ypos:0.6028in; "
+	  "frame-width:7.997in; frame-height:10.488in; xpos:0.1354in; ypos:0.6028in; "
+	  "background-color:4472C4; frame-stack-order:1", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.1354in; frame-page-ypos:0.6028in; "
+	  "frame-width:0.31in; frame-height:10.488in; xpos:0.1354in; ypos:0.6028in; "
+	  "background-color:44546A; frame-stack-order:2", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:1.863in; frame-page-ypos:1.35in; "
+	  "frame-width:4.87in; frame-height:4.88in; xpos:1.863in; ypos:1.35in; "
+	  "background-color:E7E6E6; frame-stack-order:3; "
+	  "shape-path:" ABI_COVER_BADGE_SEAL, nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.384in; frame-page-ypos:1.6625in; "
+	  "frame-width:7.5in; frame-height:4.4in; xpos:0.384in; ypos:1.6625in; "
+	  "xpad-left:0.4in; xpad-right:0.4in; "
+	  "ypad-top:0.05in; ypad-bottom:0.05in; "
+	  "frame-valign:center; frame-stack-order:4",
+	  s_coverBadgeTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.384in; frame-page-ypos:9.433in; "
+	  "frame-width:7.5in; frame-height:2.26in; xpos:0.384in; ypos:9.433in; "
+	  "xpad-left:0.4in; xpad-right:0.4in; "
+	  "ypad-top:0.05in; ypad-bottom:0.05in; "
+	  "frame-valign:bottom; frame-stack-order:5",
+	  s_coverBadgeMeta },
+	{ nullptr, nullptr }
+};
+
+/* Banded: full-width accent bands top and bottom around a white title
+ * band; author/company sit at the bottom of the lower band. */
+static const FV_CoverLine s_coverBandedTitle[] = {
+	{ "text-align:center; font-size:36pt",
+	  "font-family:Carlito; font-size:36pt; text-transform:uppercase; "
+	  "color:4472C4", "@title" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverBandedMeta[] = {
+	{ "text-align:center; margin-top:6pt; font-size:12pt",
+	  "font-family:Carlito; font-size:12pt; color:FFFFFF", "@author" },
+	{ "text-align:center; margin-top:6pt; font-size:12pt",
+	  "font-family:Carlito; font-size:12pt; text-transform:uppercase; "
+	  "color:FFFFFF", "[Company name]  [Company address]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverBandedShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.38in; frame-page-ypos:0.858in; "
+	  "frame-width:7.5in; frame-height:1.5in; xpos:0.38in; ypos:0.858in; "
+	  "background-color:4472C4; frame-stack-order:1", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.388in; frame-page-ypos:2.358in; "
+	  "frame-width:7.5in; frame-height:2.978in; xpos:0.388in; ypos:2.358in; "
+	  "background-color:FFFFFF; xpad-left:0.5in; xpad-right:0.5in; "
+	  "ypad-top:0.1in; ypad-bottom:0.1in; "
+	  "frame-valign:center; frame-stack-order:2",
+	  s_coverBandedTitle },
+	{ ABI_COVER_RECT "; frame-page-xpos:0.38in; frame-page-ypos:5.335in; "
+	  "frame-width:7.5in; frame-height:5.5in; xpos:0.38in; ypos:5.335in; "
+	  "background-color:4472C4; xpad-left:0.5in; xpad-right:0.5in; "
+	  "ypad-top:0.8in; ypad-bottom:0.8in; "
+	  "frame-valign:bottom; frame-stack-order:3",
+	  s_coverBandedMeta },
+	{ nullptr, nullptr }
+};
+
+/* Crop: light-grey page field with a solid accent block top-left and
+ * a matching accent bar bottom-right; subtitle+title top-left of the
+ * grey field, author/company right-aligned at the bottom. */
+static const FV_CoverLine s_coverCropTitle[] = {
+	{ "margin-bottom:12pt; line-height:0.9; font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; color:44546A; char-spacing:0.5pt",
+	  "@subtitle" },
+	{ "line-height:0.9; font-size:48pt",
+	  "font-family:Carlito; font-size:48pt; text-transform:uppercase; "
+	  "color:44546A; char-spacing:0.5pt", "@title" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverLine s_coverCropMeta[] = {
+	{ "margin-bottom:12pt; text-align:right; font-size:18pt",
+	  "font-family:Carlito; font-size:18pt; color:44546A; char-spacing:0.5pt",
+	  "@author" },
+	{ "text-align:right; font-size:14pt",
+	  "font-family:Carlito; font-size:14pt; color:44546A; char-spacing:0.5pt",
+	  "[Company Name]" },
+	{ nullptr, nullptr, nullptr }
+};
+static const FV_CoverShape s_coverCropShapes[] = {
+	{ ABI_COVER_RECT "; frame-page-xpos:0.134in; frame-page-ypos:0.5965in; "
+	  "frame-width:8in; frame-height:10.5in; xpos:0.134in; ypos:0.5965in; "
+	  "background-color:E7E6E6; frame-stack-order:1", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:0in; frame-page-ypos:0in; "
+	  "frame-width:2.89in; frame-height:3.72in; xpos:0in; ypos:0in; "
+	  "background-color:4472C4; frame-stack-order:2", nullptr },
+	{ ABI_COVER_RECT "; frame-page-xpos:3.1685in; frame-page-ypos:8.003in; "
+	  "frame-width:2.865in; frame-height:3.69in; xpos:3.1685in; ypos:8.003in; "
+	  "background-color:4472C4; frame-stack-order:3", nullptr },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:0.844in; frame-page-ypos:0.833in; "
+	  "frame-width:6.135in; frame-height:2.834in; xpos:0.844in; ypos:0.833in; "
+	  "xpad-left:0.5in; xpad-right:0in; "
+	  "ypad-top:0.5in; ypad-bottom:0in; "
+	  "frame-valign:bottom; frame-stack-order:4",
+	  s_coverCropTitle },
+	{ ABI_COVER_TXTBOX "; frame-page-xpos:3.158in; frame-page-ypos:9.211in; "
+	  "frame-width:4.27in; frame-height:1.646in; xpos:3.158in; ypos:9.211in; "
+	  "xpad-left:0in; xpad-right:0.5in; "
+	  "ypad-top:0in; ypad-bottom:0.5in; "
+	  "frame-valign:bottom; frame-stack-order:5",
+	  s_coverCropMeta },
+	{ nullptr, nullptr }
+};
+
+/* Shape-driven presets still want a leading spacer paragraph so the
+ * anchored frames have a cover block to hang from; everything else is
+ * inside the shapes. */
+static const FV_CoverLine s_coverSpacerOnly[] = {
+	{ ABI_COVER_RESET "; line-height:0.1in", nullptr, nullptr },
+	{ nullptr, nullptr, nullptr }
+};
+
+static const FV_CoverPreset s_coverPresets[] = {
+	{ "frame",      "Frame",        s_coverFrame,       nullptr },
+	{ "motion",     "Motion",       s_coverMotion,      nullptr },
+	{ "sideline",   "Sideline",     s_coverSideline,    nullptr },
+	{ "yearly",     "Yearly",       s_coverYearly,      nullptr },
+	{ "austin",     "Austin",       s_coverSpacerOnly,  s_coverAustinShapes },
+	{ "badge",      "Badge",        s_coverSpacerOnly,  s_coverBadgeShapes },
+	{ "banded",     "Banded",       s_coverSpacerOnly,  s_coverBandedShapes },
+	{ "crop",       "Crop",         s_coverSpacerOnly,  s_coverCropShapes },
+	{ nullptr, nullptr, nullptr, nullptr }
 };
 
 static const FV_CoverPreset * _coverPresetById(const char * szId)
@@ -7294,6 +7552,108 @@ static void _coverParseProps(PP_PropertyVector & props, const char * s)
 	}
 }
 
+/* Expand the @title/@author/@date/@year/@subtitle tokens a cover line
+ * may carry; plain strings pass through unchanged. */
+static std::string _coverLineText(const char * szText,
+								  const std::string & sTitle,
+								  const std::string & sAuthor,
+								  const char * szDate)
+{
+	if(0 == strcmp(szText, "@title"))
+	{
+		return sTitle;
+	}
+	if(0 == strcmp(szText, "@author"))
+	{
+		return sAuthor;
+	}
+	if(0 == strcmp(szText, "@date"))
+	{
+		return szDate;
+	}
+	if(0 == strcmp(szText, "@year"))
+	{
+		size_t len = strlen(szDate);
+		return len >= 4 ? szDate + len - 4 : szDate;
+	}
+	if(0 == strcmp(szText, "@subtitle"))
+	{
+		return "Document Subtitle";
+	}
+	return szText;
+}
+
+/*!
+ * Insert the positioned shapes of a cover preset at dpos as
+ * page-anchored textbox frames (the piecetable drops each frame just
+ * before the block following dpos), filling each shape with the
+ * paragraphs of its FV_CoverLine table.  A shape with no lines still
+ * gets an empty block - a frameless section-frame breaks the
+ * surrounding frame chain.
+ */
+static void _coverInsertShapes(PD_Document * pDoc, PT_DocPosition dpos,
+							   const FV_CoverShape * pShapes,
+							   const std::string & sTitle,
+							   const std::string & sAuthor,
+							   const char * szDate)
+{
+	for(const FV_CoverShape * pS = pShapes; pS->szFrameProps; pS++)
+	{
+		PP_PropertyVector fprops;
+		_coverParseProps(fprops, pS->szFrameProps);
+		pf_Frag_Strux * pfFrame = nullptr;
+		if(!pDoc->insertStrux(dpos, PTX_SectionFrame,
+							  PP_NOPROPS, fprops, &pfFrame) || !pfFrame)
+		{
+			continue;
+		}
+		PT_DocPosition posF = pfFrame->getPos() + 1;
+		bool bHasBlock = false;
+		for(const FV_CoverLine * pL = pS->pLines;
+				pL && (pL->szBlockProps || pL->szText); pL++)
+		{
+			PP_PropertyVector bprops;
+			_coverParseProps(bprops, pL->szBlockProps);
+			pf_Frag_Strux * pfBlock = nullptr;
+			if(!pDoc->insertStrux(posF, PTX_Block,
+								  PP_NOPROPS, bprops, &pfBlock) || !pfBlock)
+			{
+				break;
+			}
+			posF = pfBlock->getPos() + 1;
+			bHasBlock = true;
+			if(pL->szText)
+			{
+				UT_UCS4String uText(_coverLineText(pL->szText, sTitle,
+												 sAuthor, szDate).c_str());
+				if(uText.length() &&
+				   pDoc->insertSpan(posF, uText.ucs4_str(), uText.length()))
+				{
+					if(pL->szCharProps)
+					{
+						PP_PropertyVector cprops;
+						_coverParseProps(cprops, pL->szCharProps);
+						pDoc->changeSpanFmt(PTC_AddFmt, posF,
+											posF + uText.length(),
+											PP_NOPROPS, cprops);
+					}
+					posF += uText.length();
+				}
+			}
+		}
+		if(!bHasBlock)
+		{
+			pf_Frag_Strux * pfBlock = nullptr;
+			if(pDoc->insertStrux(posF, PTX_Block,
+								 PP_NOPROPS, PP_NOPROPS, &pfBlock) && pfBlock)
+			{
+				posF = pfBlock->getPos() + 1;
+			}
+		}
+		pDoc->insertStrux(posF, PTX_EndFrame);
+	}
+}
+
 /*!
  * Insert a generated cover page at the top of the document, like
  * Word's Insert > Cover Page gallery. An existing generated cover is
@@ -7330,79 +7690,53 @@ UT_Error FV_View::cmdInsertCoverPage(const char * szPreset)
 	}
 	PT_DocPosition posMark = getPoint();
 
+	std::string sTitle, sAuthor;
+	char szDate[64];
+	if(!m_pDoc->getMetaDataProp(PD_META_KEY_TITLE, sTitle) ||
+	   sTitle.empty())
 	{
-		std::string sTitle, sAuthor;
-		if(!m_pDoc->getMetaDataProp(PD_META_KEY_TITLE, sTitle) ||
-		   sTitle.empty())
+		sTitle = "Document Title";
+	}
+	if(!m_pDoc->getMetaDataProp(PD_META_KEY_CREATOR, sAuthor) ||
+	   sAuthor.empty())
+	{
+		sAuthor = "Author";
+	}
+	{
+		time_t tNow = time(nullptr);
+		struct tm * pTM = localtime(&tNow);
+		if(pTM)
 		{
-			sTitle = "Document Title";
+			strftime(szDate, sizeof(szDate), "%B %Y", pTM);
 		}
-		if(!m_pDoc->getMetaDataProp(PD_META_KEY_CREATOR, sAuthor) ||
-		   sAuthor.empty())
+		else
 		{
-			sAuthor = "Author";
+			szDate[0] = 0;
 		}
-		char szDate[64];
+	}
+	for(const FV_CoverLine * pL = pPreset->pLines;
+			pL && (pL->szBlockProps || pL->szText); pL++)
+	{
+		setStyle("Normal", true);
+		if(pL->szBlockProps)
 		{
-			time_t tNow = time(nullptr);
-			struct tm * pTM = localtime(&tNow);
-			if(pTM)
-			{
-				strftime(szDate, sizeof(szDate), "%B %Y", pTM);
-			}
-			else
-			{
-				szDate[0] = 0;
-			}
+			PP_PropertyVector props;
+			_coverParseProps(props, pL->szBlockProps);
+			setBlockFormat(props);
 		}
-		for(const FV_CoverLine * pL = pPreset->pLines;
-				pL && (pL->szBlockProps || pL->szText); pL++)
+		if(pL->szText)
 		{
-			setStyle("Normal", true);
-			if(pL->szBlockProps)
+			std::string sText = _coverLineText(pL->szText, sTitle,
+											   sAuthor, szDate);
+			if(pL->szCharProps)
 			{
-				PP_PropertyVector props;
-				_coverParseProps(props, pL->szBlockProps);
-				setBlockFormat(props);
+				PP_PropertyVector cprops;
+				_coverParseProps(cprops, pL->szCharProps);
+				setCharFormat(cprops);
 			}
-			if(pL->szText)
-			{
-				std::string sText;
-				if(0 == strcmp(pL->szText, "@title"))
-				{
-					sText = sTitle;
-				}
-				else if(0 == strcmp(pL->szText, "@author"))
-				{
-					sText = sAuthor;
-				}
-				else if(0 == strcmp(pL->szText, "@date"))
-				{
-					sText = szDate;
-				}
-				else if(0 == strcmp(pL->szText, "@year"))
-				{
-					size_t len = strlen(szDate);
-					sText = len >= 4 ? szDate + len - 4 : szDate;
-				}
-				else if(0 == strcmp(pL->szText, "@subtitle"))
-				{
-					sText = "Document Subtitle";
-				}
-				else
-				{
-					sText = pL->szText;
-				}
-				if(pL->szCharProps)
-				{
-					PP_PropertyVector cprops;
-					_coverParseProps(cprops, pL->szCharProps);
-					setCharFormat(cprops);
-				}
-				cmdCharInsert(sText, false);
-			}
-			insertParagraphBreak();
+			cmdCharInsert(sText, false);
 		}
+		insertParagraphBreak();
 	}
 
 	// Trailing page break so the body starts on page 2; it sits
@@ -7450,6 +7784,16 @@ UT_Error FV_View::cmdInsertCoverPage(const char * szPreset)
 		"type", "end"
 	};
 	m_pDoc->insertObject(posEnd, PTO_Bookmark, atts, PP_NOPROPS);
+	/* The preset's positioned shapes go in at posMark - the piecetable
+	 * lands each frame just before the block that follows the first
+	 * cover paragraph, so they sit inside the marker range anchored to
+	 * the cover page.  The end bookmark object shifts right with the
+	 * inserted frames, keeping it behind all cover content. */
+	if(pPreset->pShapes)
+	{
+		_coverInsertShapes(m_pDoc, posMark, pPreset->pShapes,
+						   sTitle, sAuthor, szDate);
+	}
 	atts[3] = "start";
 	m_pDoc->insertObject(posMark, PTO_Bookmark, atts, PP_NOPROPS);
 

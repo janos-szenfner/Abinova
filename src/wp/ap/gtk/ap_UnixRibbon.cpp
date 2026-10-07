@@ -6361,6 +6361,68 @@ static void _cover_card_draw(GtkDrawingArea *, cairo_t * cr,
 		tbar(cx - 17, 150, 34, 5, 0.35, 0.35, 0.35);      /* author */
 		tbar(cx - 13, 160, 26, 4, 0.65, 0.65, 0.65);      /* date */
 	}
+	else if (!strcmp(szPreset, "austin"))
+	{
+		cairo_set_source_rgb(cr, 0.85, 0.89, 0.95);
+		cairo_rectangle(cr, 4, 10, pw - 8, ph - 20);      /* gradient field */
+		cairo_fill(cr);
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_rectangle(cr, 58, 8, 54, 123);              /* white card */
+		cairo_fill_preserve(cr);
+		cairo_set_source_rgb(cr, 0.45, 0.45, 0.45);
+		cairo_set_line_width(cr, 0.8);
+		cairo_stroke(cr);
+		cairo_set_source_rgb(cr, DK2, DK2b, DK2c);
+		cairo_rectangle(cr, 60, 8, 50, 52);               /* navy abstract */
+		cairo_fill(cr);
+		tbar(62, 68, 46, 7, BLU, BLU2, BLU3);             /* title */
+		tbar(62, 80, 34, 4, DK2, DK2b, DK2c);             /* subtitle */
+		tbar(62, 121, 30, 3, DK2, DK2b, DK2c);            /* author */
+		tbar(60, 134, 50, 3, BLU, BLU2, BLU3);            /* accent bar */
+	}
+	else if (!strcmp(szPreset, "badge"))
+	{
+		cairo_set_source_rgb(cr, BLU, BLU2, BLU3);
+		cairo_rectangle(cr, 3, 10, pw - 6, ph - 20);      /* blue field */
+		cairo_fill(cr);
+		cairo_set_source_rgb(cr, DK2, DK2b, DK2c);
+		cairo_rectangle(cr, 3, 10, 5, ph - 20);           /* dark strip */
+		cairo_fill(cr);
+		cairo_set_source_rgb(cr, 0.91, 0.90, 0.90);
+		cairo_arc(cr, cx, 58, 38, 0, 2 * M_PI);           /* seal */
+		cairo_fill(cr);
+		tbar(cx - 30, 46, 60, 8, 0.1, 0.1, 0.1);          /* title */
+		tbar(cx - 22, 60, 44, 6, 0.1, 0.1, 0.1);          /* title 2 */
+		tbar(cx - 30, 138, 60, 4, DK2, DK2b, DK2c);       /* subtitle */
+		tbar(cx - 20, 148, 40, 4, 0.9, 0.9, 0.9);         /* author */
+		tbar(cx - 26, 160, 52, 3, DK2, DK2b, DK2c);       /* company */
+	}
+	else if (!strcmp(szPreset, "banded"))
+	{
+		tbar(6, 14, pw - 12, 24, BLU, BLU2, BLU3);        /* top band */
+		cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+		cairo_rectangle(cr, 6, 38, pw - 12, 47);          /* white band */
+		cairo_fill(cr);
+		tbar(cx - 32, 52, 64, 8, BLU, BLU2, BLU3);        /* title */
+		tbar(6, 85, pw - 12, 88, BLU, BLU2, BLU3);        /* bottom band */
+		tbar(cx - 18, 148, 36, 4, 0.95, 0.95, 0.95);      /* author */
+		tbar(cx - 28, 158, 56, 4, 0.95, 0.95, 0.95);      /* company */
+	}
+	else if (!strcmp(szPreset, "crop"))
+	{
+		cairo_set_source_rgb(cr, 0.91, 0.90, 0.90);
+		cairo_rectangle(cr, 3, 10, pw - 6, ph - 20);      /* grey field */
+		cairo_fill(cr);
+		cairo_set_source_rgb(cr, BLU, BLU2, BLU3);
+		cairo_rectangle(cr, 0, 0, 46, 60);                /* top-left block */
+		cairo_fill(cr);
+		cairo_rectangle(cr, 50, 128, 46, ph - 128);       /* bottom bar */
+		cairo_fill(cr);
+		tbar(20, 30, 52, 5, DK2, DK2b, DK2c);             /* subtitle */
+		tbar(20, 42, 70, 10, DK2, DK2b, DK2c);            /* title */
+		tbar(60, 140, 46, 5, DK2, DK2b, DK2c);            /* author */
+		tbar(74, 150, 32, 4, DK2, DK2b, DK2c);            /* company */
+	}
 	else /* whisp */
 	{
 		tbar(4, 0, 4, ph, DK2, DK2b, DK2c);               /* thin dark stripe */
@@ -6693,6 +6755,10 @@ GtkWidget * AP_UnixRibbon::_makeCoverPagePopover()
 		{ "Motion",		"motion" },
 		{ "Sideline",	"sideline" },
 		{ "Yearly",		"yearly" },
+		{ "Austin",		"austin" },
+		{ "Badge",		"badge" },
+		{ "Banded",		"banded" },
+		{ "Crop",		"crop" },
 	};
 
 	for (unsigned i = 0; i < G_N_ELEMENTS(s_coverTypes); i++)
