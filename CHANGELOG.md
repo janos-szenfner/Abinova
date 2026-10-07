@@ -5202,6 +5202,14 @@ below are on `main` but the release has not been cut yet.
   wrap-mode property crashed the DOCX exporter on a NULL `strcmp`.
   Per-directory gains include `wp/impexp/openxml` 57.5% -> 73.2%
   and `wp/impexp/odf` 68.5% -> 79.9%.
+- **Coverage ratchet raised to a 70% floor (measured 70.5%)** —
+  the final coverage push added a `PX_ChangeRecord` undo-record
+  unit suite, table-sum-field and inline-SVG fixtures, and
+  round-trip sweeps over the whole fuzz seed corpora (epub, xhtml,
+  markdown, tex, wpg, wps, libwpd/libwpg/libwps). It surfaced a
+  real crash: a `sum_rows`/`sum_cols` field placed outside a table
+  dereferenced a NULL table strux when rendering or printing — it
+  now displays `???` like Word does.
 - **Atomic save moved behind a portable helper** — the
   write-temp-then-rename sequence in the exporter core
   (`IE_Exp::writeFile`) now lives in `ut_go_file.cpp` as

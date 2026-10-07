@@ -117,6 +117,8 @@
 #undef TFSUITE
 #include "src/text/ptbl/xp/t/pt_DocEdits.t.cpp"
 #undef TFSUITE
+#include "src/text/ptbl/xp/t/px_ChangeRecord.t.cpp"
+#undef TFSUITE
 #include "src/text/fmt/xp/t/fl_AutoNum.t.cpp"
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fl_TableStyles.t.cpp"

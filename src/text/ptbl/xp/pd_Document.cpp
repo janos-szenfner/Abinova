@@ -3312,6 +3312,8 @@ bool PD_Document::getRowsColsFromTableStrux(const pf_Frag_Strux* table, bool bSh
 	const pf_Frag_Strux* cellStrux;
 	*numRows = 0;
 	*numCols = 0;
+	if (!table)
+		return false;
 //
 // Do the scan
 //

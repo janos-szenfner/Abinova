@@ -318,6 +318,13 @@ run test/wp/cov11/cov11.docx        abwn exp:docx exp:odt enc:abwn
 run test/wp/cov11/cov11.odt         abwn exp:odt exp:docx
 impleg test/wp/cov11/cov11.wmf
 
+# ---- COV15: residual coverage ----------------------------------------
+# tablesum.abw exercises fp_FieldTableSumRows/Cols (in-table sums +
+# the out-of-table "???" fallback); svgimage.abw routes an image/svg+xml
+# data item through FG_GraphicVector.
+run test/wp/cov15/tablesum.abw      abwn txt exp:pdf
+run test/wp/cov15/svgimage.abw      img:abwn txt exp:pdf
+
 # Import sweeps: every fixture file -> abwn (rc 0 or clean 255).
 sweep test/wp/suite
 sweep test/wp/bugs
@@ -333,7 +340,18 @@ sweep fuzz/corpus/rtf
 sweep fuzz/corpus/mht
 sweep fuzz/corpus/odt
 sweep fuzz/corpus/wpd
+sweep fuzz/corpus/epub
+sweep fuzz/corpus/xhtml
+sweep fuzz/corpus/md
+sweep fuzz/corpus/tex
+sweep fuzz/corpus/wpg
+sweep fuzz/corpus/wps
+sweep fuzz/corpus/libwpd
+sweep fuzz/corpus/libwpg
+sweep fuzz/corpus/libwps
 sweep fuzz/regress/doc
+sweep fuzz/regress/tex
+sweep test/wp/cov15
 
 echo "rt-check: $PASS leg(s) passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

@@ -218,14 +218,18 @@ bool fp_FieldTableSumRows::calculateValue(void)
 		pShadL = pShad->getShadow();
 	}
 	PT_DocPosition pos = pDoc->getStruxPosition(sdh)+1;
-	pDoc->getStruxOfTypeFromPosition(pos,PTX_SectionTable,&tableSDH);
-	pDoc->getRowsColsFromTableStrux(tableSDH, pView->isShowRevisions(), pView->getRevisionLevel(), &numRows, &numCols);
 	UT_UTF8String sValF;
 	if(!pView->isInTable(pos))
 	{
 		sValF = "???";
 		return _setValue(sValF.ucs4_str().ucs4_str());
 	}
+	if(!pDoc->getStruxOfTypeFromPosition(pos,PTX_SectionTable,&tableSDH) || !tableSDH)
+	{
+		sValF = "???";
+		return _setValue(sValF.ucs4_str().ucs4_str());
+	}
+	pDoc->getRowsColsFromTableStrux(tableSDH, pView->isShowRevisions(), pView->getRevisionLevel(), &numRows, &numCols);
 	fl_CellLayout * pCell = nullptr;
 	UT_sint32 myLeft,myRight,myTop,myBot;
 	pView->getCellParams(pos,&myLeft,&myRight,&myTop,&myBot);
@@ -335,15 +339,18 @@ bool fp_FieldTableSumCols::calculateValue(void)
 		pShadL = pShad->getShadow();
 	}
 	PT_DocPosition pos = pDoc->getStruxPosition(sdh)+1;
-	pDoc->getStruxOfTypeFromPosition(pos,PTX_SectionTable,&tableSDH);
-	pDoc->getRowsColsFromTableStrux(tableSDH, pView->isShowRevisions(), pView->getRevisionLevel(), &numRows, &numCols);
-
 	UT_UTF8String sValF;
 	if(!pView->isInTable(pos))
 	{
 		sValF = "???";
 		return _setValue(sValF.ucs4_str().ucs4_str());
 	}
+	if(!pDoc->getStruxOfTypeFromPosition(pos,PTX_SectionTable,&tableSDH) || !tableSDH)
+	{
+		sValF = "???";
+		return _setValue(sValF.ucs4_str().ucs4_str());
+	}
+	pDoc->getRowsColsFromTableStrux(tableSDH, pView->isShowRevisions(), pView->getRevisionLevel(), &numRows, &numCols);
 
 	fl_CellLayout * pCell = nullptr;
 	UT_sint32 myLeft,myRight,myTop,myBot;

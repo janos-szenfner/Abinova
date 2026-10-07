@@ -2438,7 +2438,7 @@ reconfiguring without `--enable-coverage` returns to a normal build.
 
 `make check-coverage` is the ratchet: it runs the whole `make check`
 suite, regenerates the report, and fails if total first-party line
-coverage regresses below the 65% floor enforced by
+coverage regresses below the 70% floor enforced by
 `tools/coverage-gate.sh` (override the floor with
 `COVERAGE_MIN_PCT`). `tools/coverage-dirs.sh` breaks the tracefile
 down per directory for the COV* task targets.

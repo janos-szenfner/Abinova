@@ -284,4 +284,5 @@ EXTRA_DIST = \
 	ptbl/xp/t/pd_Revision.t.cpp \
 	ptbl/xp/t/pp_Revision.t.cpp \
 	ptbl/xp/t/pt_DocEdits.t.cpp \
-	ptbl/xp/t/pt_PieceTable.t.cpp
+	ptbl/xp/t/pt_PieceTable.t.cpp \
+	ptbl/xp/t/px_ChangeRecord.t.cpp

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE abinova PUBLIC "-//ABINOVA//DTD AWNL 1.0 Strict//EN" "https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd">
+<abinova xmlns:dc="http://purl.org/dc/elements/1.1/" template="false" xid-max="10" xmlns="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd" xmlns:ct="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/changetracking.dtd" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:awml="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xml:space="preserve" fileformat="1.2" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="http://www.w3.org/2000/svg" xmlns:fo="http://www.w3.org/1999/XSL/Format" version="4.0.0" props="dom-dir:ltr; lang:en-US">
+  <pagesize pagetype="A4" orientation="portrait" width="210.00000000000003" height="297" units="mm" page-scale="1"/>
+  <section xid="2">
+    <p xid="3">An inline SVG image follows: <image dataid="svg1" xid="4" props="width:1in; height:0.75in"/> done.</p>
+</section>
+  <data>
+    <d name="svg1" mime-type="image/svg+xml" base64="yes">PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5NiIgaGVpZ2h0PSI3MiI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9IjcyIiBmaWxsPSIjMjA2MGMwIi8+PGNpcmNsZSBjeD0iNDgiIGN5PSIzNiIgcj0iMjQiIGZpbGw9IiNlMDMwMzAiLz48L3N2Zz4=</d></data>
+</abinova>

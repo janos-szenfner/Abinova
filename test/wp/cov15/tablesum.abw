@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE abinova PUBLIC "-//ABINOVA//DTD AWNL 1.0 Strict//EN" "https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd">
+<abinova xmlns:dc="http://purl.org/dc/elements/1.1/" template="false" xid-max="40" xmlns="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd" xmlns:ct="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/changetracking.dtd" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:awml="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xml:space="preserve" fileformat="1.2" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="http://www.w3.org/2000/svg" xmlns:fo="http://www.w3.org/1999/XSL/Format" version="4.0.0" props="dom-dir:ltr; lang:en-US">
+  <pagesize pagetype="A4" orientation="portrait" width="210.00000000000003" height="297" units="mm" page-scale="1"/>
+  <section xid="2">
+    <p xid="3">Sum outside a table degrades: <field type="sum_rows" xid="4"/>.</p>
+    <table xid="10">
+      <cell xid="11" props="bot-attach:1; left-attach:0; right-attach:1; top-attach:0">
+        <p xid="12">1</p>
+</cell>
+      <cell xid="13" props="bot-attach:1; left-attach:1; right-attach:2; top-attach:0">
+        <p xid="14">2.5</p>
+</cell>
+      <cell xid="15" props="bot-attach:1; left-attach:2; right-attach:3; top-attach:0">
+        <p xid="16">3</p>
+</cell>
+      <cell xid="17" props="bot-attach:2; left-attach:0; right-attach:1; top-attach:1">
+        <p xid="18">4</p>
+</cell>
+      <cell xid="19" props="bot-attach:2; left-attach:1; right-attach:2; top-attach:1">
+        <p xid="20">5.5</p>
+</cell>
+      <cell xid="21" props="bot-attach:2; left-attach:2; right-attach:3; top-attach:1">
+        <p xid="22">text not a number</p>
+</cell>
+      <cell xid="23" props="bot-attach:3; left-attach:0; right-attach:1; top-attach:2">
+        <p xid="24"><field type="sum_rows" xid="25"/></p>
+</cell>
+      <cell xid="26" props="bot-attach:3; left-attach:1; right-attach:2; top-attach:2">
+        <p xid="27">7</p>
+</cell>
+      <cell xid="28" props="bot-attach:3; left-attach:2; right-attach:3; top-attach:2">
+        <p xid="29"><field type="sum_cols" xid="30"/></p>
+</cell>
+    </table>
+    <p xid="35">Done.</p>
+</section>
+</abinova>
