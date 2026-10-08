@@ -103,6 +103,8 @@
 #undef TFSUITE
 #include "src/af/xap/xp/t/xad_Document.t.cpp"
 #undef TFSUITE
+#include "src/af/tf/xp/t/tf_guard.t.cpp"
+#undef TFSUITE
 #include "src/text/ptbl/xp/t/pf_Fragments.t.cpp"
 #undef TFSUITE
 #include "src/text/ptbl/xp/t/pt_PieceTable.t.cpp"

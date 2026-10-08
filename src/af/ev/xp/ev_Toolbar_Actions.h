@@ -127,6 +127,9 @@ public:
 								  EV_GetToolbarItemState_pFn pfnGetState);
 	EV_Toolbar_Action *	getAction(XAP_Toolbar_Id id) const;
 
+	XAP_Toolbar_Id		getFirstId() const;
+	XAP_Toolbar_Id		getLastId() const;
+
 protected:
 	EV_Toolbar_Action **	m_actionTable;
 	XAP_Toolbar_Id			m_first;

@@ -60,6 +60,7 @@
 #include "ut_misc.h"
 
 #include "em_guard.h"
+#include "tf_actions.h"
 
 #include <glib.h>
 #include <unistd.h>
@@ -242,17 +243,12 @@ TFTEST_MAIN("menu action-set state and label sweep")
 			hv.view->cmdSelect(2, 30);
 		else
 			hv.view->setPoint(6);
-		for (int id = static_cast<int>(AP_MENU_ID__BOGUS1__);
-			 id < static_cast<int>(AP_MENU_ID__BOGUS2__); ++id)
+		for (const EV_Menu_Action *act : tf_actions::menu_actions(as))
 		{
-			const EV_Menu_Action *act =
-				as->getAction(static_cast<XAP_Menu_Id>(id));
-			if (!act)
-				continue;
+			const XAP_Menu_Id id = act->getMenuId();
 			if (pass == 0)
 				++nActions;
-			EV_Menu_Label lbl(static_cast<XAP_Menu_Id>(id),
-							  "Item %s", "status");
+			EV_Menu_Label lbl(id, "Item %s", "status");
 			MenuProbeCtx ctx{act, hv.view, &lbl};
 			const char *mname =
 				act->getMethodName() ? act->getMethodName() : "?";
@@ -301,13 +297,10 @@ TFTEST_MAIN("toolbar action-set state sweep")
 			hv.view->cmdSelect(2, 30);
 		else
 			hv.view->setPoint(6);
-		for (int id = static_cast<int>(AP_TOOLBAR_ID__BOGUS1__);
-			 id < static_cast<int>(AP_TOOLBAR_ID__BOGUS2__); ++id)
+		for (const EV_Toolbar_Action *act :
+			 tf_actions::toolbar_actions(as))
 		{
-			const EV_Toolbar_Action *act =
-				as->getAction(static_cast<XAP_Toolbar_Id>(id));
-			if (!act)
-				continue;
+			const XAP_Toolbar_Id id = act->getToolbarId();
 			if (pass == 0)
 				++nActions;
 			ToolbarProbeCtx ctx{act, hv.view};

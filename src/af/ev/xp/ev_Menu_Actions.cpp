@@ -170,6 +170,17 @@ const EV_Menu_Action * EV_Menu_ActionSet::getAction(XAP_Menu_Id id) const
 	return pAction;
 }
 
+XAP_Menu_Id EV_Menu_ActionSet::getFirstId() const
+{
+	return m_first;
+}
+
+XAP_Menu_Id EV_Menu_ActionSet::getLastId() const
+{
+	return static_cast<XAP_Menu_Id>(
+		m_first + static_cast<UT_sint32>(m_actionTable.size()) - 1);
+}
+
 bool EV_Menu_ActionSet::addAction(EV_Menu_Action *pAction)
 {
 	UT_DEBUGMSG(("JCA: EV_Menu_ActionSet::addAction\n"));

@@ -127,3 +127,13 @@ EV_Toolbar_Action * EV_Toolbar_ActionSet::getAction(XAP_Toolbar_Id id) const
 	UT_ASSERT(pAction && (pAction->getToolbarId()==id));
 	return pAction;
 }
+
+XAP_Toolbar_Id EV_Toolbar_ActionSet::getFirstId() const
+{
+	return m_first;
+}
+
+XAP_Toolbar_Id EV_Toolbar_ActionSet::getLastId() const
+{
+	return m_last;
+}

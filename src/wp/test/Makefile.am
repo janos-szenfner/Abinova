@@ -48,7 +48,8 @@ dialog_smoke_LDADD =  $(DEPS_LIBS)
 dialog_smoke_SOURCES = unix/dialog_smoke.cpp
 
 ui_drive_CPPFLAGS = $(WP_CPPFLAGS) \
-	-DABINOVA_DATADIR="\"$(ABINOVA_DATADIR)\""
+	-DABINOVA_DATADIR="\"$(ABINOVA_DATADIR)\"" \
+	-I$(top_srcdir)/src/af/tf/xp/
 
 ui_drive_LDFLAGS =  -L$(top_builddir)/src -labinova-@ABINOVA_SERIES@
 

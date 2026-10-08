@@ -10,4 +10,10 @@ libabinova_@ABINOVA_SERIES@_test_la_LDFLAGS = \
 libabinova_@ABINOVA_SERIES@_test_la_SOURCES = \
 	xp/tf_test.cpp \
 	xp/tf_test.h \
+	xp/tf_guard.h \
+	xp/tf_actions.h \
+	xp/tf_widgets.h \
 	$(null)
+
+EXTRA_DIST = \
+	xp/t/tf_guard.t.cpp

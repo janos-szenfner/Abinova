@@ -52,6 +52,7 @@
 #include "ut_growbuf.h"
 
 #include "em_guard.h"
+#include "tf_actions.h"
 
 #include <glib.h>
 
@@ -280,10 +281,12 @@ TFTEST_MAIN("edit-method table sweep (guarded in-process)")
 
 	UT_uint32 ran = 0;
 	std::vector<std::string> dead, hung;
-	for (UT_uint32 i = 0; i < count; ++i)
+	const std::vector<EV_EditMethod *> methods =
+		tf_actions::edit_methods(pemc.get());
+	for (UT_uint32 i = 0; i < methods.size(); ++i)
 	{
-		EV_EditMethod *em = pemc->getNthEditMethod(i);
-		if (!em || !em->getName())
+		EV_EditMethod *em = methods[i];
+		if (!em->getName())
 			continue;
 		const std::string name = em->getName();
 		if (skip.count(name) || expected.count(name))

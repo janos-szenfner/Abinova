@@ -146,6 +146,9 @@ public:
 
 	const EV_Menu_Action *	getAction(XAP_Menu_Id id) const;
 
+	XAP_Menu_Id			getFirstId() const;
+	XAP_Menu_Id			getLastId() const;
+
 private:
 	std::vector<EV_Menu_Action *>	m_actionTable;
 	XAP_Menu_Id			m_first;

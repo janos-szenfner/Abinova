@@ -101,6 +101,8 @@
 #include "ap_LeftRuler.h"
 #include "ap_UnixTopRuler.h"
 #include "ap_UnixLeftRuler.h"
+#include "tf_guard.h"
+#include "tf_widgets.h"
 
 #include <cmath>
 
@@ -273,7 +275,7 @@ static void drive_fatal(int sig)
  * GLib's emission locks stranded — the very next g_signal_emit then
  * futex-blocks forever, and the deadlock lands in UNGUARDED code
  * (observed: post-walk gtk_menu_button_popdown, sweep emits inside
- * pump()).  Probe emission on a scratch widget under its own alarm:
+ * drain_pending()).  Probe emission on a scratch widget under its own alarm:
  * if it wedges, the process can never emit again — keep counters and
  * exit rather than hang until the wrapper timeout. */
 static bool glib_emission_alive(void)
@@ -304,50 +306,12 @@ static void post_rescue_check(void)
 	}
 }
 
-/* pump the default main context until no work is pending.
- * NOTE: do NOT call __gcov_dump() here or mid-drive — in this libgcov
- * each object is written on the first dump and then unlinked, so an
- * early dump permanently discards the run's real coverage.  The only
- * safe dump points are the fatal-signal path and the end-of-leg
- * returns. */
-static void pump(void)
-{
-	/* bound the drain two ways: a self-reposting source (idle that
-	 * reschedules itself, a chatty dconf watch, an animation's frame
-	 * clock) keeps pending() true forever, and on a live display each
-	 * iteration can cost real layout/draw work — cap both iterations
-	 * and wall time so the per-widget settle cost stays bounded */
-	gint64 deadline = g_get_monotonic_time() + 40000;
-	for (int i = 0; i < 300 && g_main_context_pending(nullptr); i++) {
-		g_main_context_iteration(nullptr, FALSE);
-		if (g_get_monotonic_time() >= deadline)
-			break;
-	}
-}
-
-/* pump for at most `ms` so async map/show handlers get a slice */
-static void pump_for(guint ms)
-{
-	GMainContext *ctx = g_main_context_default();
-	gint64 deadline = g_get_monotonic_time() + ms * 1000;
-	while (g_get_monotonic_time() < deadline) {
-		if (!g_main_context_iteration(ctx, FALSE))
-			g_usleep(2000);
-	}
-}
-
-static std::vector<GtkWidget *> toplevels(void)
-{
-	std::vector<GtkWidget *> out;
-	GListModel *tl = gtk_window_get_toplevels();
-	guint n = g_list_model_get_n_items(tl);
-	for (guint i = 0; i < n; i++) {
-		GtkWidget *w = GTK_WIDGET(g_list_model_get_item(tl, i));
-		out.push_back(w);
-		g_object_unref(w);
-	}
-	return out;
-}
+/* NOTE: do NOT call __gcov_dump() from a pump or mid-drive — in this
+ * libgcov each object is written on the first dump and then unlinked,
+ * so an early dump permanently discards the run's real coverage.  The
+ * only safe dump points are the fatal-signal path and the end-of-leg
+ * returns.  The pump/drain/toplevels helpers themselves moved to the
+ * shared TST01 headers (tf_guard.h / tf_widgets.h). */
 
 static bool contains(const std::vector<GtkWidget *> &v, GtkWidget *w)
 {
@@ -466,7 +430,7 @@ static void sweep_strays(DriveCtx &ctx)
 	 * inside a nested modal loop re-dispatches other pending sources
 	 * (crashed GTK's sync print D-Bus query when idle) */
 	if (closed)
-		pump();
+		tf_guard::drain_pending();
 }
 
 /* run f under the same fault guard interact() uses for widgets —
@@ -728,17 +692,17 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 
 	if (GTK_IS_MENU_BUTTON(w)) {
 		gtk_menu_button_popup(GTK_MENU_BUTTON(w));
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_POPOVER(w)) {
 		if (gtk_widget_get_parent(w))
 			gtk_popover_popup(GTK_POPOVER(w));
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_NOTEBOOK(w)) {
 		GtkNotebook *nb = GTK_NOTEBOOK(w);
 		int n = gtk_notebook_get_n_pages(nb);
 		for (int i = 0; i < n && i < 24; i++) {
 			gtk_notebook_set_current_page(nb, i);
-			pump();
+			tf_guard::drain_pending();
 		}
 		if (n > 0)
 			gtk_notebook_set_current_page(nb, 0);
@@ -747,13 +711,13 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 		GtkWidget *first = gtk_widget_get_first_child(w);
 		for (GtkWidget *c = first; c; c = gtk_widget_get_next_sibling(c)) {
 			gtk_stack_set_visible_child(st, c);
-			pump();
+			tf_guard::drain_pending();
 		}
 		if (first)
 			gtk_stack_set_visible_child(st, first);
 	} else if (GTK_IS_EXPANDER(w)) {
 		gtk_expander_set_expanded(GTK_EXPANDER(w), TRUE);
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_DROP_DOWN(w)) {
 		GtkDropDown *dd = GTK_DROP_DOWN(w);
 		GListModel *m = gtk_drop_down_get_model(dd);
@@ -765,10 +729,10 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 			 * notify path without burning the whole leg's budget */
 			for (guint i = 0, k = 0; i < n && k < 4; i += step, k++) {
 				gtk_drop_down_set_selected(dd, i);
-				pump();
+				tf_guard::drain_pending();
 			}
 			gtk_drop_down_set_selected(dd, 0);
-			pump();
+			tf_guard::drain_pending();
 		}
 	} else if (GTK_IS_SPIN_BUTTON(w)) {
 		GtkSpinButton *sb = GTK_SPIN_BUTTON(w);
@@ -776,30 +740,30 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 		double lo = gtk_adjustment_get_lower(adj);
 		double hi = gtk_adjustment_get_upper(adj);
 		gtk_spin_button_set_value(sb, lo + (hi - lo) / 2);
-		pump();
+		tf_guard::drain_pending();
 		gtk_spin_button_spin(sb, GTK_SPIN_STEP_FORWARD, 1);
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_SWITCH(w)) {
 		gtk_switch_set_active(GTK_SWITCH(w), TRUE);
-		pump();
+		tf_guard::drain_pending();
 		gtk_switch_set_active(GTK_SWITCH(w), FALSE);
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_CHECK_BUTTON(w)) {
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(w), TRUE);
-		pump();
+		tf_guard::drain_pending();
 		gtk_check_button_set_active(GTK_CHECK_BUTTON(w), FALSE);
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_TOGGLE_BUTTON(w)) {
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), TRUE);
-		pump();
+		tf_guard::drain_pending();
 		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), FALSE);
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_SCALE(w)) {
 		GtkAdjustment *adj = gtk_range_get_adjustment(GTK_RANGE(w));
 		double lo = gtk_adjustment_get_lower(adj);
 		double hi = gtk_adjustment_get_upper(adj);
 		gtk_range_set_value(GTK_RANGE(w), lo + (hi - lo) / 2);
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_SCROLLBAR(w)) {
 		GtkAdjustment *adj = gtk_scrollbar_get_adjustment(GTK_SCROLLBAR(w));
 		if (adj) {
@@ -808,23 +772,23 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 				- gtk_adjustment_get_page_size(adj);
 			if (hi > lo)
 				gtk_adjustment_set_value(adj, lo + (hi - lo) / 2);
-			pump();
+			tf_guard::drain_pending();
 		}
 	} else if (GTK_IS_COLOR_DIALOG_BUTTON(w)) {
 		GdkRGBA rgba {0.2f, 0.4f, 0.8f, 1.0f};
 		gtk_color_dialog_button_set_rgba(GTK_COLOR_DIALOG_BUTTON(w),
 										 &rgba);
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_LINK_BUTTON(w)) {
 		/* activating it would open a browser on the user's live
 		 * display — skip */
 	} else if (GTK_IS_ENTRY(w) || GTK_IS_TEXT(w)) {
 		gtk_editable_set_text(GTK_EDITABLE(w), "Sample");
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_TEXT_VIEW(w)) {
 		GtkTextBuffer *b = gtk_text_view_get_buffer(GTK_TEXT_VIEW(w));
 		gtk_text_buffer_insert_at_cursor(b, "x", 1);
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_LIST_BOX(w)) {
 		GtkListBox *lb = GTK_LIST_BOX(w);
 		gtk_list_box_unselect_all(lb);
@@ -832,17 +796,17 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 		for (int i = 0; row && i < 6; i++) {
 			if (GTK_IS_LIST_BOX_ROW(row)) {
 				gtk_list_box_select_row(lb, GTK_LIST_BOX_ROW(row));
-				pump();
+				tf_guard::drain_pending();
 				gtk_widget_activate(row); /* emits row-activated */
-				pump();
+				tf_guard::drain_pending();
 			}
 			row = gtk_widget_get_next_sibling(row);
 		}
 	} else if (GTK_IS_FLOW_BOX(w)) {
 		gtk_flow_box_select_all(GTK_FLOW_BOX(w));
-		pump();
+		tf_guard::drain_pending();
 		gtk_flow_box_unselect_all(GTK_FLOW_BOX(w));
-		pump();
+		tf_guard::drain_pending();
 	} else if (GTK_IS_LIST_VIEW(w)) {
 		GtkSelectionModel *sel =
 			gtk_list_view_get_model(GTK_LIST_VIEW(w));
@@ -850,11 +814,11 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 			guint n = g_list_model_get_n_items(G_LIST_MODEL(sel));
 			for (guint i = 0; i < n && i < 8; i++) {
 				gtk_selection_model_select_item(sel, i, TRUE);
-				pump();
+				tf_guard::drain_pending();
 			}
 		}
-		g_signal_emit_by_name(w, "activate", 0);
-		pump();
+		tf_widgets::activate(w);
+		tf_guard::drain_pending();
 	} else if (GTK_IS_COLUMN_VIEW(w)) {
 		GtkSelectionModel *sel =
 			gtk_column_view_get_model(GTK_COLUMN_VIEW(w));
@@ -862,11 +826,11 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 			guint n = g_list_model_get_n_items(G_LIST_MODEL(sel));
 			for (guint i = 0; i < n && i < 8; i++) {
 				gtk_selection_model_select_item(sel, i, TRUE);
-				pump();
+				tf_guard::drain_pending();
 			}
 		}
-		g_signal_emit_by_name(w, "activate", 0);
-		pump();
+		tf_widgets::activate(w);
+		tf_guard::drain_pending();
 	} else if (GTK_IS_GRID_VIEW(w)) {
 		GtkSelectionModel *sel =
 			gtk_grid_view_get_model(GTK_GRID_VIEW(w));
@@ -874,11 +838,11 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 			guint n = g_list_model_get_n_items(G_LIST_MODEL(sel));
 			for (guint i = 0; i < n && i < 8; i++) {
 				gtk_selection_model_select_item(sel, i, TRUE);
-				pump();
+				tf_guard::drain_pending();
 			}
 		}
-		g_signal_emit_by_name(w, "activate", 0);
-		pump();
+		tf_widgets::activate(w);
+		tf_guard::drain_pending();
 	} else if (GTK_IS_BUTTON(w)) {
 		/* a real Print/Preview activation sends a job to the user's
 		 * printer or launches the system previewer — real side
@@ -901,8 +865,8 @@ static void interact(GtkWidget *w, DriveCtx &ctx)
 			alarm(0);
 			return;
 		}
-		g_signal_emit_by_name(w, "clicked");
-		pump();
+		tf_widgets::click(w);
+		tf_guard::drain_pending();
 		sweep_strays(ctx);
 	}
 	g_in_interact = 0;
@@ -1024,7 +988,7 @@ static gboolean modal_drive_cb(gpointer data)
 									  GTK_RESPONSE_OK);
 			else if (GTK_IS_WINDOW(m->dlg))
 				gtk_window_close(GTK_WINDOW(m->dlg));
-			pump();
+			tf_guard::drain_pending();
 		}
 		return G_SOURCE_CONTINUE;
 	}
@@ -1037,7 +1001,7 @@ static gboolean modal_drive_cb(gpointer data)
 								  GTK_RESPONSE_DELETE_EVENT);
 		else if (GTK_IS_WINDOW(m->dlg))
 			gtk_window_close(GTK_WINDOW(m->dlg));
-		pump();
+		tf_guard::drain_pending();
 	}
 	if (!m->dlg || ++m->tries >= 80)
 		return G_SOURCE_REMOVE;
@@ -1090,14 +1054,14 @@ static int run_dialog(XAP_DialogFactory *factory, XAP_Frame *frame,
 	/* 40s of widget budget inside the wrapper's 60s leg timeout */
 	DriveCtx ctx {nullptr, {}, 0, false, false,
 		g_get_monotonic_time() + 40 * G_USEC_PER_SEC, 0};
-	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
+	sweep_guard([&ctx] { ctx.preexisting = tf_widgets::toplevels(); });
 
 	guint sweeper = g_timeout_add(150, stray_sweep_cb, &ctx);
 
 	if (XAP_Dialog_Modeless *ml = dynamic_cast<XAP_Dialog_Modeless *>(dlg)) {
 		set_phase("dialog: runModeless");
 		ml->runModeless(frame);
-		pump_for(200);
+		tf_guard::pump_for(200);
 		GtkWidget *w = nullptr;
 		sweep_guard([&] {
 			attach_live_stray(ctx.preexisting, &w);
@@ -1119,7 +1083,7 @@ static int run_dialog(XAP_DialogFactory *factory, XAP_Frame *frame,
 		if (w && !ctx.rootDead) {
 			if (GTK_IS_WINDOW(w))
 				gtk_window_close(GTK_WINDOW(w));
-			pump();
+			tf_guard::drain_pending();
 		}
 		if (w)
 			g_object_remove_weak_pointer(
@@ -1133,7 +1097,7 @@ static int run_dialog(XAP_DialogFactory *factory, XAP_Frame *frame,
 		if (md.dlg)
 			g_object_remove_weak_pointer(
 				G_OBJECT(md.dlg), reinterpret_cast<gpointer *>(&md.dlg));
-		pump();
+		tf_guard::drain_pending();
 	}
 
 	g_source_remove(sweeper);
@@ -1145,7 +1109,7 @@ static int run_dialog(XAP_DialogFactory *factory, XAP_Frame *frame,
 	set_phase("dialog: release");
 	call_guard([&] {
 		factory->releaseDialog(dlg);
-		pump();
+		tf_guard::drain_pending();
 	}, "dialog release");
 	__gcov_dump();
 
@@ -1166,7 +1130,7 @@ static int drive_frame(AP_UnixApp *app, const char *scratch)
 	 * counters) and each widget keeps its own interact alarm */
 	alarm(0);
 	std::vector<GtkWidget *> before;
-	sweep_guard([&before] { before = toplevels(); });
+	sweep_guard([&before] { before = tf_widgets::toplevels(); });
 
 	set_phase("frame: newFrame");
 	XAP_Frame *frame = app->newFrame();
@@ -1180,11 +1144,11 @@ static int drive_frame(AP_UnixApp *app, const char *scratch)
 	g_free(uri);
 	frame->show();
 	set_phase("frame: settle pump");
-	pump_for(600);
+	tf_guard::pump_for(600);
 
 	GtkWidget *win = nullptr;
 	std::vector<GtkWidget *> after;
-	sweep_guard([&after] { after = toplevels(); });
+	sweep_guard([&after] { after = tf_widgets::toplevels(); });
 	for (GtkWidget *w : after) {
 		if (!contains(before, w)) {
 			win = w;
@@ -1222,7 +1186,7 @@ static int drive_frame(AP_UnixApp *app, const char *scratch)
 	 * guard them or a hang here burns the whole wrapper timeout */
 	g_source_remove(sweeper);
 	call_guard([&] {
-		pump_for(300);
+		tf_guard::pump_for(300);
 		if (!ctx.rootDead)
 			sweep_guard([&ctx] { sweep_strays(ctx); });
 	}, "tail sweep");
@@ -1359,14 +1323,14 @@ static void rul_move(RulerInject &inj, GtkWidget *w, double px, double py)
 	} else if (g_trace)
 		fprintf(stderr, "rul_move w(%g,%g): compute_point failed\n",
 				px, py);
-	pump_for(35);
+	tf_guard::pump_for(35);
 }
 
 static void rul_btn(RulerInject &inj, bool down)
 {
 	inj.fakeBtn(inj.dpy, 1, down ? True : False, 0);
 	XFlush(inj.dpy);
-	pump_for(45);
+	tf_guard::pump_for(45);
 }
 
 /* GtkGestureClick folds presses that land within gtk-double-click-time
@@ -1377,7 +1341,7 @@ static void rul_btn(RulerInject &inj, bool down)
  * never intended to. */
 static void rul_gap(void)
 {
-	pump_for(450);
+	tf_guard::pump_for(450);
 }
 
 /* a ruler press while a document change is in flight early-outs and
@@ -1387,7 +1351,7 @@ static void wait_pt_idle(FV_View *view)
 	gint64 deadline = g_get_monotonic_time() + 2000000;
 	while (view->getDocument()->isPieceTableChanging() &&
 		   g_get_monotonic_time() < deadline)
-		pump_for(40);
+		tf_guard::pump_for(40);
 }
 
 /* under Xvfb the freshly-mapped frame keeps resizing for a second or
@@ -1401,7 +1365,7 @@ static void settle_ruler(AP_TopRuler *tr, GtkWidget *tw)
 	gint64 deadline = g_get_monotonic_time() + 4000000;
 	int py = (3 * gtk_widget_get_height(tw) / 4) - 3;
 	while (stable < 3 && g_get_monotonic_time() < deadline) {
-		pump_for(150);
+		tf_guard::pump_for(150);
 		int cx = probe_top_center(tr, py, 8,
 								  gtk_widget_get_width(tw) - 8,
 								  AP_TopRuler::DW_LEFTINDENT, false);
@@ -1442,7 +1406,7 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 	 * the leg without a stray sweeper inside the nested loop.  Same
 	 * mechanism the dialog legs use. */
 	DriveCtx sctx {nullptr, {}, 0, false, false, 0, 0};
-	sweep_guard([&sctx] { sctx.preexisting = toplevels(); });
+	sweep_guard([&sctx] { sctx.preexisting = tf_widgets::toplevels(); });
 
 	set_phase("ruler: new frame");
 	XAP_Frame *frame = app->newFrame();
@@ -1459,7 +1423,7 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 	UT_Error err = frame->loadDocument(
 		static_cast<const char *>(nullptr), IEFT_Unknown);
 	frame->show();
-	pump_for(700);
+	tf_guard::pump_for(700);
 	if (err != UT_OK) {
 		g_printerr("ruler: new-document err %d\n", err);
 		return 1;
@@ -1473,7 +1437,7 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 	}
 	if (!fd->m_bShowRuler || !fd->m_pTopRuler || !fd->m_pLeftRuler) {
 		frame->toggleRuler(true);
-		pump_for(300);
+		tf_guard::pump_for(300);
 	}
 	AP_TopRuler *tr = fd->m_pTopRuler;
 	AP_LeftRuler *lr = fd->m_pLeftRuler;
@@ -1595,7 +1559,7 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 			int lastBox = -1, stable = 0;
 			gint64 deadline = g_get_monotonic_time() + 2000000;
 			while (stable < 2 && g_get_monotonic_time() < deadline) {
-				pump_for(120);
+				tf_guard::pump_for(120);
 				grabX = scan_tab_box(tr, 8, tw_w - 8);
 				if (grabX >= 0 && grabX == lastBox)
 					stable++;
@@ -1794,7 +1758,7 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 
 	/* ---- left ruler: margin drag straying horizontally applies ---- */
 	set_phase("ruler: left margin drag");
-	pump_for(300);
+	tf_guard::pump_for(300);
 
 	AP_LeftRulerInfo li0;
 	view->getLeftRulerInfo(&li0);
@@ -1874,14 +1838,14 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 		rul_btn(inj, false);
 		rul_btn(inj, true);
 		rul_btn(inj, false);
-		pump_for(800);
+		tf_guard::pump_for(800);
 		if (sctx.straysClosed > closedBefore)
 			g_print("ruler: double-click opened a dialog\n");
 		else {
 			g_printerr("FAIL ruler: double-click opened no dialog\n");
 			fails++;
 		}
-		pump_for(150);
+		tf_guard::pump_for(150);
 	}
 
 	set_phase("ruler: done");
@@ -1903,7 +1867,7 @@ static int drive_abiwidget(const char *scratch_uri)
 	alarm(0); /* the sections' call_guard alarms are the real bound;
 			   * the wrapper's timeout covers a total wedge */
 	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
-	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
+	sweep_guard([&ctx] { ctx.preexisting = tf_widgets::toplevels(); });
 	GtkWidget *win = gtk_window_new();
 	GtkWidget *w = abi_widget_new();
 	gtk_window_set_child(GTK_WINDOW(win), w);
@@ -1915,7 +1879,7 @@ static int drive_abiwidget(const char *scratch_uri)
 	 * MessageBoxes in their own nested loop — the periodic stray
 	 * sweep dismisses them the same way it does for dialog legs */
 	guint sweeper = g_timeout_add(150, stray_sweep_cb, &ctx);
-	pump_for(400);
+	tf_guard::pump_for(400);
 
 	AbiWidget *abi = ABI_WIDGET(w);
 	/* each section runs under the interact fault guard: a crash deep
@@ -1932,10 +1896,10 @@ static int drive_abiwidget(const char *scratch_uri)
 		call_guard([&] { __VA_ARGS__; }, name);
 
 	ABI_SECTION("load", abi_widget_load_file(abi, scratch_uri, nullptr);
-		pump_for(250);
+		tf_guard::pump_for(250);
 		abi_widget_turn_on_cursor(abi);
 		abi_widget_draw(abi);
-		pump_for(250));
+		tf_guard::pump_for(250));
 
 	/* content insertion + selection + clipboard */
 	ABI_SECTION("clipboard",
@@ -1947,7 +1911,7 @@ static int drive_abiwidget(const char *scratch_uri)
 		abi_widget_paste(abi);
 		abi_widget_undo(abi);
 		abi_widget_redo(abi);
-		pump_for(250));
+		tf_guard::pump_for(250));
 
 	/* align + character toggles */
 	ABI_SECTION("charfmt",
@@ -1971,7 +1935,7 @@ static int drive_abiwidget(const char *scratch_uri)
 		abi_widget_toggle_numbering(abi);
 		abi_widget_toggle_unindent(abi);
 		abi_widget_set_text_color(abi, 200, 40, 40);
-		pump_for(250));
+		tf_guard::pump_for(250));
 
 	/* selection verbs */
 	ABI_SECTION("select",
@@ -1990,7 +1954,7 @@ static int drive_abiwidget(const char *scratch_uri)
 		abi_widget_select_next_line(abi);
 		abi_widget_select_page_down(abi);
 		abi_widget_select_page_up(abi);
-		pump_for(250));
+		tf_guard::pump_for(250));
 
 	/* caret movement verbs */
 	ABI_SECTION("moveto",
@@ -2013,14 +1977,14 @@ static int drive_abiwidget(const char *scratch_uri)
 		abi_widget_moveto_next_screen(abi);
 		abi_widget_moveto_prev_screen(abi);
 		abi_widget_moveto_to_xy(abi, 20, 20);
-		pump_for(250));
+		tf_guard::pump_for(250));
 
 	/* find */
 	ABI_SECTION("find",
 		abi_widget_set_find_string(abi, const_cast<gchar *>("the"));
 		abi_widget_find_next(abi, FALSE);
 		abi_widget_find_prev(abi);
-		pump_for(250));
+		tf_guard::pump_for(250));
 
 	/* misc state */
 	ABI_SECTION("misc",
@@ -2038,17 +2002,17 @@ static int drive_abiwidget(const char *scratch_uri)
 		abi_widget_insert_table(abi, 2, 3);
 		gint32 mx = 0, my = 0;
 		abi_widget_get_mouse_pos(abi, &mx, &my);
-		pump_for(250));
+		tf_guard::pump_for(250));
 
 	/* headers/footers */
 	ABI_SECTION("headers",
 		abi_widget_edit_header(abi);
-		pump_for(250);
+		tf_guard::pump_for(250);
 		abi_widget_remove_header(abi);
 		abi_widget_edit_footer(abi);
-		pump_for(250);
+		tf_guard::pump_for(250);
 		abi_widget_remove_footer(abi);
-		pump_for(250));
+		tf_guard::pump_for(250));
 
 	/* fonts + styles */
 	ABI_SECTION("styles",
@@ -2056,7 +2020,7 @@ static int drive_abiwidget(const char *scratch_uri)
 		abi_widget_set_font_size(abi, const_cast<gchar *>("14"));
 		abi_widget_get_font_names(abi);
 		abi_widget_set_style(abi, const_cast<char *>("Heading 1"));
-		pump_for(250));
+		tf_guard::pump_for(250));
 
 	/* edit-method invocation + content extraction */
 	ABI_SECTION("invoke",
@@ -2068,7 +2032,7 @@ static int drive_abiwidget(const char *scratch_uri)
 		g_free(text);
 		gchar *sel = abi_widget_get_selection(abi, "text/plain", &len);
 		g_free(sel);
-		pump_for(250));
+		tf_guard::pump_for(250));
 
 	/* rendering + save round-trip */
 	ABI_SECTION("save",
@@ -2080,7 +2044,7 @@ static int drive_abiwidget(const char *scratch_uri)
 		GsfOutput *mem = gsf_output_memory_new();
 		abi_widget_save_to_gsf(abi, mem, ".abw", nullptr);
 		g_object_unref(mem);
-		pump_for(300));
+		tf_guard::pump_for(300));
 
 	/* layout-mode switches and the deletion verbs are where the drive
 	 * most often trips layout-listener faults in product code; doing
@@ -2088,16 +2052,16 @@ static int drive_abiwidget(const char *scratch_uri)
 	ABI_SECTION("views",
 		abi_widget_view_formatting_marks(abi);
 		abi_widget_view_online_layout(abi);
-		pump_for(200);
+		tf_guard::pump_for(200);
 		abi_widget_view_normal_layout(abi);
-		pump_for(200);
+		tf_guard::pump_for(200);
 		abi_widget_view_print_layout(abi);
-		pump_for(200);
+		tf_guard::pump_for(200);
 		abi_widget_zoom_whole(abi);
 		abi_widget_zoom_width(abi);
 		abi_widget_set_zoom_percentage(abi, 120);
 		abi_widget_get_zoom_percentage(abi);
-		pump_for(250));
+		tf_guard::pump_for(250));
 
 	ABI_SECTION("delete",
 		abi_widget_select_word(abi);
@@ -2111,13 +2075,13 @@ static int drive_abiwidget(const char *scratch_uri)
 		abi_widget_delete_eow(abi);
 		abi_widget_delete_left(abi);
 		abi_widget_delete_right(abi);
-		pump_for(250));
+		tf_guard::pump_for(250));
 #undef ABI_SECTION
 
 	g_source_remove(sweeper);
 	call_guard([&] {
 		gtk_window_destroy(GTK_WINDOW(win));
-		pump_for(250);
+		tf_guard::pump_for(250);
 	}, "teardown");
 	__gcov_dump();
 	g_print("drive: abiwidget done — %d criticals, %d crashed, %d wedged\n",
@@ -2167,20 +2131,7 @@ static int drive_abiwidget(const char *scratch_uri)
 #include "ut_bytebuf.h"
 #include "xap_Dlg_Print.h"
 
-/* find a widget of a given GType anywhere below w (used for the doc
- * drawing area and for the context-menu popover) */
-static GtkWidget *find_type(GtkWidget *w, GType t)
-{
-	if (g_type_check_instance_is_a(
-			reinterpret_cast<GTypeInstance *>(w), t))
-		return w;
-	for (GtkWidget *c = gtk_widget_get_first_child(w); c;
-		 c = gtk_widget_get_next_sibling(c)) {
-		if (GtkWidget *f = find_type(c, t))
-			return f;
-	}
-	return nullptr;
-}
+/* the GType subtree lookup moved to tf_widgets::find_type (TST01) */
 
 /* drive the input-event classes the way the frame's _fe handlers do:
  * they forward gtk_event_controller_get_current_event() — null
@@ -2224,16 +2175,16 @@ static bool load_fixture_frame(AP_UnixApp *app, DriveCtx &ctx,
 	 * dangling */
 	{
 		std::vector<GtkWidget *> tops;
-		sweep_guard([&tops] { tops = toplevels(); });
+		sweep_guard([&tops] { tops = tf_widgets::toplevels(); });
 		for (GtkWidget *w : tops)
 			if (!contains(ctx.preexisting, w))
 				ctx.preexisting.push_back(w);
 	}
-	pump_for(1200);
+	tf_guard::pump_for(1200);
 	/* any toplevel that appeared during layout gets the same
 	 * protection */
 	std::vector<GtkWidget *> tops;
-	sweep_guard([&tops] { tops = toplevels(); });
+	sweep_guard([&tops] { tops = tf_widgets::toplevels(); });
 	for (GtkWidget *w : tops)
 		if (!contains(ctx.preexisting, w))
 			ctx.preexisting.push_back(w);
@@ -2266,7 +2217,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 {
 	alarm(0);
 	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
-	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
+	sweep_guard([&ctx] { ctx.preexisting = tf_widgets::toplevels(); });
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {
@@ -2277,13 +2228,13 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 	frame->loadDocument(uri, IEFT_Unknown, true);
 	g_free(uri);
 	frame->show();
-	pump_for(800);
+	tf_guard::pump_for(800);
 
 	AV_View *view = frame->getCurrentView();
 	GtkWidget *win = nullptr;
 	{
 		std::vector<GtkWidget *> after;
-		sweep_guard([&after] { after = toplevels(); });
+		sweep_guard([&after] { after = tf_widgets::toplevels(); });
 		for (GtkWidget *w : after)
 			if (!contains(ctx.preexisting, w)) {
 				win = w;
@@ -2321,7 +2272,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 							  "\xF0\x9D\x94\x80", 4);   /* astral */
 			kbd.charDataEvent(view, static_cast<EV_EditBits>(
 								  EV_EMS_CONTROL), "a", 1);
-			pump_for(200);
+			tf_guard::pump_for(200);
 		});
 
 	/* ---- cursor name table: every cursor enum through setCursor
@@ -2440,7 +2391,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 			if (pd) {
 				pd->PrintDirectly(frame, "/tmp/ui-drive-print.pdf",
 								  nullptr);
-				pump_for(300);
+				tf_guard::pump_for(300);
 				df->releaseDialog(pd);
 			}
 		});
@@ -2456,7 +2407,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 				emc->findEditMethodByName("printPreview");
 			if (em)
 				em->Fn(av, &emcd);
-			pump_for(400);
+			tf_guard::pump_for(400);
 		});
 
 	/* ---- fixtures: an abwn with audio+video embeds drives the media
@@ -2547,13 +2498,13 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 				/* opens a transient GtkVideo window — the stray
 				 * sweep answers it */
 				mm->modify(0);
-				pump_for(400);
+				tf_guard::pump_for(400);
 				/* uid 2 is the "obj-../evil" item — its dataid is
 				 * sanitized into a flat tmpfile prefix, so this
 				 * must still launch (and get swept) rather than
 				 * traverse out of the temp dir */
 				mm->modify(2);
-				pump_for(300);
+				tf_guard::pump_for(300);
 				/* bounds guards on the embed-view vector */
 				UT_Rect r(0, 0, 10, 10);
 				mm->getWidth(-1);
@@ -2618,7 +2569,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 								AP_MENU_ID_EDIT_SELECTALL));
 			menu->menuEvent(static_cast<XAP_Menu_Id>(AP_MENU_ID_EDIT_UNDO));
 			menu->menuEvent(static_cast<XAP_Menu_Id>(AP_MENU_ID_EDIT_COPY));
-			pump_for(150);
+			tf_guard::pump_for(150);
 
 			/* GAction "activate" → _wd::s_onActivate → menuEvent +
 			 * refresh + the frame-survival check */
@@ -2626,7 +2577,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 											  AP_MENU_ID_EDIT_SELECTALL));
 			if (a)
 				g_action_activate(a, nullptr);
-			pump_for(100);
+			tf_guard::pump_for(100);
 
 			/* checkable "change-state" → _wd::s_onChangeState bool
 			 * branch; toggle twice to restore */
@@ -2634,7 +2585,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 											  AP_MENU_ID_VIEW_SHOWPARA));
 			if (c) {
 				g_action_change_state(c, g_variant_new_boolean(TRUE));
-				pump_for(100);
+				tf_guard::pump_for(100);
 				g_action_change_state(c, g_variant_new_boolean(FALSE));
 			}
 			/* radio "change-state" → string branch: the shared group
@@ -2646,7 +2597,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 				g_snprintf(t, sizeof(t), "%u",
 						   static_cast<unsigned>(AP_MENU_ID_VIEW_ZOOM_100));
 				g_action_change_state(r, g_variant_new_string(t));
-				pump_for(100);
+				tf_guard::pump_for(100);
 				g_snprintf(t, sizeof(t), "%u",
 						   static_cast<unsigned>(AP_MENU_ID_VIEW_ZOOM_200));
 				g_action_change_state(r, g_variant_new_string(t));
@@ -2658,12 +2609,12 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 											   AP_MENU_ID_VIEW_TB_1));
 			if (tb) {
 				g_action_change_state(tb, g_variant_new_boolean(FALSE));
-				pump_for(400);
+				tf_guard::pump_for(400);
 				g_action_change_state(tb, g_variant_new_boolean(TRUE));
-				pump_for(400);
+				tf_guard::pump_for(400);
 			}
 			menu->refreshMenu(view);
-			pump_for(200);
+			tf_guard::pump_for(200);
 		});
 
 	/* ---- popup menu synthesis: covers the isPopup menu-item branch
@@ -2680,7 +2631,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 		});
 
 	g_source_remove(sweeper);
-	call_guard([&] { pump_for(300); }, "tail");
+	call_guard([&] { tf_guard::pump_for(300); }, "tail");
 	__gcov_dump();
 	g_print("drive: ev done — %d criticals, %d crashed, %d wedged\n",
 			g_criticals, g_crashed_widgets, g_wedged_widgets);
@@ -2709,21 +2660,17 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 static void find_css_class(GtkWidget *w, const char *cls,
 						   std::vector<GtkWidget *> &out)
 {
-	if (gtk_widget_has_css_class(w, cls))
-		out.push_back(w);
-	for (GtkWidget *c = gtk_widget_get_first_child(w); c;
-		 c = gtk_widget_get_next_sibling(c))
-		find_css_class(c, cls, out);
+	tf_widgets::find_all(w, [cls](GtkWidget *c) {
+		return gtk_widget_has_css_class(c, cls) != 0;
+	}, out);
 }
 
 /* every GtkButton below w */
 static void find_buttons(GtkWidget *w, std::vector<GtkWidget *> &out)
 {
-	if (GTK_IS_BUTTON(w))
-		out.push_back(w);
-	for (GtkWidget *c = gtk_widget_get_first_child(w); c;
-		 c = gtk_widget_get_next_sibling(c))
-		find_buttons(c, out);
+	tf_widgets::find_all(w, [](GtkWidget *c) {
+		return GTK_IS_BUTTON(c) != 0;
+	}, out);
 }
 
 static int g_handle_dragged = 0;
@@ -2782,7 +2729,7 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 {
 	alarm(0);
 	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
-	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
+	sweep_guard([&ctx] { ctx.preexisting = tf_widgets::toplevels(); });
 
 	GdkDisplay *disp = gdk_display_get_default();
 	g_print("drive: fmt — gdk backend %s\n",
@@ -2797,13 +2744,13 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 	frame->loadDocument(uri, IEFT_Unknown, true);
 	g_free(uri);
 	frame->show();
-	pump_for(800);
+	tf_guard::pump_for(800);
 
 	FV_View *view = static_cast<FV_View *>(frame->getCurrentView());
 	GtkWidget *win = nullptr;
 	{
 		std::vector<GtkWidget *> after;
-		sweep_guard([&after] { after = toplevels(); });
+		sweep_guard([&after] { after = tf_widgets::toplevels(); });
 		for (GtkWidget *w : after)
 			if (!contains(ctx.preexisting, w)) {
 				win = w;
@@ -2829,7 +2776,7 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 		gtk_window_set_default_size(GTK_WINDOW(hwin), 400, 300);
 		gtk_window_present(GTK_WINDOW(hwin));
 		ctx.preexisting.push_back(hwin); /* keep the stray sweep off */
-		pump_for(200);
+		tf_guard::pump_for(200);
 
 		FvTextHandle *h = _fv_text_handle_new(ovl);
 		g_signal_connect(h, "handle-dragged",
@@ -2856,7 +2803,7 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 			h, FV_TEXT_HANDLE_POSITION_SELECTION_END, &r);
 		_fv_text_handle_set_visible(
 			h, FV_TEXT_HANDLE_POSITION_SELECTION_START, TRUE);
-		pump_for(250);
+		tf_guard::pump_for(250);
 		/* gestures + draw callbacks on the real handle widgets */
 		{
 			std::vector<GtkWidget *> hw;
@@ -2866,7 +2813,7 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 				snapshot_widget(d);
 			}
 		}
-		pump_for(200);
+		tf_guard::pump_for(200);
 		/* a dragged handle ignores set_visible, an undragged one takes
 		 * it — both arms of the guard */
 		_fv_text_handle_set_visible(
@@ -2878,7 +2825,7 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 		(void)_fv_text_handle_get_mode(h);
 		g_object_unref(h);          /* finalize: widgets + gestures */
 		gtk_window_destroy(GTK_WINDOW(hwin));
-		pump_for(200));
+		tf_guard::pump_for(200));
 
 	/* ---- selection handles through the real view: visual selection
 	 * on, then empty → non-empty selections so _updateSelectionHandles
@@ -2888,16 +2835,16 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 		if (view) {
 			view->setVisualSelectionEnabled(true);
 			view->warpInsPtToXY(80, 100, true);
-			pump_for(250);
+			tf_guard::pump_for(250);
 			/* extend → both handles in selection mode */
 			view->extSelToXY(220, 180, false);
-			pump_for(250);
+			tf_guard::pump_for(250);
 			/* scrolls re-run the handle update */
 			view->setXScrollOffset(40);
 			view->setYScrollOffset(40);
 			view->setXScrollOffset(0);
 			view->setYScrollOffset(0);
-			pump_for(200);
+			tf_guard::pump_for(200);
 			/* drag gestures on the frame's real handles feed the
 			 * view's updateSelection* callbacks */
 			if (win) {
@@ -2906,10 +2853,10 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 				for (GtkWidget *d : hw)
 					emit_drag_gestures(d);
 			}
-			pump_for(250);
+			tf_guard::pump_for(250);
 			view->setVisualSelectionEnabled(false); /* hide() path */
 			view->setVisualSelectionEnabled(true);
-			pump_for(200);
+			tf_guard::pump_for(200);
 		});
 
 	/* ---- paste options tag: a real copy + paste through the session
@@ -2919,7 +2866,7 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 		if (view && win) {
 			view->cmdSelect(0, 0, FV_DOCPOS_BOD, FV_DOCPOS_EOD);
 			view->cmdCopy();
-			pump_for(250);
+			tf_guard::pump_for(250);
 			/* paste at a known body position: the tag is suppressed
 			 * inside tables/headers/frames, and much of rich.abw is
 			 * one — just past BOD is guaranteed body text.  Copy and
@@ -2947,7 +2894,7 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 				if (g_trace)
 					fprintf(stderr, "fmt: point %d\n",
 							static_cast<int>(view->getPoint()));
-				pump_for(400);
+				tf_guard::pump_for(400);
 			};
 			paste_mid();
 			if (g_trace)
@@ -2956,7 +2903,7 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 						static_cast<int>(view->getPoint()),
 						view->isInTable(view->getPoint()));
 			view->popupPasteTagMenu();
-			pump_for(300);
+			tf_guard::pump_for(300);
 
 			std::vector<GtkWidget *> tags;
 			find_css_class(win, "paste-tag", tags);
@@ -2975,24 +2922,24 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 						g_signal_emit_by_name(b, "clicked");
 			};
 			tag_click("Merge Formatting"); /* delete + re-paste path */
-			pump_for(400);
+			tf_guard::pump_for(400);
 			/* applying disarms the tag — re-arm for each option */
 			paste_mid();
 			tag_click("Keep Text Only");
-			pump_for(400);
+			tf_guard::pump_for(400);
 			paste_mid();
 			tag_click("Keep Source Formatting");
-			pump_for(300);
+			tf_guard::pump_for(300);
 			paste_mid();
 			view->popupPasteTagMenu();
-			pump_for(250);
+			tf_guard::pump_for(250);
 			/* opens the Paste Special dialog; the stray sweep answers
 			 * it on the next tick */
 			tag_click("Paste Special…");
-			pump_for(500);
+			tf_guard::pump_for(500);
 			paste_mid();
 			view->dismissPasteTag();      /* hide() path */
-			pump_for(200);
+			tf_guard::pump_for(200);
 		});
 
 	/* ---- visual text drag: copyToLocal builds the local drag
@@ -3010,7 +2957,7 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 			view->copyToLocal(a, b);
 			view->dragVisualText(100, 100);  /* in-window: _mouseDrag */
 			view->dragVisualText(-50, 100);  /* drag out of window   */
-			pump_for(350);
+			tf_guard::pump_for(350);
 		});
 
 	/* ---- inline-image drag: a fixture carrying an embedded image;
@@ -3073,7 +3020,7 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 						fv2->btn1CopyImage(ix, iy);
 						fv2->dragInlineImage(-60, iy);
 					}
-					pump_for(350);
+					tf_guard::pump_for(350);
 				}
 			}
 		});
@@ -3104,15 +3051,15 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 						fv3->dragFrame(px + 10, py + 10);
 						fv3->dragFrame(-60, py + 10);
 					}
-				pump_for(350);
+				tf_guard::pump_for(350);
 				if (fe && fe->isActive())
 					fe->setMode(FV_FrameEdit_NOT_ACTIVE);
-				pump_for(200);
+				tf_guard::pump_for(200);
 			}
 		});
 
 	g_source_remove(sweeper);
-	call_guard([&] { pump_for(300); }, "tail");
+	call_guard([&] { tf_guard::pump_for(300); }, "tail");
 	__gcov_dump();
 	g_print("drive: fmt done — %d criticals, %d crashed, %d wedged, "
 			"%d handle drags, %d finishes\n",
@@ -3141,7 +3088,7 @@ static int drive_filenew(AP_UnixApp *app, const char *src)
 		return 1;
 	}
 	frame->show();
-	pump_for(300);
+	tf_guard::pump_for(300);
 	AV_View *av = frame->getCurrentView();
 	const EV_EditMethodContainer *emc =
 		XAP_App::getApp()->getEditMethodContainer();
@@ -3157,7 +3104,7 @@ static int drive_filenew(AP_UnixApp *app, const char *src)
 	set_phase("filenew: invoke");
 	EV_EditMethodCallData emcd;
 	em->Fn(av, &emcd);
-	pump_for(300);
+	tf_guard::pump_for(300);
 	set_phase("filenew: done");
 	return 0;
 }
@@ -3188,17 +3135,9 @@ struct TocRunCtx {
  * same tree, so only a MAPPED popover-menu counts */
 static GtkWidget *find_popover_widget(GtkWidget *w)
 {
-	if (!w)
-		return nullptr;
-	if (GTK_IS_POPOVER_MENU(w) && gtk_widget_get_mapped(w))
-		return w;
-	for (GtkWidget *c = gtk_widget_get_first_child(w); c;
-		 c = gtk_widget_get_next_sibling(c)) {
-		GtkWidget *r = find_popover_widget(c);
-		if (r)
-			return r;
-	}
-	return nullptr;
+	return tf_widgets::find(w, [](GtkWidget *c) {
+		return GTK_IS_POPOVER_MENU(c) && gtk_widget_get_mapped(c);
+	});
 }
 
 static fp_Line *toc_first_line(fp_ContainerObject *con)
@@ -3332,16 +3271,16 @@ static bool toc_drive_doc(AP_UnixApp *app, DriveCtx &ctx,
 				   "Table in %s\n", path.c_str());
 		return false;
 	}
-	pump_for(300);
+	tf_guard::pump_for(300);
 
 	set_phase("toc: re-update + undo");
 	view->cmdUpdateTOC();
-	pump_for(200);
+	tf_guard::pump_for(200);
 	/* a real edit gives undo something to chew on, then undo it —
 	 * proves the update left history machinery sane */
 	view->cmdCharInsert("x", false);
 	view->cmdUndo(1);
-	pump_for(200);
+	tf_guard::pump_for(200);
 	if (!view->isSelectionEmpty())
 		g_printerr("drive: toc — selection left after undo\n");
 
@@ -3354,7 +3293,7 @@ static int drive_toc(AP_UnixApp *app, const char *)
 {
 	alarm(0);
 	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
-	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
+	sweep_guard([&ctx] { ctx.preexisting = tf_widgets::toplevels(); });
 
 	const char *top = getenv("ABINOVA_TEST_SRC_DIR");
 	std::string small = std::string(top ? top : ".") +
@@ -3461,7 +3400,7 @@ static int drive_freeze(AP_UnixApp *app, const char *src)
 	UT_Error err = frame->loadDocument(uri, IEFT_Unknown, true);
 	g_free(uri);
 	frame->show();
-	pump_for(400);
+	tf_guard::pump_for(400);
 	hb_expect(HB_BOUND_US);
 	FV_View *fv = static_cast<FV_View *>(frame->getCurrentView());
 	if (err != UT_OK || !fv) {
@@ -3483,7 +3422,7 @@ static int drive_freeze(AP_UnixApp *app, const char *src)
 			char *u2 = g_strdup_printf("file://%s", dpath);
 			frame->loadDocument(u2, IEFT_Unknown, false);
 			g_free(u2);
-			pump_for(300);
+			tf_guard::pump_for(300);
 			fv = static_cast<FV_View *>(frame->getCurrentView());
 		}
 		g_free(dpath);
@@ -3509,27 +3448,27 @@ static int drive_freeze(AP_UnixApp *app, const char *src)
 			EV_EditMethodCallData emcd(burst,
 									 static_cast<UT_uint32>(sizeof(burst) - 1));
 			em->Fn(fv, &emcd);
-			pump_for(60);
+			tf_guard::pump_for(60);
 		}
 	}
 
 	set_phase("freeze: scroll");
 	for (int i = 0; i < 6; i++)
 		fv->cmdScroll(AV_SCROLLCMD_PAGEDOWN);
-	pump_for(200);
+	tf_guard::pump_for(200);
 	fv->cmdScroll(AV_SCROLLCMD_TOBOTTOM);
 	fv->cmdScroll(AV_SCROLLCMD_TOTOP);
-	pump_for(150);
+	tf_guard::pump_for(150);
 
 	/* FRZ02: the first tick on a dirty doc pays the real serialize;
 	 * the second with unchanged content must take the serial-skip
 	 * path — both stay under the heartbeat bound */
 	set_phase("freeze: autosave serialize");
 	frame->autosaveTick();
-	pump_for(100);
+	tf_guard::pump_for(100);
 	set_phase("freeze: autosave skip");
 	frame->autosaveTick();
-	pump_for(100);
+	tf_guard::pump_for(100);
 
 	/* open + close a couple of small dialogs: request + answer only,
 	 * no widget walk (a synchronous drive_widget tree walk would
@@ -3558,11 +3497,11 @@ static int drive_freeze(AP_UnixApp *app, const char *src)
 			if (!dlg)
 				continue;
 			DriveCtx dctx {nullptr, {}, 0, false, false, 0, 0};
-			sweep_guard([&dctx] { dctx.preexisting = toplevels(); });
+			sweep_guard([&dctx] { dctx.preexisting = tf_widgets::toplevels(); });
 			if (XAP_Dialog_Modeless *ml =
 					dynamic_cast<XAP_Dialog_Modeless *>(dlg)) {
 				ml->runModeless(frame);
-				pump_for(250);
+				tf_guard::pump_for(250);
 				GtkWidget *top = nullptr;
 				sweep_guard([&] {
 					attach_live_stray(dctx.preexisting, &top);
@@ -3574,14 +3513,14 @@ static int drive_freeze(AP_UnixApp *app, const char *src)
 							G_OBJECT(top),
 							reinterpret_cast<gpointer *>(&top));
 				}
-				pump_for(150);
+				tf_guard::pump_for(150);
 			} else {
 				g_timeout_add(150, freeze_answer_cb, &dctx);
 				dlg->runModal(frame);
-				pump();
+				tf_guard::drain_pending();
 			}
 			factory->releaseDialog(dlg);
-			pump_for(100);
+			tf_guard::pump_for(100);
 			done++;
 		}
 		if (!done)
@@ -3621,7 +3560,7 @@ static int drive_freeze(AP_UnixApp *app, const char *src)
 							   "application/octet-stream",
 							   "embed-type: file; media-kind: file; "
 							   "media-name: freeze.bin");
-			pump_for(150);
+			tf_guard::pump_for(150);
 		}
 		g_free(w.bytes);
 		unlink(mpath);
@@ -3663,33 +3602,20 @@ static int drive_freeze(AP_UnixApp *app, const char *src)
 
 static bool markup_has_mode_row(GtkWidget * w)
 {
-	for (GtkWidget * c = gtk_widget_get_first_child(w); c;
-		 c = gtk_widget_get_next_sibling(c)) {
-		const char * m = static_cast<const char *>(
-			g_object_get_data(G_OBJECT(c), "abi-em-method"));
-		if (m && !strcmp(m, "revisionDisplayMode"))
-			return true;
-		if (markup_has_mode_row(c))
-			return true;
-	}
-	return false;
+	return tf_widgets::has_em_row(w, "revisionDisplayMode");
 }
 
 static GtkWidget * markup_find_button_in(GtkWidget * w)
 {
-	if (GTK_IS_MENU_BUTTON(w)) {
+	return tf_widgets::find(w, [](GtkWidget * c) {
+		if (!GTK_IS_MENU_BUTTON(c))
+			return false;
 		GtkPopover * pop =
-			gtk_menu_button_get_popover(GTK_MENU_BUTTON(w));
+			gtk_menu_button_get_popover(GTK_MENU_BUTTON(c));
 		GtkWidget * child =
 			pop ? gtk_popover_get_child(pop) : nullptr;
-		if (child && markup_has_mode_row(child))
-			return w;
-	}
-	for (GtkWidget * c = gtk_widget_get_first_child(w); c;
-		 c = gtk_widget_get_next_sibling(c))
-		if (GtkWidget * r = markup_find_button_in(c))
-			return r;
-	return nullptr;
+		return child && markup_has_mode_row(child);
+	});
 }
 
 /* the ribbon may rebuild between mode changes — always re-locate the
@@ -3698,7 +3624,7 @@ static GtkWidget * markup_find_button(void)
 {
 	GtkWidget * mb = nullptr;
 	sweep_guard([&mb] {
-		for (GtkWidget * w : toplevels()) {
+		for (GtkWidget * w : tf_widgets::toplevels()) {
 			mb = markup_find_button_in(w);
 			if (mb)
 				break;
@@ -3709,18 +3635,7 @@ static GtkWidget * markup_find_button(void)
 
 static GtkWidget * markup_find_row(GtkWidget * w, const char * data)
 {
-	const char * m = static_cast<const char *>(
-		g_object_get_data(G_OBJECT(w), "abi-em-method"));
-	const char * d = static_cast<const char *>(
-		g_object_get_data(G_OBJECT(w), "abi-em-data"));
-	if (m && !strcmp(m, "revisionDisplayMode") && d &&
-		!strcmp(d, data))
-		return w;
-	for (GtkWidget * c = gtk_widget_get_first_child(w); c;
-		 c = gtk_widget_get_next_sibling(c))
-		if (GtkWidget * r = markup_find_row(c, data))
-			return r;
-	return nullptr;
+	return tf_widgets::find_em_row(w, "revisionDisplayMode", data);
 }
 
 static void markup_check(int * fails, bool ok, const char * step,
@@ -3735,7 +3650,7 @@ static int drive_markup(AP_UnixApp * app, const char *)
 {
 	alarm(0);
 	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
-	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
+	sweep_guard([&ctx] { ctx.preexisting = tf_widgets::toplevels(); });
 
 	const char * top = getenv("ABINOVA_TEST_SRC_DIR");
 	std::string path = std::string(top ? top : ".") +
@@ -3760,7 +3675,7 @@ static int drive_markup(AP_UnixApp * app, const char *)
 	doc->setMarkRevisions(true);
 	view->cmdCharInsert(std::string(" Hello tracked"), false);
 	doc->setMarkRevisions(false);
-	pump_for(300);
+	tf_guard::pump_for(300);
 
 	UT_uint32 rev0 = doc->getHighestRevisionId();
 	if (!rev0) {
@@ -3806,7 +3721,7 @@ static int drive_markup(AP_UnixApp * app, const char *)
 			continue;
 		}
 		gtk_popover_popup(pop);
-		pump_for(80);
+		tf_guard::pump_for(80);
 		markup_check(&fails, gtk_widget_get_visible(GTK_WIDGET(pop)),
 					 step, "popover visible after popup");
 
@@ -3823,10 +3738,10 @@ static int drive_markup(AP_UnixApp * app, const char *)
 
 		gchar * what = g_strdup_printf("click %s row", seq[i].mode);
 		bool ok = call_guard(
-			[row] { g_signal_emit_by_name(row, "clicked"); }, what);
+			[row] { tf_widgets::click(row); }, what);
 		g_free(what);
 		markup_check(&fails, ok, step, "row click survived");
-		pump_for(250);
+		tf_guard::pump_for(250);
 
 		markup_check(&fails, view->isShowRevisions() == seq[i].sR,
 					 step, "isShowRevisions");
@@ -3859,7 +3774,7 @@ static int drive_markup(AP_UnixApp * app, const char *)
 		 * sit on the chosen row and only there */
 		pop = gtk_menu_button_get_popover(GTK_MENU_BUTTON(mb));
 		gtk_popover_popup(pop);
-		pump_for(80);
+		tf_guard::pump_for(80);
 		markup_check(&fails,
 					 gtk_widget_get_visible(GTK_WIDGET(pop)),
 					 step, "popover reopens");
@@ -3881,7 +3796,7 @@ static int drive_markup(AP_UnixApp * app, const char *)
 						 step, cwhat);
 		}
 		gtk_popover_popdown(pop);
-		pump_for(60);
+		tf_guard::pump_for(60);
 	}
 
 	__gcov_dump();
@@ -3989,7 +3904,7 @@ int main(int argc, char **argv)
 		else
 			g_printerr("drive: app not registered — "
 					   "startup emit skipped\n");
-		pump();
+		tf_guard::drain_pending();
 	}
 
 	/* richer fixture than the smoke's BillOfRights: styles, TOC,
@@ -4038,7 +3953,7 @@ int main(int argc, char **argv)
 		g_free(uri);
 		if (err == UT_OK)
 			frame->show();
-		pump();
+		tf_guard::drain_pending();
 	}
 
 	XAP_DialogFactory *factory =

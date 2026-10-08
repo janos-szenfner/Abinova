@@ -5459,6 +5459,27 @@ below are on `main` but the release has not been cut yet.
   are not redistributable; they were removed along with
   `tools/mkcovers.py`. The **Cover Page** gallery now offers four
   presets drawn entirely in code (Frame, Motion, Sideline, Yearly).
+- **Shared test-harness primitives** (`src/af/tf/xp/`) — three
+  headers every `.t.cpp` suite and the `ui-drive` driver can use:
+  `tf_guard.h` (an in-process crash/hang watchdog — a deadline
+  thread kills a wedged action with `SIGUSR2` and `siglongjmp`s back
+  to the call site, so a hang or crash becomes a test failure
+  instead of a frozen run; plus main-loop `pump`/`pump_for`/
+  `drain_pending`, an `idle_sentinel` main-loop-responsiveness
+  probe, and the combined `responsive_after` check), `tf_actions.h`
+  (programmatic enumeration of every registered edit method, menu
+  action and toolbar action via new `EV_Menu_ActionSet`/
+  `EV_Toolbar_ActionSet` `getFirstId`/`getLastId` — the registered
+  sets are the test list, no hand-maintained action table) and
+  `tf_widgets.h` (GTK4 widget-tree traversal plus find-by-type/
+  name/`abi-em-*`-row lookups so tests activate ribbon buttons and
+  popover rows by name). The `ap/xp` sweeps' private `em_guard.h`
+  is now an alias over `tf_guard`, and `ui_drive.cpp` drops ~450
+  lines of open-coded duplicates. A new `tf_guard.t.cpp` demo suite
+  proves the watchdog actually fires (reaps a 2s-blocking handler
+  as HUNG, classifies a fatal signal as FAULT, times out a starved
+  idle sentinel) and that the enumerators list the real action
+  sets.
 
 ### Resolved root causes worth noting
 
