@@ -39,6 +39,7 @@
 #include "pp_Property.h"
 #include "gr_Graphics.h"
 #include "pd_Document.h"
+#include "pt_PieceTable.h"
 #include "gr_DrawArgs.h"
 #include "pp_AttrProp.h"
 #include "fd_Field.h"
@@ -436,7 +437,6 @@ void fp_Run::lookupProperties(GR_Graphics * pG)
 	 * The fully-resolved size is pinned on a cloned span AP so
 	 * sizes inherited from styles scale too, without touching the
 	 * document's AP. */
-	std::unique_ptr<PP_AttrProp> apScaledSpan;
 	fl_SectionLayout * pSLF = getBlock() ? getBlock()->getSectionLayout() : nullptr;
 	if (pSLF && pSLF->getContainerType() == FL_CONTAINER_FRAME)
 	{
@@ -460,11 +460,22 @@ void fp_Run::lookupProperties(GR_Graphics * pG)
 				g_snprintf(szBuf, sizeof(szBuf), "%.2fpt",
 						   UT_convertToPoints(pszSize) * dScale);
 				const PP_PropertyVector props = { "font-size", szBuf };
-				apScaledSpan.reset(pSpanAP ?
+				PP_AttrProp * pNewAP = pSpanAP ?
 					pSpanAP->cloneWithReplacements(PP_NOPROPS, props, false) :
-					PP_AttrProp::createExactly(PP_NOPROPS, props));
-				if (apScaledSpan)
-					pSpanAP = apScaledSpan.get();
+					PP_AttrProp::createExactly(PP_NOPROPS, props);
+				if (pNewAP)
+				{
+					/* Adopt the clone into the document varset so the
+					 * AP is immutable, deduplicated across same-size
+					 * runs, and lives as long as the document (the
+					 * PP_evalProperty cache only keys on such APs).
+					 * addIfUniqueAP consumes pNewAP either way. */
+					pNewAP->markReadOnly();
+					PT_AttrPropIndex apiNew = 0;
+					pt_VarSet & varset = pDoc->getPieceTable()->getVarSet();
+					if (varset.addIfUniqueAP(pNewAP, &apiNew))
+						pSpanAP = varset.getAP(apiNew);
+				}
 			}
 		}
 	}

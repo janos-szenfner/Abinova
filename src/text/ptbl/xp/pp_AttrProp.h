@@ -130,6 +130,7 @@ public:
 											  const PP_PropertyVector & properties) const;
 
 	void markReadOnly(void);
+	bool isReadOnly(void) const {return m_bIsReadOnly;}
 	UT_uint32 getCheckSum(void) const;
 
 	PP_AttrProp & operator=(const PP_AttrProp &Other);

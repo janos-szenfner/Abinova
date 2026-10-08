@@ -383,8 +383,10 @@ bool pt_PieceTable::_createBuiltinStyle(const char * szName, bool bDisplayed, co
 		return false;		// duplicate name
 
 	pStyle = new PD_BuiltinStyle(this, indexAP, szName, bDisplayed);
-	if (pStyle)
+	if (pStyle) {
 		m_hashStyles.insert(std::make_pair(szName, pStyle));
+		PP_invalidateEvalPropertyCache();
+	}
 
 	return true;
 }
@@ -437,6 +439,7 @@ bool pt_PieceTable::appendStyle(const PP_PropertyVector & attributes)
 
 		if (pStyle) {
 			m_hashStyles.insert(std::make_pair(name, pStyle));
+			PP_invalidateEvalPropertyCache();
         }
 
 		return true;
@@ -460,6 +463,7 @@ bool pt_PieceTable::removeStyle (const gchar * szName)
 		delete pStyle;
 
 		m_hashStyles.erase(szName);
+		PP_invalidateEvalPropertyCache();
 		return true;
 	}
 

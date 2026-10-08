@@ -172,6 +172,11 @@ public:
 
 ABI_EXPORT const PP_Property * PP_lookupProperty(const gchar * pszName);
 
+// Drop all memoized PP_evalProperty results. Called whenever style
+// contents, the style table, document properties, static initial
+// values, or document lifetime change.
+ABI_EXPORT void PP_invalidateEvalPropertyCache(void);
+
 ABI_EXPORT void PP_resetInitialBiDiValues(const gchar * pszValue);
 
 ABI_EXPORT void PP_setDefaultFontFamily(const char* pszFamily);

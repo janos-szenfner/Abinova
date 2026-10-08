@@ -4378,6 +4378,15 @@ below are on `main` but the release has not been cut yet.
   reformat-pending list deduplicated with a linear `std::find`,
   now backed by a mirror set. Large documents open and re-lay out
   proportionally faster; small documents are unaffected.
+- **Property evaluation is memoized** — resolving a CSS property for a
+  run walked its span/block/section attribute lists, the named style's
+  `basedOn` chain, the document defaults and the static initial values,
+  for every property of every run on every format pass (~2.9 million
+  evaluations on a 9,500-paragraph document — the single largest cost
+  in layout). Results are now cached per attribute-set combination for
+  the document's lifetime, cutting a `doc → PDF` conversion of that
+  document roughly in half; `ABINOVA_EVAL_CACHE=off` disables the cache
+  for profiling or debugging.
 - **UI freezes removed** — three classes of guaranteed main-thread
   stalls are gone. Piece-table changes no longer busy-sleep for a
   full second waiting on a redraw flag that can only clear on the

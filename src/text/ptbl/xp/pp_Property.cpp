@@ -25,6 +25,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <cstdint>
+#include <string>
+#include <unordered_map>
+
 #include "ut_types.h"
 #include "ut_assert.h"
 #include "ut_string.h"
@@ -466,6 +470,102 @@ static int s_compare (const void * a, const void * b)
 
 /*****************************************************************/
 
+/*
+ * Memoization cache for PP_evalProperty.
+ *
+ * Evaluating a property walks up to three attribute/property lists, the
+ * style(s) named by their attributes (following the basedOn chain), the
+ * document AP and finally the static initial value -- for every run of
+ * every format pass.  On large documents this made PP_evalProperty the
+ * single hottest function in the profile.
+ *
+ * The result is fully determined by (property, span AP, block AP, section
+ * AP, document, expandStyles) because:
+ *  - an AP marked read-only is immutable and owned by a container that
+ *    lives as long as the document (the piece-table varset or a
+ *    pp_TableAttrProp table), so its address cannot be recycled while
+ *    the document lives;
+ *  - style contents change only by replacing PD_Style::m_indexAP, and the
+ *    style table changes only via pt_PieceTable::appendStyle /
+ *    removeStyle / _createBuiltinStyle;
+ *  - document properties change only via PD_Document::setAttrProp /
+ *    setAttributes / setProperties;
+ *  - the static initial values change only via PP_resetInitialBiDiValues /
+ *    PP_setDefaultFontFamily;
+ * and all of those call PP_invalidateEvalPropertyCache().  Document
+ * destruction also invalidates, so recycled heap addresses cannot alias
+ * stale keys.
+ *
+ * Callers may also pass short-lived, never-registered APs (e.g. the
+ * scaled-font clone fp_Run::lookupProperties builds for normAutofit
+ * frames): those are mutable and their addresses can be recycled once
+ * freed, so evaluations involving a non-read-only AP are never cached.
+ *
+ * Cached values point into AP-owned storage or the static initial
+ * values, which outlive the cache, so pointers returned to callers stay
+ * valid across invalidations just as they did before caching existed.
+ */
+namespace {
+
+struct PP_EvalCacheKey
+{
+	const PP_Property * prop;
+	const PP_AttrProp * spanAP;
+	const PP_AttrProp * blockAP;
+	const PP_AttrProp * sectionAP;
+	const PD_Document * doc;
+	bool                expandStyles;
+
+	bool operator==(const PP_EvalCacheKey & o) const
+	{
+		return prop == o.prop && spanAP == o.spanAP && blockAP == o.blockAP
+			&& sectionAP == o.sectionAP && doc == o.doc
+			&& expandStyles == o.expandStyles;
+	}
+};
+
+struct PP_EvalCacheKeyHash
+{
+	std::size_t operator()(const PP_EvalCacheKey & k) const
+	{
+		const std::size_t mix = 0x9e3779b97f4a7c15ULL;
+		std::size_t h = reinterpret_cast<std::uintptr_t>(k.prop) >> 4;
+		h = h * mix + (reinterpret_cast<std::uintptr_t>(k.spanAP) >> 4);
+		h = h * mix + (reinterpret_cast<std::uintptr_t>(k.blockAP) >> 4);
+		h = h * mix + (reinterpret_cast<std::uintptr_t>(k.sectionAP) >> 4);
+		h = h * mix + (reinterpret_cast<std::uintptr_t>(k.doc) >> 4);
+		return h ^ (k.expandStyles ? mix : 0);
+	}
+};
+
+// Bound the map on pathological documents; overflowing simply clears and
+// refills.
+constexpr std::size_t PP_EVAL_CACHE_MAX = 262144;
+
+// nullptr values are cached too: they are genuine results (e.g. a
+// property whose initial value is nullptr, like "dir-override").
+std::unordered_map<PP_EvalCacheKey, const gchar *, PP_EvalCacheKeyHash> s_evalCache;
+
+// Escape hatch for perf a/b measurement and stale-cache debugging:
+// ABINOVA_EVAL_CACHE=off disables memoization entirely.
+const bool s_bEvalCacheEnabled = [] {
+	const char * v = getenv("ABINOVA_EVAL_CACHE");
+	return !(v && (strcmp(v, "off") == 0 || strcmp(v, "0") == 0));
+}();
+
+}
+
+/*!
+ * Drop all memoized PP_evalProperty results.  Must be called whenever
+ * anything the evaluation depends on changes: style contents or the
+ * style table, the document AP, the static initial values, or the
+ * document itself going away.
+ */
+void PP_invalidateEvalPropertyCache()
+{
+	s_evalCache.clear();
+}
+
 const PP_Property * PP_lookupProperty(const gchar * name)
 {
 	PP_Property * prop = nullptr;
@@ -503,6 +603,7 @@ void PP_resetInitialBiDiValues(const gchar * pszValue)
 			break; //since the list is alphabetical, this is always the last one
 		}
 	}
+	PP_invalidateEvalPropertyCache();
 }
 
 void PP_setDefaultFontFamily(const char* pszFamily)
@@ -511,6 +612,7 @@ void PP_setDefaultFontFamily(const char* pszFamily)
 	PP_Property* prop = static_cast<PP_Property*>(bsearch ("font-family", _props, G_N_ELEMENTS(_props), sizeof(_props[0]), s_compare));
 	UT_nonnull_or_return(prop, );
 	prop->m_pszInitial = family.c_str();
+	PP_invalidateEvalPropertyCache();
 }
 
 static PD_Style * _getStyle(const PP_AttrProp * pAttrProp, const PD_Document * pDoc)
@@ -599,6 +701,24 @@ const gchar * PP_evalProperty (const gchar *  pszName,
 	{
 		UT_DEBUGMSG(("PP_evalProperty: unknown property \'%s\'\n",pszName));
 		return nullptr;
+	}
+
+	// Only APs adopted by a document-lifetime container (varset /
+	// pp_TableAttrProp) are marked read-only; a transient AP may be
+	// mutated or freed and its address recycled, so it is never a valid
+	// cache key component.
+	const bool bCacheable = s_bEvalCacheEnabled
+		&& (!pSpanAttrProp || pSpanAttrProp->isReadOnly())
+		&& (!pBlockAttrProp || pBlockAttrProp->isReadOnly())
+		&& (!pSectionAttrProp || pSectionAttrProp->isReadOnly());
+
+	const PP_EvalCacheKey cacheKey = { pProp, pSpanAttrProp, pBlockAttrProp,
+									   pSectionAttrProp, pDoc, bExpandStyles };
+	if (bCacheable)
+	{
+		auto it = s_evalCache.find(cacheKey);
+		if (it != s_evalCache.end())
+			return it->second;
 	}
 
 	/* Not all properties can have a value of inherit, but we're not validating here.
@@ -761,6 +881,13 @@ const gchar * PP_evalProperty (const gchar *  pszName,
 	
 	if (szValue == nullptr)
 		szValue = pProp->getInitial (); // which may itself be nullptr, but that is a bad thing - FIXME!!
+
+	if (bCacheable)
+	{
+		if (s_evalCache.size() >= PP_EVAL_CACHE_MAX)
+			s_evalCache.clear();
+		s_evalCache.emplace(cacheKey, szValue);
+	}
 
 	return szValue;
 }

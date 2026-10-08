@@ -46,6 +46,9 @@ bool PD_Style::setIndexAP(PT_AttrPropIndex indexAP)
 	// TODO: may need to rebind, handle undo, clear caches, etc.
 
 	m_indexAP = indexAP;
+	m_pFollowedBy = nullptr;
+	m_pBasedOn = nullptr;
+	PP_invalidateEvalPropertyCache();
 
 	return true;
 }
@@ -309,6 +312,8 @@ bool PD_Style::addProperty(const gchar * szName, const gchar * szValue)
 		pNewAP->markReadOnly();
 		bres =	m_pPT->getVarSet().addIfUniqueAP(pNewAP, &m_indexAP);
 	}
+	if (bres)
+		PP_invalidateEvalPropertyCache();
 	return bres;
 }
 
@@ -331,6 +336,8 @@ bool PD_Style::addProperties(const PP_PropertyVector & pProperties)
 		pNewAP->markReadOnly();
 		bres =	m_pPT->getVarSet().addIfUniqueAP(pNewAP, &m_indexAP);
 	}
+	if (bres)
+		PP_invalidateEvalPropertyCache();
 	return bres;
 }
 
@@ -346,6 +353,8 @@ bool PD_Style::setAllAttributes(const PP_PropertyVector & atts)
 	bool bres =	m_pPT->getVarSet().storeAP(atts, &m_indexAP);
 	m_pFollowedBy = nullptr;
 	m_pBasedOn = nullptr;
+	if (bres)
+		PP_invalidateEvalPropertyCache();
 	return bres;
 }
 
@@ -370,6 +379,8 @@ bool PD_Style::addAttributes(const PP_PropertyVector & pAtts)
 	}
 	m_pFollowedBy = nullptr;
 	m_pBasedOn = nullptr;
+	if (bres)
+		PP_invalidateEvalPropertyCache();
 	return bres;
 }
 

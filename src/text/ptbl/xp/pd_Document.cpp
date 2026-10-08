@@ -266,6 +266,11 @@ PD_Document::~PD_Document()
 	// since these are not owned by us.
 
 	// TODO: delete the key/data pairs
+
+	// cached PP_evalProperty results are keyed on this document's AP,
+	// style and PD_Document pointers -- drop them so a future document
+	// reusing these heap addresses cannot hit stale entries
+	PP_invalidateEvalPropertyCache();
 }
 
 
@@ -6465,18 +6470,26 @@ bool PD_Document::setAttrProp(const PP_PropertyVector & ppAttr)
                               PP_NOPROPS, &m_indexAP, this);
 	}
 
+	if (bRet)
+		PP_invalidateEvalPropertyCache();
 	return bRet;
 }
 
 bool PD_Document::setAttributes(const PP_PropertyVector & ppAttr)
 {
-	return VARSET.mergeAP(PTC_AddFmt, m_indexAP, ppAttr, PP_NOPROPS, &m_indexAP, this);
+	bool bRet = VARSET.mergeAP(PTC_AddFmt, m_indexAP, ppAttr, PP_NOPROPS, &m_indexAP, this);
+	if (bRet)
+		PP_invalidateEvalPropertyCache();
+	return bRet;
 }
 
 
 bool PD_Document::setProperties(const PP_PropertyVector & ppProps)
 {
-	return VARSET.mergeAP(PTC_AddFmt, m_indexAP, PP_NOPROPS, ppProps, &m_indexAP, this);
+	bool bRet = VARSET.mergeAP(PTC_AddFmt, m_indexAP, PP_NOPROPS, ppProps, &m_indexAP, this);
+	if (bRet)
+		PP_invalidateEvalPropertyCache();
+	return bRet;
 }
 
 #undef VARSET
