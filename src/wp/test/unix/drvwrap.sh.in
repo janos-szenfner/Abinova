@@ -171,7 +171,26 @@ case "$freeze_rc" in
 esac
 rm -f "$freeze_log"
 
+# TOC01: TOC context-menu regression leg — opens the real ContextTOC
+# popover through contextTOC's nested modal loop and activates
+# "Update Table" while the menu is still mapped, on a one-page
+# fixture and a generated multi-page doc, then re-updates and undoes.
+# The original bug wedged the main loop hard, so any nonzero exit
+# (including a timeout) is a failure.
+toc_log="${TMPDIR:-/tmp}/ui-drive-toc-$$.log"
+timeout -k 15 120 $LIBTOOL $BIN --toc >"$toc_log" 2>&1
+toc_rc=$?
+case "$toc_rc" in
+	0)   echo "ok: toc context-menu drive" ;;
+	77)  echo "skip: toc context-menu drive (no interactive context)" ;;
+	*)   echo "FAIL: toc context-menu drive (rc=$toc_rc)"
+	     tail -20 "$toc_log" | sed 's/^/  /' >&2
+	     fails=$((fails + 1)) ;;
+esac
+rm -f "$toc_log"
+
 rm -f "$scratch" /tmp/ui-drive-abi.abw /tmp/ui-drive-red.png \
+	"${TMPDIR:-/tmp}/ui-drive-toc-multi.abw" \
 	"${TMPDIR:-/tmp}/ui-drive-media.abwn" "${TMPDIR:-/tmp}/ui-drive-blip.abw" \
 	"${TMPDIR:-/tmp}/ui-drive-fmt-blip.abw" \
 	"${TMPDIR:-/tmp}/ui-drive-freeze-embed.bin"

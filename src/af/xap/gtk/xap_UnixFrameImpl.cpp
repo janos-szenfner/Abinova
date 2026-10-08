@@ -2067,7 +2067,7 @@ static gboolean s_menu_map_timeout(gpointer data)
 	return G_SOURCE_REMOVE;
 }
 
-bool XAP_UnixFrameImpl::_runModalContextMenu(AV_View * /* pView */, const char * szMenuName,
+bool XAP_UnixFrameImpl::_runModalContextMenu(AV_View * pView, const char * szMenuName,
 											 UT_sint32 x, UT_sint32 y)
 {
 	XAP_Frame*	pFrame = getFrame();
@@ -2118,6 +2118,42 @@ bool XAP_UnixFrameImpl::_runModalContextMenu(AV_View * /* pView */, const char *
 				rect.x = static_cast<int>(px);
 				rect.y = static_cast<int>(py);
 			}
+			else
+			{
+				/* x/y arrive in layout units (the mouse handlers feed
+				 * tluD device->layout conversions), not toplevel
+				 * pixels — convert back through the view's drawing
+				 * widget and translate to the toplevel.  This path
+				 * covers keyboard/synthesized menus and a pointer
+				 * outside the window, where the device query fails. */
+				GR_Graphics * gr = pView ? pView->getGraphics() : nullptr;
+				GR_UnixCairoGraphics * ugr =
+					dynamic_cast<GR_UnixCairoGraphics *>(gr);
+				GtkWidget * vw = ugr ? ugr->getWidget() : nullptr;
+				if (gr && vw && gtk_widget_get_root(vw) == gtk_widget_get_root(toplevel))
+				{
+					graphene_point_t pi =
+						GRAPHENE_POINT_INIT(static_cast<float>(gr->tduD(x)),
+											static_cast<float>(gr->tduD(y)));
+					graphene_point_t po;
+					if (gtk_widget_compute_point(vw, toplevel, &pi, &po))
+					{
+						rect.x = static_cast<int>(po.x);
+						rect.y = static_cast<int>(po.y);
+					}
+				}
+				/* keep the anchor inside the window — an off-screen
+				 * anchor leaves GTK's popup positioning without a
+				 * monitor (gdk_monitor_get_geometry(NULL) critical)
+				 * and the popover is torn down before it can show */
+				int tw = gtk_widget_get_width(toplevel);
+				int th = gtk_widget_get_height(toplevel);
+				if (tw > 0 && th > 0)
+				{
+					rect.x = CLAMP(rect.x, 0, tw - 1);
+					rect.y = CLAMP(rect.y, 0, th - 1);
+				}
+			}
 			gtk_popover_set_pointing_to(GTK_POPOVER(menu), &rect);
 
 			AbiMenuRun run;
@@ -2130,9 +2166,14 @@ bool XAP_UnixFrameImpl::_runModalContextMenu(AV_View * /* pView */, const char *
 			 * too, and the watchdog bails if the popup never maps. */
 			g_signal_connect_swapped(G_OBJECT(menu), "closed",
 							 G_CALLBACK(g_main_loop_quit), run.loop);
-			g_signal_connect_swapped(G_OBJECT(menu), "unmap",
+			/* NOT swapped: s_menu_loop_quit wants (emitter, run) —
+			 * a swapped connect passes (&run, menu), so run would
+			 * alias the widget and run->loop reads widget memory as
+			 * a GMainLoop, then g_main_loop_quit deadlocks inside
+			 * g_mutex_lock on a bogus context word (TOC01 freeze). */
+			g_signal_connect(G_OBJECT(menu), "unmap",
 							 G_CALLBACK(s_menu_loop_quit), &run);
-			g_signal_connect_swapped(G_OBJECT(menu), "destroy",
+			g_signal_connect(G_OBJECT(menu), "destroy",
 							 G_CALLBACK(s_menu_loop_quit), &run);
 			g_object_weak_ref(G_OBJECT(menu), s_menu_weak_notify,
 							  &run.menu);

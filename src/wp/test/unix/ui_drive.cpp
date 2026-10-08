@@ -2087,6 +2087,12 @@ static int drive_abiwidget(const char *scratch_uri)
 #include "gr_CairoPrintGraphics.h"
 #include "gr_GtkMediaManager.h"
 #include "fl_DocLayout.h"
+#include "fl_TOCLayout.h"
+#include "fp_TOCContainer.h"
+#include "fp_Line.h"
+#include "fp_ContainerObject.h"
+
+#include <optional>
 #include "ut_bytebuf.h"
 #include "xap_Dlg_Print.h"
 
@@ -3085,6 +3091,239 @@ static int drive_filenew(AP_UnixApp *app, const char *src)
 	return 0;
 }
 
+/* ---------------- TOC01: context-menu TOC update leg ----------------
+ *
+ * The reported freeze: right-click a TOC, choose "Update Table of
+ * Contents".  The ContextTOC popover is mapped inside
+ * runModalContextMenu's nested g_main_loop when the action fires, so
+ * fillTOC() runs while the menu is still up.  This leg drives that
+ * path end-to-end: the real contextTOC edit method opens the popover
+ * and spins the nested loop, a tick source inside the loop activates
+ * the item_<AP_MENU_ID_REF_UPDATETOC> action like a real click, then
+ * pops the menu down so the loop unwinds.  The modal path is followed
+ * by direct cmdUpdateTOC + undo/redo cycles on both a one-page and a
+ * multi-page fixture.  A wedge parks the watchdog (SIGTERM) or the
+ * SIGQUIT probe on the exact stack.
+ */
+
+struct TocRunCtx {
+	GtkWidget *toplevel;
+	GtkWidget *popover;
+	int        updates;
+};
+
+/* the ContextTOC popup is a GtkPopoverMenu; a real frame also has
+ * toolbar/menu-button popovers parked realized-but-unmapped in the
+ * same tree, so only a MAPPED popover-menu counts */
+static GtkWidget *find_popover_widget(GtkWidget *w)
+{
+	if (!w)
+		return nullptr;
+	if (GTK_IS_POPOVER_MENU(w) && gtk_widget_get_mapped(w))
+		return w;
+	for (GtkWidget *c = gtk_widget_get_first_child(w); c;
+		 c = gtk_widget_get_next_sibling(c)) {
+		GtkWidget *r = find_popover_widget(c);
+		if (r)
+			return r;
+	}
+	return nullptr;
+}
+
+static fp_Line *toc_first_line(fp_ContainerObject *con)
+{
+	if (!con)
+		return nullptr;
+	if (con->getContainerType() == FP_CONTAINER_LINE)
+		return static_cast<fp_Line *>(con);
+	fp_Container *ctr = dynamic_cast<fp_Container *>(con);
+	if (!ctr)
+		return nullptr;
+	for (UT_sint32 i = 0; i < ctr->countCons(); i++) {
+		fp_Line *line = toc_first_line(ctr->getNthCon(i));
+		if (line)
+			return line;
+	}
+	return nullptr;
+}
+
+/* the popover's item widgets are GtkModelButtons whose "action-name"
+ * property GTK4 leaves unset (the menu tracker owns the action
+ * binding), so check the GMenuModel itself for the item carrying the
+ * wanted action */
+static bool model_has_action(GMenuModel *m, const char *action)
+{
+	if (!m)
+		return false;
+	int n = g_menu_model_get_n_items(m);
+	for (int i = 0; i < n; i++) {
+		gchar *an = nullptr;
+		g_menu_model_get_item_attribute(m, i,
+										G_MENU_ATTRIBUTE_ACTION, "s", &an);
+		bool hit = an && action && !strcmp(an, action);
+		g_free(an);
+		if (hit)
+			return true;
+		GMenuModel *sub =
+			g_menu_model_get_item_link(m, i, G_MENU_LINK_SUBMENU);
+		if (!sub)
+			sub = g_menu_model_get_item_link(m, i, G_MENU_LINK_SECTION);
+		if (sub) {
+			bool r = model_has_action(sub, action);
+			g_object_unref(sub);
+			if (r)
+				return true;
+		}
+	}
+	return false;
+}
+
+static gboolean toc_menu_tick(gpointer data)
+{
+	TocRunCtx *tc = static_cast<TocRunCtx *>(data);
+	if (!tc->popover) {
+		tc->popover = find_popover_widget(tc->toplevel);
+		if (!tc->popover)
+			return G_SOURCE_CONTINUE;
+	}
+	/* activate "Update Table" while the popover is still mapped —
+	 * the order a real item click produces.  gtk_widget_activate_action
+	 * resolves through the widget's action muxer (which carries the
+	 * "menu" group the popup inserted), running the same handler a
+	 * click reaches; popdown afterwards unwinds the nested loop like
+	 * the click's own dismissal does */
+	char name[64];
+	snprintf(name, sizeof(name), "menu.item_%u",
+			 static_cast<unsigned>(AP_MENU_ID_REF_UPDATETOC));
+	GMenuModel *mm = GTK_IS_POPOVER_MENU(tc->popover)
+		? gtk_popover_menu_get_menu_model(GTK_POPOVER_MENU(tc->popover))
+		: nullptr;
+	if (model_has_action(mm, name) &&
+		gtk_widget_activate_action(tc->popover, name, nullptr))
+		tc->updates++;
+	else
+		g_printerr("drive: toc — %s missing or disabled\n", name);
+	gtk_popover_popdown(GTK_POPOVER(tc->popover));
+	return G_SOURCE_REMOVE;
+}
+
+static bool toc_drive_doc(AP_UnixApp *app, DriveCtx &ctx,
+						  const std::string &path)
+{
+	set_phase("toc: load");
+	AV_View *av = nullptr;
+	if (!load_fixture_frame(app, ctx, path, &av) || !av) {
+		g_printerr("drive: toc — cannot load %s\n", path.c_str());
+		return false;
+	}
+	FV_View *view = static_cast<FV_View *>(av);
+	FL_DocLayout *lay = view->getLayout();
+	if (!lay || lay->getNumTOCs() == 0) {
+		g_printerr("drive: toc — no TOC in %s\n", path.c_str());
+		return false;
+	}
+	XAP_Frame *frame = static_cast<XAP_Frame *>(view->getParentData());
+	GtkWidget *win = nullptr;
+	if (frame)
+		win = static_cast<XAP_UnixFrameImpl *>(frame->getFrameImpl())
+			->getTopLevelWindow();
+
+	/* point the context click at the middle of a TOC entry line */
+	fl_TOCLayout *pTOC = lay->getNthTOC(0);
+	fp_Line *line = toc_first_line(
+		static_cast<fp_TOCContainer *>(pTOC->getFirstContainer()));
+	std::optional<UT_Rect> rect = line ? line->getScreenRect()
+									 : std::optional<UT_Rect>();
+	EV_EditMethodCallData emcd;
+	if (rect) {
+		emcd.m_xPos = rect->left + rect->width / 2;
+		emcd.m_yPos = rect->top + rect->height / 2;
+	}
+
+	const EV_EditMethodContainer *emc =
+		XAP_App::getApp()->getEditMethodContainer();
+	EV_EditMethod *em = emc ? emc->findEditMethodByName("contextTOC")
+							: nullptr;
+	if (!em) {
+		g_printerr("drive: toc — no contextTOC method\n");
+		return false;
+	}
+
+	TocRunCtx tc {win, nullptr, 0};
+	guint tick = g_timeout_add(50, toc_menu_tick, &tc);
+	set_phase("toc: context menu Update Table");
+	em->Fn(view, &emcd);
+	if (!tc.updates) {
+		/* popover never surfaced (compositor denied it) — the modal
+		 * path could not run; report as unusable environment */
+		g_source_remove(tick);
+		g_printerr("drive: toc — context menu did not reach Update "
+				   "Table in %s\n", path.c_str());
+		return false;
+	}
+	pump_for(300);
+
+	set_phase("toc: re-update + undo");
+	view->cmdUpdateTOC();
+	pump_for(200);
+	/* a real edit gives undo something to chew on, then undo it —
+	 * proves the update left history machinery sane */
+	view->cmdCharInsert("x", false);
+	view->cmdUndo(1);
+	pump_for(200);
+	if (!view->isSelectionEmpty())
+		g_printerr("drive: toc — selection left after undo\n");
+
+	g_print("drive: toc — %s updated via context menu + re-update ok\n",
+			path.c_str());
+	return true;
+}
+
+static int drive_toc(AP_UnixApp *app, const char *)
+{
+	alarm(0);
+	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
+	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
+
+	const char *top = getenv("ABINOVA_TEST_SRC_DIR");
+	std::string small = std::string(top ? top : ".") +
+		"/test/wp/toc.abw";
+
+	/* multi-page fixture: enough Heading-1 chapters + body text to
+	 * span several pages, so the TOC update re-lays out a real
+	 * document instead of a two-line stub */
+	std::string xml =
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<!DOCTYPE abiword PUBLIC \"-//ABISOURCE//DTD AWML 1.0 Strict//EN\" "
+		"\"http://www.abisource.com/awml-1.0.dtd\">\n"
+		"<abiword version=\"1.0\" file-format=\"1.1\">\n"
+		"<section>\n"
+		"<toc props=\"toc-has-heading:0; toc-source-style1:Heading 1; "
+		"toc-dest-style1:Contents 1\">\n"
+		"<p props=\"toc-dest-style:1\"></p>\n"
+		"</toc>\n";
+	for (int i = 1; i <= 25; i++) {
+		xml += "<p style=\"Heading 1\">Chapter " + std::to_string(i) +
+			"</p>\n";
+		for (int j = 0; j < 30; j++)
+			xml += "<p>Body text of chapter " + std::to_string(i) +
+				" paragraph " + std::to_string(j) + ".</p>\n";
+	}
+	xml += "</section>\n</abiword>\n";
+	std::string multi = write_fixture("toc-multi.abw", xml);
+
+	int rc = 0;
+	if (!toc_drive_doc(app, ctx, small))
+		rc = 1;
+	if (!multi.empty() && !toc_drive_doc(app, ctx, multi))
+		rc = 1;
+
+	__gcov_dump();
+	g_print("drive: toc done — %d criticals, %d crashed, %d wedged\n",
+			g_criticals, g_crashed_widgets, g_wedged_widgets);
+	return rc;
+}
+
 /* ---------------- TST12: heartbeat freeze leg ---------------- */
 
 /* async-load completion mirror of the edit-method embed path — the
@@ -3365,7 +3604,7 @@ int main(int argc, char **argv)
 
 	bool wantList = false, wantFrame = false, wantAbi = false,
 		 wantEv = false, wantFmt = false, wantFileNew = false,
-		 wantRuler = false, wantFreeze = false;
+		 wantRuler = false, wantFreeze = false, wantToc = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -3384,13 +3623,17 @@ int main(int argc, char **argv)
 			wantRuler = true;
 		else if (strcmp(argv[i], "--freeze") == 0)
 			wantFreeze = true;
+		else if (strcmp(argv[i], "--toc") == 0)
+			wantToc = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
 	if (!wantList && !wantFrame && !wantAbi && !wantEv && !wantFmt &&
-		!wantFileNew && !wantRuler && !wantFreeze && wantId < 0) {
+		!wantFileNew && !wantRuler && !wantFreeze && !wantToc &&
+		wantId < 0) {
 		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev"
-				   " | --fmt | --filenew | --ruler | --freeze\n", argv[0]);
+				   " | --fmt | --filenew | --ruler | --freeze"
+				   " | --toc\n", argv[0]);
 		return 2;
 	}
 
@@ -3464,6 +3707,8 @@ int main(int argc, char **argv)
 		return drive_ruler(app, src);
 	if (wantFreeze)
 		return drive_freeze(app, src);
+	if (wantToc)
+		return drive_toc(app, src);
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {

@@ -72,6 +72,7 @@ public:
 	static const char *    graphicsDescriptor(){return "Unix Cairo Pango";}
 	static GR_Graphics *   graphicsAllocator(GR_AllocInfo&);
 	GdkSurface *  getWindow () const {return _getWindow();}
+	GtkWidget *   getWidget () const {return m_Widget;}
 
 	virtual GR_Font * getGUIFont(void) override;
 
