@@ -271,6 +271,12 @@ void AP_LeftRuler::mousePress(EV_EditModifierState /* ems */, EV_EditMouseButton
   	_getMarginMarkerRects(&m_infoCache,rTopMargin,rBottomMargin);
 	rTopMargin.width = getWidth();
 	rBottomMargin.width = getWidth();
+	if (getenv("RULER_TRACE"))
+		fprintf(stderr, "leftRuler press (%u,%u) topRect(%d,%d %dx%d) "
+				"botRect(%d,%d %dx%d) w=%d\n", x, y,
+				rTopMargin.left, rTopMargin.top, rTopMargin.width,
+				rTopMargin.height, rBottomMargin.left, rBottomMargin.top,
+				rBottomMargin.width, rBottomMargin.height, getWidth());
  	if (rTopMargin.containsPoint(x,y))
  	{
  		m_bValidMouseClick = true;
@@ -324,6 +330,11 @@ void AP_LeftRuler::mousePress(EV_EditModifierState /* ems */, EV_EditMouseButton
 
 void AP_LeftRuler::mouseRelease(EV_EditModifierState /*ems*/, EV_EditMouseButton /*emb*/, UT_sint32 /*x*/, UT_sint32 y)
 {
+	if (getenv("RULER_TRACE"))
+		fprintf(stderr, "leftRuler release y=%d what=%d valid=%d "
+				"ignored=%d\n", y, static_cast<int>(m_draggingWhat),
+				static_cast<int>(m_bValidMouseClick),
+				static_cast<int>(m_bEventIgnored));
 	if(m_pView == nullptr)
 	{
 		return;
@@ -344,11 +355,15 @@ void AP_LeftRuler::mouseRelease(EV_EditModifierState /*ems*/, EV_EditMouseButton
 	}
 	if(pView1->getDocument()->isPieceTableChanging())
 	{
+		if (getenv("RULER_TRACE"))
+			fprintf(stderr, "leftRuler release PT-CHANGING bail\n");
 		return;
 	}
 
 	if (!m_bValidMouseClick || m_bEventIgnored)
 	{
+		if (getenv("RULER_TRACE"))
+			fprintf(stderr, "leftRuler release CANCEL invalid-click\n");
 		m_draggingWhat = DW_NOTHING;
 		m_bValidMouseClick = false;
 		if(m_pG)
@@ -382,8 +397,14 @@ void AP_LeftRuler::mouseRelease(EV_EditModifierState /*ems*/, EV_EditMouseButton
 	
 	_xorGuide (true);
 	
+	if (getenv("RULER_TRACE"))
+		fprintf(stderr, "leftRuler release ygrid=%d oldY=%d ctr=%d\n",
+				ygrid, m_oldY, m_draggingCenter);
+
 	if (ygrid == m_oldY) // Not moved - clicked and released
 	{
+		if (getenv("RULER_TRACE"))
+			fprintf(stderr, "leftRuler release CANCEL unmoved\n");
 		m_draggingWhat = DW_NOTHING;
 		if(m_pG)
 		{
@@ -449,6 +470,9 @@ void AP_LeftRuler::mouseRelease(EV_EditModifierState /*ems*/, EV_EditMouseButton
 				}
 				sHeights = pG->invertDimension(tick.dimType,dyrel);
 				properties[1] = sHeights.c_str();
+				if (getenv("RULER_TRACE"))
+					fprintf(stderr, "leftRuler release APPLY %s=%s\n",
+							properties[0].c_str(), sHeights.c_str());
 				pView1->setSectionFormat(properties);
 			}
 			else
@@ -964,6 +988,9 @@ void AP_LeftRuler::mouseMotion(EV_EditModifierState ems, UT_sint32 x, UT_sint32 
 	}		
 	m_bEventIgnored = false;
 
+	if (getenv("RULER_TRACE"))
+		fprintf(stderr, "leftRuler motion (%d,%d) what=%d w=%d\n",
+				x, y, static_cast<int>(m_draggingWhat), getWidth());
 	UT_DEBUGMSG(("mouseMotion: [ems 0x%08x][x %d][y %d]\n",static_cast<int>(ems),x,y));
 	ap_RulerTicks tick(pG,m_dim);
 

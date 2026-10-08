@@ -1914,6 +1914,15 @@ below are on `main` but the release has not been cut yet.
   cancel the whole drag at release). Dragging a tab stop off the
   band deletes it — matching Word — instead of silently cancelling,
   and double-clicking the ruler opens the Paragraph dialog.
+- **Residual ruler-drag flake diagnosed** — the remaining intermittent
+  "drag ends without applying" failure on both rulers is now root-caused
+  (`.devin/RUL01-diagnosis.md`): GTK/GDK synthesizes a motion event to
+  refresh pointer focus after layout changes
+  (`gdk_surface_request_motion`), and if it is generated in the tiny
+  window between the server-side button release and the client's
+  processing of the release event it arrives with no buttons held —
+  which resets `GtkGestureSingle` mid-drag so the release is lost. A
+  targeted fix is queued (RUL03).
 - **Line numbers are now rendered in the margin** — Layout >
   Line Numbers used to store the settings on the section without
   drawing anything. The layout engine now draws running line

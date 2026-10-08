@@ -69,6 +69,7 @@ protected:
         static void button_released(GtkGestureClick *g, gint n_press, gdouble x, gdouble y, gpointer data);
         static void drag_begin(GtkGestureDrag *g, gdouble x, gdouble y, gpointer data);
         static void drag_update(GtkGestureDrag *g, gdouble offset_x, gdouble offset_y, gpointer data);
+        static void drag_cancel(GtkGesture *g, GdkEventSequence *sequence, gpointer data);
         static void drag_end(GtkGestureDrag *g, gdouble offset_x, gdouble offset_y, gpointer data);
         static void resized(GtkDrawingArea* w, int width, int height, gpointer data);
         static void motion_notify(GtkEventControllerMotion* c, gdouble x, gdouble y, gpointer data);
