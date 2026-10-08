@@ -5480,6 +5480,24 @@ below are on `main` but the release has not been cut yet.
   as HUNG, classifies a fatal signal as FAULT, times out a starved
   idle sentinel) and that the enumerators list the real action
   sets.
+- **State-cycling regression suite** (`fv_StateCycle.t.cpp`) —
+  every multi-state control is driven through the same entry point
+  the UI uses (the `revisionDisplayMode` edit method with its real
+  UCS4 payload, `setViewMode`, the `cmd*TOC`/`cmd*CoverPage`
+  commands the ribbon rows invoke), each transition guarded by
+  `tf_guard::call` so a wedge becomes a failure instead of a frozen
+  run. After every step the suite asserts three invariants: the
+  transition applied its flag combo, the control is still live (the
+  next transition works), and document data is preserved — a
+  display mode must never destroy what it hides. Covers the
+  Display-for-Review selector cycling
+  all↔simple↔no-markup↔original twice (with revision records,
+  fields and text verified identical throughout — the TRACK01
+  regression class), view modes round-tripping page geometry, the
+  TOC insert→update→update→remove cycle, and cover-page
+  insert/replace/remove plus undo-as-one-unit/redo. A dedicated
+  negative test proves a deliberately-wedged selector state fails
+  the flag assert before the real transition un-wedges it.
 
 ### Resolved root causes worth noting
 
