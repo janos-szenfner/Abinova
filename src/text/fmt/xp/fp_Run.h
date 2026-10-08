@@ -463,6 +463,54 @@ private:
 	UT_uint32				m_iOffsetFirst;
 	UT_uint32				m_iLen;
 	bool					m_bDirty;		// run erased @ old coords, needs to be redrawn
+
+	/* Inputs to the last completed lookupProperties() call.  When a
+	 * reformat round invokes lookupProperties() again with identical
+	 * resolved inputs — the common case after a keystroke re-formats a
+	 * block without touching its properties — _lookupProperties() is
+	 * skipped entirely.  evalGeneration is PP_evalPropertyGeneration()
+	 * at lookup time; it changes whenever style/doc/AP contents may
+	 * have mutated in place under stable AP pointers.  Resolved APs
+	 * are safe to key on: document APs are varset-registered for the
+	 * document's lifetime (deduped by addIfUniqueAP), and revision-
+	 * exploded or normAutofit-scaled clones go through the same varset
+	 * or are never freed, so addresses cannot be recycled under a live
+	 * run.  evalGeneration == 0 means "never looked up".
+	 *
+	 * The non-AP inputs are keyed too: getField() result (the frag's
+	 * fd_Field can change without an AP change), block offset/length
+	 * (runs persist across edits — setBlockOffset/updateOnDelete
+	 * re-point them at different buffer text), graphics zoom (zoom
+	 * changes swap the resolved GR_Font under the same GR_Graphics),
+	 * and the direction fields (the bidi run-split machinery writes
+	 * them on neighbour runs directly — if they drifted from what the
+	 * memo recorded, the run must re-resolve).  field/dirOverride are
+	 * recorded as "not consumed" sentinels for run types whose
+	 * _lookupProperties() never reads them. */
+	struct fp_LookupMemo
+	{
+		const PP_AttrProp * spanAP = nullptr;
+		const PP_AttrProp * blockAP = nullptr;
+		const PP_AttrProp * sectionAP = nullptr;
+		GR_Graphics       * graphics = nullptr;
+		/* The font _lookupProperties() resolved last time.  The
+		 * print/draw paths (fp_Run::_draw tail, fp_ContainerObject
+		 * graphic-tick) deliberately _setFont(nullptr) and re-call
+		 * lookupProperties() to repopulate run state; keying on the
+		 * resulting font makes those reset-and-relookup calls miss. */
+		const GR_Font     * font = nullptr;
+		fd_Field          * field = nullptr;
+		UT_uint32           evalGeneration = 0;
+		UT_uint32           offsetFirst = 0;
+		UT_uint32           len = 0;
+		UT_uint32           zoom = 0;
+		UT_BidiCharType     direction = UT_BIDI_UNSET;
+		UT_BidiCharType     dirOverride = UT_BIDI_UNSET;
+		bool                showAuthors = false;
+		bool                containedByTOC = false;
+		bool                graphicsNull = false;
+	};
+	fp_LookupMemo			m_lookupMemo;
 	fd_Field*				m_pField;
 	UT_BidiCharType			m_iDirection;   //#TF direction of the run 0 for left-to-right, 1 for right-to-left
 	UT_BidiCharType			m_iVisDirection;

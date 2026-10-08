@@ -553,6 +553,11 @@ const bool s_bEvalCacheEnabled = [] {
 	return !(v && (strcmp(v, "off") == 0 || strcmp(v, "0") == 0));
 }();
 
+// Bumped on every invalidation so pointer-keyed callers (e.g. the
+// fp_Run lookupProperties memo) can tell when AP contents may have
+// mutated in place under stable AP pointers.
+UT_uint32 s_evalGeneration = 1;
+
 }
 
 /*!
@@ -564,6 +569,17 @@ const bool s_bEvalCacheEnabled = [] {
 void PP_invalidateEvalPropertyCache()
 {
 	s_evalCache.clear();
+	++s_evalGeneration;
+}
+
+UT_uint32 PP_evalPropertyGeneration()
+{
+	return s_evalGeneration;
+}
+
+bool PP_evalPropertyCacheEnabled()
+{
+	return s_bEvalCacheEnabled;
 }
 
 const PP_Property * PP_lookupProperty(const gchar * name)

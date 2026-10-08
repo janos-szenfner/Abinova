@@ -177,6 +177,15 @@ ABI_EXPORT const PP_Property * PP_lookupProperty(const gchar * pszName);
 // values, or document lifetime change.
 ABI_EXPORT void PP_invalidateEvalPropertyCache(void);
 
+// Monotonic counter bumped by PP_invalidateEvalPropertyCache; lets
+// pointer-keyed memoizers above the eval cache (fp_Run) notice
+// in-place AP/style/doc mutations under unchanged AP pointers.
+ABI_EXPORT UT_uint32 PP_evalPropertyGeneration(void);
+
+// false when ABINOVA_EVAL_CACHE=off — also gates the fp_Run
+// lookupProperties memo so a/b measurement disables both levels.
+ABI_EXPORT bool PP_evalPropertyCacheEnabled(void);
+
 ABI_EXPORT void PP_resetInitialBiDiValues(const gchar * pszValue);
 
 ABI_EXPORT void PP_setDefaultFontFamily(const char* pszFamily);

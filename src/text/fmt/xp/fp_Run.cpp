@@ -422,7 +422,8 @@ void fp_Run::lookupProperties(GR_Graphics * pG)
 	
 	// NB the call will recreate m_pRevisions for us and it will
 	// change visibility if it is affected by the presence of revisions
-	if(!getBlock()->isContainedByTOC())
+	const bool bTOC = getBlock()->isContainedByTOC();
+	if(!bTOC)
 	{
 		getSpanAP(pSpanAP);
 	}
@@ -517,7 +518,73 @@ void fp_Run::lookupProperties(GR_Graphics * pG)
 	{
 		m_bPrinting = true;
 	}
-	if(!m_pBL->isContainedByTOC())
+
+	/* Skip the per-run property resolution when every input is
+	 * identical to the last lookup: a keystroke-triggered re-format
+	 * invokes lookupProperties() on every run in the block although
+	 * almost none of them changed APs, graphics, or eval-visible
+	 * state.  Everything above this point still runs each call —
+	 * getSpanAP() rebuilds the revision overlay and visibility and the
+	 * display/bgcolor evals update side-effect state — while
+	 * _lookupProperties() and the author colour below are pure
+	 * functions of the memo key.  Gated on the eval-cache switch so
+	 * ABINOVA_EVAL_CACHE=off disables both levels for a/b runs.
+	 *
+	 * Only memoizable run types qualify: break/marker runs
+	 * _inheritProperties() from the previous property-bearing run and
+	 * hyperlink/bookmark/field runs propagate state along the run
+	 * list — sibling state is not part of the key.  Image/math/embed
+	 * runs read extra state that cannot be keyed cheaply (column/
+	 * frame width for max-extent, data-item contents, embed-manager
+	 * quickprint side effects), so they always re-resolve.  The font
+	 * check catches the reset-and-relookup idiom (_setFont(nullptr)
+	 * in the paper-graphics draw path and the container graphic tick)
+	 * where callers deliberately clear derived state and rely on
+	 * lookupProperties() to restore it. */
+	const bool bMemoable = (m_iType == FPRUN_TEXT
+							|| m_iType == FPRUN_FMTMARK
+							|| m_iType == FPRUN_DUMMY
+							|| m_iType == FPRUN_TAB);
+
+	/* The run's field lives on the pf_Frag, not in any AP — probe it
+	 * so a field create/delete over unchanged APs still misses.
+	 * TEXT and TAB are the only memoable types whose _lookupProperties
+	 * reads it. */
+	fd_Field * fdNow = nullptr;
+	if (m_iType == FPRUN_TEXT || m_iType == FPRUN_TAB)
+	{
+		getBlock()->getField(getBlockOffset(), fdNow);
+	}
+	const UT_BidiCharType iDirOverrideNow =
+		(m_iType == FPRUN_TEXT)
+			? static_cast<fp_TextRun *>(this)->getDirOverride()
+			: static_cast<UT_BidiCharType>(UT_BIDI_UNSET);
+	const UT_uint32 iZoomNow = pG ? pG->getZoomPercentage() : 0;
+
+	const bool bShowAuthors = pDoc->isShowAuthors();
+	if (bMemoable
+		&& PP_evalPropertyCacheEnabled()
+		&& m_lookupMemo.evalGeneration == PP_evalPropertyGeneration()
+		&& m_lookupMemo.spanAP == pSpanAP
+		&& m_lookupMemo.blockAP == pBlockAP
+		&& m_lookupMemo.sectionAP == pSectionAP
+		&& m_lookupMemo.graphics == pG
+		&& m_lookupMemo.font == _getFont()
+		&& m_lookupMemo.field == fdNow
+		&& getField() == fdNow
+		&& m_lookupMemo.offsetFirst == m_iOffsetFirst
+		&& m_lookupMemo.len == m_iLen
+		&& m_lookupMemo.zoom == iZoomNow
+		&& m_lookupMemo.direction == _getDirection()
+		&& m_lookupMemo.dirOverride == iDirOverrideNow
+		&& m_lookupMemo.graphicsNull == bGraphicsNull
+		&& m_lookupMemo.showAuthors == bShowAuthors
+		&& m_lookupMemo.containedByTOC == bTOC)
+	{
+		return;
+	}
+
+	if(!bTOC)
 	{
 		if(bGraphicsNull)
 			_lookupProperties(pSpanAP, pBlockAP, pSectionAP,nullptr);
@@ -532,7 +599,7 @@ void fp_Run::lookupProperties(GR_Graphics * pG)
 			_lookupProperties(nullptr, pBlockAP, pSectionAP,pG);
 	}
 	const char * szAuthorInt = nullptr;
-	if(pSpanAP && pDoc->isShowAuthors())
+	if(pSpanAP && bShowAuthors)
 	{
 		if(pSpanAP->getAttribute(PT_AUTHOR_NAME,szAuthorInt))
 		{
@@ -543,6 +610,25 @@ void fp_Run::lookupProperties(GR_Graphics * pG)
 	else
 	{
 		m_iAuthorColor = 0;
+	}
+
+	if (bMemoable)
+	{
+		m_lookupMemo.spanAP = pSpanAP;
+		m_lookupMemo.blockAP = pBlockAP;
+		m_lookupMemo.sectionAP = pSectionAP;
+		m_lookupMemo.graphics = pG;
+		m_lookupMemo.font = _getFont();
+		m_lookupMemo.field = fdNow;
+		m_lookupMemo.offsetFirst = m_iOffsetFirst;
+		m_lookupMemo.len = m_iLen;
+		m_lookupMemo.zoom = iZoomNow;
+		m_lookupMemo.direction = _getDirection();
+		m_lookupMemo.dirOverride = iDirOverrideNow;
+		m_lookupMemo.graphicsNull = bGraphicsNull;
+		m_lookupMemo.showAuthors = bShowAuthors;
+		m_lookupMemo.containedByTOC = bTOC;
+		m_lookupMemo.evalGeneration = PP_evalPropertyGeneration();
 	}
 	// here we used to set revision-based visibility, but that has to
 	// be done inside getSpanAP() because we need to know whether the

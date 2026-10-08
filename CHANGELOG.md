@@ -4387,6 +4387,12 @@ below are on `main` but the release has not been cut yet.
   the document's lifetime, cutting a `doc → PDF` conversion of that
   document roughly in half; `ABINOVA_EVAL_CACHE=off` disables the cache
   for profiling or debugging.
+- **Per-run property resolution is memoized too** — each text run now
+  also skips the whole `lookupProperties` pass (the ~18 property
+  evaluations, font lookup and field probe) when nothing it depends on
+  changed since the previous call, so the repeated re-format rounds a
+  keystroke triggers no longer redo identical work. Documents load and
+  convert noticeably faster still on top of the evaluation cache.
 - **UI freezes removed** — three classes of guaranteed main-thread
   stalls are gone. Piece-table changes no longer busy-sleep for a
   full second waiting on a redraw flag that can only clear on the
