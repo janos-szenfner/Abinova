@@ -11249,6 +11249,10 @@ void FV_View::cmdSetRevisionLevel(UT_uint32 i)
 
 		// we have to force redraw here, see bug 10486
 		queueDraw(nullptr);
+
+		// the revision level feeds the Display-for-Review mode
+		// (Original vs the rest) - refresh the frame chrome
+		notifyListeners(AV_CHG_MOTION);
 	}
 }
 

@@ -189,6 +189,25 @@ case "$toc_rc" in
 esac
 rm -f "$toc_log"
 
+# TRACK01: markup-mode selector leg — clicks the real
+# Display-for-Review popover rows (Simple / All / No Markup /
+# Original) through two rounds and asserts the view flag combo, row
+# and button sensitivity, popover re-open, check-mark position,
+# caption text and revision-data preservation on every transition.
+# A stuck selector is the regression being guarded, so any nonzero
+# exit (including a timeout) is a failure.
+markup_log="${TMPDIR:-/tmp}/ui-drive-markup-$$.log"
+timeout -k 15 120 $LIBTOOL $BIN --markup >"$markup_log" 2>&1
+markup_rc=$?
+case "$markup_rc" in
+	0)   echo "ok: markup mode drive" ;;
+	77)  echo "skip: markup mode drive (no interactive context)" ;;
+	*)   echo "FAIL: markup mode drive (rc=$markup_rc)"
+	     tail -20 "$markup_log" | sed 's/^/  /' >&2
+	     fails=$((fails + 1)) ;;
+esac
+rm -f "$markup_log"
+
 rm -f "$scratch" /tmp/ui-drive-abi.abw /tmp/ui-drive-red.png \
 	"${TMPDIR:-/tmp}/ui-drive-toc-multi.abw" \
 	"${TMPDIR:-/tmp}/ui-drive-media.abwn" "${TMPDIR:-/tmp}/ui-drive-blip.abw" \

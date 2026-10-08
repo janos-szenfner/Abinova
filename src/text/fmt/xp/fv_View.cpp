@@ -16005,8 +16005,13 @@ void FV_View::setShowRevisions(bool bShow)
 
 		/* have to force redraw -- see 10486 */
 		queueDraw(nullptr);
-		
+
 		_fixInsertionPointCoords();
+
+		// the revision-display state feeds frame chrome (the
+		// Display-for-Review caption, menu check state) - tell the
+		// listeners it changed
+		notifyListeners(AV_CHG_MOTION);
 	}
 }
 
@@ -16026,6 +16031,7 @@ void FV_View::setShowRevBars(bool bShow)
 	{
 		m_bShowRevBars = bShow;
 		queueDraw(nullptr);
+		notifyListeners(AV_CHG_MOTION);
 	}
 }
 
@@ -16036,7 +16042,11 @@ void FV_View::setRevisionLevel(UT_uint32 i)
 {
 	UT_return_if_fail( i <= PD_MAX_REVISION );
 	m_pDoc->setShowRevisionId(i);
-	m_iViewRevision = i;
+	if (m_iViewRevision != i)
+	{
+		m_iViewRevision = i;
+		notifyListeners(AV_CHG_MOTION);
+	}
 }
 
 /*!

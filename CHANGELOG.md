@@ -1974,6 +1974,15 @@ below are on `main` but the release has not been cut yet.
   page shows its Help button inside an existing action row, and the
   Print dialog no longer advertises a help anchor that GTK's native
   print dialog cannot host.
+- **Display for Review selector no longer sticks on Simple Markup** —
+  picking any entry in the Review tab's markup-mode popover always
+  applied Simple Markup (the mode payload was decoded with the wrong
+  string type, so every choice collapsed into the same branch), the
+  button caption could disagree with the ticked row, and markup
+  vanished with no way back. All four modes — Simple, All Markup, No
+  Markup and Original — now round-trip freely, the caption and check
+  mark track the active mode, and switching modes only hides or shows
+  markup; tracked changes are never dropped.
 
 ### Tables (Word-style creation and context menus)
 

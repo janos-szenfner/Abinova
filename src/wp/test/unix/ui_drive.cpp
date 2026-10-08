@@ -39,6 +39,11 @@
  *   ui-drive --freeze        TST12: heartbeat-monitored op script —
  *                            fails when a synchronous stall stretches
  *                            a main-loop poll gap past the bound
+ *   ui-drive --markup        TRACK01: click the Display-for-Review
+ *                            popover rows through all four modes
+ *                            twice; asserts view flags, sensitivity,
+ *                            check marks, caption and revision-data
+ *                            preservation on every transition
  *
  * Exit codes: 0 ok, 1 failure, 77 no display / interactive prerequisite.
  * drvwrap.sh runs one process per dialog under `timeout` so a hang or
@@ -3578,6 +3583,247 @@ static int drive_freeze(AP_UnixApp *app, const char *src)
 	return 0;
 }
 
+/* ---------------- TRACK01: markup-mode selector leg ---------------- */
+
+/* user-reported bug: the "Display for Review" popover rows went dead
+ * after picking Simple Markup — the selector stuck with markup
+ * hidden.  Root cause was revisionDisplayMode reading its UCS4
+ * payload as a byte string, so every activation collapsed into the
+ * default ("simple") branch; _markupModeName() also disagreed with
+ * the row check marks on precedence.  This leg clicks the real
+ * ribbon rows like a user and asserts the view flag combo, the row
+ * check marks, the button caption, selector sensitivity and
+ * revision-data preservation on every transition. */
+
+static bool markup_has_mode_row(GtkWidget * w)
+{
+	for (GtkWidget * c = gtk_widget_get_first_child(w); c;
+		 c = gtk_widget_get_next_sibling(c)) {
+		const char * m = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(c), "abi-em-method"));
+		if (m && !strcmp(m, "revisionDisplayMode"))
+			return true;
+		if (markup_has_mode_row(c))
+			return true;
+	}
+	return false;
+}
+
+static GtkWidget * markup_find_button_in(GtkWidget * w)
+{
+	if (GTK_IS_MENU_BUTTON(w)) {
+		GtkPopover * pop =
+			gtk_menu_button_get_popover(GTK_MENU_BUTTON(w));
+		GtkWidget * child =
+			pop ? gtk_popover_get_child(pop) : nullptr;
+		if (child && markup_has_mode_row(child))
+			return w;
+	}
+	for (GtkWidget * c = gtk_widget_get_first_child(w); c;
+		 c = gtk_widget_get_next_sibling(c))
+		if (GtkWidget * r = markup_find_button_in(c))
+			return r;
+	return nullptr;
+}
+
+/* the ribbon may rebuild between mode changes — always re-locate the
+ * button rather than trusting a stale pointer */
+static GtkWidget * markup_find_button(void)
+{
+	GtkWidget * mb = nullptr;
+	sweep_guard([&mb] {
+		for (GtkWidget * w : toplevels()) {
+			mb = markup_find_button_in(w);
+			if (mb)
+				break;
+		}
+	});
+	return mb;
+}
+
+static GtkWidget * markup_find_row(GtkWidget * w, const char * data)
+{
+	const char * m = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(w), "abi-em-method"));
+	const char * d = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(w), "abi-em-data"));
+	if (m && !strcmp(m, "revisionDisplayMode") && d &&
+		!strcmp(d, data))
+		return w;
+	for (GtkWidget * c = gtk_widget_get_first_child(w); c;
+		 c = gtk_widget_get_next_sibling(c))
+		if (GtkWidget * r = markup_find_row(c, data))
+			return r;
+	return nullptr;
+}
+
+static void markup_check(int * fails, bool ok, const char * step,
+						 const char * what)
+{
+	g_print("  %s %s [%s]\n", ok ? "PASS" : "FAIL", what, step);
+	if (!ok)
+		(*fails)++;
+}
+
+static int drive_markup(AP_UnixApp * app, const char *)
+{
+	alarm(0);
+	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
+	sweep_guard([&ctx] { ctx.preexisting = toplevels(); });
+
+	const char * top = getenv("ABINOVA_TEST_SRC_DIR");
+	std::string path = std::string(top ? top : ".") +
+		"/test/wp/BillOfRights.abw";
+
+	set_phase("markup: load fixture");
+	AV_View * av = nullptr;
+	if (!load_fixture_frame(app, ctx, path, &av) || !av) {
+		g_printerr("drive: markup — cannot load %s\n", path.c_str());
+		return 1;
+	}
+	FV_View * view = static_cast<FV_View *>(av);
+	PD_Document * doc = view->getDocument();
+	if (!doc) {
+		g_printerr("drive: markup — no document\n");
+		return 1;
+	}
+
+	/* seed a tracked insertion so all four modes have markup to
+	 * present */
+	set_phase("markup: seed revision");
+	doc->setMarkRevisions(true);
+	view->cmdCharInsert(std::string(" Hello tracked"), false);
+	doc->setMarkRevisions(false);
+	pump_for(300);
+
+	UT_uint32 rev0 = doc->getHighestRevisionId();
+	if (!rev0) {
+		g_printerr("drive: markup — seeded revision missing\n");
+		return 1;
+	}
+
+	set_phase("markup: find selector");
+	GtkWidget * mb = markup_find_button();
+	int fails = 0;
+	markup_check(&fails, mb != nullptr, "setup", "menu button found");
+	if (!mb)
+		return 1;
+
+	static const struct { const char * mode, * caption;
+						  bool sR, bars; UT_uint32 lvl; } seq[] = {
+		{ "simple",   "Simple Markup", false, true,  PD_MAX_REVISION },
+		{ "all",      "All Markup",    true,  false, PD_MAX_REVISION },
+		{ "none",     "No Markup",     false, false, PD_MAX_REVISION },
+		{ "original", "Original",      false, false, 0 },
+		{ "simple",   "Simple Markup", false, true,  PD_MAX_REVISION },
+		{ "all",      "All Markup",    true,  false, PD_MAX_REVISION },
+	};
+	static const char * modes[] = {"simple", "all", "none", "original"};
+
+	for (size_t i = 0; i < G_N_ELEMENTS(seq); i++) {
+		char step[128];
+		snprintf(step, sizeof(step), "step %zu mode=%s", i,
+				 seq[i].mode);
+		g_print("markup: %s\n", step);
+		set_phase(step);
+
+		GtkWidget * mb2 = markup_find_button();
+		if (mb2)
+			mb = mb2;
+		markup_check(&fails, gtk_widget_get_sensitive(mb), step,
+					 "menu button sensitive");
+
+		GtkPopover * pop =
+			gtk_menu_button_get_popover(GTK_MENU_BUTTON(mb));
+		if (!pop) {
+			markup_check(&fails, false, step, "popover attached");
+			continue;
+		}
+		gtk_popover_popup(pop);
+		pump_for(80);
+		markup_check(&fails, gtk_widget_get_visible(GTK_WIDGET(pop)),
+					 step, "popover visible after popup");
+
+		GtkWidget * popChild = gtk_popover_get_child(pop);
+		GtkWidget * row = popChild
+			? markup_find_row(popChild, seq[i].mode) : nullptr;
+		if (!row) {
+			markup_check(&fails, false, step, "mode row found");
+			gtk_popover_popdown(pop);
+			continue;
+		}
+		markup_check(&fails, gtk_widget_get_sensitive(row), step,
+					 "mode row sensitive");
+
+		gchar * what = g_strdup_printf("click %s row", seq[i].mode);
+		bool ok = call_guard(
+			[row] { g_signal_emit_by_name(row, "clicked"); }, what);
+		g_free(what);
+		markup_check(&fails, ok, step, "row click survived");
+		pump_for(250);
+
+		markup_check(&fails, view->isShowRevisions() == seq[i].sR,
+					 step, "isShowRevisions");
+		markup_check(&fails, view->isShowRevBars() == seq[i].bars,
+					 step, "isShowRevBars");
+		markup_check(&fails, view->getRevisionLevel() == seq[i].lvl,
+					 step, "revision level");
+		markup_check(&fails, doc->getHighestRevisionId() == rev0,
+					 step, "revision data preserved");
+
+		/* the click may have rebuilt the ribbon — re-locate before
+		 * reading the caption or re-opening the popover */
+		mb2 = markup_find_button();
+		if (mb2)
+			mb = mb2;
+		GtkWidget * box =
+			gtk_menu_button_get_child(GTK_MENU_BUTTON(mb));
+		GtkWidget * first =
+			box ? gtk_widget_get_first_child(box) : nullptr;
+		GtkWidget * lbl = first
+			? gtk_widget_get_next_sibling(first) : nullptr;
+		const char * cap = (lbl && GTK_IS_LABEL(lbl))
+			? gtk_label_get_text(GTK_LABEL(lbl)) : "";
+		g_print("  caption=\"%s\" want=\"%s\" lbl=%p\n", cap,
+				seq[i].caption, (void *)lbl);
+		markup_check(&fails, !strcmp(cap, seq[i].caption), step,
+					 "button caption");
+
+		/* re-open: "show" re-runs _refreshCheckRows — the tick must
+		 * sit on the chosen row and only there */
+		pop = gtk_menu_button_get_popover(GTK_MENU_BUTTON(mb));
+		gtk_popover_popup(pop);
+		pump_for(80);
+		markup_check(&fails,
+					 gtk_widget_get_visible(GTK_WIDGET(pop)),
+					 step, "popover reopens");
+		popChild = gtk_popover_get_child(pop);
+		for (const char * mk : modes) {
+			GtkWidget * r = popChild
+				? markup_find_row(popChild, mk) : nullptr;
+			GtkWidget * stk = r ? static_cast<GtkWidget *>(
+				g_object_get_data(G_OBJECT(r), "abi-check-img"))
+								: nullptr;
+			const char * vis = (stk && GTK_IS_STACK(stk))
+				? gtk_stack_get_visible_child_name(GTK_STACK(stk))
+				: "";
+			bool want = !strcmp(mk, seq[i].mode);
+			char cwhat[64];
+			snprintf(cwhat, sizeof(cwhat), "check on %s row", mk);
+			markup_check(&fails,
+						 r && !strcmp(vis, want ? "check" : "icon"),
+						 step, cwhat);
+		}
+		gtk_popover_popdown(pop);
+		pump_for(60);
+	}
+
+	__gcov_dump();
+	g_print("drive: markup done — %d failures, %d criticals\n",
+			fails, g_criticals);
+	return fails ? 1 : 0;
+}
+
 int main(int argc, char **argv)
 {
 	g_log_set_writer_func(drive_log_writer, nullptr, nullptr);
@@ -3604,7 +3850,8 @@ int main(int argc, char **argv)
 
 	bool wantList = false, wantFrame = false, wantAbi = false,
 		 wantEv = false, wantFmt = false, wantFileNew = false,
-		 wantRuler = false, wantFreeze = false, wantToc = false;
+		 wantRuler = false, wantFreeze = false, wantToc = false,
+		 wantMarkup = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -3625,15 +3872,17 @@ int main(int argc, char **argv)
 			wantFreeze = true;
 		else if (strcmp(argv[i], "--toc") == 0)
 			wantToc = true;
+		else if (strcmp(argv[i], "--markup") == 0)
+			wantMarkup = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
 	if (!wantList && !wantFrame && !wantAbi && !wantEv && !wantFmt &&
 		!wantFileNew && !wantRuler && !wantFreeze && !wantToc &&
-		wantId < 0) {
+		!wantMarkup && wantId < 0) {
 		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev"
 				   " | --fmt | --filenew | --ruler | --freeze"
-				   " | --toc\n", argv[0]);
+				   " | --toc | --markup\n", argv[0]);
 		return 2;
 	}
 
@@ -3709,6 +3958,8 @@ int main(int argc, char **argv)
 		return drive_freeze(app, src);
 	if (wantToc)
 		return drive_toc(app, src);
+	if (wantMarkup)
+		return drive_markup(app, src);
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {

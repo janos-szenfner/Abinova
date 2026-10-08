@@ -17554,9 +17554,8 @@ Defun(revisionDisplayMode)
 	UT_return_val_if_fail(pView,false);
 	UT_return_val_if_fail(pCallData && pCallData->m_pData,false);
 
-	std::string sMode(
-		reinterpret_cast<const char *>(pCallData->m_pData),
-		pCallData->m_dataLength);
+	std::string sMode =
+		UT_UCS4String(pCallData->m_pData, pCallData->m_dataLength).utf8_str();
 
 	if (sMode == "all")
 	{
@@ -17578,9 +17577,11 @@ Defun(revisionDisplayMode)
 	}
 	else /* "simple" */
 	{
-		pView->setShowRevisions(false);
-		pView->cmdSetRevisionLevel(PD_MAX_REVISION);
+		/* set the bars before hiding revisions so the one rebuild
+		 * lands on the final combo and never flashes "Original" */
 		pView->setShowRevBars(true);
+		pView->cmdSetRevisionLevel(PD_MAX_REVISION);
+		pView->setShowRevisions(false);
 	}
 	return true;
 }

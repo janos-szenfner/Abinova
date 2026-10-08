@@ -7834,10 +7834,12 @@ const char * AP_UnixRibbon::_markupModeName() const
 		m_pFrame ? m_pFrame->getCurrentView() : nullptr);
 	if (!pView)
 		return "All Markup";
-	if (pView->isShowRevBars())
-		return "Simple Markup";
+	/* same precedence as the "mode:" check-rows: inline markup wins
+	 * over the margin-bar flag so caption and tick agree */
 	if (pView->isShowRevisions())
 		return "All Markup";
+	if (pView->isShowRevBars())
+		return "Simple Markup";
 	if (pView->getRevisionLevel() == 0)
 		return "Original";
 	return "No Markup";
