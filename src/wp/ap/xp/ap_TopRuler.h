@@ -273,6 +273,13 @@ public:
 		{ return m_lastPressX; }
 	UT_sint32       lastPressYForTest() const
 		{ return m_lastPressY; }
+	/* side-effect-free tab hit test: locating an existing tab by
+	 * probing with real presses churns the block format (every free-zone
+	 * press creates and drops a pending tab), which shifts the column
+	 * origin — and with it the very box being searched for.  Returns
+	 * the tab index whose hit box contains x (layout units), or a
+	 * tr_TABINDEX_* negative when the x hits no committed tab. */
+	UT_sint32       tabStopIndexAtXForTest(UT_sint32 x);
 	/* used with AV_Listener */
 	virtual bool notify(AV_View * pView, const AV_ChangeMask mask) override;
 	virtual AV_ListenerType getType(void) const override { return AV_LISTENER_TOPRULER;}

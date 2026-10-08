@@ -83,4 +83,24 @@ protected:
      * from being applied twice (drag-end already did it).  Cleared on
      * the next button press. */
     bool m_bDragClaimed;
+    /* Drag bookkeeping cached at drag-begin/each drag-update.  A
+     * synthetic buttonless MOTION_NOTIFY (GDK's
+     * gdk_surface_ensure_motion, synthesized when a layout change needs
+     * pointer-focus refresh) can cancel the gesture mid-drag; the
+     * cancel path still emits drag-end but with a stale/zero offset and
+     * gtk_gesture_drag_get_start_point() failing, so the release used
+     * to be silently dropped.  m_dragLastX/Y hold the last absolute
+     * tracked position and are the release point on the cancel path
+     * (the pointer is where tracking last saw it); on a real
+     * ButtonRelease the emitted offset + m_dragStartX/Y is exact.
+     * m_bDragBegun is set at drag-begin and cleared when the release is
+     * delivered, so a begun drag releases exactly once even after a
+     * cancel — it must NOT be reset on press, since GTK4 can emit
+     * drag-begin before the click controller's "pressed" for the same
+     * sequence. */
+    double m_dragStartX;
+    double m_dragStartY;
+    double m_dragLastX;
+    double m_dragLastY;
+    bool m_bDragBegun;
 };

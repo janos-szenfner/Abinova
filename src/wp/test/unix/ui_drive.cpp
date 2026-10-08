@@ -1315,6 +1315,28 @@ static int probe_top_center(AP_TopRuler *tr, int py, int x0, int x1,
 	return runStart >= 0 ? (runStart + x1) / 2 : -1;
 }
 
+/* locate a COMMITTED tab's hit box without pressing: probe_top_ruler
+ * creates and drops a pending tab on every free-zone miss, and each
+ * drop rewrites the block format — under Xvfb the resulting reformat
+ * keeps shifting the column origin, so a pressing-probe moves the box
+ * it is trying to find (~12px per scan window observed).  A read-only
+ * scan leaves the layout alone; the reported center is where the box
+ * still is when the real press lands a few ms later. */
+static int scan_tab_box(AP_TopRuler *tr, int x0, int x1)
+{
+	GR_Graphics *rg = tr->getGraphics();
+	int runStart = -1;
+	for (int px = x0; px <= x1; px++) {
+		bool hit = tr->tabStopIndexAtXForTest(
+			static_cast<UT_sint32>(rg->tlu(px))) >= 0;
+		if (hit && runStart < 0)
+			runStart = px;
+		else if (!hit && runStart >= 0)
+			return (runStart + px - 1) / 2;
+	}
+	return runStart >= 0 ? (runStart + x1) / 2 : -1;
+}
+
 struct RulerInject {
 	Display *dpy;
 	Window xid;
@@ -1501,20 +1523,44 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 	AP_TopRulerInfo ti0;
 	view->getTopRulerInfo(&ti0);
 
+	/* click the CENTER of a wide free-zone run, not its left edge: a
+	 * press at the zone boundary snaps xrel to ~0 and commits the tab at
+	 * the column origin — far outside the grab probe's window — and the
+	 * probing churn itself shifts the column origin, which can push an
+	 * edge click outside the zone entirely.  A mid-run click keeps the
+	 * committed tab near the click point even when the origin drifts. */
 	int tabX = -1;
+	const int kMinFreeRun = 120;
+	int runStart = -1, runLen = 0;
 	for (int px = 40; px < tw_w - 8; px += 2) {
 		UT_sint32 ti = 0;
-		if (probe_top_ruler(tr, px, tw_h / 2, &ti) == AP_TopRuler::DW_TABSTOP &&
-			ti < 0) {
-			tabX = px;
-			break;
+		bool free = (probe_top_ruler(tr, px, tw_h / 2, &ti) ==
+					 AP_TopRuler::DW_TABSTOP && ti < 0);
+		if (free) {
+			if (runStart < 0) {
+				runStart = px;
+				runLen = 0;
+			}
+			runLen += 2;
+			if (runLen >= kMinFreeRun) {
+				tabX = runStart + runLen / 2;
+				break;
+			}
+		} else {
+			runStart = -1;
+			runLen = 0;
 		}
 	}
 	if (tabX < 0) {
 		g_printerr("FAIL ruler: no free tab-zone point found\n");
 		fails++;
 	} else {
+		/* the scan's own pending-tab drops leave the piece table
+		 * changing for a while; a press during that window bails
+		 * to DW_NOTHING and the click adds nothing */
+		wait_pt_idle(view);
 		rul_move(inj, tw, tabX, tw_h / 2);
+		wait_pt_idle(view);
 		rul_btn(inj, true);
 		rul_btn(inj, false);
 		rul_gap();
@@ -1529,27 +1575,52 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 			fails++;
 		}
 
-		/* the committed tab snaps to the ruler grid, so its hit box can
-		 * sit a few px off the click point — locate the box with the
-		 * probe (presses in the tab zone that create a pending tab are
-		 * dropped off-band inside probe_top_ruler) and press at its
-		 * center; retry with a fresh probe in case the box shifted
-		 * while the frame's layout was still settling. */
+		/* locate the committed tab's box with the side-effect-free
+		 * scan and press at its center.  A pressing probe is useless
+		 * here: its free-zone misses create+drop pending tabs, each
+		 * drop reformats the block and shifts the column origin, so
+		 * the box moves ~12px per scan window and always escapes the
+		 * aim.  Retry a couple of times — a miss means the press
+		 * landed on warp jitter outside the ~10px box. */
 		set_phase("ruler: tab grab + drag-off");
 		bool grabbed = false;
 		int grabX = -1, grabY = tw_h / 2;
-		for (int attempt = 0; attempt < 4 && !grabbed; attempt++) {
-			if (grabX < 0)
-				grabX = probe_top_center(tr, grabY,
-										 tabX - 30, tabX + 30,
-										 AP_TopRuler::DW_TABSTOP, true);
+		for (int attempt = 0; attempt < 6 && !grabbed; attempt++) {
+			wait_pt_idle(view);
+			/* the box keeps sliding ~1px/10ms while the add's reformat
+			 * cascade converges — it can outlive isPieceTableChanging()
+			 * by hundreds of ms, so a scanned position is stale by the
+			 * time the press lands.  Scan until two reads ~120ms apart
+			 * agree, then press with no further reformat in flight. */
+			int lastBox = -1, stable = 0;
+			gint64 deadline = g_get_monotonic_time() + 2000000;
+			while (stable < 2 && g_get_monotonic_time() < deadline) {
+				pump_for(120);
+				grabX = scan_tab_box(tr, 8, tw_w - 8);
+				if (grabX >= 0 && grabX == lastBox)
+					stable++;
+				else {
+					stable = 0;
+					lastBox = grabX;
+				}
+			}
 			if (grabX < 0) {
-				g_printerr("ruler: probe found no tab near %d "
-						   "(attempt %d)\n", tabX, attempt);
-				break;
+				g_printerr("ruler: scan found no tab box "
+						   "(attempt %d)\n", attempt);
+				continue;
+			}
+			/* the warp's own pump can flush a queued resize/scroll that
+			 * jumps the column origin ~50px — re-scan after the move and
+			 * re-aim until the box holds still through a pump, so the
+			 * only uncovered window is the button dispatch itself */
+			for (int refine = 0; refine < 4; refine++) {
+				rul_move(inj, tw, grabX, grabY);
+				int now = scan_tab_box(tr, 8, tw_w - 8);
+				if (now < 0 || abs(now - grabX) <= 1)
+					break;
+				grabX = now;
 			}
 			wait_pt_idle(view);
-			rul_move(inj, tw, grabX, grabY);
 			rul_btn(inj, true);
 			if (g_trace)
 				fprintf(stderr, "tab-grab @(%d,%d): what=%d idx=%d "
@@ -1569,17 +1640,6 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 				rul_move(inj, tw, grabX, tw_h + 30);
 			rul_btn(inj, false);
 			rul_gap();
-			/* the delivered press coordinate can sit several px off
-			 * the warp target while the frame's layout settles —
-			 * feed the landing error back into the aim before
-			 * re-probing */
-			grabX = 2 * grabX - rg->tdu(tr->lastPressXForTest());
-			grabY = 2 * grabY - rg->tdu(tr->lastPressYForTest());
-			int cx = probe_top_center(tr, grabY,
-									  grabX - 20, grabX + 20,
-									  AP_TopRuler::DW_TABSTOP, true);
-			if (cx >= 0)
-				grabX = cx;
 		}
 		if (!grabbed) {
 			g_printerr("FAIL ruler: press never grabbed the new tab\n");
@@ -1613,7 +1673,10 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 
 	/* the indent markers occupy the lower half of the band (the upper
 	 * part, just above the 3/4 line, grabs the single indent; the
-	 * bottom box grabs the paired one) — try both rows */
+	 * bottom box grabs the paired one) — try both rows.  wait for the
+	 * piece table to go idle first: a mid-change window turns every
+	 * probe press into DW_NOTHING and the scan would find no marker */
+	wait_pt_idle(view);
 	struct { int px, py; AP_TopRuler::DraggingWhat what; } hit {
 		-1, -1, AP_TopRuler::DW_NOTHING };
 	const int probeY[] = { (3 * tw_h / 4) - 3, (3 * tw_h / 4) + 3 };
@@ -1649,6 +1712,7 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 		for (int attempt = 0; attempt < 4 && !markerGrabbed; attempt++) {
 			wait_pt_idle(view);
 			rul_move(inj, tw, hit.px, hit.py);
+			wait_pt_idle(view);
 			rul_btn(inj, true);
 			if (g_trace)
 				fprintf(stderr, "marker press @(%d,%d): want=%d got=%d "
@@ -1734,6 +1798,7 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 
 	AP_LeftRulerInfo li0;
 	view->getLeftRulerInfo(&li0);
+	wait_pt_idle(view);
 	int margY = -1;
 	for (int py = 8; py < lw_h - 8; py += 2) {
 		if (probe_left_ruler(lr, lw_w / 2, py) ==
@@ -1751,6 +1816,7 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 		for (int attempt = 0; attempt < 4 && !marginGrabbed; attempt++) {
 			wait_pt_idle(view);
 			rul_move(inj, lw, lw_w / 2, margY);
+			wait_pt_idle(view);
 			rul_btn(inj, true);
 			if (g_trace)
 				fprintf(stderr, "margin press @%d: got=%d landed=%d\n",

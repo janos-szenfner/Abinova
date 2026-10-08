@@ -40,6 +40,11 @@ AP_UnixRuler::AP_UnixRuler(XAP_Frame* /*pFrame*/)
     : m_wRuler(nullptr)
     , m_iBackgroundRedrawID(0)
     , m_bDragClaimed(false)
+    , m_dragStartX(0.0)
+    , m_dragStartY(0.0)
+    , m_dragLastX(0.0)
+    , m_dragLastY(0.0)
+    , m_bDragBegun(false)
 {
     // change ruler color on theme change
     GtkSettings *settings = gtk_settings_get_default();
@@ -195,6 +200,14 @@ void AP_UnixRuler::_fe::button_pressed(GtkGestureClick* g, gint n_press,
                 static_cast<void*>(gtk_event_controller_get_widget(
                     GTK_EVENT_CONTROLLER(g))), n_press, ev_x, ev_y);
 
+    /* only the claim is reset here: "drag-begin" can arrive BEFORE this
+     * press for the same sequence (GTK4 emits it the moment the drag
+     * gesture claims the button-press, ahead of the click controller's
+     * "pressed"), so m_bDragBegun must not be cleared or drag_end loses
+     * its cached start.  A stale m_bDragClaimed would suppress the next
+     * real click's release, and clearing it for the same sequence at
+     * worst lets a late "released" deliver a redundant mouseRelease that
+     * the XP layer no-ops on m_bValidMouseClick. */
     pRuler->m_bDragClaimed = false;
 
     FV_View* pView = static_cast<FV_View *>(ruler->getFrame()->getCurrentView());
@@ -284,6 +297,9 @@ void AP_UnixRuler::_fe::drag_begin(GtkGestureDrag* g,
                 static_cast<void*>(gtk_event_controller_get_widget(
                     GTK_EVENT_CONTROLLER(g))), start_x, start_y);
     pRuler->m_bDragClaimed = true;
+    pRuler->m_bDragBegun = true;
+    pRuler->m_dragStartX = pRuler->m_dragLastX = start_x;
+    pRuler->m_dragStartY = pRuler->m_dragLastY = start_y;
 }
 
 void AP_UnixRuler::_fe::drag_update(GtkGestureDrag* g,
@@ -308,13 +324,21 @@ void AP_UnixRuler::_fe::drag_update(GtkGestureDrag* g,
      * absolute widget position keeps working when the pointer is outside
      * the allocation — negative or > width/height coordinates are what
      * let the XP layer see an off-band drag (and apply or delete on
-     * release), so the cast below must stay signed. */
+     * release), so the cast below must stay signed.  The cached start
+     * point is authoritative: after a mid-drag gesture cancel
+     * gtk_gesture_drag_get_start_point() fails while the offsets stay
+     * valid (see drag_end). */
     gdouble start_x = 0.0, start_y = 0.0;
-    if (!gtk_gesture_drag_get_start_point(g, &start_x, &start_y)) {
+    if (pRuler->m_bDragBegun) {
+        start_x = pRuler->m_dragStartX;
+        start_y = pRuler->m_dragStartY;
+    } else if (!gtk_gesture_drag_get_start_point(g, &start_x, &start_y)) {
         return;
     }
     const gdouble ev_x = start_x + offset_x;
     const gdouble ev_y = start_y + offset_y;
+    pRuler->m_dragLastX = ev_x;
+    pRuler->m_dragLastY = ev_y;
 
     GdkModifierType ev_state = gtk_event_controller_get_current_event_state(
         GTK_EVENT_CONTROLLER(g));
@@ -386,14 +410,36 @@ void AP_UnixRuler::_fe::drag_end(GtkGestureDrag* g,
         return;
     }
 
-    gdouble start_x = 0.0, start_y = 0.0;
-    if (!gtk_gesture_drag_get_start_point(g, &start_x, &start_y)) {
-        if (getenv("RULER_TRACE"))
-            fprintf(stderr, "fe drag-end no start point\n");
-        return;
+    /* A begun drag must always get its release delivered.  A synthetic
+     * buttonless MOTION_NOTIFY (gdk_surface_ensure_motion) can cancel
+     * the gesture mid-drag: drag-end still fires but the current event
+     * is the synthetic motion, get_start_point() fails and the emitted
+     * offset may be zeroed — the last tracked absolute position is
+     * then the right release point (the pointer is where tracking last
+     * saw it).  On a real ButtonRelease the emitted offset + cached
+     * start is exact, so prefer it. */
+    GdkEvent *ev = gtk_event_controller_get_current_event(
+        GTK_EVENT_CONTROLLER(g));
+    gdouble ev_x, ev_y;
+    if (pRuler->m_bDragBegun) {
+        pRuler->m_bDragBegun = false;
+        if (ev && gdk_event_get_event_type(ev) == GDK_BUTTON_RELEASE) {
+            ev_x = pRuler->m_dragStartX + offset_x;
+            ev_y = pRuler->m_dragStartY + offset_y;
+        } else {
+            ev_x = pRuler->m_dragLastX;
+            ev_y = pRuler->m_dragLastY;
+        }
+    } else {
+        gdouble start_x = 0.0, start_y = 0.0;
+        if (!gtk_gesture_drag_get_start_point(g, &start_x, &start_y)) {
+            if (getenv("RULER_TRACE"))
+                fprintf(stderr, "fe drag-end no start point\n");
+            return;
+        }
+        ev_x = start_x + offset_x;
+        ev_y = start_y + offset_y;
     }
-    const gdouble ev_x = start_x + offset_x;
-    const gdouble ev_y = start_y + offset_y;
 
     GdkModifierType ev_state = gtk_event_controller_get_current_event_state(
         GTK_EVENT_CONTROLLER(g));

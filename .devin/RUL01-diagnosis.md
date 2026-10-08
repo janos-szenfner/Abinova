@@ -213,3 +213,41 @@ diagnostic instrumentation (drag `cancel` handler + richer
 `drag-end`/`drag-cancel` fields in `ap_UnixRuler.cpp`,
 `leftRuler` traces in `ap_LeftRuler.cpp`), all silent unless
 `RULER_TRACE=1` is set. The fix itself belongs to RUL03.
+
+## RUL03 resolution
+
+Candidate A landed. `ap_UnixRuler` caches `m_dragStartX/Y` at
+`drag-begin` and `m_dragLastX/Y` at every `drag-update`; `drag_end`
+delivers `mouseRelease` whenever a begin preceded — `start + offset`
+when the current event is a real `GDK_BUTTON_RELEASE`, else the last
+tracked position (the cancel path can emit zeroed offsets). Verified:
+`ui-drive --ruler` under Xvfb 10/10 runs clean — every run applies
+`delta 960 lu` on both the top-ruler indent off-band drag and the
+left-ruler margin off-band drag; the `drag-CANCEL -> drag-end ->
+delta 0` signature is gone.
+
+Two follow-on findings worth remembering:
+
+- **GTK4 can emit `drag-begin` BEFORE the click controller's
+  `pressed` for the same sequence** (the drag gesture claims the
+  button-press immediately). Any per-press reset of drag bookkeeping
+  must not clear state the same sequence's `drag-begin` already set —
+  clearing `m_bDragBegun` on press reintroduced the exact release-loss
+  signature the cache was added to fix. Clearing `m_bDragClaimed`
+  there is still correct: a stale claim would suppress the next real
+  click's release, and a same-sequence clear at worst produces a
+  redundant `mouseRelease` that the XP layer no-ops on
+  `m_bValidMouseClick`.
+- **ui-drive probe churn moved the target.** The old tab-grab probe
+  located a committed tab by pressing every px; each free-zone press
+  creates and drops a pending tab, each drop calls `setBlockFormat`,
+  and the resulting reformat cascade shifts the column origin — the
+  probe moved the very box it was measuring (~+50px impulsive jumps
+  observed mid-aim). Fixed by `AP_TopRuler::tabStopIndexAtXForTest`,
+  a side-effect-free `_findTabStop` wrapper the driver's
+  `scan_tab_box` uses, plus waiting for the scanned box position to
+  hold still across ~120ms reads and re-aiming after the pointer warp
+  (the warp's own pump can flush a queued resize/scroll that shifts
+  the origin). The free-zone click target is now the center of a
+  >=120px free run rather than the zone's left edge, where `xrel~0`
+  used to snap the committed tab to `0pi` at the column origin.

@@ -1152,12 +1152,32 @@ UT_sint32 AP_TopRuler::_findTabStop(AP_TopRulerInfo * pInfo,
 		_getTabStopXAnchor(pInfo, i, &anchor, iType, iLeader);
 		_getTabStopRect(pInfo, anchor, &rect);
 
+		if (getenv("RULER_TRACE"))
+			fprintf(stderr, "  findTab i=%d anchor=%d rect=(%d,%d %dx%d) q=(%u,%u)\n",
+					static_cast<int>(i), static_cast<int>(anchor),
+					rect.left, rect.top, rect.width, rect.height,
+					x, y);
+
 		if (rect.containsPoint(x,y))
 			return i;
 	}
 
 	anchor = 0; // to avoid an uninitialized value in isMouseOverTab()
 	return tr_TABINDEX_NONE;
+}
+
+UT_sint32 AP_TopRuler::tabStopIndexAtXForTest(UT_sint32 x)
+{
+	FV_View * pView = static_cast<FV_View *>(m_pView);
+	if (!pView || !m_pG || pView->getDocument()->isPieceTableChanging())
+		return tr_TABINDEX_NONE;
+	pView->getTopRulerInfo(&m_infoCache);
+	UT_sint32 anchor;
+	eTabType iType;
+	eTabLeader iLeader;
+	return _findTabStop(&m_infoCache, x,
+						m_pG->tlu(s_iFixedHeight/2 + s_iFixedHeight/4 - 3),
+						anchor, iType, iLeader);
 }
 
 void AP_TopRuler::_getTabZoneRect(AP_TopRulerInfo * pInfo, UT_Rect &rZone)
