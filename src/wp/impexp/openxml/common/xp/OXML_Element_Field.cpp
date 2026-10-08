@@ -558,12 +558,17 @@ UT_Error OXML_Element_Field::addToPT(PD_Document * pDocument)
 		}
 	};
 
+	/* character props captured from the field's run (or its first
+	 * result run for fldSimple) ride on the object's AP as "props" —
+	 * appendObject() does not inherit the surrounding fmt span */
+	PP_PropertyVector field_fmt = getAttributesWithProps();
+	field_fmt.push_back("type");
+	field_fmt.push_back(format);
+
 	if(fieldType == fd_Field::FD_Footnote_Ref)
 	{
-		const PP_PropertyVector field_fmt = {
-			"type",	format,
-			"footnote-id", getId()
-		};
+		field_fmt.push_back("footnote-id");
+		field_fmt.push_back(getId());
 		if(!pDocument->appendObject(PTO_Field, field_fmt))
 			return UT_ERROR;
 
@@ -579,10 +584,8 @@ UT_Error OXML_Element_Field::addToPT(PD_Document * pDocument)
 	}
 	else if(fieldType == fd_Field::FD_Endnote_Ref)
 	{
-		const PP_PropertyVector field_fmt = {
-			"type", format,
-			"endnote-id", getId()
-		};
+		field_fmt.push_back("endnote-id");
+		field_fmt.push_back(getId());
 
 		if(!pDocument->appendObject(PTO_Field, field_fmt))
 			return UT_ERROR;
@@ -600,10 +603,6 @@ UT_Error OXML_Element_Field::addToPT(PD_Document * pDocument)
 	}	
 	else
 	{
-		const PP_PropertyVector field_fmt = {
-			"type", format
-		};
-
 		if(!pDocument->appendObject(PTO_Field, field_fmt))
 			return UT_ERROR;
 	}

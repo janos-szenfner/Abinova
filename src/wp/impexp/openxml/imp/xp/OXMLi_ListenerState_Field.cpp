@@ -70,6 +70,17 @@ void OXMLi_ListenerState_Field::endElement (OXMLi_EndElementRequest * rqst)
 		OXML_SharedElement field = OXMLi_elemTop(rqst->stck);
 		rqst->stck->pop();
 
+		/* the field object replaces its result runs in the piece
+		 * table, so their character props would be lost — lift the
+		 * first run's props onto the field element, which
+		 * serializes them as the object's "props" in addToPT */
+		if (field)
+		{
+			const OXML_ElementVector & kids = field->getChildren();
+			if (!kids.empty() && kids.front())
+				field->inheritProperties(kids.front().get());
+		}
+
 		OXML_SharedElement parent = OXMLi_elemTop(rqst->stck);
 		if(parent)
 			parent->appendElement(field);

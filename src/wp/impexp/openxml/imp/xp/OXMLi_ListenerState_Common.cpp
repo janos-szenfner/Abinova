@@ -2009,6 +2009,13 @@ void OXMLi_ListenerState_Common::charData (OXMLi_CharDataRequest * rqst)
 			m_pageNumberField = true;
 			m_eqField = false;
 			OXML_SharedElement fieldElem(new OXML_Element_Field("", v, ""));
+			/* the field object replaces the run's text in the piece
+			 * table and appendObject() does not pick up the run's
+			 * fmt span, so the character props would be lost —
+			 * copy them onto the field element, which serializes
+			 * them as the object's "props" in addToPT */
+			if (run)
+				fieldElem->inheritProperties(run.get());
 			rqst->stck->push(fieldElem);
 		}
 		else

@@ -1154,6 +1154,15 @@ below are on `main` but the release has not been cut yet.
   the `a:solidFill`-under-`a:blipFill` order in OOXML, which also
   makes imported `.docx` pictures keep their shape fill — and
   otherwise let the image composite onto whatever is stacked below.
+- **DOCX fields keep their run's character formatting** — a field
+  carried by a formatted run (most visibly the page number inside
+  the Badge footer's scalloped seal) imported with no character
+  properties of its own, so it rendered in the document default
+  style — dark text sitting invisibly on the seal's dark fill.
+  The run's character properties now ride on the imported field
+  object, so field results render with their intended font, size,
+  weight, color and spacing, and the properties round-trip through
+  `.abwn`.
 - **Header and Footer built-in galleries** — the Header and Footer
   ribbon buttons open Word-style dropdown galleries of preview cards:
   21 header designs (Blank, Blank (Three Columns), Austin, Badge,
