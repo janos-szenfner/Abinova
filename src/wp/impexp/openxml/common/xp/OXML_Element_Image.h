@@ -43,7 +43,23 @@ public:
 	virtual UT_Error serialize(IE_Exp_OpenXML* exporter) override;
 	virtual UT_Error addToPT(PD_Document * pDocument) override;
 
+	/* anchored images inside header/footer parts would emit frame
+	 * struxes that hdrftr shadows cannot lay out — a document
+	 * section hoists them into the body flow instead (see
+	 * OXML_Section::_emitHdrFtrFrames) */
+	virtual bool isHdrFtrFrameCandidate() const override
+	{
+		/* anchored (non-inline) payloads emit a frame; inline
+		 * images carry a "height" property and emit in-flow */
+		const gchar * v = nullptr;
+		return !getId().empty() &&
+			   (getProperty("height", v) != UT_OK || !v);
+	}
+	virtual UT_Error addToPTAsFrame(PD_Document * pDocument) override;
+
 private:
+	bool m_hoisted = false;
+	UT_Error _emitToPT(PD_Document * pDocument);
 	UT_Error _addMediaEmbedToPT(PD_Document * pDocument,
 	                            const OXML_SharedImage & poster,
 	                            const gchar * szMediaRid);

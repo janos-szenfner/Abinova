@@ -135,6 +135,21 @@ public:
 	bool getHandledHdrFtr() const
 		{ return m_handledHdrFtr; }
 
+	//! Header/footer part bookkeeping: a part is appended to the
+	//! piece table only when a document section claims it through an
+	//! honored reference (even-page refs need w:evenAndOddHeaders,
+	//! first-page refs need w:titlePg).
+	void setReferencedHdrFtr(bool val)
+		{ m_referencedHdrFtr = val; }
+	bool getReferencedHdrFtr() const
+		{ return m_referencedHdrFtr; }
+
+	//! Collect this part's page-anchored elements (textboxes and
+	//! floating images). Frame struxes do not lay out inside
+	//! header/footer shadows, so document sections re-emit them in
+	//! the body flow via OXML_Element::addToPTAsFrame.
+	void collectFrameElements(std::vector<OXML_Element*> & out) const;
+
 	UT_Error setPageMargins(const std::string & top, const std::string & left, const std::string & right, const std::string & bottom);
 
 private:
@@ -147,8 +162,18 @@ private:
 	int m_target;
 	bool m_handledHdrFtr;
 	bool m_titlePg;
+	bool m_referencedHdrFtr;
+	//! header/footer parts claimed by this section's honored
+	//! references — their page-anchored elements get re-emitted as
+	//! frames in this section's body flow
+	std::vector<OXML_SharedSection> m_hoistSources;
 
 	UT_Error _setReferenceIds();
+	void _referHdrFtr(const char * attrName,
+					  const OXML_SharedSection & part, const char * abw_id);
+	UT_Error _emitHdrFtrFrames(PD_Document * pDocument);
+	static void _collectFrameElements(const OXML_ElementVector & elems,
+									  std::vector<OXML_Element*> & out);
 	std::string _tocPropsFromInstr(OXML_Element* pPara) const;
 	UT_Error _emitSectPrSnapshot(IE_Exp_OpenXML* exporter,
 							   const PP_PropertyVector & props);

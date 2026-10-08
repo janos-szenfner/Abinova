@@ -622,14 +622,22 @@ UT_Error OXML_Document::addToPT(PD_Document * pDocument)
 			return ret;
 	}
 
-	//Adding header and footer sections to PT
+	//Adding header and footer sections to PT; parts whose only
+	//references are inactive (an "even" reference without
+	//w:evenAndOddHeaders in settings, a "first" reference without
+	//w:titlePg on the section) are skipped entirely — OOXML does not
+	//apply them.
 	OXML_SectionMap::iterator it3;
 	for (it3 = m_headers.begin(); it3 != m_headers.end(); it3++) {
+		if (!it3->second->getReferencedHdrFtr())
+			continue;
 		ret = it3->second->addToPTAsHdrFtr(pDocument);
 		if (ret != UT_OK)
 			return ret;
 	}
 	for (it3 = m_footers.begin(); it3 != m_footers.end(); it3++) {
+		if (!it3->second->getReferencedHdrFtr())
+			continue;
 		ret = it3->second->addToPTAsHdrFtr(pDocument);
 		if (ret != UT_OK)
 			return ret;

@@ -39,14 +39,15 @@
 #include <string>
 #include <vector>
 
-OXML_Section::OXML_Section() : 
-	OXML_ObjectWithAttrProp(), 
-	m_id(""), 
+OXML_Section::OXML_Section() :
+	OXML_ObjectWithAttrProp(),
+	m_id(""),
 	m_breakType(NEXTPAGE_BREAK),
 	m_lastParagraph(nullptr),
 	m_target(0),
 	m_handledHdrFtr(false),
-	m_titlePg(false)
+	m_titlePg(false),
+	m_referencedHdrFtr(false)
 {
 	m_headerIds[0] = nullptr;
 	m_headerIds[1] = nullptr;
@@ -59,14 +60,15 @@ OXML_Section::OXML_Section() :
 	m_children.clear();
 }
 
-OXML_Section::OXML_Section(const std::string & id) : 
-	OXML_ObjectWithAttrProp(), 
-	m_id(id), 
+OXML_Section::OXML_Section(const std::string & id) :
+	OXML_ObjectWithAttrProp(),
+	m_id(id),
 	m_breakType(NEXTPAGE_BREAK),
 	m_lastParagraph(nullptr),
 	m_target(0),
 	m_handledHdrFtr(false),
-	m_titlePg(false)
+	m_titlePg(false),
+	m_referencedHdrFtr(false)
 {
 	m_headerIds[0] = nullptr;
 	m_headerIds[1] = nullptr;
@@ -605,6 +607,7 @@ UT_Error OXML_Section::addToPT(PD_Document * pDocument)
 	OXML_Document* doc = OXML_Document::getInstance();
 	OXML_ElementVector::size_type i;
 	bool bInTOC = false;
+	bool bHoisted = false;
 	for (i = 0; i < m_children.size(); i++)
 	{
 		/* paragraphs flagged by the importer's TOC-field tracking get
@@ -632,10 +635,27 @@ UT_Error OXML_Section::addToPT(PD_Document * pDocument)
 
 		ret = m_children[i]->addToPT(pDocument);
 		UT_return_val_if_fail(ret == UT_OK, ret);
+
+		/* frame struxes do not lay out inside header/footer shadows,
+		 * so page-anchored shapes found in this section's
+		 * header/footer parts are re-emitted here as frames anchored
+		 * to the first body block — they land on the section's first
+		 * page */
+		if (!bHoisted && !bInTOC)
+		{
+			bHoisted = true;
+			ret = _emitHdrFtrFrames(pDocument);
+			UT_return_val_if_fail(ret == UT_OK, ret);
+		}
 	}
 	if (bInTOC)
 	{
 		ret = pDocument->appendStrux(PTX_EndTOC, PP_NOPROPS) ? UT_OK : UT_ERROR;
+		UT_return_val_if_fail(ret == UT_OK, ret);
+	}
+	if (!bHoisted)
+	{
+		ret = _emitHdrFtrFrames(pDocument);
 		UT_return_val_if_fail(ret == UT_OK, ret);
 	}
 
@@ -905,6 +925,15 @@ UT_Error OXML_Section::_setReferenceIds()
 	OXML_SharedSection corresp_sect;
 	const char * ooxml_id(nullptr), * abw_id(nullptr);
 
+	/* OOXML activates "even" header/footer references only when the
+	 * document settings carry w:evenAndOddHeaders, and first-page
+	 * references only when the section has w:titlePg. References
+	 * that are not honored neither attach to this section nor cause
+	 * the part to be appended to the piece table. */
+	std::string evenOdd;
+	const bool bEvenOdd = doc->getDocProperty("document-even-odd-headers", evenOdd)
+		&& (evenOdd == "1" || evenOdd == "true" || evenOdd == "on");
+
 	//Headers...
 	for (UT_uint32 i = 0; i <= 2; i++) {
 		ooxml_id = m_headerIds[i]; abw_id = nullptr;
@@ -913,14 +942,15 @@ UT_Error OXML_Section::_setReferenceIds()
 			UT_return_val_if_fail( nullptr != corresp_sect.get(), UT_ERROR );
 			corresp_sect->getAttribute("id", abw_id);
 			UT_return_val_if_fail( nullptr != abw_id, UT_ERROR );
-			if (i == DEFAULT_HDRFTR) {
-				this->setAttribute("header", abw_id );
-			} else if (i == FIRSTPAGE_HDRFTR) {
-				if (m_titlePg) //Word only honors first-page refs with w:titlePg
-					this->setAttribute("header-first", abw_id );
-			} else if (i == EVENPAGE_HDRFTR) {
-				this->setAttribute("header-even", abw_id );
-			}	
+			const char * attrName = nullptr;
+			if (i == DEFAULT_HDRFTR)
+				attrName = "header";
+			else if (i == FIRSTPAGE_HDRFTR && m_titlePg)
+				attrName = "header-first";
+			else if (i == EVENPAGE_HDRFTR && bEvenOdd)
+				attrName = "header-even";
+			if (attrName)
+				_referHdrFtr(attrName, corresp_sect, abw_id);
 		}
 	}
 
@@ -932,17 +962,71 @@ UT_Error OXML_Section::_setReferenceIds()
 			UT_return_val_if_fail( nullptr != corresp_sect.get(), UT_ERROR );
 			corresp_sect->getAttribute("id", abw_id);
 			UT_return_val_if_fail( nullptr != abw_id, UT_ERROR );
-			if (i == DEFAULT_HDRFTR) {
-				this->setAttribute("footer", abw_id );
-			} else if (i == FIRSTPAGE_HDRFTR) {
-				if (m_titlePg)
-					this->setAttribute("footer-first", abw_id );
-			} else if (i == EVENPAGE_HDRFTR) {
-				this->setAttribute("footer-even", abw_id );
-			}	
+			const char * attrName = nullptr;
+			if (i == DEFAULT_HDRFTR)
+				attrName = "footer";
+			else if (i == FIRSTPAGE_HDRFTR && m_titlePg)
+				attrName = "footer-first";
+			else if (i == EVENPAGE_HDRFTR && bEvenOdd)
+				attrName = "footer-even";
+			if (attrName)
+				_referHdrFtr(attrName, corresp_sect, abw_id);
 		}
 	}
 	return UT_OK;
+}
+
+void OXML_Section::_referHdrFtr(const char * attrName,
+								const OXML_SharedSection & part,
+								const char * abw_id)
+{
+	setAttribute(attrName, abw_id);
+	part->setReferencedHdrFtr(true);
+	if (std::find(m_hoistSources.begin(), m_hoistSources.end(), part)
+		== m_hoistSources.end())
+		m_hoistSources.push_back(part);
+}
+
+/* Frame struxes are silently dropped inside header/footer shadows
+ * (fp_ShadowContainer has no frame machinery), so page-anchored
+ * elements collected from this section's header/footer parts are
+ * emitted into the body flow — they anchor to the neighbouring
+ * block and land on the page that block lays out on. */
+UT_Error OXML_Section::_emitHdrFtrFrames(PD_Document * pDocument)
+{
+	UT_Error ret = UT_OK;
+	for (size_t s = 0; s < m_hoistSources.size(); s++)
+	{
+		std::vector<OXML_Element*> frames;
+		m_hoistSources[s]->collectFrameElements(frames);
+		for (size_t f = 0; f < frames.size(); f++)
+		{
+			ret = frames[f]->addToPTAsFrame(pDocument);
+			UT_return_val_if_fail(ret == UT_OK, ret);
+		}
+	}
+	return ret;
+}
+
+void OXML_Section::collectFrameElements(std::vector<OXML_Element*> & out) const
+{
+	_collectFrameElements(m_children, out);
+}
+
+void OXML_Section::_collectFrameElements(const OXML_ElementVector & elems,
+										 std::vector<OXML_Element*> & out)
+{
+	for (OXML_ElementVector::const_iterator it = elems.begin();
+		 it != elems.end(); ++it)
+	{
+		OXML_Element * e = it->get();
+		if (!e)
+			continue;
+		if (e->isHdrFtrFrameCandidate())
+			out.push_back(e);
+		else
+			_collectFrameElements(e->getChildren(), out);
+	}
 }
 
 void OXML_Section::setTarget(int target)

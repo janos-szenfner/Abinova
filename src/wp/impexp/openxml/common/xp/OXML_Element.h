@@ -96,6 +96,18 @@ public:
 		\param pDocument A valid reference to the PD_Document object.
 	*/
 	virtual UT_Error addToPT(PD_Document * pDocument);
+
+	//! true when this element sits in a header/footer part but
+	//! represents a page-anchored frame (a textbox shape or a
+	//! floating image). Frame struxes do not lay out inside
+	//! header/footer shadows, so OXML_Section::addToPT re-emits such
+	//! elements inside the body flow via addToPTAsFrame.
+	virtual bool isHdrFtrFrameCandidate() const { return false; }
+	//! Emit this element's frame form into the body flow; subclasses
+	//! mark themselves hoisted so the later addToPT run (when the
+	//! owning header/footer story is appended) adds nothing.
+	virtual UT_Error addToPTAsFrame(PD_Document * pDocument);
+
 	//! Calls the method addToPT() on all children.
 	/*! WARNING: if you derive OXML_Element, you probably shouldn't redefine this method.
 	 */

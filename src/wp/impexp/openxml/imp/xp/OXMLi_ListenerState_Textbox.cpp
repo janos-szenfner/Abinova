@@ -188,6 +188,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		_markFlatIfHdrFtr(shapeElem);
 		rqst->stck->push(shapeElem);
 		m_shapePrst.clear();
+		m_shapeNoFill = false;
 		m_bHadExplicitLn = false;
 		m_bHadExplicitEffect = false;
 		++m_wspDepth;
@@ -687,6 +688,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 			if (OXMLi_contextBack(rqst->context) == "wps:spPr")
 			{
 				m_bInShapeFill = !nameMatches(rqst->pName, NS_A_KEY, "noFill");
+				m_shapeNoFill = nameMatches(rqst->pName, NS_A_KEY, "noFill");
 				m_inGradFill = nameMatches(rqst->pName, NS_A_KEY, "gradFill");
 				if (m_inGradFill)
 				{
@@ -796,6 +798,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		m_bPendOutline = m_bInOutlineFill;
 		m_bPendShadow = m_bInShadow;
 		m_bPendRef = m_bInRefColor;
+		m_bPendStyle = m_bInStyleFill;
 		m_lumMod = 1.0; m_lumOff = 0.0;
 		m_tint = -1.0; m_shade = -1.0; m_alpha = -1.0;
 		rqst->handled = true;
@@ -1207,11 +1210,11 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 			static const char * baseSrc[] = {
 				"xpos", "ypos", "halign", "valign", "frame-width",
 				"frame-height", "pct-width", "pct-height",
-				"pct-pos-x", "pct-pos-y" };
+				"pct-pos-x", "pct-pos-y", "hpos-from", "vpos-from" };
 			static const char * baseDst[] = {
 				"base-xpos", "base-ypos", "base-halign", "base-valign",
 				"base-w", "base-h", "base-pctw", "base-pcth",
-				"base-pctpx", "base-pctpy" };
+				"base-pctpx", "base-pctpy", "base-hfrom", "base-vfrom" };
 			const gchar * bv = nullptr;
 			for (const char * pn : grpShare)
 				if (parent->getProperty(pn, bv) == UT_OK && bv)
@@ -1252,6 +1255,10 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 				shape->setProperty("halign", v);
 			if (parent->getProperty("valign", v) == UT_OK && v)
 				shape->setProperty("valign", v);
+			if (parent->getProperty("hpos-from", v) == UT_OK && v)
+				shape->setProperty("hpos-from", v);
+			if (parent->getProperty("vpos-from", v) == UT_OK && v)
+				shape->setProperty("vpos-from", v);
 		}
 		if (parent->getProperty("wrap-mode", v) == UT_OK && v)
 			shape->setProperty("wrap-mode", v);
@@ -1457,11 +1464,13 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 		bool bOutline = m_bPendOutline;
 		bool bShadow = m_bPendShadow;
 		bool bRef = m_bPendRef;
+		bool bStyle = m_bPendStyle;
 		double alpha = m_alpha;
 		m_pendColor.clear();
 		m_bPendOutline = false;
 		m_bPendShadow = false;
 		m_bPendRef = false;
+		m_bPendStyle = false;
 		if (bRef)
 		{
 			/* color child of a wps:style *Ref — substitutes for phClr
@@ -1511,17 +1520,20 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 					m_gradDesc += final;
 					m_gradDesc += ",";
 				}
+				/* a wps:style fillRef color is only a default — an
+				 * explicit a:noFill in the shape's spPr wins */
 				const gchar * existing = nullptr;
 				OXML_SharedElement _top = OXMLi_elemTop(rqst->stck);
-				if (!_top.get() || _top->getProperty("background-color", existing) != UT_OK ||
-					!existing)
+				if (!(bStyle && m_shapeNoFill) &&
+					(!_top.get() || _top->getProperty("background-color", existing) != UT_OK ||
+					 !existing))
 				{
 					{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
 					  if (_e.get()) _e->setProperty("background-color", final.c_str()); }
 					{ OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
 					  if (_e.get()) _e->setProperty("bg-style", "1"); }
 				}
-				if (alpha >= 0.0)
+				if (alpha >= 0.0 && !(bStyle && m_shapeNoFill))
 				{
 					char abuf[24];
 					g_snprintf(abuf, sizeof(abuf), "%.3f", alpha);
@@ -1594,9 +1606,22 @@ void OXMLi_ListenerState_Textbox::endElement (OXMLi_EndElementRequest * rqst)
 				 * roughly where Word placed it */
 				const gchar * v = nullptr;
 				if (parent->getProperty("xpos", v) == UT_OK && v)
+				{
+					tb->setProperty("xpos", v);
 					tb->setProperty("frame-page-xpos", v);
+				}
 				if (parent->getProperty("ypos", v) == UT_OK && v)
+				{
+					tb->setProperty("ypos", v);
 					tb->setProperty("frame-page-ypos", v);
+				}
+				/* resolution inputs the frame emit path needs to fix
+				 * the raw estimates once page size/margins are known */
+				static const char * posShare[] = {
+					"pct-pos-x", "pct-pos-y", "hpos-from", "vpos-from" };
+				for (const char * pn : posShare)
+					if (parent->getProperty(pn, v) == UT_OK && v)
+						tb->setProperty(pn, v);
 				if (parent->getProperty("halign", v) == UT_OK && v)
 					tb->setProperty("halign", v);
 				if (parent->getProperty("valign", v) == UT_OK && v)

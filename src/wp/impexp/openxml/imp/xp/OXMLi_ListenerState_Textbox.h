@@ -54,9 +54,14 @@ private:
 	bool m_bInShapeFill = false;
 	bool m_bInStyleFill = false;
 	bool m_bInShadow = false; // inside a:outerShdw — colors go to frame-shadow-*
+	/* explicit a:noFill in wps:spPr suppresses the wps:style a:fillRef
+	 * default — the theme fill must not paint a shape the author
+	 * marked unfilled */
+	bool m_shapeNoFill = false;
 	std::string m_pendColor;
 	bool m_bPendOutline = false;
 	bool m_bPendShadow = false;
+	bool m_bPendStyle = false;
 	// a:custGeom freeform capture -> shape-path prop
 	bool m_inCustGeom = false;
 	char m_pathCmd = 0;

@@ -142,11 +142,24 @@ public:
 	const std::string & getPageHeight() const { return m_pageHeight; }
 	void setPageOrientation(const std::string & orientation);
 	void setPageMargins(const std::string & top, const std::string & left, const std::string & right, const std::string & bottom);
+	const std::string & getPageMarginTop() const { return m_pageMarginTop; }
+	const std::string & getPageMarginLeft() const { return m_pageMarginLeft; }
+	const std::string & getPageMarginRight() const { return m_pageMarginRight; }
+	const std::string & getPageMarginBottom() const { return m_pageMarginBottom; }
 	void setColumns(const std::string & colNum, const std::string & colSep);
 
 	//! Document-level settings properties (settings.xml footnotePr etc.)
 	void setDocProperty(const std::string & name, const std::string & val)
 		{ m_docProps[name] = val; }
+	bool getDocProperty(const std::string & name, std::string & val) const
+	{
+		std::map<std::string, std::string>::const_iterator it =
+			m_docProps.find(name);
+		if (it == m_docProps.end())
+			return false;
+		val = it->second;
+		return true;
+	}
 
 	/* Import bookkeeping for TOC complex fields: the importer flags
 	 * the field's result paragraphs so OXML_Section::addToPT can wrap

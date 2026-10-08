@@ -3238,7 +3238,9 @@ bool fl_DocSectionLayout::isThisPageValid(HdrFtrType hfType, fp_Page * pThisPage
 	if((hfType == FL_HDRFTR_HEADER_EVEN) ||
 	   (hfType == FL_HDRFTR_FOOTER_EVEN))
 	{
-		if(i % 2 == 0)
+		/* page parity follows the 1-based page number, not the
+		 * 0-based page index: page 1 (i == 0) is odd, page 2 even */
+		if(i % 2 == 1)
 			return true;
 		else
 			return false;
@@ -3246,7 +3248,7 @@ bool fl_DocSectionLayout::isThisPageValid(HdrFtrType hfType, fp_Page * pThisPage
 //
 // If there is an Even SL defined and this is an even page in the SL page bail now!
 //
-	if ((i % 2 == 0) &&
+	if ((i % 2 == 1) &&
 		((m_pHeaderEvenSL && hfType < FL_HDRFTR_FOOTER) ||
 		 (m_pFooterEvenSL && hfType >= FL_HDRFTR_FOOTER)))
 		return false;

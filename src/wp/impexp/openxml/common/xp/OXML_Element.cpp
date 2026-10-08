@@ -174,25 +174,117 @@ UT_Error OXML_Element::addToPT(PD_Document * pDocument)
 	return ret;
 }
 
+UT_Error OXML_Element::addToPTAsFrame(PD_Document * pDocument)
+{
+	return addToPT(pDocument);
+}
+
 void OXML_Element::setTarget(int target)
 {
 	TARGET = target;
 }
 
+/* wp:positionH/V @relativeFrom reference boxes (ECMA-376 ST_RelFromH/
+ * ST_RelFromV), translated to page coordinates. Margin strips measure
+ * from the page edge; the margin/column/text/character/paragraph/line
+ * boxes measure from the text area — for flow-relative bases we can't
+ * know the anchor's page position, so the text-area top-left is the
+ * closest resolvable origin. inside/outside map to left/right and
+ * top/bottom respectively (odd-page convention, matching print). */
+static void _anchorBoxH(const std::string & from, double pageW,
+						double marL, double marR,
+						double & origin, double & size)
+{
+	if (from == "margin" || from == "column" || from == "text" ||
+		from == "character")
+	{
+		origin = marL;
+		size = pageW - marL - marR;
+	}
+	else if (from == "leftMargin" || from == "insideMargin")
+	{
+		origin = 0.0;
+		size = marL;
+	}
+	else if (from == "rightMargin" || from == "outsideMargin")
+	{
+		origin = pageW - marR;
+		size = marR;
+	}
+	else /* "page" and anything unrecognised */
+	{
+		origin = 0.0;
+		size = pageW;
+	}
+}
+
+static void _anchorBoxV(const std::string & from, double pageH,
+						double marT, double marB,
+						double & origin, double & size)
+{
+	if (from == "margin" || from == "text" || from == "paragraph" ||
+		from == "line")
+	{
+		origin = marT;
+		size = pageH - marT - marB;
+	}
+	else if (from == "topMargin" || from == "insideMargin")
+	{
+		origin = 0.0;
+		size = marT;
+	}
+	else if (from == "bottomMargin" || from == "outsideMargin")
+	{
+		origin = pageH - marB;
+		size = marB;
+	}
+	else /* "page" and anything unrecognised */
+	{
+		origin = 0.0;
+		size = pageH;
+	}
+}
+
+static void _anchorPageMetrics(OXML_Document * doc,
+							   double & pageW, double & pageH,
+							   double & marL, double & marR,
+							   double & marT, double & marB)
+{
+	pageW = 8.5; pageH = 11.0;          //US Letter fallback (inches)
+	marL = marR = marT = marB = 1.0;    //Word's default margins
+	if (!doc)
+		return;
+	if (!doc->getPageWidth().empty())
+		pageW = UT_convertDimensionless(doc->getPageWidth().c_str());
+	if (!doc->getPageHeight().empty())
+		pageH = UT_convertDimensionless(doc->getPageHeight().c_str());
+	if (!doc->getPageMarginLeft().empty())
+		marL = UT_convertToInches(doc->getPageMarginLeft().c_str());
+	if (!doc->getPageMarginRight().empty())
+		marR = UT_convertToInches(doc->getPageMarginRight().c_str());
+	if (!doc->getPageMarginTop().empty())
+		marT = UT_convertToInches(doc->getPageMarginTop().c_str());
+	if (!doc->getPageMarginBottom().empty())
+		marB = UT_convertToInches(doc->getPageMarginBottom().c_str());
+}
+
 void OXML_Element::resolveAnchorMetrics()
 {
 	OXML_Document * doc = OXML_Document::getInstance();
-	double pageW = 8.5, pageH = 11.0; //US Letter fallback (inches)
-	if (doc)
-	{
-		if (!doc->getPageWidth().empty())
-			pageW = UT_convertDimensionless(doc->getPageWidth().c_str());
-		if (!doc->getPageHeight().empty())
-			pageH = UT_convertDimensionless(doc->getPageHeight().c_str());
-	}
+	double pageW, pageH, marL, marR, marT, marB;
+	_anchorPageMetrics(doc, pageW, pageH, marL, marR, marT, marB);
 
 	const gchar * v = nullptr;
 	char buf[32];
+
+	/* the relativeFrom box this anchor measures in — the listener
+	 * recorded raw offsets/alignments; everything below produces
+	 * page-absolute frame positions */
+	double hOrg = 0.0, hSize = pageW, vOrg = 0.0, vSize = pageH;
+	if (getProperty("hpos-from", v) == UT_OK && v)
+		_anchorBoxH(v, pageW, marL, marR, hOrg, hSize);
+	if (getProperty("vpos-from", v) == UT_OK && v)
+		_anchorBoxV(v, pageH, marT, marB, vOrg, vSize);
 
 	/* wp14 percent sizing — raw fractions recorded by the listener,
 	 * resolved against the real page size now that it is known */
@@ -209,18 +301,31 @@ void OXML_Element::resolveAnchorMetrics()
 		setProperty("frame-height", buf);
 	}
 
-	/* wp14 percent position — replaces the Letter estimate the
-	 * listener stored in xpos/ypos */
+	/* wp14 percent position — fraction of the relativeFrom box,
+	 * replaces the Letter estimate the listener stored in xpos/ypos */
 	if (getProperty("pct-pos-x", v) == UT_OK && v)
 	{
 		g_snprintf(buf, sizeof(buf), "%.4fin",
-				   UT_convertDimensionless(v) * pageW);
+				   hOrg + UT_convertDimensionless(v) * hSize);
+		setProperty("xpos", buf);
+	}
+	else if (getProperty("xpos", v) == UT_OK && v && hOrg != 0.0)
+	{
+		/* absolute wp:posOffset measured inside a margin box */
+		g_snprintf(buf, sizeof(buf), "%.4fin",
+				   hOrg + UT_convertToInches(v));
 		setProperty("xpos", buf);
 	}
 	if (getProperty("pct-pos-y", v) == UT_OK && v)
 	{
 		g_snprintf(buf, sizeof(buf), "%.4fin",
-				   UT_convertDimensionless(v) * pageH);
+				   vOrg + UT_convertDimensionless(v) * vSize);
+		setProperty("ypos", buf);
+	}
+	else if (getProperty("ypos", v) == UT_OK && v && vOrg != 0.0)
+	{
+		g_snprintf(buf, sizeof(buf), "%.4fin",
+				   vOrg + UT_convertToInches(v));
 		setProperty("ypos", buf);
 	}
 
@@ -267,33 +372,49 @@ void OXML_Element::resolveAnchorMetrics()
 		baseW = UT_convertToInches(bv);
 	if (getProperty("base-h", bv) == UT_OK && bv)
 		baseH = UT_convertToInches(bv);
+	/* percent metrics win — a base-w/base-h/base-*pos captured from
+	 * a percent-anchored group is only the listener's Letter
+	 * estimate, not a real offset */
 	if (getProperty("base-pctw", bv) == UT_OK && bv)
 		baseW = UT_convertDimensionless(bv) * pageW;
 	if (getProperty("base-pcth", bv) == UT_OK && bv)
 		baseH = UT_convertDimensionless(bv) * pageH;
 
+	/* the group's anchor box — base-* are raw (unresolved) copies of
+	 * the group root's anchor props, so they need the same
+	 * relativeFrom translation */
+	double bOrgX = 0.0, bSizeX = pageW, bOrgY = 0.0, bSizeY = pageH;
+	if (getProperty("base-hfrom", bv) == UT_OK && bv)
+		_anchorBoxH(bv, pageW, marL, marR, bOrgX, bSizeX);
+	if (getProperty("base-vfrom", bv) == UT_OK && bv)
+		_anchorBoxV(bv, pageH, marT, marB, bOrgY, bSizeY);
+
 	double baseX = 0.0, baseY = 0.0;
-	if (getProperty("base-xpos", bv) == UT_OK && bv)
-		baseX = UT_convertToInches(bv);
-	else if (getProperty("base-pctpx", bv) == UT_OK && bv)
-		baseX = UT_convertDimensionless(bv) * pageW;
+	if (getProperty("base-pctpx", bv) == UT_OK && bv)
+		baseX = bOrgX + UT_convertDimensionless(bv) * bSizeX;
+	else if (getProperty("base-xpos", bv) == UT_OK && bv)
+		baseX = bOrgX + UT_convertToInches(bv);
 	else if (getProperty("base-halign", bv) == UT_OK && bv)
 	{
 		if (!strcmp(bv, "center"))
-			baseX = (pageW - baseW) / 2.0;
-		else if (!strcmp(bv, "right"))
-			baseX = pageW - baseW;
+			baseX = bOrgX + (bSizeX - baseW) / 2.0;
+		else if (!strcmp(bv, "right") || !strcmp(bv, "outside"))
+			baseX = bOrgX + bSizeX - baseW;
+		else
+			baseX = bOrgX; /* left/inside */
 	}
-	if (getProperty("base-ypos", bv) == UT_OK && bv)
-		baseY = UT_convertToInches(bv);
-	else if (getProperty("base-pctpy", bv) == UT_OK && bv)
-		baseY = UT_convertDimensionless(bv) * pageH;
+	if (getProperty("base-pctpy", bv) == UT_OK && bv)
+		baseY = bOrgY + UT_convertDimensionless(bv) * bSizeY;
+	else if (getProperty("base-ypos", bv) == UT_OK && bv)
+		baseY = bOrgY + UT_convertToInches(bv);
 	else if (getProperty("base-valign", bv) == UT_OK && bv)
 	{
 		if (!strcmp(bv, "center"))
-			baseY = (pageH - baseH) / 2.0;
-		else if (!strcmp(bv, "bottom"))
-			baseY = pageH - baseH;
+			baseY = bOrgY + (bSizeY - baseH) / 2.0;
+		else if (!strcmp(bv, "bottom") || !strcmp(bv, "outside"))
+			baseY = bOrgY + bSizeY - baseH;
+		else
+			baseY = bOrgY; /* top/inside */
 	}
 	if (baseX < 0.0)
 		baseX = 0.0;
@@ -331,14 +452,16 @@ void OXML_Element::resolveAnchorAlignment()
 		return;
 
 	OXML_Document * doc = OXML_Document::getInstance();
-	double pageW = 8.5, pageH = 11.0; //US Letter fallback (inches)
-	if (doc)
-	{
-		if (!doc->getPageWidth().empty())
-			pageW = UT_convertDimensionless(doc->getPageWidth().c_str());
-		if (!doc->getPageHeight().empty())
-			pageH = UT_convertDimensionless(doc->getPageHeight().c_str());
-	}
+	double pageW, pageH, marL, marR, marT, marB;
+	_anchorPageMetrics(doc, pageW, pageH, marL, marR, marT, marB);
+
+	/* alignments resolve inside the anchor's relativeFrom box */
+	const gchar * fv = nullptr;
+	double hOrg = 0.0, hSize = pageW, vOrg = 0.0, vSize = pageH;
+	if (getProperty("hpos-from", fv) == UT_OK && fv)
+		_anchorBoxH(fv, pageW, marL, marR, hOrg, hSize);
+	if (getProperty("vpos-from", fv) == UT_OK && fv)
+		_anchorBoxV(fv, pageH, marT, marB, vOrg, vSize);
 
 	const gchar * szW = nullptr;
 	const gchar * szHgt = nullptr;
@@ -351,12 +474,12 @@ void OXML_Element::resolveAnchorAlignment()
 	char buf[32];
 	if (bHasH)
 	{
-		double x = 0.0;
+		double x = hOrg;
 		if (!strcmp(szH, "center"))
-			x = (pageW - frameW) / 2.0;
-		else if (!strcmp(szH, "right"))
-			x = pageW - frameW;
-		/* "left" / "inside"/"outside" fall back to 0 */
+			x = hOrg + (hSize - frameW) / 2.0;
+		else if (!strcmp(szH, "right") || !strcmp(szH, "outside"))
+			x = hOrg + hSize - frameW;
+		/* "left"/"inside" sit at the box origin */
 		if (x < 0.0)
 			x = 0.0;
 		g_snprintf(buf, sizeof(buf), "%.4fin", x);
@@ -364,12 +487,12 @@ void OXML_Element::resolveAnchorAlignment()
 	}
 	if (bHasV)
 	{
-		double y = 0.0;
+		double y = vOrg;
 		if (!strcmp(szV, "center"))
-			y = (pageH - frameH) / 2.0;
-		else if (!strcmp(szV, "bottom"))
-			y = pageH - frameH;
-		/* "top" / "inside"/"outside" fall back to 0 */
+			y = vOrg + (vSize - frameH) / 2.0;
+		else if (!strcmp(szV, "bottom") || !strcmp(szV, "outside"))
+			y = vOrg + vSize - frameH;
+		/* "top"/"inside" sit at the box origin */
 		if (y < 0.0)
 			y = 0.0;
 		g_snprintf(buf, sizeof(buf), "%.4fin", y);

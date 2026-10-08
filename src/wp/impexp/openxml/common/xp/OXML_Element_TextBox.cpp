@@ -164,13 +164,32 @@ UT_Error OXML_Element_TextBox::serializeProperties(IE_Exp_OpenXML* exporter)
 
 UT_Error OXML_Element_TextBox::addToPT(PD_Document* pDocument)
 {
-	UT_Error ret = UT_OK;
+	/* already emitted as a page frame inside a body story — the
+	 * owning header/footer shadow adds nothing for this shape */
+	if (m_hoisted)
+		return UT_OK;
 
 	/* PTX_SectionFrame doesn't layout inside PTX_SectionHdrFtr; in
 	 * header/footer parts emit the textbox's children inline so the
 	 * content is still visible rather than silently dropped */
 	if (m_flatten)
 		return addChildrenToPT(pDocument);
+
+	return _emitFrameToPT(pDocument);
+}
+
+/* emitted by a document section while the header/footer part is
+ * still only referenced — the shape becomes a page-anchored frame
+ * in the body flow and the hdrftr story later adds nothing */
+UT_Error OXML_Element_TextBox::addToPTAsFrame(PD_Document* pDocument)
+{
+	m_hoisted = true;
+	return _emitFrameToPT(pDocument);
+}
+
+UT_Error OXML_Element_TextBox::_emitFrameToPT(PD_Document* pDocument)
+{
+	UT_Error ret = UT_OK;
 
 	/* invisible empty shapes (no content, no fill) produce nothing —
 	 * skipping them avoids polluting the piece table */

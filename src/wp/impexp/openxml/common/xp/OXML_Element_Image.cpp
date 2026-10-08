@@ -211,6 +211,25 @@ UT_Error OXML_Element_Image::serialize(IE_Exp_OpenXML* exporter)
 
 UT_Error OXML_Element_Image::addToPT(PD_Document * pDocument)
 {
+	/* already emitted as a page frame inside a body story — the
+	 * owning header/footer shadow adds nothing for this image */
+	if (m_hoisted)
+		return UT_OK;
+
+	return _emitToPT(pDocument);
+}
+
+/* emitted by a document section while the header/footer part is
+ * still only referenced — the image becomes a page-anchored frame
+ * in the body flow and the hdrftr story later adds nothing */
+UT_Error OXML_Element_Image::addToPTAsFrame(PD_Document * pDocument)
+{
+	m_hoisted = true;
+	return _emitToPT(pDocument);
+}
+
+UT_Error OXML_Element_Image::_emitToPT(PD_Document * pDocument)
+{
 	OXML_Document* doc = OXML_Document::getInstance();
 	if(!doc)
 	{

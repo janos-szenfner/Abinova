@@ -45,11 +45,18 @@ public:
 	virtual UT_Error addToPT(PD_Document * pDocument) override;
 
 	/* frame strux doesn't layout inside header/footer sections, so
-	 * textboxes in header/footer parts flatten to inline content */
+	 * textboxes in header/footer parts flatten to inline content —
+	 * unless a document section hoists them into the body flow via
+	 * addToPTAsFrame (see OXML_Section::_emitHdrFtrFrames) */
 	void setFlattened(bool val) { m_flatten = val; }
+	virtual bool isHdrFtrFrameCandidate() const override
+		{ return m_flatten; }
+	virtual UT_Error addToPTAsFrame(PD_Document * pDocument) override;
 
 private:
 	bool m_flatten = false;
+	bool m_hoisted = false;
+	UT_Error _emitFrameToPT(PD_Document * pDocument);
 
 	virtual UT_Error serializeProperties(IE_Exp_OpenXML* exporter);
 };

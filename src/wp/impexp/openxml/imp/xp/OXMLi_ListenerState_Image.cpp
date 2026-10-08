@@ -565,9 +565,36 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 		{
 			contextTag = OXMLi_contextBack(rqst->context);
 		}
+		/* mc:AlternateContent may wrap positionH (wp14 pct offsets
+		 * inside mc:Choice), so the immediate parent is not always
+		 * wp:anchor — scan the last few context entries for it */
 		int anchor = contextMatches(contextTag, NS_WP_KEY, "anchor");
+		if (!anchor && rqst->context)
+		{
+			size_t i = rqst->context->size();
+			while (i-- > 0 && rqst->context->size() - i <= 4)
+			{
+				if (contextMatches((*rqst->context)[i], NS_WP_KEY, "anchor"))
+					{ anchor = 1; break; }
+				if (!contextMatches((*rqst->context)[i], NS_VE_KEY, "Choice") &&
+					!contextMatches((*rqst->context)[i], NS_VE_KEY,
+									"AlternateContent"))
+					break;
+			}
+		}
 		if(anchor)
 		{
+			/* relativeFrom names the reference box the child offset or
+			 * alignment is measured in (page, margin, bottomMargin,
+			 * ...) — addToPT resolves it once page margins are known */
+			const gchar * from = attrMatches(NS_WP_KEY, "relativeFrom",
+											 rqst->ppAtts);
+			if (from && *from && OXMLi_elemTop(rqst->stck))
+			{
+				OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				if (_e.get())
+					_e->setProperty("hpos-from", from);
+			}
 			rqst->handled = true;
 		}
 	}
@@ -585,8 +612,29 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			contextTag = OXMLi_contextBack(rqst->context);
 		}
 		int anchor = contextMatches(contextTag, NS_WP_KEY, "anchor");
+		if (!anchor && rqst->context)
+		{
+			size_t i = rqst->context->size();
+			while (i-- > 0 && rqst->context->size() - i <= 4)
+			{
+				if (contextMatches((*rqst->context)[i], NS_WP_KEY, "anchor"))
+					{ anchor = 1; break; }
+				if (!contextMatches((*rqst->context)[i], NS_VE_KEY, "Choice") &&
+					!contextMatches((*rqst->context)[i], NS_VE_KEY,
+									"AlternateContent"))
+					break;
+			}
+		}
 		if(anchor)
 		{
+			const gchar * from = attrMatches(NS_WP_KEY, "relativeFrom",
+											 rqst->ppAtts);
+			if (from && *from && OXMLi_elemTop(rqst->stck))
+			{
+				OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+				if (_e.get())
+					_e->setProperty("vpos-from", from);
+			}
 			rqst->handled = true;
 		}
 	}
@@ -1233,11 +1281,11 @@ void OXMLi_ListenerState_Image::endElement (OXMLi_EndElementRequest * rqst)
 		static const char * baseSrc[] = {
 			"xpos", "ypos", "halign", "valign", "frame-width",
 			"frame-height", "pct-width", "pct-height",
-			"pct-pos-x", "pct-pos-y" };
+			"pct-pos-x", "pct-pos-y", "hpos-from", "vpos-from" };
 		static const char * baseDst[] = {
 			"base-xpos", "base-ypos", "base-halign", "base-valign",
 			"base-w", "base-h", "base-pctw", "base-pcth",
-			"base-pctpx", "base-pctpy" };
+			"base-pctpx", "base-pctpy", "base-hfrom", "base-vfrom" };
 		for (const char * pn : grpShare)
 			if (parent->getProperty(pn, bv) == UT_OK && bv)
 				pic->setProperty(pn, bv);
