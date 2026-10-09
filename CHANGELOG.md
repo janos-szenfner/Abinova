@@ -2196,6 +2196,10 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Annotation title/author edits refresh immediately** — changing an
+  annotation's title or author updated the document but the layout kept
+  its cached copies, so readers saw stale values until the next relayout.
+  The layout cache is now refreshed as part of the edit.
 - **Section-break crash after page-geometry changes fixed** — the
   column breaker kept a bare cached page pointer as its re-break
   restart anchor; once that page was deleted (a paper-size or

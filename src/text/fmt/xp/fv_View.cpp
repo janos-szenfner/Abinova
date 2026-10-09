@@ -6594,14 +6594,11 @@ bool FV_View::processPageNumber(HdrFtrType hfType, const PP_PropertyVector & att
 // Handle simple cases of inserting into non-existing header/footers.
 //
 	fp_Page * pCurPage = getCurrentPage();
-	fprintf(stderr, "DBG pageno curpage=%p hf=%d\n", static_cast<void*>(pCurPage),
-			static_cast<int>(hfType));
 	UT_return_val_if_fail(pCurPage, false);
 	fl_DocSectionLayout * pDSL = pCurPage->getOwningSection();
 	UT_return_val_if_fail(pDSL, false);
 	if(hfType == FL_HDRFTR_FOOTER && pDSL->getFooter() == nullptr)
 	{
-		fprintf(stderr, "DBG pageno insert footer\n");
 		insertPageNum(atts, hfType);
 		setPoint(oldpos);
 		if(m_pDoc->isEndFrameAtPos(oldpos-1))
@@ -6612,7 +6609,6 @@ bool FV_View::processPageNumber(HdrFtrType hfType, const PP_PropertyVector & att
 	}
 	else if(hfType == FL_HDRFTR_HEADER && pDSL->getHeader() == nullptr)
 	{
-		fprintf(stderr, "DBG pageno insert header\n");
 		insertPageNum(atts, hfType);
 		setPoint(oldpos);
 		if(m_pDoc->isEndFrameAtPos(oldpos-1))
@@ -14594,6 +14590,9 @@ bool FV_View::setAnnotationTitle(UT_uint32 iAnnotation, const std::string & sTit
 		"annotation-title", sTitle
 	};
 	m_pDoc->changeStruxFmt(PTC_AddFmt, posAnn, posAnn, PP_NOPROPS, propsAnn, PTX_SectionAnnotation);
+	/* the layout caches the title string; refresh so getters see
+	 * the new value immediately */
+	pAL->lookupProperties();
 	return true;
 }
 std::string FV_View::getAnnotationAuthor(UT_uint32 iAnnotation) const
@@ -14623,6 +14622,7 @@ bool FV_View::setAnnotationAuthor(UT_uint32 iAnnotation, const std::string  & sA
 		"annotation-author", sAuthor
 	};
 	m_pDoc->changeStruxFmt(PTC_AddFmt, posAnn, posAnn, PP_NOPROPS, propsAnn, PTX_SectionAnnotation);
+	pAL->lookupProperties();
 	return true;
 }
 
@@ -15848,7 +15848,6 @@ bool FV_View::insertPageNum(const PP_PropertyVector & props, HdrFtrType hfType)
 
 	UT_uint32 oldPos = getPoint();	// This ends up being redundant, but it's neccessary
 	bool bResult = insertHeaderFooter(props, hfType);
-	fprintf(stderr, "DBG insertPageNum insertHF=%d\n", bResult ? 1 : 0);
 
 	//
 	// after this call the insertion point is at the position where stuff

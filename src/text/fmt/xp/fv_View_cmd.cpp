@@ -6832,8 +6832,7 @@ void FV_View::_applyTOCStyleProps(const char * szStyle, const char * szProps)
 	PP_PropertyVector atts = {
 		"props", szProps
 	};
-	bool b = m_pDoc->addStyleAttributes(szStyle, atts);
-	fprintf(stderr, "DBG tocstyle %s applied=%d\n", szStyle, b ? 1 : 0);
+	m_pDoc->addStyleAttributes(szStyle, atts);
 	m_pDoc->updateDocForStyleChange(szStyle, true);
 }
 
@@ -9011,11 +9010,8 @@ UT_Error FV_View::cmdInsertHeaderPreset(const char * szPreset,
 {
 	const bool bHeader = (hfType < FL_HDRFTR_FOOTER);
 	const auto * pPreset = _hdrPresetById(szPreset, !bHeader);
-	fprintf(stderr, "DBG hdrftr preset=%s found=%d\n",
-			szPreset ? szPreset : "(null)", pPreset ? 1 : 0);
 	UT_return_val_if_fail(pPreset, UT_ERROR);
 	fp_Page * pPage = getCurrentPage();
-	fprintf(stderr, "DBG hdrftr page=%p\n", static_cast<void*>(pPage));
 	UT_return_val_if_fail(pPage, UT_ERROR);
 
 	if(!isSelectionEmpty())
@@ -9027,7 +9023,6 @@ UT_Error FV_View::cmdInsertHeaderPreset(const char * szPreset,
 
 	/* create + enter the new shadow (point lands inside it) */
 	_cmdEditHdrFtr(hfType);
-	fprintf(stderr, "DBG hdrftr edit=%d\n", isHdrFtrEdit() ? 1 : 0);
 	UT_return_val_if_fail(isHdrFtrEdit(), UT_ERROR);
 
 	m_pDoc->beginUserAtomicGlob();

@@ -286,6 +286,7 @@ EXTRA_DIST = \
 	fmt/xp/t/fv_TableOps.t.cpp \
 	fmt/xp/t/fv_TOCContext.t.cpp \
 	fmt/xp/t/fv_ViewModes.t.cpp \
+	fmt/xp/t/fv_ViewOps.t.cpp \
 	ptbl/xp/t/pf_Fragments.t.cpp \
 	ptbl/xp/t/pp_PropertyMap.t.cpp \
 	ptbl/xp/t/pd_RDFDoc.t.cpp \

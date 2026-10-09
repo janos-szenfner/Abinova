@@ -129,6 +129,8 @@
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fv_ViewModes.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fv_ViewOps.t.cpp"
+#undef TFSUITE
 #include "src/text/fmt/xp/t/fv_FootnoteDelete.t.cpp"
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fv_HdrFtrDelete.t.cpp"
