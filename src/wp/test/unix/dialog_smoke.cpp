@@ -56,6 +56,7 @@
 #include "ap_Dialog_ListRevisions.h"
 #include "ap_Dialog_MarkRevisions.h"
 #include "xap_Dlg_HTMLOptions.h"
+#include "src/wp/impexp/epub/dialogs/xp/ap_Dialog_EpubExportOptions.h"
 
 static int g_criticals = 0;
 static int g_warnings = 0;
@@ -240,6 +241,13 @@ static int run_one(XAP_DialogFactory *factory, XAP_Frame *frame,
 											  XAP_App::getApp());
 		d->setHTMLOptions(&html_opt, XAP_App::getApp());
 	}
+	else if (auto *ep = dynamic_cast<AP_Dialog_EpubExportOptions *>(dlg)) {
+		/* EPUB export installs its options struct before runModal */
+		static XAP_Exp_EpubExportOptions epub_opt {};
+		AP_Dialog_EpubExportOptions::getEpubExportDefaults(&epub_opt,
+														 XAP_App::getApp());
+		ep->setEpubExportOptions(&epub_opt, XAP_App::getApp());
+	}
 
 	DismissCtx ctx{toplevels(), 0, false, 0, 0};
 
@@ -356,6 +364,13 @@ int main(int argc, char **argv)
 		g_printerr("smoke: frame has no dialog factory\n");
 		return 1;
 	}
+
+	/* the EPUB export-options dialog registers dynamically when the
+	 * exporter is constructed — it is absent from the static table,
+	 * and the runtime registers it on the app factory while the walk
+	 * below enumerates the frame factory. */
+	factory->registerDialog(ap_Dialog_EpubExportOptions_Constructor,
+							XAP_DLGT_NON_PERSISTENT);
 
 	if (wantList) {
 		for (UT_uint32 i = 0; i < factory->getDialogTableSize(); i++) {

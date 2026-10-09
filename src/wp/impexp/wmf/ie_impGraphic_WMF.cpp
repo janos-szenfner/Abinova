@@ -27,15 +27,12 @@
 #include "ut_assert.h"
 
 #include "fg_GraphicRaster.h"
-#include "fg_GraphicVector.h"
 #include "ie_impGraphic_WMF.h"
 
 #include <stdio.h>
-#include <math.h>
 
 #include <libwmf/api.h>
 #include <libwmf/gd.h>
-#include <libwmf/svg.h>
 
 static int  AbiWord_WMF_read (void * context);
 static int  AbiWord_WMF_seek (void * context,long pos);
@@ -54,9 +51,6 @@ struct bbuf_write_info
 {
 	UT_ByteBufPtr pByteBuf;
 };
-
-#define WMF2SVG_MAXPECT (1 << 0)
-#define WMF2SVG_MAXSIZE (1 << 1)
 
 // supported suffixes
 static IE_SuffixConfidence IE_ImpGraphicWMF_Sniffer__SuffixConfidence[] = {
@@ -105,220 +99,30 @@ UT_Error IE_ImpGraphic_WMF::importGraphic(const UT_ConstByteBufPtr & pBBwmf,
 	/* the libwmf SVG path produces FG_GraphicVector images our cairo
 	 * renderers cannot yet paint (blank output); rasterize through
 	 * libwmf's GD backend instead so embedded metafiles are visible */
-	bool importAsPNG = true;
+	UT_ConstByteBufPtr pBBpng;
 
-	if (importAsPNG) {
+	err = convertGraphic(pBBwmf, pBBpng);
+	if (err != UT_OK) {
+		UT_DEBUGMSG(("IE_ImpGraphic_WMF::importGraphic Conversion failed...\n"));
+		return err;
+	}
 
-		UT_ConstByteBufPtr pBBpng;
-
-		err = convertGraphic(pBBwmf, pBBpng);
-		if (err != UT_OK) {
-			UT_DEBUGMSG(("IE_ImpGraphic_WMF::importGraphic Conversion failed...\n"));
-			return err;
-		}
-
-		FG_GraphicRasterPtr pFGR(new FG_GraphicRaster);
-		if(!pFGR) {
-			UT_DEBUGMSG(("IE_ImpGraphic_WMF::importGraphic Ins. Mem.\n"));
-			err = UT_IE_NOMEMORY;
-		}
-		else if(!pFGR->setRaster_PNG(pBBpng)) {
-			UT_DEBUGMSG(("IE_ImpGraphic_WMF::importGraphic Fake type?\n"));
-			err = UT_IE_FAKETYPE;
-		}
-		else {
-			pfg = std::move(pFGR);
-		}
-	} else {
-		UT_ConstByteBufPtr svg;
-		err = convertGraphicToSVG(pBBwmf, svg);
-		if (err != UT_OK) {
-			UT_DEBUGMSG(("IE_ImpGraphic_WMF::importGraphic Conversion failed...\n"));
-			return err;
-		}
-
-		FG_GraphicVectorPtr pFGR(new FG_GraphicVector);
-		if(!pFGR) {
-			UT_DEBUGMSG(("IE_ImpGraphic_WMF::importGraphic Ins. Mem.\n"));
-			err = UT_IE_NOMEMORY;
-		}
-		else if(!pFGR->setVector_SVG(svg)) {
-			UT_DEBUGMSG(("IE_ImpGraphic_WMF::importGraphic Fake type?\n"));
-			err = UT_IE_FAKETYPE;
-		}
-		else {
-			pfg = std::move(pFGR);
-		}
+	FG_GraphicRasterPtr pFGR(new FG_GraphicRaster);
+	if(!pFGR) {
+		UT_DEBUGMSG(("IE_ImpGraphic_WMF::importGraphic Ins. Mem.\n"));
+		err = UT_IE_NOMEMORY;
+	}
+	else if(!pFGR->setRaster_PNG(pBBpng)) {
+		UT_DEBUGMSG(("IE_ImpGraphic_WMF::importGraphic Fake type?\n"));
+		err = UT_IE_FAKETYPE;
+	}
+	else {
+		pfg = std::move(pFGR);
 	}
 
 	UT_DEBUGMSG(("IE_ImpGraphic_WMF::importGraphic - End\n"));
 
 	return err;
-}
-
-static int explicit_wmf_error (const char* str, wmf_error_t err)
-{
-	UT_UNUSED(str);
-	switch (err)
-	{
-	case wmf_E_None:
-		return 0;
-	default:
-		return 1;
-	}
-}
-
-UT_Error IE_ImpGraphic_WMF::convertGraphicToSVG(const UT_ConstByteBufPtr & pBBwmf, UT_ConstByteBufPtr & pBB)
-{
-	int status = 0;
-
-	unsigned int disp_width  = 0;
-	unsigned int disp_height = 0;
-
-	float wmf_width;
-	float wmf_height;
-	float ratio_wmf;
-	float ratio_bounds;
-
-	unsigned long flags;
-
-	unsigned int max_width  = 768;
-	unsigned int max_height = 512;
-	unsigned long max_flags = 0;
-
-	static const char* Default_Description = "wmf2svg";
-
-	wmf_error_t err;
-
-	wmf_svg_t* ddata = nullptr;
-
-	wmfAPI* API = nullptr;
-	wmfD_Rect bbox;
-
-	wmfAPI_Options api_options;
-
-	bbuf_read_info  read_info;
-
-	char *stream = nullptr;
-	unsigned long stream_len = 0;
-
-	pBB.reset();
-
-	flags = 0;
-
-	flags = WMF_OPT_IGNORE_NONFATAL | WMF_OPT_FUNCTION;
-	api_options.function = wmf_svg_function;
-
-	err = wmf_api_create (&API,flags,&api_options);
-	status = explicit_wmf_error ("wmf_api_create",err);
-
-	if (status)
-	{	
-		if (API) 
-			wmf_api_destroy (API);
-		return (UT_ERROR);
-	}
-
-	read_info.pByteBuf = pBBwmf;
-
-	read_info.len = pBBwmf->getLength();
-	read_info.pos = 0;
-
-	err = wmf_bbuf_input (API,AbiWord_WMF_read,AbiWord_WMF_seek,AbiWord_WMF_tell,static_cast<void *>( &read_info));
-	if (err != wmf_E_None) {
-		UT_DEBUGMSG(("IE_ImpGraphic_WMF::convertGraphic Bad input set\n"));
-		wmf_api_destroy (API);
-		return UT_ERROR;
-	}
-
-	err = wmf_scan (API,0,&(bbox));
-	status = explicit_wmf_error ("wmf_scan",err);
-
-	if (status)
-	{
-		wmf_api_destroy (API);
-		return UT_ERROR;
-	}
-
-/* Okay, got this far, everything seems cool.
- */
-	ddata = WMF_SVG_GetData (API);
-
-	ddata->out = wmf_stream_create(API, nullptr);
-
-	ddata->Description = const_cast<char *>(Default_Description);
-
-	ddata->bbox = bbox;
-
-	wmf_display_size (API,&disp_width,&disp_height,72,72);
-
-	wmf_width  = static_cast<float>( disp_width);
-	wmf_height = static_cast<float>( disp_height);
-
-	if ((wmf_width <= 0) || (wmf_height <= 0))
-	{	fputs ("Bad image size - but this error shouldn't occur...\n",stderr);
-		status = 1;
-		wmf_api_destroy (API);
-		return UT_ERROR;
-	}
-
-	if ((wmf_width  > static_cast<float>( max_width ))
-	 || (wmf_height > static_cast<float>( max_height)))
-	{	if (max_flags == 0) max_flags = WMF2SVG_MAXPECT;
-	}
-
-	if (max_flags == WMF2SVG_MAXPECT) /* scale the image */
-	{	ratio_wmf = wmf_height / wmf_width;
-		ratio_bounds = static_cast<float>( max_height )/ static_cast<float>( max_width);
-
-		if (ratio_wmf > ratio_bounds)
-		{	ddata->height = max_height;
-			ddata->width  = static_cast<unsigned int>( (static_cast<float>( ddata->height )/ ratio_wmf));
-		}
-		else
-		{	ddata->width  = max_width;
-			ddata->height = static_cast<unsigned int>( (static_cast<float>( ddata->width  )* ratio_wmf));
-		}
-	}
-	else if (max_flags == WMF2SVG_MAXSIZE) /* bizarre option, really */
-	{	ddata->width  = max_width;
-		ddata->height = max_height;
-	}
-	else
-	{	ddata->width  = static_cast<unsigned int>( ceil (static_cast<double>( wmf_width )));
-		ddata->height = static_cast<unsigned int>( ceil (static_cast<double>( wmf_height)));
-	}
-
-	ddata->flags |= WMF_SVG_INLINE_IMAGES;
-
-	ddata->flags |= WMF_GD_OUTPUT_MEMORY | WMF_GD_OWN_BUFFER;
-
-	if (status == 0)
-	{	err = wmf_play (API,0,&(bbox));
-		status = explicit_wmf_error ("wmf_play",err);
-	}
-
-	wmf_stream_destroy(API, ddata->out, &stream, &stream_len);
-
-	if (status == 0) 
-	{
-		UT_ByteBufPtr bb(new UT_ByteBuf);
-		bb->append(reinterpret_cast<const UT_Byte*>(stream), static_cast<UT_uint32>(stream_len));
-		pBB = std::move(bb);
-		wmf_free(API, stream);
-		wmf_api_destroy (API);
-		return UT_OK;
-	}
-
-	if(API)
-	{
-		if(stream)
-		{
-			wmf_free(API, stream);
-		}
-		wmf_api_destroy (API);
-	}
-	return UT_ERROR;
 }
 
 UT_Error IE_ImpGraphic_WMF::convertGraphic(const UT_ConstByteBufPtr & pBBwmf,

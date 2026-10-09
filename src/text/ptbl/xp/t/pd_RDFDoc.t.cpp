@@ -1012,3 +1012,201 @@ TFTEST_MAIN("serialized RDF stream rejects corrupt lengths")
 	TFPASS(good2.read(good1));
 	TFPASS(good2 == good);
 }
+
+TFTEST_MAIN("semantic-item surface: contact/event methods")
+{
+	RdfDoc d;
+	TFPASS(d.build());
+	const UT_UCS4String t1("si2 ");
+	TFPASS(d.para(t1, {"xml:id", "siBlk2"}));
+	d.finish();
+
+	PD_DocumentRDFHandle rdf = d.doc->getDocumentRDF();
+
+	const PD_URI alice("http://ex.org/alice");
+	const PD_URI bob("http://ex.org/bob");
+	const PD_URI rdfType("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+	const PD_URI rdfFirst("http://www.w3.org/1999/02/22-rdf-syntax-ns#first");
+	const PD_URI rdfRest("http://www.w3.org/1999/02/22-rdf-syntax-ns#rest");
+	const PD_URI person("http://xmlns.com/foaf/0.1/Person");
+	const PD_URI namep("http://xmlns.com/foaf/0.1/name");
+	const PD_URI nickp("http://xmlns.com/foaf/0.1/nick");
+	const PD_URI emailp("http://xmlns.com/foaf/0.1/mbox");
+	const PD_URI homep("http://xmlns.com/foaf/0.1/homepage");
+	const PD_URI imgp("http://xmlns.com/foaf/0.1/img");
+	const PD_URI phonep("http://xmlns.com/foaf/0.1/phone");
+	const PD_URI jabp("http://xmlns.com/foaf/0.1/jabberid");
+	const PD_URI idref(
+		"http://docs.oasis-open.org/opendocument/meta/package/common#idref");
+	const PD_URI vevent("http://www.w3.org/2002/12/cal/icaltzd#Vevent");
+	const std::string cal = "http://www.w3.org/2002/12/cal/icaltzd#";
+	const PD_URI dctitle("http://purl.org/dc/elements/1.1/title");
+	const PD_URI ev("http://ex.org/ev1");
+	const PD_URI geon("http://ex.org/geo1");
+	const PD_URI joiner("http://ex.org/joiner1");
+
+	{
+		PD_DocumentRDFMutationHandle m = rdf->createMutation();
+		m->add(alice, rdfType, PD_Object(person));
+		m->add(alice, namep, PD_Literal("Alice"));
+		m->add(alice, nickp, PD_Literal("ally"));
+		m->add(alice, emailp, PD_Literal("a@x.org"));
+		m->add(alice, homep, PD_Literal("http://a.example"));
+		m->add(alice, imgp, PD_Literal("http://a.example/i.png"));
+		m->add(alice, phonep, PD_Literal("555-1"));
+		m->add(alice, jabp, PD_Literal("a@jab"));
+		m->add(alice, idref, PD_Literal("siBlk2"));
+		m->add(bob, rdfType, PD_Object(person));
+		m->add(bob, namep, PD_Literal("Bob"));
+		m->add(ev, rdfType, PD_Object(vevent));
+		m->add(ev, PD_URI(cal + "uid"), PD_Literal("ev-1"));
+		m->add(ev, PD_URI(cal + "dtstart"), PD_Literal("2026-01-01T10:00"));
+		m->add(ev, PD_URI(cal + "dtend"), PD_Literal("2026-01-01T11:00"));
+		m->add(ev, PD_URI(cal + "summary"), PD_Literal("Sync"));
+		m->add(ev, PD_URI(cal + "location"), PD_Literal("Room 1"));
+		m->add(ev, PD_URI(cal + "description"), PD_Literal("Discuss"));
+		m->add(ev, PD_URI(cal + "geo"), PD_Object(geon));
+		m->add(geon, rdfFirst, PD_Literal("10.5"));
+		m->add(geon, rdfRest, PD_Object(joiner));
+		m->add(joiner, rdfFirst, PD_Literal("20.5"));
+		m->add(geon, dctitle, PD_Literal("Somewhere"));
+		m->commit();
+	}
+
+	/* createSemanticItem dispatches by class name; the empty-binding
+	 * iterator form is covered through getContacts() below */
+	{
+		PD_RDFSemanticItemHandle c =
+			PD_RDFSemanticItem::createSemanticItem(rdf, "Contact");
+		TFPASS(c != nullptr);
+		TFPASS(c && c->className() == "Contact");
+		PD_RDFSemanticItemHandle e =
+			PD_RDFSemanticItem::createSemanticItem(rdf, "Event");
+		TFPASS(e != nullptr);
+		TFPASS(e && e->className() == "Event");
+		TFPASS(PD_RDFSemanticItem::createSemanticItem(
+				   rdf, "NoSuchClass") == nullptr);
+		TFPASS(PD_RDFSemanticItem::createSemanticItem(
+				   rdf, "Location") == nullptr);   // no WITH_CHAMPLAIN
+		TFPASS(!PD_RDFSemanticItem::getClassNames().empty());
+	}
+
+	/* materialized contact: full optional bindings bound */
+	PD_RDFContacts contacts = rdf->getContacts();
+	TFPASS(contacts.size() == 2);
+	PD_RDFContactHandle c;
+	for (PD_RDFContacts::iterator it = contacts.begin();
+		 it != contacts.end(); ++it)
+		if ((*it)->name() == "Alice")
+			c = *it;
+	TFPASS(c != nullptr);
+	if (c) {
+		TFPASS(c->linkingSubject().toString() == alice.toString());
+		TFPASS(c->getXMLIDs().count("siBlk2") == 1);
+		TFPASS(c->className() == "Contact");
+		TFPASS(c->getDisplayLabel() == "Contact");
+		c->setName("Alicia");
+		TFPASS(c->name() == "Alicia");
+		c->setName("Alice");
+
+		TFPASS(c->stylesheets().size() == 5);
+		TFPASS(c->findStylesheetByUuid(
+				   "143c1ba3-d7bb-440b-8528-7f07d2eff5f2") != nullptr);
+		TFPASS(c->findStylesheetByUuid("no-such-uuid") == nullptr);
+		TFPASS(c->findStylesheetByName(
+				   PD_RDFSemanticStylesheet::stylesheetTypeSystem(),
+				   RDF_SEMANTIC_STYLESHEET_CONTACT_NAME) != nullptr);
+		TFPASS(c->findStylesheetByName(
+				   c->stylesheets(),
+				   RDF_SEMANTIC_STYLESHEET_CONTACT_NAME) != nullptr);
+		TFPASS(c->defaultStylesheet() != nullptr);
+
+		std::map<std::string, std::string> rm;
+		c->setupStylesheetReplacementMapping(rm);
+		TFPASS(rm["%NICK%"] == "ally");
+		TFPASS(rm["%EMAIL%"] == "a@x.org");
+		TFPASS(rm["%PHONE%"] == "555-1");
+		TFPASS(rm["%HOMEPAGE%"] == "http://a.example");
+
+		/* the GTK-injected subclasses override
+		 * exportToFile/importFromFile/showEditorWindow/
+		 * importFromDataComplete with real file dialogs and
+		 * GtkBuilder editors — display-bound, not exercised here */
+		std::istringstream iss("");
+		c->importFromData(iss, rdf, nullptr);
+	}
+
+	/* materialized event through the cal:Vevent query */
+	PD_RDFEvents events = rdf->getEvents();
+	TFPASS(events.size() == 1);
+	if (!events.empty()) {
+		PD_RDFEventHandle e = *events.begin();
+		TFPASS(e->className() == "Event");
+		TFPASS(e->getDisplayLabel() == "Event");
+		TFPASS(e->linkingSubject().toString() == ev.toString());
+		TFPASS(e->name() == "ev-1");   // no name binding -> uid
+		TFPASS(!e->stylesheets().empty());
+		TFPASS(e->defaultStylesheet() != nullptr);
+		std::map<std::string, std::string> rm;
+		e->setupStylesheetReplacementMapping(rm);
+		TFPASS(rm["%SUMMARY%"] == "Sync");
+	}
+
+	/* getLocations runs both joiner-list and geo84 queries; item
+	 * creation is WITH_CHAMPLAIN-gated so the list stays empty in
+	 * this build but the SPARQL surface is exercised */
+	rdf->getLocations();
+
+	/* foaf:knows is symmetric through relationAdd */
+	if (c && contacts.size() == 2) {
+		PD_RDFContactHandle other =
+			(*contacts.begin() == c) ? contacts.back()
+									 : *contacts.begin();
+		c->relationAdd(other, PD_RDFSemanticItem::RELATION_FOAF_KNOWS);
+		const PD_URI knows("http://xmlns.com/foaf/0.1/knows");
+		TFPASS(rdf->contains(alice, knows,
+							 PD_Object(other->linkingSubject())));
+		TFPASS(rdf->contains(other->linkingSubject(), knows,
+							 PD_Object(alice)));
+	}
+
+	/* mutation overloads beyond plain add()/commit() */
+	{
+		PD_DocumentRDFMutationHandle m = rdf->createMutation();
+		m->add(PD_RDFStatement(bob, nickp,
+							   PD_Literal("bobby")));
+		m->add(bob, phonep, PD_Literal("555-2"),
+			   PD_URI("http://ex.org/ctx"));
+		m->remove(alice, nickp, PD_Object(
+					  "ally", PD_Object::OBJECT_TYPE_LITERAL));
+		m->remove(alice, phonep, phonep);   // URI-object overload
+		m->remove(PD_RDFStatement(alice, jabp,
+								  PD_Object("a@jab",
+											PD_Object::OBJECT_TYPE_LITERAL)));
+		m->remove(std::list<PD_RDFStatement>{
+			PD_RDFStatement(alice, emailp,
+							PD_Object("a@x.org",
+									  PD_Object::OBJECT_TYPE_LITERAL))});
+		m->remove(bob, imgp);               // drop all img for bob
+		PD_URI bn = m->createBNode();
+		TFPASS(!bn.toString().empty());
+		m->commit();
+		TFPASS(!rdf->contains(alice, nickp,
+							  PD_Object("ally",
+										PD_Object::OBJECT_TYPE_LITERAL)));
+		TFPASS(rdf->contains(bob, nickp,
+							 PD_Object("bobby",
+									   PD_Object::OBJECT_TYPE_LITERAL)));
+	}
+
+	/* rollback drops staged adds */
+	{
+		const PD_URI ghostp("http://xmlns.com/foaf/0.1/ghost");
+		PD_DocumentRDFMutationHandle m = rdf->createMutation();
+		m->add(alice, ghostp, PD_Literal("spooky"));
+		m->rollback();
+		TFPASS(!rdf->contains(alice, ghostp,
+							  PD_Object("spooky",
+										PD_Object::OBJECT_TYPE_LITERAL)));
+	}
+}

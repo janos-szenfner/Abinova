@@ -125,6 +125,8 @@
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fl_TableStyles.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fp_FieldTableSum.t.cpp"
+#undef TFSUITE
 #include "src/text/fmt/xp/t/fv_ViewModes.t.cpp"
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fv_FootnoteDelete.t.cpp"
@@ -191,6 +193,8 @@
 #include "src/wp/impexp/xp/t/ie_math.t.cpp"
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_sniffers.t.cpp"
+#undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_wmfimp.t.cpp"
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_xxe.t.cpp"
 #undef TFSUITE

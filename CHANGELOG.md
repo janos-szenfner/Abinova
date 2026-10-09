@@ -5598,6 +5598,19 @@ below are on `main` but the release has not been cut yet.
   insert into an empty block that carries frames (the cover-page
   undo path) dereferenced a NULL `pLastRun` while transferring the
   frames.
+- **Coverage wave-1 landed** — new suites exercise the WMF image
+  importer (`.wmf` type detection, raster conversion, malformed and
+  truncated input rejection — `wp/impexp/wmf` coverage rose 4.7% ->
+  83.9%), `sum_rows`/`sum_cols` table fields through the real layout
+  engine, the RDF semantic-item API (contacts, events, relations,
+  rollback), and a kitchen-sink RTF fixture covering lists,
+  revisions, annotations, endnotes, tables, headers/footers and
+  fields. The dialog smoke sweep and UI driver now register and
+  initialize the EPUB export-options dialog, lifting
+  `wp/impexp/epub` coverage 70.4% -> 81.7%. The WMF importer's
+  never-reachable SVG conversion path was removed — it always
+  rasterizes through libwmf. Overall line coverage: 71.83% ->
+  72.24%.
 
 ### Resolved root causes worth noting
 

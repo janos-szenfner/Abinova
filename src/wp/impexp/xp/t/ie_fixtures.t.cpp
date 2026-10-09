@@ -502,3 +502,41 @@ TFTEST_MAIN("MTH03 markdown export emits math source")
 	TFPASS(text.find("$$") != std::string::npos);
 	doc->unref();
 }
+
+// ------------------------------------------------------------------
+// TST09: kitchen-sink RTF drives list tables, list overrides,
+// revisions, annotations, cell shading, headers/footers, endnotes and
+// field/metadata keyword paths through the RTF importer
+// ------------------------------------------------------------------
+TFTEST_MAIN("TST09 rtf kitchen sink")
+{
+	PD_Document *doc = import_file("/test/wp/tst09/kitchen.rtf");
+	TFPASS(doc);
+	if (!doc)
+		return;
+	std::string abwn;
+	TFPASS(export_abwn(doc, abwn));
+	// lists via listtable + listoverridetable
+	TFPASS(count_of(abwn, "list_label") >= 4);
+	// tracked changes: insertion + deletion
+	TFPASS(abwn.find("<c revision=\"1{") != std::string::npos);
+	TFPASS(abwn.find("<c revision=\"-2\"") != std::string::npos);
+	// annotation + endnote anchor
+	TFPASS(abwn.find("annotation=\"") != std::string::npos);
+	TFPASS(abwn.find("endnote_ref") != std::string::npos);
+	// tables with cell shading
+	TFPASS(count_of(abwn, "<table") >= 2);
+	TFPASS(abwn.find("background-color:ff0000") != std::string::npos);
+	TFPASS(abwn.find("background-color:00ff00") != std::string::npos);
+	// headers/footers incl. even/first variants, page fields
+	TFPASS(abwn.find("header-first") != std::string::npos);
+	TFPASS(abwn.find("header-even") != std::string::npos);
+	TFPASS(abwn.find("footer-first") != std::string::npos);
+	TFPASS(abwn.find("type=\"page_number\"") != std::string::npos);
+	TFPASS(abwn.find("type=\"page_count\"") != std::string::npos);
+	// date/time + metadata fields
+	TFPASS(abwn.find("type=\"date\"") != std::string::npos);
+	TFPASS(abwn.find("type=\"time\"") != std::string::npos);
+	TFPASS(abwn.find("type=\"meta_title\"") != std::string::npos);
+	doc->unref();
+}

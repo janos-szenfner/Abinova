@@ -54,8 +54,6 @@ private:
     // Convert to a PNG.
 	UT_Error convertGraphic(const UT_ConstByteBufPtr & pBB,
 					       UT_ConstByteBufPtr & ppBB);
-
-	UT_Error convertGraphicToSVG(const UT_ConstByteBufPtr & pBB, UT_ConstByteBufPtr & ppBB);
 };
 
 #endif /* IE_IMPGRAPHIC_WMF_H */
