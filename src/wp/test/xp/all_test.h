@@ -202,6 +202,10 @@
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_wpgimp.t.cpp"
 #undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_wpimp.t.cpp"
+#undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_epub.t.cpp"
+#undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_gtkio.t.cpp"
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_xxe.t.cpp"

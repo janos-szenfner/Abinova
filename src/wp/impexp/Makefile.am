@@ -417,7 +417,9 @@ EXTRA_DIST = \
 	xp/t/ie_xhtml.t.cpp \
 	xp/t/ie_gtkio.t.cpp \
 	xp/t/ie_wmfimp.t.cpp \
-	xp/t/ie_wpgimp.t.cpp
+	xp/t/ie_wpgimp.t.cpp \
+	xp/t/ie_wpimp.t.cpp \
+	xp/t/ie_epub.t.cpp
 
 # EPUB importer/exporter, formerly a plugin
 libimpexp_la_SOURCES += \

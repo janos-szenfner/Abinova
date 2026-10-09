@@ -31,12 +31,14 @@
 #define IE_IMP_WP_H
 
 #include <stdio.h>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
 #include "ut_compiler.h"
 ABI_W_NO_SUGGEST_OVERRIDE
 #include <librevenge/librevenge.h>
+#include <librevenge-stream/librevenge-stream.h>
 ABI_W_POP
 #include "ie_imp.h"
 #include "ut_string.h"
@@ -76,6 +78,38 @@ private:
     float m_listLeftOffset[WP6_NUM_LIST_LEVELS];
     float m_listMinLabelWidth[WP6_NUM_LIST_LEVELS];
     int m_iOutlineHash;
+};
+
+/*! librevenge input-stream adapter over a GsfInput: exposes OLE/zip
+ * containers (a .wpd inside a PerfectOffice package) as structured
+ * streams so libwpd/libwps can reach the PerfectOffice_MAIN member.
+ * Declared here rather than file-local so the substream API is
+ * unit-testable.
+ */
+class ABI_EXPORT AbiWordperfectInputStream : public librevenge::RVNGInputStream
+{
+public:
+	AbiWordperfectInputStream(GsfInput *input);
+	virtual ~AbiWordperfectInputStream();
+
+	virtual bool isStructured() override;
+	virtual unsigned subStreamCount() override;
+	virtual const char* subStreamName(unsigned) override;
+	virtual bool existsSubStream(const char*) override;
+	virtual librevenge::RVNGInputStream* getSubStreamByName(const char*) override;
+	virtual librevenge::RVNGInputStream* getSubStreamById(unsigned) override;
+	virtual const unsigned char *read(unsigned long numBytes, unsigned long &numBytesRead) override;
+	virtual int seek(long offset, librevenge::RVNG_SEEK_TYPE seekType) override;
+	virtual long tell() override;
+	virtual bool isEnd() override;
+
+private:
+	/* lazily wraps m_input in an OLE-then-zip container view */
+	GsfInfile * container();
+
+	GsfInput *m_input;
+	GsfInfile *m_ole;
+	std::map<unsigned, std::string> m_substreams;
 };
 
 class IE_Imp_WordPerfect_Sniffer final : public IE_ImpSniffer

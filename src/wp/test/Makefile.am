@@ -33,6 +33,8 @@ Abinova_test_CPPFLAGS = $(WP_CPPFLAGS) \
 	-I$(top_srcdir)/src/wp/impexp/openxml/exp/xp \
 	-I$(top_srcdir)/src/wp/impexp/openxml/imp/xp \
 	-I$(top_srcdir)/src/wp/impexp/wpg \
+	-I$(top_srcdir)/src/wp/impexp/wordperfect \
+	-I$(top_srcdir)/src/wp/impexp/epub/imp/xp \
 	-I$(top_srcdir)/thirdparty/libwpg-0.3.4/inc \
 	-I$(top_srcdir)/thirdparty/librevenge-0.0.6/inc \
 	-I$(top_srcdir)/thirdparty/librevenge-0.0.6/inc/librevenge-stream

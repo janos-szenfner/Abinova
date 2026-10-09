@@ -80,29 +80,6 @@
 #include <libwps/libwps.h>
 #endif
 
-class AbiWordperfectInputStream : public librevenge::RVNGInputStream
-{
-public:
-	AbiWordperfectInputStream(GsfInput *input);
-	~AbiWordperfectInputStream();
-
-	virtual bool isStructured() override;
-	virtual unsigned subStreamCount() override;
-	virtual const char* subStreamName(unsigned) override;
-	virtual bool existsSubStream(const char*) override;
-	virtual librevenge::RVNGInputStream* getSubStreamByName(const char*) override;
-	virtual librevenge::RVNGInputStream* getSubStreamById(unsigned) override;
-	virtual const unsigned char *read(unsigned long numBytes, unsigned long &numBytesRead) override;
-	virtual int seek(long offset, librevenge::RVNG_SEEK_TYPE seekType) override;
-	virtual long tell() override;
-	virtual bool isEnd() override;
-
-private:
-
-	GsfInput *m_input;
-	GsfInfile *m_ole;
-	std::map<unsigned, std::string> m_substreams;
-};
 
 AbiWordperfectInputStream::AbiWordperfectInputStream(GsfInput *input) :
 	librevenge::RVNGInputStream(),
@@ -152,7 +129,8 @@ int AbiWordperfectInputStream::seek(long offset, librevenge::RVNG_SEEK_TYPE seek
 	return gsf_input_seek(m_input, offset, gsfSeekType);
 }
 
-bool AbiWordperfectInputStream::isStructured()
+/* lazily wraps m_input in an OLE-then-zip container view */
+GsfInfile * AbiWordperfectInputStream::container()
 {
 	if (!m_ole)
 		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
@@ -160,40 +138,30 @@ bool AbiWordperfectInputStream::isStructured()
 	if (!m_ole)
 		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
 
-	if (m_ole)
-		return true;
+	return m_ole;
+}
 
-	return false;
+bool AbiWordperfectInputStream::isStructured()
+{
+	return container() != nullptr;
 }
 
 unsigned AbiWordperfectInputStream::subStreamCount()
 {
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
-
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
-
-	if (m_ole)
+	if (container())
 		{
 			int numChildren = gsf_infile_num_children(m_ole);
 			if (numChildren > 0)
 				return numChildren;
 			return 0;
 		}
-	
+
 	return 0;
 }
 
 const char * AbiWordperfectInputStream::subStreamName(unsigned id)
 {
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
-
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
-
-	if (m_ole)
+	if (container())
 		{
 			if (static_cast<int>(id )>= gsf_infile_num_children(m_ole))
 			{
@@ -207,51 +175,39 @@ const char * AbiWordperfectInputStream::subStreamName(unsigned id)
 				}
 			return i->second.c_str();
 		}
-	
+
 	return nullptr;
 }
 
 bool AbiWordperfectInputStream::existsSubStream(const char * name)
 {
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
-
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
-
-	if (m_ole)
+	if (container())
 		{
 			GsfInput *document = gsf_infile_child_by_name(m_ole, name);
-			if (document) 
+			if (document)
 				{
 					g_object_unref(G_OBJECT (document));
 					return true;
 				}
 		}
-	
+
 	return false;
 }
 
 librevenge::RVNGInputStream * AbiWordperfectInputStream::getSubStreamByName(const char * name)
 {
 	librevenge::RVNGInputStream *documentStream = nullptr;
-	
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
 
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
-
-	if (m_ole)
+	if (container())
 		{
 			GsfInput *document = gsf_infile_child_by_name(m_ole, name);
-			if (document) 
+			if (document)
 				{
 					documentStream = new AbiWordperfectInputStream(document);
 					g_object_unref(G_OBJECT (document)); // the only reference should be encapsulated within the new stream
 				}
 		}
-	
+
 	return documentStream;
 }
 
@@ -259,22 +215,16 @@ librevenge::RVNGInputStream * AbiWordperfectInputStream::getSubStreamById(unsign
 {
 	librevenge::RVNGInputStream *documentStream = nullptr;
 
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
-
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
-
-	if (m_ole)
+	if (container())
 		{
 			GsfInput *document = gsf_infile_child_by_index(m_ole, static_cast<int>(id));
-			if (document) 
+			if (document)
 				{
 					documentStream = new AbiWordperfectInputStream(document);
 					g_object_unref(G_OBJECT (document)); // the only reference should be encapsulated within the new stream
 				}
 		}
-	
+
 	return documentStream;
 }
 
