@@ -25,30 +25,6 @@
 
 using libwpg::WPGraphics;
 
-class AbiWordPerfectGraphicsInputStream : public librevenge::RVNGInputStream
-{
-public:
-	AbiWordPerfectGraphicsInputStream(GsfInput *input);
-	~AbiWordPerfectGraphicsInputStream();
-
-	virtual bool isStructured() override;
-	virtual unsigned subStreamCount() override;
-	virtual const char* subStreamName(unsigned) override;
-	virtual bool existsSubStream(const char*) override;
-	virtual librevenge::RVNGInputStream* getSubStreamByName(const char*) override;
-	virtual librevenge::RVNGInputStream* getSubStreamById(unsigned) override;
-	virtual const unsigned char *read(unsigned long numBytes, unsigned long &numBytesRead) override;
-	virtual int seek(long offset, librevenge::RVNG_SEEK_TYPE seekType) override;
-	virtual long tell() override;
-	virtual bool isEnd() override;
-
-private:
-
-	GsfInput *m_input;
-	GsfInfile *m_ole;
-	std::map<unsigned, std::string> m_substreams;
-};
-
 AbiWordPerfectGraphicsInputStream::AbiWordPerfectGraphicsInputStream(GsfInput *input) :
 	librevenge::RVNGInputStream(),
 	m_input(input),
@@ -97,7 +73,10 @@ int AbiWordPerfectGraphicsInputStream::seek(long offset, librevenge::RVNG_SEEK_T
 	return gsf_input_seek(m_input, offset, gsfSeekType);
 }
 
-bool AbiWordPerfectGraphicsInputStream::isStructured()
+/* one lazy container probe shared by every structured-stream method:
+ * PerfectOffice .wpg arrives as either an OLE package or a zip whose
+ * member streams carry the drawing data */
+GsfInfile * AbiWordPerfectGraphicsInputStream::container()
 {
 	if (!m_ole)
 		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
@@ -105,26 +84,21 @@ bool AbiWordPerfectGraphicsInputStream::isStructured()
 	if (!m_ole)
 		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
 
-	if (m_ole)
-		return true;
+	return m_ole;
+}
 
-	return false;
+bool AbiWordPerfectGraphicsInputStream::isStructured()
+{
+	return container() != nullptr;
 }
 
 unsigned AbiWordPerfectGraphicsInputStream::subStreamCount()
 {
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
-
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
-
-	if (m_ole)
+	if (container())
 		{
 			int numChildren = gsf_infile_num_children(m_ole);
 			if (numChildren > 0)
 				return numChildren;
-			return 0;
 		}
 
 	return 0;
@@ -132,15 +106,9 @@ unsigned AbiWordPerfectGraphicsInputStream::subStreamCount()
 
 const char * AbiWordPerfectGraphicsInputStream::subStreamName(unsigned id)
 {
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
-
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
-
-	if (m_ole)
+	if (container())
 		{
-			if (static_cast<int>(id )>= gsf_infile_num_children(m_ole))
+			if (static_cast<int>(id) >= gsf_infile_num_children(m_ole))
 			{
 				return nullptr;
 			}
@@ -158,22 +126,16 @@ const char * AbiWordPerfectGraphicsInputStream::subStreamName(unsigned id)
 
 bool AbiWordPerfectGraphicsInputStream::existsSubStream(const char * name)
 {
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
-
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
-
-	if (m_ole)
+	if (container())
 		{
 			GsfInput *document = gsf_infile_child_by_name(m_ole, name);
-			if (document) 
+			if (document)
 				{
 					g_object_unref(G_OBJECT (document));
 					return true;
 				}
 		}
-	
+
 	return false;
 }
 
@@ -181,22 +143,16 @@ librevenge::RVNGInputStream * AbiWordPerfectGraphicsInputStream::getSubStreamByN
 {
 	librevenge::RVNGInputStream *documentStream = nullptr;
 
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
-
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
-
-	if (m_ole)
+	if (container())
 		{
 			GsfInput *document = gsf_infile_child_by_name(m_ole, name);
-			if (document) 
+			if (document)
 				{
 					documentStream = new AbiWordPerfectGraphicsInputStream(document);
 					g_object_unref(G_OBJECT (document)); // the only reference should be encapsulated within the new stream
 				}
 		}
-	
+
 	return documentStream;
 }
 
@@ -204,22 +160,16 @@ librevenge::RVNGInputStream * AbiWordPerfectGraphicsInputStream::getSubStreamByI
 {
 	librevenge::RVNGInputStream *documentStream = nullptr;
 
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
-
-	if (!m_ole)
-		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
-
-	if (m_ole)
+	if (container())
 		{
 			GsfInput *document = gsf_infile_child_by_index(m_ole, static_cast<int>(id));
-			if (document) 
+			if (document)
 				{
 					documentStream = new AbiWordPerfectGraphicsInputStream(document);
 					g_object_unref(G_OBJECT (document)); // the only reference should be encapsulated within the new stream
 				}
 		}
-	
+
 	return documentStream;
 }
 

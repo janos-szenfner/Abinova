@@ -2196,6 +2196,11 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **XPM image import hardened** — the XPM text loader dereferenced the
+  buffer before checking its length (out-of-bounds read on malformed
+  files) and leaked the parsed line strings on both failure and
+  success paths; both are fixed, and `.xpm`/PNG/GIF/BMP/JPEG import now
+  has regression coverage.
 - **Annotation title/author edits refresh immediately** — changing an
   annotation's title or author updated the document but the layout kept
   its cached copies, so readers saw stale values until the next relayout.

@@ -21,11 +21,45 @@
 #ifndef IE_IMP_WPG_H
 #define IE_IMP_WPG_H
 
+#include <map>
+#include <string>
+
 #include "ut_compiler.h"
 ABI_W_NO_SUGGEST_OVERRIDE
 #include <libwpg/libwpg.h>
 ABI_W_POP
 #include "ie_impGraphic_SVG.h"
+
+/*! librevenge input-stream adapter over a GsfInput: exposes OLE/zip
+ * containers (a .wpg embedded in a PerfectOffice package) as structured
+ * streams so libwpg can reach the PerfectOffice_MAIN member.  Declared
+ * here rather than file-local so the substream API is unit-testable.
+ */
+class ABI_EXPORT AbiWordPerfectGraphicsInputStream : public librevenge::RVNGInputStream
+{
+public:
+	AbiWordPerfectGraphicsInputStream(GsfInput *input);
+	virtual ~AbiWordPerfectGraphicsInputStream();
+
+	virtual bool isStructured() override;
+	virtual unsigned subStreamCount() override;
+	virtual const char* subStreamName(unsigned) override;
+	virtual bool existsSubStream(const char*) override;
+	virtual librevenge::RVNGInputStream* getSubStreamByName(const char*) override;
+	virtual librevenge::RVNGInputStream* getSubStreamById(unsigned) override;
+	virtual const unsigned char *read(unsigned long numBytes, unsigned long &numBytesRead) override;
+	virtual int seek(long offset, librevenge::RVNG_SEEK_TYPE seekType) override;
+	virtual long tell() override;
+	virtual bool isEnd() override;
+
+private:
+	/* lazily wraps m_input in an OLE-then-zip container view */
+	GsfInfile * container();
+
+	GsfInput *m_input;
+	GsfInfile *m_ole;
+	std::map<unsigned, std::string> m_substreams;
+};
 
 class IE_Imp_WordPerfectGraphics_Sniffer final : public IE_ImpGraphicSniffer
 {

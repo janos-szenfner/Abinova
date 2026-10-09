@@ -295,7 +295,7 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::_loadXPM(const UT_ConstByteBufPtr & pBB)
 	// Find dimension line to start with.
 	//
 	UT_sint32 length = static_cast<UT_sint32>(pBB->getLength());
-	for(k =0; (*(pBC+k) != '"') &&( k < length); k++)
+	for(k =0; (k < length) && (*(pBC+k) != '"'); k++)
 		;
 
 	if(k >= length)
@@ -305,7 +305,7 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::_loadXPM(const UT_ConstByteBufPtr & pBB)
 
 	k++;
 	iBase = k;
-	for(; (*(pBC+k) != '"') && (k < length); k++)
+	for(; (k < length) && (*(pBC+k) != '"'); k++)
 		;
 	if(k >= length)
 	{
@@ -327,26 +327,26 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::_loadXPM(const UT_ConstByteBufPtr & pBB)
 	//
 	// Now loop through all the lines until we get to "}" outside the
 	// '"'
-	while((*(pBC+k) != '}')  && (k < length) )
+	while((k < length) && (*(pBC+k) != '}'))
 	{
 		k++;
 
 		//
 		// Load a single string of data into our vector.
-		// 
-		if(*(pBC+k) =='"')
+		//
+		if((k < length) && (*(pBC+k) =='"'))
 		{
 			//
 			// Start of a line
 			//
 			k++;
 			iBase = k;
-			for(; (*(pBC+k) != '"') && (k < length); k++) 
+			for(; (k < length) && (*(pBC+k) != '"'); k++)
 			{
 			}
 			if(k >= length)
 			{
-				return nullptr;
+				break;
 			}
 			sz = nullptr;
 			kLen = k-iBase+1;
@@ -360,9 +360,9 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::_loadXPM(const UT_ConstByteBufPtr & pBB)
 		}
 	}
 
-	if(k >= length)
+	if(k >= length || vecStr.empty())
 	{
-		for(i=0; i< vecStr.size(); i++)
+		for(i=0; i< static_cast<UT_sint32>(vecStr.size()); i++)
 		{
 			char * psz = vecStr[i];
 			FREEP(psz);
@@ -371,10 +371,16 @@ GdkPixbuf * IE_ImpGraphic_GdkPixbuf::_loadXPM(const UT_ConstByteBufPtr & pBB)
 	}
 
 	const char ** pszStr = static_cast<const char **>(UT_calloc(vecStr.size(),sizeof(char *)));
-	for(i=0; i< vecStr.size(); i++)
+	for(i=0; i< static_cast<UT_sint32>(vecStr.size()); i++)
 		pszStr[i] = vecStr[i];
 	pixbuf = gdk_pixbuf_new_from_xpm_data(pszStr);
 	FREEP(pszStr);
+	/* gdk_pixbuf_new_from_xpm_data copies the strings; ours are
+	 * caller-owned scratch that must not leak */
+	for(i=0; i< static_cast<UT_sint32>(vecStr.size()); i++)
+	{
+		FREEP(vecStr[i]);
+	}
 	return pixbuf;
 }
 
