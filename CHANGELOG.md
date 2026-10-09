@@ -5563,6 +5563,27 @@ below are on `main` but the release has not been cut yet.
   gross composition. `ABINOVA_REGEN_GOLDENS=1` regenerates the
   references after an intentional change; a missing golden fails
   loudly rather than silently blessing the current render.
+- **Seeded interaction-fuzzing suite** (`fv_Fuzz.t.cpp`) — a
+  deterministic PRNG walks a weighted table of UI-facing actions
+  (text/paragraph insert and delete, selection, cursor motion,
+  character-format toggles, undo/redo, view and markup mode
+  switches, revision tracking, field insert/update, TOC
+  insert/update/remove, cover insert/remove, bookmarks) against a
+  fresh document per seed. Every step runs inside the
+  `tf_guard` watchdog — deferred idle work included — so a hang or
+  crash fails with the seed/step/action triple for exact replay,
+  and `ABINOVA_FUZZ_SEEDS`/`ABINOVA_FUZZ_STEPS` reproduce a report
+  verbatim. Between steps the suite asserts the document still
+  parses (layout alive, bounds sane, text extractable), the main
+  loop still services an idle sentinel, the end state round-trips
+  through `.abwn` export and reimport, and draining the undo stack
+  restores the seed text exactly. A negative main proves a wedged
+  action is reaped and reported instead of hanging the suite. The
+  first run already paid off: it drove out a null-deref in
+  `fl_BlockLayout::doclistener_insertBlock` — undoing a structural
+  insert into an empty block that carries frames (the cover-page
+  undo path) dereferenced a NULL `pLastRun` while transferring the
+  frames.
 
 ### Resolved root causes worth noting
 

@@ -158,6 +158,8 @@
 
 #include "src/text/fmt/xp/t/fv_GoldenCovers.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fv_Fuzz.t.cpp"
+#undef TFSUITE
 #include "src/wp/ap/xp/t/ap_KeyBindings.t.cpp"
 #undef TFSUITE
 #include "src/wp/ap/xp/t/ap_TopRuler.t.cpp"

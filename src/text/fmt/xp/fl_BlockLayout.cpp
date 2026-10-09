@@ -7784,8 +7784,8 @@ bool fl_BlockLayout::doclistener_insertBlock(const PX_ChangeRecord_Strux * pcrx,
 	if(getNumFrames() > 0)
 	{
 		FL_DocLayout *pDL = getDocLayout();
-		fp_Line * pLine = pLastRun->getLine();
-		fp_Container * pCon = pLine->getColumn();
+		fp_Line * pLine = pLastRun ? pLastRun->getLine() : nullptr;
+		fp_Container * pCon = pLine ? pLine->getColumn() : nullptr;
 		UT_sint32 pLineX = 0;
 		UT_sint32 pLineY = 0;
 		UT_sint32 pLinePage = 0;
