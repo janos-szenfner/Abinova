@@ -559,7 +559,17 @@ bool pt_PieceTable::insertSpanBeforeFrag(const pf_Frag * pf, const UT_UCS4Char *
 	// fragment into the list.  first we construct a new text fragment
 	// for the data that we inserted.
 
-	pf_Frag_Text * pftNew = new pf_Frag_Text(this,bi,length,loading.m_indexCurrentInlineAP,nullptr);
+	// if the fragment immediately before the anchor is a fmt mark, the
+	// span belongs to the format change that the mark records; adopt its
+	// attributes/properties rather than the global loading AP.
+
+	PT_AttrPropIndex indexAP = loading.m_indexCurrentInlineAP;
+	if (pf->getPrev() && pf->getPrev()->getType() == pf_Frag::PFT_FmtMark)
+	{
+		indexAP = pf->getPrev()->getIndexAP();
+	}
+
+	pf_Frag_Text * pftNew = new pf_Frag_Text(this,bi,length,indexAP,nullptr);
 	if (!pftNew)
 		return false;
 

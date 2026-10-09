@@ -9,9 +9,9 @@ Regenerate with `make coverage` or `make check-coverage`.
 
 | Metric | Covered | Countable | Coverage |
 |--------|---------|-----------|----------|
-| Lines | 159113 | 216464 | 73.51% |
-| Functions | 14499 | 17682 | 82.00% |
-| Branches | 139209 | 319768 | 43.53% |
+| Lines | 159514 | 216502 | 73.68% |
+| Functions | 14517 | 17683 | 82.10% |
+| Branches | 139498 | 319826 | 43.62% |
 
 User directive: **>= 90%** line coverage of the countable
 denominator below. Enforced floor: `make check-coverage` fails
@@ -51,9 +51,9 @@ shows as its own row.
 
 | Directory | Files | Lines hit | Lines found | Lines % | Branches hit | Branches found | Branches % | Uncovered lines |
 |-----------|-------|-----------|-------------|---------|--------------|----------------|-----------|-----------------|
-| af/util | 70 | 6377 | 7762 | 82.2% | 3777 | 6449 | 58.6% | 1385 |
+| af/util | 70 | 6380 | 7762 | 82.2% | 3780 | 6449 | 58.6% | 1382 |
 |   af/util/unix | 8 | 108 | 166 | 65.1% | 35 | 81 | 43.2% | 58 |
-|   af/util/xp | 62 | 6269 | 7596 | 82.5% | 3742 | 6368 | 58.8% | 1327 |
+|   af/util/xp | 62 | 6272 | 7596 | 82.6% | 3745 | 6368 | 58.8% | 1324 |
 | af/xap | 128 | 9886 | 14035 | 70.4% | 7066 | 17354 | 40.7% | 4149 |
 |   af/xap/gtk | 47 | 5179 | 7571 | 68.4% | 4277 | 10678 | 40.1% | 2392 |
 |   af/xap/xp | 81 | 4707 | 6464 | 72.8% | 2789 | 6676 | 41.8% | 1757 |
@@ -63,12 +63,12 @@ shows as its own row.
 | af/gr | 34 | 5056 | 6614 | 76.4% | 3689 | 7948 | 46.4% | 1558 |
 |   af/gr/gtk | 9 | 969 | 1165 | 83.2% | 555 | 1130 | 49.1% | 196 |
 |   af/gr/xp | 25 | 4087 | 5449 | 75.0% | 3134 | 6818 | 46.0% | 1362 |
-| text/fmt | 102 | 40279 | 55706 | 72.3% | 35713 | 78143 | 45.7% | 15427 |
+| text/fmt | 102 | 40324 | 55706 | 72.4% | 35772 | 78143 | 45.8% | 15382 |
 |   text/fmt/gtk | 6 | 500 | 575 | 87.0% | 356 | 669 | 53.2% | 75 |
-|   text/fmt/xp | 96 | 39779 | 55131 | 72.2% | 35357 | 77474 | 45.6% | 15352 |
-| text/ptbl | 84 | 12361 | 16049 | 77.0% | 11701 | 24330 | 48.1% | 3688 |
-|   text/ptbl/xp | 84 | 12361 | 16049 | 77.0% | 11701 | 24330 | 48.1% | 3688 |
-| wp/impexp | 264 | 49573 | 65299 | 75.9% | 48356 | 109409 | 44.2% | 15726 |
+|   text/fmt/xp | 96 | 39824 | 55131 | 72.2% | 35416 | 77474 | 45.7% | 15307 |
+| text/ptbl | 84 | 12327 | 16052 | 76.8% | 11657 | 24354 | 47.9% | 3725 |
+|   text/ptbl/xp | 84 | 12327 | 16052 | 76.8% | 11657 | 24354 | 47.9% | 3725 |
+| wp/impexp | 264 | 49960 | 65334 | 76.5% | 48627 | 109443 | 44.4% | 15374 |
 |   wp/impexp/epub | 10 | 1058 | 1259 | 84.0% | 1042 | 2211 | 47.1% | 201 |
 |   wp/impexp/gtk | 3 | 350 | 498 | 70.3% | 227 | 524 | 43.3% | 148 |
 |   wp/impexp/mht | 2 | 604 | 674 | 89.6% | 520 | 878 | 59.2% | 70 |
@@ -77,12 +77,12 @@ shows as its own row.
 |   wp/impexp/wmf | 2 | 94 | 112 | 83.9% | 40 | 86 | 46.5% | 18 |
 |   wp/impexp/wordperfect | 2 | 894 | 1072 | 83.4% | 998 | 2120 | 47.1% | 178 |
 |   wp/impexp/wpg | 2 | 91 | 143 | 63.6% | 51 | 144 | 35.4% | 52 |
-|   wp/impexp/xp | 73 | 23427 | 32339 | 72.4% | 21000 | 48389 | 43.4% | 8912 |
+|   wp/impexp/xp | 73 | 23814 | 32374 | 73.6% | 21271 | 48423 | 43.9% | 8560 |
 | wp/ap/xp | 120 | 14967 | 23647 | 63.3% | 12243 | 37100 | 33.0% | 8680 |
 | wp/ap/gtk | 91 | 18177 | 24044 | 75.6% | 15069 | 35507 | 42.4% | 5867 |
 | wp/ap/grammar | 4 | 259 | 297 | 87.2% | 205 | 410 | 50.0% | 38 |
 | wp/main | 2 | 3 | 27 | 11.1% | 0 | 36 | 0.0% | 24 |
-| **TOTAL** | 932 | 159113 | 216464 | 73.5% | 139209 | 319768 | 43.5% | 57351 |
+| **TOTAL** | 932 | 159514 | 216502 | 73.7% | 139498 | 319826 | 43.6% | 56988 |
 
 ## Worst-covered directories
 
@@ -92,16 +92,16 @@ code that matters).
 
 | Directory | Uncovered | Lines found | Line % |
 |-----------|-----------|-------------|----------|
-| text/fmt/xp | 15352 | 55131 | 72.2% |
-| wp/impexp/xp | 8912 | 32339 | 72.4% |
+| text/fmt/xp | 15307 | 55131 | 72.2% |
 | wp/ap/xp | 8680 | 23647 | 63.3% |
+| wp/impexp/xp | 8560 | 32374 | 73.6% |
 | wp/ap/gtk | 5867 | 24044 | 75.6% |
-| text/ptbl/xp | 3688 | 16049 | 77.0% |
+| text/ptbl/xp | 3725 | 16052 | 76.8% |
 | wp/impexp/openxml/imp/xp | 2406 | 10577 | 77.3% |
 | af/xap/gtk | 2392 | 7571 | 68.4% |
 | af/xap/xp | 1757 | 6464 | 72.8% |
 | af/gr/xp | 1362 | 5449 | 75.0% |
-| af/util/xp | 1327 | 7596 | 82.5% |
+| af/util/xp | 1324 | 7596 | 82.6% |
 | wp/impexp/openxml/common/xp | 1141 | 4681 | 75.6% |
 | wp/impexp/odf/imp/xp | 1022 | 5224 | 80.4% |
 | wp/impexp/odf/exp/xp | 893 | 5349 | 83.3% |
@@ -119,17 +119,17 @@ code that matters).
 |------|-----------|-------------|----------|
 | wp/ap/xp/ap_EditMethods.cpp | 3767 | 9456 | 60.2% |
 | text/fmt/xp/fv_View.cpp | 2813 | 7908 | 64.4% |
-| wp/impexp/xp/ie_imp_RTF.cpp | 2075 | 6215 | 66.6% |
+| wp/impexp/xp/ie_imp_RTF.cpp | 2052 | 6215 | 67.0% |
 | wp/impexp/xp/ie_imp_MsWord_97.cpp | 1653 | 4611 | 64.2% |
 | wp/impexp/openxml/imp/xp/OXMLi_ListenerState_Valid.cpp | 1428 | 3933 | 63.7% |
 | text/fmt/xp/fv_View_cmd.cpp | 1352 | 4910 | 72.5% |
 | text/fmt/xp/fl_BlockLayout.cpp | 1187 | 5050 | 76.5% |
+| text/ptbl/xp/pd_Document.cpp | 1075 | 3879 | 72.3% |
 | wp/ap/gtk/ap_UnixRibbon.cpp | 1075 | 8087 | 86.7% |
 | wp/ap/xp/ap_TopRuler.cpp | 1061 | 2340 | 54.7% |
-| text/ptbl/xp/pd_Document.cpp | 1037 | 3879 | 73.3% |
 | text/fmt/xp/fv_View_protected.cpp | 913 | 2752 | 66.8% |
-| text/fmt/xp/fp_TableContainer.cpp | 868 | 2734 | 68.3% |
 | text/ptbl/xp/pd_DocumentRDF.cpp | 844 | 2160 | 60.9% |
+| text/fmt/xp/fp_TableContainer.cpp | 824 | 2734 | 69.9% |
 | wp/impexp/xp/ie_exp_RTF_listenerWriteDoc.cpp | 788 | 2761 | 71.5% |
 | text/fmt/xp/fl_SectionLayout.cpp | 744 | 2718 | 72.6% |
 

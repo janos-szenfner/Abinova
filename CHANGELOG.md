@@ -4178,6 +4178,18 @@ below are on `main` but the release has not been cut yet.
   `<w:matchSrc>` inside `altChunkPr` was not registered at all.
   All six now validate correctly, so affected documents no longer
   silently drop those settings/form-field constructs.
+- **Table import fixes found by the new XHTML/RTF coverage suites** —
+  an XHTML `<tr>` still open when `</table>` or a `<thead>`/`<tbody>`/
+  `<tfoot>` boundary arrived had its cells silently dropped (the row
+  is now flushed at the boundary); ragged rows now pad to the first
+  row's real cell count; and pad-cell insertion no longer corrupts
+  the row/column cursor.  In RTF tables, a cell starting a
+  horizontal merge (`\clmgf`) kept `right-attach:1`, so `\clmrg`
+  continuation cells rendered as extra columns instead of being
+  absorbed into the span.  And three piece-table anchor drops:
+  caption text anchored before the table strux, images/objects
+  anchored before an end-cell strux, and character formats applied
+  through a format mark on such spans were all silently lost.
 
 ### GTK4 port (core migration)
 

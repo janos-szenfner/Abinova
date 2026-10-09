@@ -326,6 +326,137 @@ TFTEST_MAIN("rtf word97 list override character props")
 		   std::string::npos);
 }
 
+/* COVD04 — native Word table markup (ie_imp_table): \trowd row
+ * headers with \trgaph/\trleft/\trrh, cell borders and shading
+ * (\clbrdrt/\clcbpat), horizontal merges (\clmgf/\clmrg), vertical
+ * merges (\clvmgf/\clvmrg) and a mismatched \cellx row that forces
+ * ie_imp_table_control to split the table. */
+
+static const char rtf_native_table[] =
+	"{\\rtf1\\ansi\\deff0\n"
+	"{\\fonttbl{\\f0 Arial;}}\n"
+	"{\\colortbl;\\red255\\green0\\blue0;\\red0\\green0\\blue255;}\n"
+	"\\pard\\plain before\\par\n"
+	"\\trowd\\trgaph36\\trleft72\\trrh400"
+	"\\clvertalt\\clbrdrt\\brdrs\\brdrw20\\clbrdrl\\brdrs"
+	"\\clbrdrb\\brdrs\\clbrdrr\\brdrs\\clcbpat1\\cellx1800"
+	"\\clvertalt\\clcbpat2\\cellx3600"
+	"\\pard\\intbl A1\\cell\\intbl A2\\cell\\row\n"
+	"\\trowd\\trgaph36\\trleft72\\clmgf\\clvertalt\\cellx1800"
+	"\\clmrg\\cellx3600"
+	"\\pard\\intbl B1 merged\\cell\\cell\\row\n"
+	"\\trowd\\trgaph36\\trleft72\\clvmgf\\cellx1800"
+	"\\clvertalt\\cellx3600"
+	"\\pard\\intbl C1 vstart\\cell\\intbl C2\\cell\\row\n"
+	"\\trowd\\trgaph36\\trleft72\\clvmrg\\cellx1800"
+	"\\clvertalt\\cellx3600"
+	"\\pard\\intbl\\cell\\intbl D2\\cell\\row\n"
+	"\\pard\\plain after-merge-table\\par\n"
+	"\\trowd\\trgaph36\\trleft72\\cellx900\\cellx2700\\cellx4500"
+	"\\pard\\intbl X1\\cell\\intbl X2\\cell\\intbl X3\\cell\\row\n"
+	"\\pard\\plain tail\\par}\n";
+
+TFTEST_MAIN("rtf native table: props, borders and shading")
+{
+	PD_Document * doc = rtf_import_string("ntab", rtf_native_table);
+	TFPASS(doc != nullptr);
+	if (!doc)
+		return;
+	std::string abwn = rtf_export(doc, ".abwn");
+	doc->unref();
+
+	TFPASS(abwn.find(">before<") != std::string::npos ||
+		   abwn.find(">before") != std::string::npos);
+	TFPASS(abwn.find("<table") != std::string::npos);
+	TFPASS(abwn.find("table-column-props:1.1800in/1.2300in/") !=
+		   std::string::npos);
+	TFPASS(abwn.find("background-color:ff0000") != std::string::npos);
+	TFPASS(abwn.find("background-color:0000ff") != std::string::npos);
+	TFPASS(abwn.find("top-thickness:") != std::string::npos);
+	TFPASS(abwn.find("A1") != std::string::npos);
+	TFPASS(abwn.find("A2") != std::string::npos);
+}
+
+TFTEST_MAIN("rtf native table: horizontal and vertical merges")
+{
+	PD_Document * doc = rtf_import_string("merge", rtf_native_table);
+	TFPASS(doc != nullptr);
+	if (!doc)
+		return;
+	std::string abwn = rtf_export(doc, ".abwn");
+	doc->unref();
+
+	/* \clmgf/\clmrg: the merged cell spans both columns — the
+	 * continuation cell is absorbed and the first cell's
+	 * right-attach is extended (was 1 before the fix). */
+	TFPASS(abwn.find("B1 merged") != std::string::npos);
+	TFPASS(abwn.find("bot-attach:2; top-attach:1; right-attach:2") !=
+		   std::string::npos);
+	/* \clvmgf/\clvmrg: C1 spans rows 2-3, the continuation cell holds
+	 * no strux, D2 occupies the freed slot on row 3. */
+	TFPASS(abwn.find("C1 vstart") != std::string::npos);
+	TFPASS(abwn.find("bot-attach:4; top-attach:2") != std::string::npos);
+	TFPASS(abwn.find(">D2<") != std::string::npos ||
+		   abwn.find("D2<") != std::string::npos);
+	TFPASS(abwn.find("top-attach:3") != std::string::npos);
+}
+
+TFTEST_MAIN("rtf native table: mismatched cellx splits the table")
+{
+	PD_Document * doc = rtf_import_string("split", rtf_native_table);
+	TFPASS(doc != nullptr);
+	if (!doc)
+		return;
+	std::string abwn = rtf_export(doc, ".abwn");
+	doc->unref();
+
+	/* the second \trowd set has different \cellx boundaries, so
+	 * ie_imp_table_control::NewRow closes table one and opens a new
+	 * table with its own column props */
+	TFPASS(abwn.find("after-merge-table") != std::string::npos);
+	TFPASS(abwn.find("table-column-props:0.6050in/1.2300in/1.2300in/") !=
+		   std::string::npos);
+	TFPASS(abwn.find("X1") != std::string::npos);
+	TFPASS(abwn.find("X3") != std::string::npos);
+	TFPASS(abwn.find(">tail<") != std::string::npos ||
+		   abwn.find("tail<") != std::string::npos);
+	int tables = 0;
+	for (size_t p = abwn.find("<table"); p != std::string::npos;
+		 p = abwn.find("<table", p + 1))
+		tables++;
+	TFPASSEQ(tables, 2);
+}
+
+/* \itap2 plus \nestcell/{\*\nesttableprops ...\nestrow} drive the
+ * nested-table control path; cells flatten into the outer grid but
+ * all content must survive. */
+static const char rtf_nest_table[] =
+	"{\\rtf1\\ansi\n"
+	"\\trowd\\trgaph36\\cellx3000\\cellx6000"
+	"\\pard\\intbl outerA\\cell"
+	"\\intbl\\itap2\\trowd\\trgaph36\\cellx1500\\cellx3000"
+	"\\intbl innerA\\nestcell\\intbl innerB\\nestcell"
+	"{\\*\\nesttableprops\\trowd\\trgaph36\\cellx1500\\cellx3000"
+	"\\nestrow}\\intbl outerB\\cell\\row\n"
+	"\\pard\\plain tail\\par}\n";
+
+TFTEST_MAIN("rtf nested table: itap/nestcell path")
+{
+	PD_Document * doc = rtf_import_string("nest", rtf_nest_table);
+	TFPASS(doc != nullptr);
+	if (!doc)
+		return;
+	std::string abwn = rtf_export(doc, ".abwn");
+	doc->unref();
+
+	TFPASS(abwn.find("outerA") != std::string::npos);
+	TFPASS(abwn.find("outerB") != std::string::npos);
+	TFPASS(abwn.find("innerA") != std::string::npos);
+	TFPASS(abwn.find("innerB") != std::string::npos);
+	TFPASS(abwn.find("tail") != std::string::npos);
+	TFPASS(abwn.find("<cell") != std::string::npos);
+}
+
 TFTEST_MAIN("rtf export round-trip of the cov07 rich fixture")
 {
 	std::string src;

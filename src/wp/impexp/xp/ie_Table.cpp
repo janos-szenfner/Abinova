@@ -1532,6 +1532,30 @@ void ie_imp_table::buildTableStructure(void)
 			}
 		}
 		iTop = curRow;
+		if(pCell->isFirstHorizontalMerged() && !bSkipThis)
+		{
+			//
+			// The cells to the right of this one are horizontally merged
+			// with it. Advance the right attach over the continuation
+			// cells (isMergedLeft) on this row.
+			//
+			UT_sint32 j = i + 1;
+			while(j < static_cast<UT_sint32>(m_vecCells.size()))
+			{
+				ie_imp_cell * pNext = m_vecCells[j];
+				UT_nonnull_or_break(pNext);
+				if((pNext->getRow() != curRow) || !pNext->isMergedLeft())
+				{
+					break;
+				}
+				UT_sint32 iNextRight = getColNumber(pNext);
+				if(iNextRight > iRight)
+				{
+					iRight = iNextRight;
+				}
+				j++;
+			}
+		}
 		if(pCell->isFirstVerticalMerged()  && !bSkipThis)
 		{
 			//
@@ -2035,6 +2059,7 @@ IE_Imp_TableHelper::IE_Imp_TableHelper (PD_Document * pDocument, pf_Frag_Strux *
 	m_current(nullptr),
 	m_tzone(tz_body),
 	m_bBlockInsertedForCell(false),
+	m_bRowPending(false),
 	m_bCaptionOn(false)
 {
 	m_thead.clear();
@@ -2106,6 +2131,14 @@ bool IE_Imp_TableHelper::tableEnd ()
 	if (!tdPending ())
 		return false;
 
+	// a row may still be pending when </table> arrives; close it out
+	// so its cells get counted and padded while the strux anchors are
+	// still valid.
+	if (m_bRowPending)
+	{
+		trEnd ();
+	}
+
 	// TODO: unset frag - & other clean-up?
 	m_pfsTableEnd = nullptr;
 	m_pfsInsertionPoint = nullptr;
@@ -2117,6 +2150,14 @@ bool IE_Imp_TableHelper::theadStart (const char * style)
 {
 	if (!tdPending ())
 		return false;
+
+	// a row from the previous zone may still be pending; end it before
+	// switching zone or m_col_next is lost and m_cols_max miscomputed.
+	if (m_bRowPending)
+	{
+		if (!trEnd ())
+			return false;
+	}
 
 	m_tzone = tz_head;
 	m_rows_head = m_row_next;
@@ -2135,6 +2176,12 @@ bool IE_Imp_TableHelper::tfootStart (const char * style)
 	if (!tdPending ())
 		return false;
 
+	if (m_bRowPending)
+	{
+		if (!trEnd ())
+			return false;
+	}
+
 	m_tzone = tz_foot;
 	m_rows_foot = m_row_next;
 
@@ -2152,6 +2199,12 @@ bool IE_Imp_TableHelper::tbodyStart (const char * style)
 	if (!tdPending ())
 		return false;
 
+	if (m_bRowPending)
+	{
+		if (!trEnd ())
+			return false;
+	}
+
 	m_tzone = tz_body;
 	m_rows_body = m_row_next;
 
@@ -2167,7 +2220,7 @@ bool IE_Imp_TableHelper::tbodyStart (const char * style)
 
 bool IE_Imp_TableHelper::trStart (const char * style)
 {
-	if (m_current)
+	if (m_bRowPending)
 		if (!trEnd ())
 			return false;
 	if(m_bCaptionOn)
@@ -2188,6 +2241,11 @@ bool IE_Imp_TableHelper::trStart (const char * style)
 
 bool IE_Imp_TableHelper::trEnd ()
 {
+	// idempotent: a row is pending only between its first cell and the
+	// next row/zone/table boundary, whichever fires first.
+	if (!m_bRowPending)
+		return true;
+	m_bRowPending = false;
 	m_row_next++;
 	if(m_row_next == 1)
 		{
@@ -2199,6 +2257,7 @@ bool IE_Imp_TableHelper::trEnd ()
 			padAllRowsWithCells(m_thead,extra);
 			padAllRowsWithCells(m_tfoot,extra);
 			padAllRowsWithCells(m_tbody,extra);
+			m_cols_max = m_col_next;
 		}
 	else if(m_col_next < m_cols_max)
 		{
@@ -2286,9 +2345,13 @@ void IE_Imp_TableHelper::padRowWithCells(std::vector<CellHelper *>& vecCells,UT_
 	UT_sint32 j = 0;
 	CellHelper * pNext = pCell->m_next;
 	CellHelper * pOldCurrent = m_current;
-	m_current = pCell;
 	TableZone oldTz = m_tzone;
+	UT_sint32 oldRow = m_row_next;
+	UT_sint32 oldCol = m_col_next;
+	m_current = pCell;
 	m_tzone = pCell->m_tzone;
+	m_row_next = row;
+	m_col_next = pCell->m_right;
 	pf_Frag_Strux * pfsIns = nullptr;
 	if(pNext == nullptr)
 		{
@@ -2307,6 +2370,8 @@ void IE_Imp_TableHelper::padRowWithCells(std::vector<CellHelper *>& vecCells,UT_
 		}
 	m_current = pOldCurrent;
 	m_tzone = oldTz;
+	m_row_next = oldRow;
+	m_col_next = oldCol;
 }
 
 /*!
@@ -2363,6 +2428,7 @@ bool IE_Imp_TableHelper::tdEnd(void) const
 			m_current->m_next = pCell;
 		}
 	m_current = pCell;
+	m_bRowPending = true;
     m_current->m_rowspan = rowspan;
 	m_current->m_colspan = colspan;
 	m_current->m_style = style ? style : "";

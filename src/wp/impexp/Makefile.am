@@ -414,6 +414,7 @@ EXTRA_DIST = \
 	xp/t/ie_msdoc.t.cpp \
 	xp/t/ie_oxmlvalid.t.cpp \
 	xp/t/ie_rtf.t.cpp \
+	xp/t/ie_xhtml.t.cpp \
 	xp/t/ie_wmfimp.t.cpp \
 	xp/t/ie_wpgimp.t.cpp
 

@@ -393,6 +393,7 @@ private:
 	CellHelper *		m_current;
 	TableZone			m_tzone;
 	bool                m_bBlockInsertedForCell;
+	bool                m_bRowPending;
 	PD_Document *	    getDoc () const { return m_pDocument; }
 	bool                m_bCaptionOn;
 };
