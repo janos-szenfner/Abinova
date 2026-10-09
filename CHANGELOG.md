@@ -5548,6 +5548,21 @@ below are on `main` but the release has not been cut yet.
   freeze and popovers legs now each copy the shared fixture to a
   fresh scratch file — a wrapper-timeout kill mid-leg was able to
   leave `rich.abw` truncated for the next leg.
+- **Golden-image render suite** (`fv_GoldenCovers.t.cpp`) — page 0 of
+  a headless `FV_View` is painted onto a widget-less
+  `DGP_SCREEN` Cairo surface (no display or xvfb needed) and the
+  raster is diffed pixel-for-pixel against committed reference PNGs
+  in `test/wp/tst06/goldens/`: all 21 cover presets, the 17 matching
+  docx-import renders, plus TOC and table pages. A 6% tolerance
+  absorbs the drifting `@date` line and antialiasing noise while a
+  same-pipeline render normally diffs at under 1%; a separate check
+  proves a wrong render (a different preset's cover) exceeds the
+  tolerance so the diff is not degenerate. Each docx cover is also
+  compared against its preset's render as downscaled tiles with
+  per-pair tolerances — the same design built two ways must match in
+  gross composition. `ABINOVA_REGEN_GOLDENS=1` regenerates the
+  references after an intentional change; a missing golden fails
+  loudly rather than silently blessing the current render.
 
 ### Resolved root causes worth noting
 

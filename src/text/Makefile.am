@@ -269,6 +269,7 @@ EXTRA_DIST = \
 	fmt/xp/t/fv_FieldContext.t.cpp \
 	fmt/xp/t/fv_FrameContext.t.cpp \
 	fmt/xp/t/fv_FootnoteDelete.t.cpp \
+	fmt/xp/t/fv_GoldenCovers.t.cpp \
 	fmt/xp/t/fv_HdrFtrDelete.t.cpp \
 	fmt/xp/t/fv_HdrFtrDblClick.t.cpp \
 	fmt/xp/t/fv_ImageProps.t.cpp \

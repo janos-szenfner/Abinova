@@ -2433,6 +2433,16 @@ fixtures are not committed for licensing reasons — point
 is unset or a file is missing the tests `SKIP` cleanly instead of
 failing. The expectation table lives in `test/wp/tst05/FIXTURES.md`.
 
+The unit suite also carries a golden-image render pass
+(`core.text.fmt.goldencovers`): every cover preset, each imported
+docx cover, a TOC page and a table page are painted headlessly onto a
+Cairo image surface and diffed pixel-for-pixel against committed
+reference PNGs in `test/wp/tst06/goldens/` (tolerances documented in
+`test/wp/tst06/FIXTURES.md`). A wrong render fails the diff;
+`ABINOVA_REGEN_GOLDENS=1` regenerates the references after an
+intentional rendering change, and a missing golden fails rather than
+auto-blessing the current output.
+
 ### Code coverage (gcov/lcov)
 
 Configure the tree with `--enable-coverage` to compile `src/` with
