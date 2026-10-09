@@ -327,6 +327,10 @@ public:
 	UT_sint32           getPageCount(void) const {return m_iPageCount;}
 	void                setNeedsSectionBreak(bool bSet, fp_Page * pPage );
 	bool                needsSectionBreak(void) const { return m_bNeedsSectionBreak;}
+	/* FL_DocLayout::deletePage calls this before the page is freed so
+	 * section-cached page pointers (the column breaker's restart
+	 * anchor, the owned-page head) never dangle */
+	void                forgetPage(fp_Page * pPage);
 	void                setFirstEndnoteContainer(fp_EndnoteContainer * pECon);
 	void                setLastEndnoteContainer(fp_EndnoteContainer * pECon);
 	fp_Container *      getFirstEndnoteContainer(void) const;

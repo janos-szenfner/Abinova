@@ -149,6 +149,13 @@ fp_Page::~fp_Page()
 	{
 		fl_DocSectionLayout *pDSL = m_pOwner;
 		m_pOwner = nullptr;
+		// A breaker's restart anchor only ever caches one of its own
+		// section's pages (setNeedsSectionBreak rejects foreign pages),
+		// so notifying the owner covers every cached reference — even
+		// for sections FL_DocLayout::deletePage()'s chain walk cannot
+		// reach (e.g. a DocSectionLayout created inside a shadow and
+		// never linked by insertSectionAfter).
+		pDSL->forgetPage(this);
 		pDSL->deleteOwnedPage(this);
 	}
 	if((m_pHeader != nullptr) || (m_pFooter != nullptr))

@@ -153,6 +153,8 @@
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fv_StateCycle.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fv_StructContent.t.cpp"
+#undef TFSUITE
 #include "src/wp/ap/xp/t/ap_KeyBindings.t.cpp"
 #undef TFSUITE
 #include "src/wp/ap/xp/t/ap_TopRuler.t.cpp"
@@ -178,6 +180,8 @@
 #include "src/text/fmt/xp/t/fv_SignatureLine.t.cpp"
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_fixtures.t.cpp"
+#undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_covercorpus.t.cpp"
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_math.t.cpp"
 #undef TFSUITE

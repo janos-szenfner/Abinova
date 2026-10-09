@@ -158,9 +158,17 @@ fi
 # dialogs, an async media embed, a .doc import).  A synchronous stall
 # — a usleep, a blocking whole-file read, a serializing loop — fails
 # the leg.  Unlike the dialog legs a heartbeat trip IS the failure, so
-# any nonzero exit counts.
+# any nonzero exit counts.  Fresh scratch: the frame leg's widget walk
+# can trigger a document save, and when it hits the wrapper timeout
+# the kill leaves the shared file truncated (load err -304 downstream)
+freeze_scratch="${TMPDIR:-/tmp}/ui-drive-freeze-$$.abw"
+cp "$ABINOVA_TEST_SRC_DIR/test/wp/cov07/rich.abw" "$freeze_scratch" || {
+	echo "FAIL: cannot stage freeze scratch doc" >&2
+	exit 1
+}
 freeze_log="${TMPDIR:-/tmp}/ui-drive-freeze-$$.log"
-timeout -k 15 240 $LIBTOOL $BIN --freeze >"$freeze_log" 2>&1
+UI_DRIVE_DOC="$freeze_scratch" timeout -k 15 240 $LIBTOOL $BIN \
+	--freeze >"$freeze_log" 2>&1
 freeze_rc=$?
 case "$freeze_rc" in
 	0)   echo "ok: freeze heartbeat drive" ;;
@@ -169,7 +177,7 @@ case "$freeze_rc" in
 	     tail -20 "$freeze_log" | sed 's/^/  /' >&2
 	     fails=$((fails + 1)) ;;
 esac
-rm -f "$freeze_log"
+rm -f "$freeze_log" "$freeze_scratch"
 
 # TOC01: TOC context-menu regression leg — opens the real ContextTOC
 # popover through contextTOC's nested modal loop and activates
@@ -208,11 +216,39 @@ case "$markup_rc" in
 esac
 rm -f "$markup_log"
 
+# TST03: popover/menu lifecycle leg — opens every ribbon popover on
+# the rich fixture, activates each row, asserts it stays sensitive
+# and the popover re-opens; check popovers (markup/zoom/toggles/window
+# list) verify the tick lands on the clicked row, then the contextText/
+# contextTOC/contextImage edit methods run the nested-loop popup path
+# with a real item activation.  A stuck row is the regression being
+# guarded, so any nonzero exit (including a timeout) is a failure.
+# Fresh scratch like the freeze leg — a killed earlier leg must not
+# poison the fixture this leg loads.
+pop_scratch="${TMPDIR:-/tmp}/ui-drive-popovers-$$.abw"
+cp "$ABINOVA_TEST_SRC_DIR/test/wp/cov07/rich.abw" "$pop_scratch" || {
+	echo "FAIL: cannot stage popovers scratch doc" >&2
+	exit 1
+}
+pop_log="${TMPDIR:-/tmp}/ui-drive-popovers-$$.log"
+UI_DRIVE_DOC="$pop_scratch" timeout -k 15 1200 $LIBTOOL $BIN \
+	--popovers >"$pop_log" 2>&1
+pop_rc=$?
+case "$pop_rc" in
+	0)   echo "ok: popover lifecycle drive" ;;
+	77)  echo "skip: popover lifecycle drive (no interactive context)" ;;
+	*)   echo "FAIL: popover lifecycle drive (rc=$pop_rc)"
+	     tail -20 "$pop_log" | sed 's/^/  /' >&2
+	     fails=$((fails + 1)) ;;
+esac
+rm -f "$pop_log" "$pop_scratch"
+
 rm -f "$scratch" /tmp/ui-drive-abi.abw /tmp/ui-drive-red.png \
 	"${TMPDIR:-/tmp}/ui-drive-toc-multi.abw" \
 	"${TMPDIR:-/tmp}/ui-drive-media.abwn" "${TMPDIR:-/tmp}/ui-drive-blip.abw" \
 	"${TMPDIR:-/tmp}/ui-drive-fmt-blip.abw" \
-	"${TMPDIR:-/tmp}/ui-drive-freeze-embed.bin"
+	"${TMPDIR:-/tmp}/ui-drive-freeze-embed.bin" \
+	"${TMPDIR:-/tmp}/ui-drive-pop-blip.abw"
 
 echo "dialog drive: $((total - fails - skips - xfails))/$total dialogs clean, $skips skipped, $xfails xfail"
 [ "$fails" -eq 0 ]

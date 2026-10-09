@@ -408,7 +408,9 @@ ommlxsltdir = $(ABINOVA_OMMLXSLTDIR)
 EXTRA_DIST = \
 	$(OMMLXSLT) \
 	openxml/common/xp/converter.pl \
-	openxml/common/xp/OXML_LangToScriptConverter.gperf
+	openxml/common/xp/OXML_LangToScriptConverter.gperf \
+	xp/t/ie_covercorpus.t.cpp \
+	xp/t/ie_fixtures.t.cpp
 
 # EPUB importer/exporter, formerly a plugin
 libimpexp_la_SOURCES += \

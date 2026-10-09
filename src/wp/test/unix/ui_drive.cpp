@@ -44,6 +44,13 @@
  *                            twice; asserts view flags, sensitivity,
  *                            check marks, caption and revision-data
  *                            preservation on every transition
+ *   ui-drive --popovers      TST03: cycle EVERY ribbon popover —
+ *                            activate each row, assert it stays
+ *                            sensitive and the popover re-opens;
+ *                            check popovers verify tick bookkeeping;
+ *                            then drive contextText/contextTOC/
+ *                            contextImage through the nested-loop
+ *                            context menu path
  *
  * Exit codes: 0 ok, 1 failure, 77 no display / interactive prerequisite.
  * drvwrap.sh runs one process per dialog under `timeout` so a hang or
@@ -3805,6 +3812,895 @@ static int drive_markup(AP_UnixApp * app, const char *)
 	return fails ? 1 : 0;
 }
 
+/* ---------------- TST03: popover / menu lifecycle leg ----------------
+ *
+ * Generic counterpart to --markup: --markup guards the one selector a
+ * user reported wedged; this leg cycles EVERY ribbon popover so the
+ * same bug class — a row dead after one activation, a tick painted on
+ * the wrong row, a popover that will not re-open — is caught wherever
+ * it regresses.
+ *
+ * For each GtkMenuButton in the main window: popup, snapshot the
+ * action rows, then click every sensitive row under the interact
+ * guard; after each activation the popover is re-opened and the row
+ * must still be present and sensitive — the "clicked once, now
+ * stuck" assertion.
+ *
+ * Check popovers (rows stamped abi-check-kind: annotation/spelling/
+ * revision toggles, markup modes, zoom, window list) get the fuller
+ * cycle: every check row is activated in turn and on re-open the
+ * tick must sit on the clicked row for exclusive groups ("mode:*",
+ * "zoom:*") — "win:*" ticks the row naming this window rather than
+ * a chosen state, so those get the lifecycle asserts only — while
+ * ungrouped toggles must flip, then flip back so the next popover
+ * sees the starting state.
+ *
+ * The context-menu half runs the real contextText / contextTOC /
+ * contextImage edit methods: each maps a GtkPopoverMenu inside
+ * _runModalContextMenu's nested GMainLoop; a timeout tick inside
+ * that loop verifies the menu model and activates one item like a
+ * click, then pops the menu down so the edit method unwinds.
+ */
+
+struct PopRow {
+	GtkWidget *w;		/* weak — repopulating popovers rebuild
+						 * rows on every show */
+	GtkWidget *check;	/* weak — the abi-check-img stack */
+	std::string kind;	/* abi-check-kind, "" for plain rows */
+	std::string group;	/* kind's ':' prefix — exclusive family */
+	bool sensitive0;
+};
+
+static void pop_row_watch(PopRow &r)
+{
+	if (r.w)
+		g_object_add_weak_pointer(G_OBJECT(r.w),
+							  reinterpret_cast<gpointer *>(&r.w));
+	if (r.check)
+		g_object_add_weak_pointer(G_OBJECT(r.check),
+							  reinterpret_cast<gpointer *>(&r.check));
+}
+
+static void pop_rows_release(std::vector<PopRow> &v)
+{
+	for (PopRow &r : v) {
+		if (r.w)
+			g_object_remove_weak_pointer(
+				G_OBJECT(r.w), reinterpret_cast<gpointer *>(&r.w));
+		if (r.check)
+			g_object_remove_weak_pointer(
+				G_OBJECT(r.check),
+				reinterpret_cast<gpointer *>(&r.check));
+	}
+	v.clear();
+}
+
+/* the tick reads the abi-check-img stack — "_refreshCheckRows" paints
+ * "check" on the row whose kind currently evals true */
+static bool pop_row_checked(GtkWidget *row)
+{
+	GtkWidget *stk = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(row), "abi-check-img"));
+	if (!stk || !GTK_IS_STACK(stk))
+		return false;
+	const char *vis =
+		gtk_stack_get_visible_child_name(GTK_STACK(stk));
+	return vis && !strcmp(vis, "check");
+}
+
+/* a row widget worth activating: carries one of the action bindings
+ * the ribbon stamps (edit method, toolbar ctx, menu action, check
+ * kind, palette hex), a GtkActionable target, or is a gallery-card
+ * toggle */
+static bool pop_is_row(GtkWidget *w)
+{
+	if (!GTK_IS_BUTTON(w))
+		return false;
+	static const char *const keys[] = {
+		"abi-em-method", "abi-tb-ctx", "abi-menu-action",
+		"abi-check-kind", "abi-color-hex"
+	};
+	for (const char *k : keys)
+		if (g_object_get_data(G_OBJECT(w), k))
+			return true;
+	if (GTK_IS_ACTIONABLE(w) &&
+		gtk_actionable_get_action_name(GTK_ACTIONABLE(w)))
+		return true;
+	return GTK_IS_TOGGLE_BUTTON(w);
+}
+
+/* check rows are direct children of the popover's box — the same
+ * set _refreshCheckRows repaints on every show */
+static void pop_collect_checks(GtkPopover *pop,
+							   std::vector<PopRow> &checks)
+{
+	GtkWidget *box = gtk_popover_get_child(pop);
+	std::vector<GtkWidget *> raw;
+	for (GtkWidget *c = box ? gtk_widget_get_first_child(box) : nullptr;
+		 c; c = gtk_widget_get_next_sibling(c))
+		if (g_object_get_data(G_OBJECT(c), "abi-check-kind"))
+			raw.push_back(c);
+	/* size first so the weak-pointer targets never move */
+	checks.resize(raw.size());
+	for (size_t i = 0; i < raw.size(); i++) {
+		PopRow &r = checks[i];
+		r.w = raw[i];
+		r.check = static_cast<GtkWidget *>(
+			g_object_get_data(G_OBJECT(r.w), "abi-check-img"));
+		r.kind = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(r.w), "abi-check-kind"));
+		size_t colon = r.kind.find(':');
+		r.group = colon != std::string::npos
+			? r.kind.substr(0, colon) : "";
+		r.sensitive0 = gtk_widget_get_sensitive(r.w);
+		pop_row_watch(r);
+	}
+}
+
+static void pop_collect_rows(GtkPopover *pop, std::vector<PopRow> &rows)
+{
+	GtkWidget *box = gtk_popover_get_child(pop);
+	std::vector<GtkWidget *> raw;
+	if (box)
+		tf_widgets::find_all(box, pop_is_row, raw);
+	rows.resize(raw.size());
+	for (size_t i = 0; i < raw.size(); i++) {
+		PopRow &r = rows[i];
+		r.w = raw[i];
+		r.check = nullptr;
+		const char *kind = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(r.w), "abi-check-kind"));
+		if (kind)
+			r.kind = kind;
+		r.sensitive0 = gtk_widget_get_sensitive(r.w);
+		pop_row_watch(r);
+	}
+}
+
+/* locate a live check row by kind — call right after a (re-)popup so
+ * repopulated popovers hand back their fresh widgets */
+static GtkWidget *pop_find_check(GtkPopover *pop, const std::string &kind)
+{
+	GtkWidget *box = gtk_popover_get_child(pop);
+	for (GtkWidget *c = box ? gtk_widget_get_first_child(box) : nullptr;
+		 c; c = gtk_widget_get_next_sibling(c)) {
+		const char *k = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(c), "abi-check-kind"));
+		if (k && kind == k)
+			return c;
+	}
+	return nullptr;
+}
+
+/* rows whose activation must not happen in the drive — the
+ * never_activate list keyed by abi-em-method/abi-menu-action plus
+ * file pickers it doesn't already name (their chooser would sit in
+ * a nested modal loop until the stray sweep answers it) */
+static bool pop_skip_row(GtkWidget *w)
+{
+	if (never_activate(w))
+		return true;
+	static const char *const bad[] = {
+		"insEmbeddedObject"
+	};
+	const char *m = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(w), "abi-em-method"));
+	if (m)
+		for (const char *b : bad)
+			if (!strcmp(m, b))
+				return true;
+	return false;
+}
+
+static bool pop_open(GtkMenuButton *mb)
+{
+	/* a popup issued while GTK is still tearing down the previous
+	 * surface (a neighbouring popover's popdown, a dropdown's nested
+	 * popup, first-ever present under gcov) can be silently dropped —
+	 * visible never sets no matter how long we poll.  Re-issue the
+	 * popup across several windows: a genuinely stuck popover still
+	 * fails every round, only a lost present recovers. */
+	for (int round = 0; round < 4; round++) {
+		gtk_menu_button_popup(mb);
+		for (int i = 0; i < 10; i++) {
+			tf_guard::pump_for(50);
+			GtkPopover *p = gtk_menu_button_get_popover(mb);
+			if (p && gtk_widget_get_visible(GTK_WIDGET(p)))
+				return true;
+		}
+	}
+	return false;
+}
+
+static void pop_close(GtkMenuButton *mb)
+{
+	gtk_menu_button_popdown(mb);
+	/* let the unmap settle — presenting the next popover while the
+	 * previous one is still tearing down silently loses the present */
+	tf_guard::pump_for(60);
+}
+
+/* a mapped button can still be unreachable: the ribbon pages sit in
+ * a horizontally scrolled strip, and a popover anchored to a widget
+ * scrolled out of the viewport gets presented off-surface — GTK pops
+ * it straight back down (native_layout sees a sub-minimum size).
+ * Scroll every enclosing scrolled window until the button is inside
+ * the viewport, the programmatic equivalent of the user scrolling
+ * the strip to reach it */
+static void pop_scroll_to(GtkWidget *mb)
+{
+	for (GtkWidget *w = mb; w;
+		 w = gtk_widget_get_parent(w)) {
+		if (!GTK_IS_SCROLLED_WINDOW(w))
+			continue;
+		GtkWidget *sw = w;
+		graphene_rect_t bounds;
+		if (!gtk_widget_compute_bounds(mb, sw, &bounds))
+			continue;
+		GtkAdjustment *h = gtk_scrolled_window_get_hadjustment(
+			GTK_SCROLLED_WINDOW(sw));
+		GtkAdjustment *v = gtk_scrolled_window_get_vadjustment(
+			GTK_SCROLLED_WINDOW(sw));
+		const double x = bounds.origin.x, bw = bounds.size.width;
+		const double y = bounds.origin.y, bh = bounds.size.height;
+		const double vw = gtk_widget_get_width(sw);
+		const double vh = gtk_widget_get_height(sw);
+		if (h) {
+			const double val = gtk_adjustment_get_value(h);
+			if (x < 0)
+				gtk_adjustment_set_value(h, val + x);
+			else if (x + bw > vw)
+				gtk_adjustment_set_value(h, val + x + bw - vw);
+		}
+		if (v) {
+			const double val = gtk_adjustment_get_value(v);
+			if (y < 0)
+				gtk_adjustment_set_value(v, val + y);
+			else if (y + bh > vh)
+				gtk_adjustment_set_value(v, val + y + bh - vh);
+		}
+	}
+	tf_guard::pump_for(80);
+}
+
+/* state dump for an open failure: is the popover attached, mapped,
+ * half-presented; is the button itself healthy — tells a genuine
+ * "will not pop" product bug from a transient present race */
+static void pop_diag(GtkWidget *mb)
+{
+	GtkPopover *p = gtk_menu_button_get_popover(GTK_MENU_BUTTON(mb));
+	GtkWidget *pw = GTK_WIDGET(p);
+	g_print("  DIAG mb vis=%d map=%d rlz=%d sens=%d act=%d | "
+			"pop=%p vis=%d map=%d parent=%s child=%s\n",
+			gtk_widget_get_visible(mb), gtk_widget_get_mapped(mb),
+			gtk_widget_get_realized(mb), gtk_widget_is_sensitive(mb),
+			gtk_menu_button_get_active(GTK_MENU_BUTTON(mb)),
+			(void *)p,
+			p ? gtk_widget_get_visible(pw) : -1,
+			p ? gtk_widget_get_mapped(pw) : -1,
+			p && gtk_widget_get_parent(pw)
+				? G_OBJECT_TYPE_NAME(gtk_widget_get_parent(pw)) : "none",
+			p && gtk_popover_get_child(p)
+				? G_OBJECT_TYPE_NAME(gtk_popover_get_child(p)) : "none");
+	for (GtkWidget *a = gtk_widget_get_parent(mb); a;
+		 a = gtk_widget_get_parent(a))
+		g_print("  DIAG   anc %s vis=%d map=%d\n",
+				G_OBJECT_TYPE_NAME(a), gtk_widget_get_visible(a),
+				gtk_widget_get_mapped(a));
+}
+
+struct CtxRun {
+	GtkWidget *top;		/* window to search for the mapped popup */
+	GtkWidget *pop;		/* found GtkPopoverMenu */
+	const char *want;	/* action name to activate, or nullptr */
+	int items;			/* GMenuModel item count seen */
+	bool fired;			/* the item activation returned true */
+	bool done;			/* the tick fired — its source is gone */
+};
+
+/* runs inside the context menu's nested loop: find the mapped
+ * GtkPopoverMenu, sanity-check the model, activate the wanted item
+ * like a real click, then pop the menu down so the edit method
+ * unwinds */
+static gboolean pop_ctx_tick(gpointer data)
+{
+	CtxRun *c = static_cast<CtxRun *>(data);
+	if (!c->pop) {
+		c->pop = find_popover_widget(c->top);
+		if (!c->pop)
+			return G_SOURCE_CONTINUE;
+	}
+	GMenuModel *mm = GTK_IS_POPOVER_MENU(c->pop)
+		? gtk_popover_menu_get_menu_model(GTK_POPOVER_MENU(c->pop))
+		: nullptr;
+	c->items = mm ? g_menu_model_get_n_items(mm) : 0;
+	if (c->want && model_has_action(mm, c->want))
+		c->fired = gtk_widget_activate_action(c->pop, c->want,
+											  nullptr) != FALSE;
+	else if (c->want)
+		g_printerr("drive: ctx — %s missing or disabled\n", c->want);
+	gtk_popover_popdown(GTK_POPOVER(c->pop));
+	c->done = true;
+	return G_SOURCE_REMOVE;
+}
+
+static void drive_ctx_menu(DriveCtx &ctx, AV_View *av, GtkWidget *win,
+						   const char *method, const char *wantAction,
+						   int x, int y, int *fails)
+{
+	const EV_EditMethodContainer *emc =
+		XAP_App::getApp()->getEditMethodContainer();
+	EV_EditMethod *em = emc ? emc->findEditMethodByName(method)
+						  : nullptr;
+	markup_check(fails, em != nullptr, method, "method registered");
+	if (!em)
+		return;
+	/* the stray sweeper ticks inside the nested loop too — leave it
+	 * armed so an item that raises a dialog unwinds */
+	CtxRun mc {win, nullptr, wantAction, 0, false, false};
+	guint tick = g_timeout_add(50, pop_ctx_tick, &mc);
+	EV_EditMethodCallData emcd;
+	emcd.m_xPos = x;
+	emcd.m_yPos = y;
+	char what[128];
+	snprintf(what, sizeof(what), "ctx %s @%d,%d", method, x, y);
+	FV_View *view = static_cast<FV_View *>(av);
+	bool ok = call_guard([&] { em->Fn(view, &emcd); }, what);
+	/* the tick removes itself when it fires — only a still-pending
+	 * source may be removed (a stale id logs a GLib critical) */
+	if (!mc.done)
+		g_source_remove(tick);
+	tf_guard::pump_for(150);
+	markup_check(fails, ok, method, "edit method survived");
+	markup_check(fails, mc.pop != nullptr, method, "popover mapped");
+	markup_check(fails, mc.items > 0, method, "menu model has items");
+	if (wantAction)
+		markup_check(fails, mc.fired, method, "item activated");
+	(void)ctx;
+}
+
+static int drive_popovers(AP_UnixApp *app, const char *src)
+{
+	alarm(0);
+	/* wall-clock bound for the row walk: hundreds of real activations
+	 * under gcov instrumentation can outgrow the wrapper timeout —
+	 * the bound stops the walk cleanly and reports the coverage it
+	 * reached instead of dying inside a click.  Two passes over ~90
+	 * menu buttons need roughly five minutes instrumented */
+	DriveCtx ctx {nullptr, {}, 0, false, false,
+		g_get_monotonic_time() + 320 * G_USEC_PER_SEC, 0};
+	sweep_guard([&ctx] { ctx.preexisting = tf_widgets::toplevels(); });
+	guint sweeper = g_timeout_add(150, stray_sweep_cb, &ctx);
+	int fails = 0;
+	int popsDone = 0, rowsClicked = 0, checksCycled = 0;
+
+	set_phase("popovers: load fixture");
+	AV_View *av = nullptr;
+	if (!load_fixture_frame(app, ctx, src, &av) || !av) {
+		g_printerr("drive: popovers — cannot load %s\n", src);
+		g_source_remove(sweeper);
+		return 1;
+	}
+	FV_View *view = static_cast<FV_View *>(av);
+	XAP_Frame *frame = static_cast<XAP_Frame *>(view->getParentData());
+	GtkWidget *win = nullptr;
+	if (frame)
+		win = static_cast<XAP_UnixFrameImpl *>(frame->getFrameImpl())
+			->getTopLevelWindow();
+	ctx.root = win;
+	markup_check(&fails, win != nullptr, "setup", "main window");
+	if (!win) {
+		g_source_remove(sweeper);
+		return 1;
+	}
+
+	/* check cycling can leak document state — a vetoed restore
+	 * dialog leaves auto-revisioning on, an answered MarkRevisions
+	 * box can leave marking on.  Snapshot the revision state so
+	 * pass 2's generic rows start from the loaded document: a
+	 * revision-stamped piece table turned repeated cover inserts
+	 * into a >40s relocateFrame/RTF-export wedge under gcov */
+	PD_Document *doc0 = view->getDocument();
+	const bool markRev0 = view->isMarkRevisions();
+	const bool showRev0 = view->isShowRevisions();
+	const bool showBars0 = view->isShowRevBars();
+	const UT_uint32 revLevel0 = view->getRevisionLevel();
+	const bool autoRev0 = doc0 ? doc0->isAutoRevisioning() : false;
+
+	/* every GtkMenuButton's popover in the window — the ribbon, the
+	 * status bar, side-pane controls */
+	std::vector<GtkWidget *> mbs;
+	sweep_guard([&] {
+		tf_widgets::find_all(win, [](GtkWidget *c) {
+			return GTK_IS_MENU_BUTTON(c);
+		}, mbs);
+	});
+	g_print("popovers: %d menu buttons\n",
+			static_cast<int>(mbs.size()));
+
+	/* weak-guard every button across both passes: a row click can
+	 * rebuild ribbon chrome (contextual tabs) and destroy a menu
+	 * button we have not reached yet */
+	for (GtkWidget *&w : mbs)
+		g_object_add_weak_pointer(G_OBJECT(w),
+								  reinterpret_cast<gpointer *>(&w));
+
+	/* pass 1 cycles every check row across ALL popovers first —
+	 * 'check-mark state reflects the mode' is the core assertion, so
+	 * generic row clicks must not exhaust the budget before the check
+	 * popovers are reached.  Pass 2 activates each generic row and
+	 * re-checks the lifecycle. */
+	/* a rescued fault inside a click leaves the document half-
+	 * mutated — continuing the walk then cascades into an
+	 * unguarded SIGSEGV; stop walking instead */
+	/* ABINOVA_POP_RANGE="N-M" walks only menu buttons N..M — a debug
+	 * knob so one suspicious popover can be re-driven without paying
+	 * the full five-minute sweep */
+	int popFrom = 0, popTo = G_MAXINT;
+	if (const char *rng = getenv("ABINOVA_POP_RANGE"))
+		sscanf(rng, "%d-%d", &popFrom, &popTo);
+
+	bool walkAborted = false;
+	for (int pass = 0; pass < 2 && !walkAborted; pass++) {
+		if (pass == 1) {
+			if (doc0 && doc0->isAutoRevisioning() != autoRev0)
+				doc0->setAutoRevisioning(autoRev0);
+			if (view->isMarkRevisions() != markRev0)
+				view->toggleMarkRevisions();
+			if (view->isShowRevisions() != showRev0)
+				view->setShowRevisions(showRev0);
+			if (view->isShowRevBars() != showBars0)
+				view->setShowRevBars(showBars0);
+			view->setRevisionLevel(revLevel0);
+			tf_guard::pump_for(100);
+		}
+	for (size_t i = 0; i < mbs.size() && !walkAborted; i++) {
+		if (ctx_over_budget(ctx)) {
+			g_print("popovers: budget reached at menu button %d/%d "
+					"(pass %d)\n",
+					static_cast<int>(i), static_cast<int>(mbs.size()),
+					pass + 1);
+			break;
+		}
+		if (static_cast<int>(i) < popFrom || static_cast<int>(i) > popTo)
+			continue;
+		GtkWidget *mb = mbs[i];
+		if (!mb)
+			continue;
+		const char *tip = gtk_widget_get_tooltip_text(mb);
+		char step[160];
+		snprintf(step, sizeof(step), "mb %d \"%s\"",
+				 static_cast<int>(i), tip ? tip : "?");
+		set_phase(step);
+
+		GtkPopover *pop = gtk_menu_button_get_popover(
+			GTK_MENU_BUTTON(mb));
+		if (!pop)
+			continue;
+		/* menu-model popovers (GtkPopoverMenu) get the open/close
+		 * lifecycle only — item activation is the context-menu
+		 * half's job, through the real nested-loop path */
+		if (GTK_IS_POPOVER_MENU(pop)) {
+			if (pass == 0) {
+				markup_check(&fails, pop_open(GTK_MENU_BUTTON(mb)),
+							 step, "menu-model popover maps");
+				pop_close(GTK_MENU_BUTTON(mb));
+				popsDone++;
+			}
+			continue;
+		}
+
+		bool opened = pop_open(GTK_MENU_BUTTON(mb));
+		GtkWidget *parent = nullptr;
+		if (!opened) {
+			/* a submenu button lives inside another popover — it
+			 * only pops up while its parent is shown: open the
+			 * owning menu button, else whatever widget the parent
+			 * pops relative to, then retry */
+			parent = gtk_widget_get_ancestor(mb, GTK_TYPE_POPOVER);
+			if (parent && !gtk_widget_get_visible(parent)) {
+				for (GtkWidget *cand : mbs)
+					if (cand && cand != mb &&
+						gtk_menu_button_get_popover(
+							GTK_MENU_BUTTON(cand))
+							== GTK_POPOVER(parent))
+						pop_open(GTK_MENU_BUTTON(cand));
+				if (!gtk_widget_get_visible(parent)) {
+					/* GTK4: a popover's parent IS the widget it
+					 * pops relative to */
+					GtkWidget *rel = gtk_widget_get_parent(parent);
+					if (rel && rel != mb && GTK_IS_MENU_BUTTON(rel))
+						pop_open(GTK_MENU_BUTTON(rel));
+					else if (rel && rel != mb)
+						gtk_widget_activate(rel);
+					tf_guard::pump_for(60);
+				}
+			}
+			if (parent)
+				opened = pop_open(GTK_MENU_BUTTON(mb));
+		}
+		if (!opened && !gtk_widget_get_mapped(mb)) {
+			/* an inactive ribbon tab keeps its buttons unmapped —
+			 * flip each enclosing stack to the page this button
+			 * lives on, the programmatic tab click */
+			for (GtkWidget *p = gtk_widget_get_parent(mb); p;
+				 p = gtk_widget_get_parent(p)) {
+				if (!GTK_IS_STACK(p))
+					continue;
+				GtkWidget *page = mb;
+				while (page && gtk_widget_get_parent(page) != p)
+					page = gtk_widget_get_parent(page);
+				if (page &&
+					gtk_stack_get_visible_child(GTK_STACK(p))
+						!= page) {
+					gtk_stack_set_visible_child(GTK_STACK(p), page);
+					tf_guard::pump_for(80);
+				}
+			}
+			if (gtk_widget_get_mapped(mb))
+				opened = pop_open(GTK_MENU_BUTTON(mb));
+		}
+		if (!opened && gtk_widget_get_mapped(mb)) {
+			/* mapped but maybe scrolled off the ribbon strip —
+			 * GTK won't present a popover anchored off-surface */
+			pop_scroll_to(mb);
+			opened = pop_open(GTK_MENU_BUTTON(mb));
+		}
+		if (!opened && pass == 0) {
+			/* a control the user cannot reach right now is not a
+			 * stuck popover — report why and move on */
+			if (!gtk_widget_is_sensitive(mb))
+				g_print("  NOTE %s — menu button insensitive, "
+						"skipped\n", step);
+			else if (!gtk_widget_get_mapped(mb))
+				g_print("  NOTE %s — hidden inside %s, skipped\n",
+						step, parent ? G_OBJECT_TYPE_NAME(parent)
+								   : "an inactive tab");
+			else {
+				pop_diag(mb);
+				markup_check(&fails, false, step, "popover maps");
+			}
+		}
+		if (!opened)
+			continue;
+
+		if (pass == 0) {
+			std::vector<PopRow> checks;
+			pop_collect_checks(pop, checks);
+
+		/* cycle every check row: click -> re-open -> the repainted
+		 * tick must reflect the click */
+		for (size_t ci = 0; ci < checks.size() && mb; ci++) {
+			if (ctx_over_budget(ctx))
+				break;
+			const std::string kind = checks[ci].kind;
+			const std::string group = checks[ci].group;
+			char cstep[192];
+			snprintf(cstep, sizeof(cstep), "%s check[%s]", step,
+					 kind.c_str());
+			set_phase(cstep);
+			if (!checks[ci].w) {
+				markup_check(&fails, false, cstep,
+							 "row alive after popup");
+				continue;
+			}
+			if (!checks[ci].sensitive0) {
+				/* a state-driven row may legitimately wake after
+				 * earlier clicks changed the document — enablement,
+				 * not a stuck row */
+				if (gtk_widget_get_sensitive(checks[ci].w))
+					g_print("  NOTE %s — insensitive check row "
+							"woke up\n", cstep);
+				continue;
+			}
+			bool before = pop_row_checked(checks[ci].w);
+			int strays0 = ctx.straysClosed;
+			GtkWidget *rw = checks[ci].w;
+			bool ok = call_guard([rw] { tf_widgets::click(rw); },
+								 cstep);
+			markup_check(&fails, ok, cstep, "row click survived");
+			if (!ok) {
+				walkAborted = true;
+				break;
+			}
+			checksCycled++;
+			tf_guard::drain_pending();
+			sweep_guard([&ctx] { sweep_strays(ctx); });
+			if (!mb || !pop_open(GTK_MENU_BUTTON(mb))) {
+				markup_check(&fails, false, cstep,
+							 "popover re-opens");
+				if (mb)
+					pop_diag(mb);
+				break;
+			}
+			pop = gtk_menu_button_get_popover(GTK_MENU_BUTTON(mb));
+			GtkWidget *hit = pop ? pop_find_check(pop, kind)
+								 : nullptr;
+			markup_check(&fails, hit != nullptr, cstep,
+						 "row survives re-open");
+			if (hit)
+				markup_check(&fails, gtk_widget_get_sensitive(hit),
+							 cstep, "row stays sensitive");
+			if (!hit)
+				continue;
+			if (!group.empty() && group != "win") {
+				/* exclusive family: exactly the clicked row ticks */
+				bool mine = pop_row_checked(hit);
+				bool others = false;
+				std::vector<PopRow> now;
+				pop_collect_checks(pop, now);
+				for (const PopRow &r : now)
+					if (r.w && r.group == group &&
+						r.kind != kind && pop_row_checked(r.w))
+						others = true;
+				pop_rows_release(now);
+				markup_check(&fails, mine && !others, cstep,
+							 "tick on clicked row only");
+			} else if (group == "win") {
+				/* the win: tick names THIS window — activating a
+				 * sibling raises it but does not re-key the mark */
+				std::vector<PopRow> now;
+				pop_collect_checks(pop, now);
+				int nTicked = 0;
+				for (const PopRow &r : now)
+					if (r.w && r.group == "win" &&
+						pop_row_checked(r.w))
+						nTicked++;
+				pop_rows_release(now);
+				markup_check(&fails, nTicked == 1, cstep,
+							 "exactly one window ticked");
+			} else if (ctx.straysClosed > strays0) {
+				/* the method raised a dialog the sweep answered —
+				 * the toggle may legitimately not have applied */
+				g_print("  NOTE %s — dialog answered mid-click, "
+						"toggle state not asserted\n", cstep);
+			} else {
+				markup_check(&fails, pop_row_checked(hit) != before,
+							 cstep, "toggle flipped");
+				/* flip back so the next popover sees the start state */
+				GtkWidget *tw = hit;
+				call_guard([tw] { tf_widgets::click(tw); }, cstep);
+				tf_guard::drain_pending();
+				sweep_guard([&ctx] { sweep_strays(ctx); });
+				if (mb && pop_open(GTK_MENU_BUTTON(mb))) {
+					pop = gtk_menu_button_get_popover(
+						GTK_MENU_BUTTON(mb));
+					GtkWidget *hit2 =
+						pop ? pop_find_check(pop, kind) : nullptr;
+					if (hit2) {
+						/* the restore click can raise a confirm
+						 * dialog (AutoRevision off-warning) that
+						 * the sweep vetoes — the veto IS the
+						 * product behaviour, not a stuck row */
+						if (ctx.straysClosed > strays0)
+							g_print("  NOTE %s — dialog answered "
+									"mid-restore, toggle state not "
+									"asserted\n", cstep);
+						else
+							markup_check(&fails,
+										 pop_row_checked(hit2)
+											 == before,
+										 cstep, "toggle restored");
+					}
+				}
+			}
+		}
+		if (mb)
+			pop_close(GTK_MENU_BUTTON(mb));
+		pop_rows_release(checks);
+		popsDone++;
+		} else {
+		std::vector<PopRow> rows;
+		pop_collect_rows(pop, rows);
+
+		/* generic rows: activate each sensitive one, assert the row
+		 * survives sensitive and the popover re-opens */
+		for (PopRow &r : rows) {
+			if (!r.w || !r.kind.empty() || !r.sensitive0 ||
+				pop_skip_row(r.w))
+				continue;
+			if (ctx_over_budget(ctx))
+				break;
+			const char *m = static_cast<const char *>(
+				g_object_get_data(G_OBJECT(r.w), "abi-em-method"));
+			GtkWidget *rp = gtk_widget_get_parent(r.w);
+			char rstep[192];
+			snprintf(rstep, sizeof(rstep), "%s row %s<%s", step,
+					 m ? m : G_OBJECT_TYPE_NAME(r.w),
+					 rp ? G_OBJECT_TYPE_NAME(rp) : "?");
+			set_phase(rstep);
+			GtkWidget *rw = r.w;
+			bool ok = call_guard([rw] { tf_widgets::click(rw); },
+								 rstep);
+			markup_check(&fails, ok, rstep, "row click survived");
+			if (!ok) {
+				walkAborted = true;
+				break;
+			}
+			rowsClicked++;
+			tf_guard::drain_pending();
+			sweep_guard([&ctx] { sweep_strays(ctx); });
+			if (!mb)
+				break;
+			bool reopened = pop_open(GTK_MENU_BUTTON(mb));
+			if (!reopened)
+				pop_diag(mb);
+			markup_check(&fails, reopened, rstep, "popover re-opens");
+			GtkPopover *np =
+				gtk_menu_button_get_popover(GTK_MENU_BUTTON(mb));
+			if (np)
+				pop = np;
+			if (r.w)
+				markup_check(&fails, gtk_widget_get_sensitive(r.w),
+							 rstep, "row stays sensitive");
+		}
+
+		/* final lifecycle: the popover re-opens cleanly and every
+		 * initially-sensitive row we saw still is.  An initially
+		 * INSENSITIVE row may legitimately wake — 'Remove Cover'
+		 * enables once the document has a cover — state enablement,
+		 * not a stuck row */
+		if (mb && pop_open(GTK_MENU_BUTTON(mb))) {
+			for (PopRow &r : rows)
+				if (r.w) {
+					if (r.sensitive0)
+						markup_check(&fails,
+									 gtk_widget_get_sensitive(r.w),
+									 step, "sensitive row stays "
+									 "sensitive");
+					else if (gtk_widget_get_sensitive(r.w))
+						g_print("  NOTE %s — a row woke up "
+								"(state enablement)\n", step);
+				}
+			pop_close(GTK_MENU_BUTTON(mb));
+		}
+		pop_rows_release(rows);
+		}
+	}
+	}
+	if (walkAborted)
+		g_print("popovers: walk aborted after rescued fault\n");
+	for (GtkWidget *&w : mbs)
+		if (w)
+			g_object_remove_weak_pointer(G_OBJECT(w),
+										 reinterpret_cast<gpointer *>(&w));
+
+	/* ---------------- context menus ----------------
+	 * the real right-click path: edit method -> EV_UnixMenuPopup ->
+	 * _runModalContextMenu's nested loop; a tick inside that loop
+	 * verifies the model and activates one item */
+	set_phase("popovers: context menus");
+	char wantCopy[48];
+	snprintf(wantCopy, sizeof(wantCopy), "menu.item_%u",
+			 static_cast<unsigned>(AP_MENU_ID_EDIT_COPY));
+	char wantToc[48];
+	snprintf(wantToc, sizeof(wantToc), "menu.item_%u",
+			 static_cast<unsigned>(AP_MENU_ID_REF_UPDATETOC));
+
+	/* text: probe for a pixel over body text, select around it so
+	 * Edit>Copy is enabled, then right-click it */
+	int tx = -1, ty = -1;
+	for (int py = 60; py < 700 && tx < 0; py += 8)
+		for (int px = 40; px < 800 && tx < 0; px += 8)
+			if (view->getDocPositionFromXY(px, py)) {
+				tx = px;
+				ty = py;
+			}
+	if (tx >= 0) {
+		PT_DocPosition p = view->getDocPositionFromXY(tx, ty);
+		if (p)
+			view->cmdSelect(p, p + 3);
+		drive_ctx_menu(ctx, av, win, "contextText", wantCopy,
+					   tx, ty, &fails);
+	} else {
+		markup_check(&fails, false, "contextText",
+					 "text position probed");
+	}
+
+	/* TOC: real fixture so Update Table is enabled — same row the
+	 * --toc leg drives, exercised here through the generic path */
+	{
+		const char *top = getenv("ABINOVA_TEST_SRC_DIR");
+		std::string tp = std::string(top ? top : ".") +
+			"/test/wp/toc.abw";
+		AV_View *av2 = nullptr;
+		if (load_fixture_frame(app, ctx, tp, &av2) && av2) {
+			FV_View *v2 = static_cast<FV_View *>(av2);
+			FL_DocLayout *lay = v2->getLayout();
+			GtkWidget *win2 = nullptr;
+			XAP_Frame *f2 =
+				static_cast<XAP_Frame *>(v2->getParentData());
+			if (f2)
+				win2 = static_cast<XAP_UnixFrameImpl *>(
+					f2->getFrameImpl())->getTopLevelWindow();
+			fl_TOCLayout *pTOC =
+				lay ? lay->getNthTOC(0) : nullptr;
+			fp_Line *line = pTOC ? toc_first_line(
+				static_cast<fp_TOCContainer *>(
+					pTOC->getFirstContainer())) : nullptr;
+			std::optional<UT_Rect> rect = line
+				? line->getScreenRect() : std::optional<UT_Rect>();
+			if (rect) {
+				drive_ctx_menu(ctx, av2, win2, "contextTOC", wantToc,
+							   rect->left + rect->width / 2,
+							   rect->top + rect->height / 2, &fails);
+			} else
+				markup_check(&fails, false, "contextTOC",
+							 "TOC line located");
+		} else
+			markup_check(&fails, false, "contextTOC",
+						 "fixture loaded");
+	}
+
+	/* image: the red.png blip fixture — contextImage selects the
+	 * image run under the click, so Edit>Copy is enabled */
+	{
+		const char *top = getenv("ABINOVA_TEST_SRC_DIR");
+		std::string png = std::string(top ? top : ".") +
+			"/test/wp/cov07/red.png";
+		gchar *b64 = file_b64(png.c_str());
+		if (b64) {
+			std::string blip =
+				"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+				"<abiword template=\"false\" fileformat=\"1.0\" "
+				"xmlns=\"http://www.abisource.com/awml.dtd\" "
+				"version=\"0.99.2\" xml:space=\"preserve\" "
+				"props=\"lang:en-US\">\n<data>\n"
+				"<d name=\"red.png\" mime-type=\"image/png\" "
+				"base64=\"yes\">" + std::string(b64) + "</d>\n"
+				"</data>\n<section>\n"
+				"<p>a<image dataid=\"red.png\" props=\""
+				"width:1.0in; height:1.0in\"/></p>\n"
+				"</section>\n</abiword>\n";
+			std::string bp = write_fixture("pop-blip.abw", blip);
+			g_free(b64);
+			AV_View *av3 = nullptr;
+			if (!bp.empty() &&
+				load_fixture_frame(app, ctx, bp, &av3) && av3) {
+				FV_View *v3 = static_cast<FV_View *>(av3);
+				GtkWidget *win3 = nullptr;
+				XAP_Frame *f3 =
+					static_cast<XAP_Frame *>(v3->getParentData());
+				if (f3)
+					win3 = static_cast<XAP_UnixFrameImpl *>(
+						f3->getFrameImpl())->getTopLevelWindow();
+				PT_DocPosition imgpos = 0;
+				for (PT_DocPosition p = 2; p < 15 && !imgpos; p++) {
+					v3->cmdSelect(p, p + 1);
+					if (v3->isImageSelected())
+						imgpos = p;
+				}
+				int ix = -1, iy = -1;
+				for (int px = 20; px < 700 && ix < 0; px += 8)
+					for (int py = 40; py < 600 && ix < 0; py += 8)
+						if (imgpos &&
+							v3->getDocPositionFromXY(px, py)
+								== imgpos) {
+							ix = px;
+							iy = py;
+						}
+				if (ix >= 0)
+					drive_ctx_menu(ctx, av3, win3, "contextImage",
+								   wantCopy, ix, iy, &fails);
+				else
+					markup_check(&fails, false, "contextImage",
+								 "image position probed");
+			} else
+				markup_check(&fails, false, "contextImage",
+							 "fixture loaded");
+		} else
+			g_print("popovers: no red.png — contextImage skipped\n");
+	}
+
+	g_source_remove(sweeper);
+	tf_guard::pump_for(200);
+	__gcov_dump();
+	g_print("drive: popovers done — %d popovers, %d rows clicked, "
+			"%d check rows cycled, %d failures, %d criticals\n",
+			popsDone, rowsClicked, checksCycled, fails, g_criticals);
+	return fails ? 1 : 0;
+}
+
 int main(int argc, char **argv)
 {
 	g_log_set_writer_func(drive_log_writer, nullptr, nullptr);
@@ -3832,7 +4728,7 @@ int main(int argc, char **argv)
 	bool wantList = false, wantFrame = false, wantAbi = false,
 		 wantEv = false, wantFmt = false, wantFileNew = false,
 		 wantRuler = false, wantFreeze = false, wantToc = false,
-		 wantMarkup = false;
+		 wantMarkup = false, wantPopovers = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -3855,15 +4751,17 @@ int main(int argc, char **argv)
 			wantToc = true;
 		else if (strcmp(argv[i], "--markup") == 0)
 			wantMarkup = true;
+		else if (strcmp(argv[i], "--popovers") == 0)
+			wantPopovers = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
 	if (!wantList && !wantFrame && !wantAbi && !wantEv && !wantFmt &&
 		!wantFileNew && !wantRuler && !wantFreeze && !wantToc &&
-		!wantMarkup && wantId < 0) {
+		!wantMarkup && !wantPopovers && wantId < 0) {
 		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev"
 				   " | --fmt | --filenew | --ruler | --freeze"
-				   " | --toc | --markup\n", argv[0]);
+				   " | --toc | --markup | --popovers\n", argv[0]);
 		return 2;
 	}
 
@@ -3941,6 +4839,8 @@ int main(int argc, char **argv)
 		return drive_toc(app, src);
 	if (wantMarkup)
 		return drive_markup(app, src);
+	if (wantPopovers)
+		return drive_popovers(app, src);
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {

@@ -10816,7 +10816,19 @@ GtkWidget * AP_UnixRibbon::_makeBordersPopover()
 	add(_borderRow(15, "Borders and Shading\xE2\x80\xA6",
 				   "dlgBorders", nullptr));
 
-	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	/* the full list is taller than the space below the button on a
+	 * small window — GTK pops a popover back down when the presented
+	 * surface comes in under its minimum height, so cap it behind a
+	 * scroller like the other long dropdowns */
+	GtkWidget * sw = gtk_scrolled_window_new();
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+								   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_propagate_natural_height(
+		GTK_SCROLLED_WINDOW(sw), TRUE);
+	gtk_scrolled_window_set_max_content_height(
+		GTK_SCROLLED_WINDOW(sw), 430);
+	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), box);
+	gtk_popover_set_child(GTK_POPOVER(popover), sw);
 	return popover;
 }
 

@@ -49,6 +49,16 @@ public:
 	UT_sint32 breakSection(void);
 	void   setStartPage(fp_Page * pPage);
 	fp_Page * getStartPage(void) { return m_pStartPage;}
+	/* FL_DocLayout::deletePage calls this before the page is freed so
+	 * the cached restart anchor never points at dead storage */
+	void   forgetPage(fp_Page * pPage)
+	{
+		if (m_pStartPage == pPage)
+		{
+			m_pStartPage = nullptr;
+			m_bStartFromStart = true;
+		}
+	}
 	/* When piSignature is non-null it receives a cheap signature of the
 	 * reported overflow (page index, which check failed, and the
 	 * offending height/Y).  Two consecutive passes that end in the

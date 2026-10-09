@@ -7,6 +7,12 @@ export G_SLICE
 ABINOVA_TEST_SRC_DIR=@abs_top_srcdir@
 export ABINOVA_TEST_SRC_DIR
 
+# Pin the C locale: the first gtk_init_check() inside a test adopts the
+# developer's environment locale via setlocale(LC_ALL,""), and on a
+# comma-decimal desktop that leaks into every later suite (atof, %f)
+LC_ALL=C
+export LC_ALL
+
 # Suppressions, mostly fontconfig — the init-time caches surface as
 # LSan reports whose innermost frames do not symbolize, so the
 # module-level patterns are what actually match

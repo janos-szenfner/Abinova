@@ -2457,6 +2457,18 @@ void FL_DocLayout::deletePage(fp_Page* pPage, bool bDontNotify /* default false 
 		? -1 : static_cast<UT_sint32>(itPage - m_vecPages.begin());
 	UT_ASSERT(ndx >= 0);
 
+	/* Every DocSectionLayout can hold bare cached pointers to the page
+	 * — the column breaker's restart anchor, the owned-page head —
+	 * and they are not all cleared through deleteOwnedPage()
+	 * (deleteEmptyPages() calls here directly).  Tell each section to
+	 * drop its references while the page is still alive, otherwise the
+	 * next re-break pass dereferences freed memory. */
+	for (fl_DocSectionLayout * pSL = m_pFirstSection; pSL;
+		 pSL = pSL->getNextDocSection())
+	{
+		pSL->forgetPage(pPage);
+	}
+
 	// m_vecPages is authoritative for page order; removing the entry
 	// unlinks the page from its neighbours automatically (fp_Page
 	// getPrev()/getNext() derive from this vector). The unique_ptr

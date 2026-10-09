@@ -1981,6 +1981,25 @@ void fl_DocSectionLayout::updateLayout(bool bDoFull)
 	m_pLayout->getView()->getGraphics()->flush(); // schedule redraw for Wayland
 }
 
+/* A page this section references is being destroyed.  The column
+ * breaker's m_pStartPage is a bare cached pointer — the next
+ * setStartPage() compares it via findPage(), which dereferences it,
+ * so a stale anchor is a use-after-free.  Same for the owned-page
+ * head when deletePage() ran without deleteOwnedPage()'s unlink
+ * (deleteEmptyPages takes that shortcut).  Called with the page still
+ * alive so neighbour lookups still work. */
+void fl_DocSectionLayout::forgetPage(fp_Page * pPage)
+{
+	m_ColumnBreaker.forgetPage(pPage);
+	if (m_pFirstOwnedPage == pPage)
+	{
+		fp_Page * pNext = pPage->getNext();
+		m_pFirstOwnedPage =
+			(pNext && pNext->getOwningSection() == this)
+				? pNext : nullptr;
+	}
+}
+
 void fl_DocSectionLayout::setNeedsSectionBreak(bool bSet, fp_Page * pPage)
 {
 	if(bSet && abi_breakDebug())

@@ -1,84 +1,108 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml.dtd">
-<abiword template="false" xmlns:ct="http://www.abisource.com/changetracking.dtd" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:math="http://www.w3.org/1998/Math/MathML" xid-max="200" xmlns:dc="http://purl.org/dc/elements/1.1/" styles="unlocked" fileformat="1.0" xmlns:svg="http://www.w3.org/2000/svg" xmlns:awml="http://www.abisource.com/awml.dtd" xmlns="http://www.abisource.com/awml.dtd" xmlns:xlink="http://www.w3.org/1999/xlink" version="0.99.2" xml:space="preserve" props="dom-dir:ltr; document-footnote-type:numeric; document-endnote-type:numeric; lang:en-US">
-<metadata>
-<m key="dc.title">Coverage Fixture</m>
-<m key="dc.creator">Abinova Tests</m>
-<m key="dc.language">en-US</m>
-<m key="dc.subject">importer/exporter coverage</m>
-<m key="dc.description">Rich fixture exercising lists, tables, notes, fields, images, frames, math, annotations and sections.</m>
-</metadata>
-<rdf/>
-<styles>
-<s type="P" name="Normal" followedby="Current Settings" props="font-family:Times New Roman; color:000000; widows:2; font-style:normal; text-position:normal; margin-bottom:0pt; font-weight:normal; line-height:1.0; text-align:left; font-variant:normal; text-decoration:none; font-size:12pt; lang:en-US"/>
-<s type="P" name="Heading 1" basedon="Normal" followedby="Normal" props="font-family:Arial; font-size:16pt; font-weight:bold; margin-top:12pt; margin-bottom:6pt; keep-with-next:1; color:000080"/>
-<s type="P" name="Heading 2" basedon="Heading 1" followedby="Normal" props="font-size:13pt; color:004080"/>
-<s type="P" name="Block Text" basedon="Normal" props="margin-left:0.5in; margin-right:0.5in; font-style:italic"/>
-<s type="C" name="Emphasis" props="font-style:italic"/>
-<s type="C" name="Strong" props="font-weight:bold"/>
-<s type="P" name="Footnote Text" basedon="Normal" props="font-size:10pt"/>
-<s type="C" name="Footnote Reference" props="font-size:10pt; text-position:superscript"/>
-<s type="P" name="Contents 1" basedon="Normal" props="margin-left:0.2in; tabstops:6.0in/R0"/>
-</styles>
-<lists>
-<l id="8001" parentid="0" type="3" start-value="1" list-delim="%L." list-decimal="."/>
-<l id="8002" parentid="0" type="7" start-value="1" list-delim="%L" list-decimal="."/>
-<l id="8003" parentid="8001" type="3" start-value="1" list-delim="(%L)" list-decimal="."/>
-</lists>
-<pagesize pagetype="Letter" orientation="portrait" width="8.5" height="11" units="in" page-scale="1"/>
-<section xid="10" props="page-margin-footer:0.5in; page-margin-header:0.5in" header="hdr01" footer="ftr01">
-<p style="Heading 1" xid="11">Rich Coverage Document</p>
-<p xid="12"><c>This paragraph has </c><c props="font-weight:bold">bold</c><c>, </c><c props="font-style:italic">italic</c><c>, </c><c props="text-decoration:underline">underline</c><c>, </c><c props="text-decoration:line-through">strike</c><c>, </c><c props="text-decoration:overline">overline</c><c>, </c><c props="text-position:superscript">super</c><c> and </c><c props="text-position:subscript">sub</c><c> runs, plus </c><c props="color:AA0000; font-family:Courier New; font-size:14pt">colored mono</c><c> text.</c></p>
-<p xid="13" props="text-align:center"><c props="bgcolor:FFFF00">Centered and highlighted. A bookmark sits </c><bookmark type="start" name="covmark"/><c>here</c><bookmark type="end" name="covmark"/><c>.</c></p>
-<p xid="14"><c>Visit </c><a xlink:href="https://example.com/" props="color:0000CC; text-decoration:underline">the example site</a><c> for more. Page </c><field type="page_number"/><c> of </c><field type="page_count"/><c>; today is </c><field type="date"/><c> at </c><field type="time"/><c>.</c></p>
-<p style="Heading 2" xid="15">Lists</p>
-<p level="1" listid="8001" style="Numbered Heading 1" props="margin-left:0.5in; text-indent:-0.25in; list-style:Numbered List"><field type="list_label"></field><c type="list_label">	</c><c>Numbered item one</c></p>
-<p level="1" listid="8001" props="margin-left:0.5in; text-indent:-0.25in; list-style:Numbered List"><field type="list_label"></field><c type="list_label">	</c><c>Numbered item two</c></p>
-<p level="2" listid="8003" props="margin-left:0.75in; text-indent:-0.25in; list-style:Numbered List"><field type="list_label"></field><c type="list_label">	</c><c>Nested number</c></p>
-<p level="1" listid="8002" props="margin-left:0.5in; text-indent:-0.25in; list-style:Bullet List"><field type="list_label"></field><c type="list_label">	</c><c>Bullet item</c></p>
-<p xid="16"><c>Footnote</c><field type="footnote_ref" footnote-id="0" style="Footnote Reference"/><foot footnote-id="0"><p style="Footnote Text"><field type="footnote_anchor" footnote-id="0" style="Footnote Reference"/><c> Footnote body text.</c></p></foot><c> and endnote</c><field type="endnote_ref" endnote-id="0" style="Footnote Reference"/><endnote endnote-id="0"><p style="Footnote Text"><field type="endnote_anchor" endnote-id="0" style="Footnote Reference"/><c> Endnote body text.</c></p></endnote><c> anchors.</c></p>
-<p xid="17"><c>An annotated span</c><ann annotation-id="0" xid="66"><annotate annotation-id="0" props="annotation-author:Coverage Tester; annotation-date:2026-10-04T10:00:00Z; annotation-initials:CT"><p xid="67"><c props="font-size:10pt">Annotation body text.</c></p></annotate><c> right here</c></ann><c> continues normally.</c></p>
-<p style="Heading 2" xid="18">Table</p>
-<table xid="19" props="table-column-props:1.0in/2.0in/1.0in/; border-color:000000; border-width:0.5pt">
-<cell xid="20" props="bot-attach:1; left-attach:0; right-attach:1; top-attach:0; bgcolor:EEEEEE"><p xid="21"><c props="font-weight:bold">A1</c></p></cell>
-<cell xid="22" props="bot-attach:1; left-attach:1; right-attach:2; top-attach:0; bgcolor:EEEEEE"><p xid="23"><c props="font-weight:bold">B1</c></p></cell>
-<cell xid="24" props="bot-attach:1; left-attach:2; right-attach:3; top-attach:0; bgcolor:EEEEEE"><p xid="25"><c props="font-weight:bold">C1</c></p></cell>
-<cell xid="26" props="bot-attach:2; left-attach:0; right-attach:2; top-attach:1"><p xid="27"><c>merged A2:B2</c></p></cell>
-<cell xid="28" props="bot-attach:2; left-attach:2; right-attach:3; top-attach:1"><p xid="29"><c>C2</c></p></cell>
-<cell xid="30" props="bot-attach:3; left-attach:0; right-attach:1; top-attach:2"><p xid="31"><c>A3</c></p></cell>
-<cell xid="32" props="bot-attach:3; left-attach:1; right-attach:2; top-attach:2"><p xid="33"><c>B3 with an image <image dataid="red.png" props="height:0.25in; width:0.33in"/></c></p></cell>
-<cell xid="34" props="bot-attach:3; left-attach:2; right-attach:3; top-attach:2"><p xid="35"><c>C3</c></p></cell>
-</table>
-<p style="Heading 2" xid="36">Objects</p>
-<p xid="37"><c>Inline image: </c><image dataid="red.png" title="Red" alt="red square" props="height:0.33in; width:0.44in"/><c>; math: </c><math latexid="LatexMath0" dataid="MathLatex0" props="display:inline"><image dataid="snapshot-svg-MathLatex0" props=""/></math><c>.</c></p>
-<frame xid="38" props="position-to:page-above-text; frame-type:textbox; frame-width:2.0in; frame-height:0.8in; frame-page-xpos:4.0in; frame-page-ypos:3.0in; wrap-mode:above-text; background-color:DDEEFF; border-style:solid; border-width:1pt; border-color:0000AA">
-<p xid="39"><c props="font-size:10pt">Textbox frame content.</c></p>
+<!DOCTYPE abinova PUBLIC "-//ABINOVA//DTD AWNL 1.0 Strict//EN" "https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd">
+<abinova xmlns:fo="http://www.w3.org/1999/XSL/Format" fileformat="1.0" template="false" xid-max="234" xmlns="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd" xmlns:ct="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/changetracking.dtd" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:awml="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" version="0.99.2" styles="unlocked" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:svg="http://www.w3.org/2000/svg" xml:space="preserve" props="dom-dir:ltr; document-endnote-place-enddoc:1; document-endnote-place-endsection:0; document-footnote-type:numeric; document-endnote-type:numeric; lang:en-US; document-footnote-restart-page:0; document-endnote-initial:1; document-endnote-restart-section:0; document-footnote-initial:1; document-footnote-restart-section:0">
+<!-- ======================================================================== -->
+<!-- This file is an Abinova document.                                        -->
+<!-- Abinova is a free, Open Source word processor.                           -->
+<!-- More information about Abinova is available at https://github.com/janos-szenfner/Abinova -->
+<!-- You should not edit this file by hand.                                   -->
+<!-- ======================================================================== -->
+
+  <metadata>
+    <m key="abiword.generator">Abinova</m>
+    <m key="dc.creator">Abinova Tests</m>
+    <m key="dc.description">Rich fixture exercising lists, tables, notes, fields, images, frames, math, annotations and sections.</m>
+    <m key="dc.format">application/x-abinova</m>
+    <m key="dc.language">en-US</m>
+    <m key="dc.subject">importer/exporter coverage</m>
+    <m key="dc.title">Coverage Fixture</m>
+  </metadata>
+  <rdf/>
+  <styles>
+    <s type="P" name="Heading 1" basedon="Normal" followedby="Normal" props="font-family:Arial; font-style:normal; font-size:16pt; font-weight:bold; margin-top:12pt; margin-bottom:6pt; keep-with-next:1; color:000080"/>
+    <s type="P" name="Normal" followedby="Current Settings" props="font-size:12pt; text-decoration:none; font-variant:normal; line-height:1.0; bgcolor:transparent; font-weight:normal; margin-right:0pt; text-indent:0in; margin-bottom:0pt; margin-top:0pt; font-family:Times New Roman; font-style:normal; widows:2; text-position:normal; margin-left:0pt; color:000000; text-align:left; font-stretch:normal; lang:en-US"/>
+    <s type="P" name="Heading 2" basedon="Heading 1" followedby="Normal" props="font-size:13pt; color:004080; keep-with-next:1; margin-bottom:4pt; margin-top:10pt; font-weight:bold; font-style:normal; font-family:Carlito"/>
+    <s name="Numbered Heading 1" type="P" basedon="Heading 1" followedby="Normal" props="tabstops:0.3in/L0; margin-left:0.0in; list-style:Numbered List; start-value:1; text-indent:0.0in; field-color:transparent; list-delim:%L.; field-font:Liberation Sans"/>
+    <s type="C" name="Footnote Reference" followedby="Current Settings" basedon="None" props="font-size:10pt; text-position:superscript"/>
+    <s type="P" name="Footnote Text" basedon="Normal" followedby="Current Settings" props="font-size:10pt; text-position:normal"/>
+    <s type="P" name="Block Text" basedon="Normal" followedby="Current Settings" props="margin-left:0.5in; margin-right:0.5in; font-style:italic; margin-bottom:6pt"/>
+    <s type="P" name="Contents 1" basedon="Normal" followedby="Normal" props="margin-left:0.2in; tabstops:6.0in/R0; list-decimal:.; field-font:NULL; list-delim:%L.; field-color:transparent; text-indent:-0.300000in; start-value:1; list-style:Numbered List"/>
+    <s type="C" name="Emphasis" followedby="Current Settings" basedon="None" props="font-style:italic"/>
+    <s type="C" name="Strong" followedby="Current Settings" basedon="None" props="font-weight:bold"/>
+  </styles>
+  <lists>
+    <l id="8001" parentid="0" type="0" start-value="1" list-delim="%L." list-decimal="."/>
+    <l id="8003" parentid="0" type="0" start-value="1" list-delim="%L" list-decimal="."/>
+    <l id="8002" parentid="0" type="5" start-value="1" list-delim="%L" list-decimal="."/>
+  </lists>
+  <pagesize pagetype="Letter" orientation="portrait" width="8.5" height="11" units="in" page-scale="1"/>
+  <section header="hdr01" footer="ftr01" xid="10" props="page-margin-footer:0.5in; page-margin-header:0.5in">
+    <p style="Heading 1" xid="11">Rich Coverage Document</p>
+    <p xid="12">This paragraph has <c props="font-weight:bold">bold</c>, <c props="font-style:italic">italic</c>, <c props="text-decoration:underline">underline</c>, <c props="text-decoration:line-through">strike</c>, <c props="text-decoration:overline">overline</c>, <c props="text-position:superscript">super</c> and <c props="text-position:subscript">sub</c> runs, plus <c props="color:AA0000; font-family:Courier New; font-size:14pt">colored mono</c> text.</p>
+    <p xid="13" props="text-align:center"><c props="bgcolor:FFFF00">Centered and highlighted. A bookmark sits </c><bookmark type="start" name="covmark" xid="201"/>here<bookmark type="end" name="covmark" xml:id="" xid="202"/>.</p>
+    <p xid="14">Visit <a xlink:href="https://example.com/" xid="203">the example site</a> for more. Page <field type="page_number" xid="205"/> of <field type="page_count" xid="206"/>; today is <field type="date" xid="207"/> at <field type="time" xid="208"/>.</p>
+    <p style="Heading 2" xid="15">Lists</p>
+    <p level="1" style="Numbered Heading 1" listid="8001" xid="209" props="margin-left:0.5in; text-indent:-0.25in; list-style:Numbered List"><field type="list_label" xid="210"/><c type="list_label">	</c>Numbered item one</p>
+    <p level="1" listid="8001" xid="211" props="margin-left:0.5in; text-indent:-0.25in; list-style:Numbered List"><field type="list_label" xid="212"/><c type="list_label">	</c>Numbered item two</p>
+    <p level="2" listid="8003" xid="213" props="margin-left:0.75in; text-indent:-0.25in; list-style:Numbered List"><field type="list_label" xid="214"/><c type="list_label">	</c>Nested number</p>
+    <p level="1" listid="8002" xid="215" props="margin-left:0.5in; text-indent:-0.25in; list-style:Bullet List"><field type="list_label" xid="216"/><c type="list_label">	</c>Bullet item</p>
+    <p xid="16">Footnote<field type="footnote_ref" footnote-id="0" style="Footnote Reference" xid="217"/><foot footnote-id="0" xid="218"><p style="Footnote Text" xid="219"><field type="footnote_anchor" footnote-id="0" style="Footnote Reference" xid="220"/> Footnote body text.</p></foot> and endnote<field type="endnote_ref" endnote-id="0" style="Footnote Reference" xid="221"/><endnote endnote-id="0" xid="222"><p style="Footnote Text" xid="223"><field type="endnote_anchor" endnote-id="0" style="Footnote Reference" xid="224"/> Endnote body text.</p></endnote> anchors.</p>
+    <p xid="17">An annotated span<ann annotation-id="0" xid="66"><annotate annotation-id="0" xid="225" props="annotation-author:Coverage Tester; annotation-date:2026-10-04T10:00:00Z; annotation-initials:CT"><p xid="67"><c props="font-size:10pt">Annotation body text.</c></p></annotate> right here</ann> continues normally.</p>
+    <p style="Heading 2" xid="18">Table</p>
+    <table xid="19" props="table-column-props:1.0in/2.0in/1.0in/; border-color:000000; border-width:0.5pt">
+      <cell xid="20" props="bot-attach:1; right-attach:1; top-attach:0; left-attach:0; bgcolor:EEEEEE">
+        <p xid="21"><c props="font-weight:bold">A1</c></p>
+</cell>
+      <cell xid="22" props="bot-attach:1; right-attach:2; top-attach:0; left-attach:1; bgcolor:EEEEEE">
+        <p xid="23"><c props="font-weight:bold">B1</c></p>
+</cell>
+      <cell xid="24" props="bot-attach:1; right-attach:3; top-attach:0; left-attach:2; bgcolor:EEEEEE">
+        <p xid="25"><c props="font-weight:bold">C1</c></p>
+</cell>
+      <cell xid="26" props="bot-attach:2; right-attach:2; top-attach:1; left-attach:0">
+        <p xid="27">merged A2:B2</p>
+</cell>
+      <cell xid="28" props="bot-attach:2; right-attach:3; top-attach:1; left-attach:2">
+        <p xid="29">C2</p>
+</cell>
+      <cell xid="30" props="bot-attach:3; right-attach:1; top-attach:2; left-attach:0">
+        <p xid="31">A3</p>
+</cell>
+      <cell xid="32" props="bot-attach:3; right-attach:2; top-attach:2; left-attach:1">
+        <p xid="33">B3 with an image <image dataid="red.png" xid="227" props="height:0.25in; width:0.33in"/></p>
+</cell>
+      <cell xid="34" props="bot-attach:3; right-attach:3; top-attach:2; left-attach:2">
+        <p xid="35">C3</p>
+</cell>
+    </table>
+    <p style="Heading 2" xid="36">Objects</p>
+    <p xid="37">Inline image: <image dataid="red.png" title="Red" alt="red square" xid="228" props="height:0.33in; width:0.44in"/>; math: <math dataid="MathLatex0" latexid="LatexMath0" xid="229" props="height:160; width:523; ascent:160; descent:0; display:inline"><image dataid="snapshot-svg-MathLatex0" props="height:0.111111in; width:0.363194in"/></math>.</p>
+    <frame xid="38" props="position-to:page-above-text; wrap-mode:above-text; frame-type:textbox; frame-width:2.0in; frame-height:0.8in; frame-page-xpos:4.0in; frame-page-ypos:3.0in; background-color:DDEEFF; border-style:solid; border-width:1pt; border-color:0000AA; frame-pref-page:0">
+      <p xid="39"><c props="font-size:10pt">Textbox frame content.</c></p>
 </frame>
-<frame xid="40" props="position-to:page-above-text; frame-type:image; frame-width:0.9in; frame-height:0.7in; frame-page-xpos:4.0in; frame-page-ypos:4.2in; wrap-mode:above-text">
-<p xid="41"><image dataid="red.png"/></p>
+    <frame xid="40" props="position-to:page-above-text; wrap-mode:above-text; frame-type:image; frame-width:0.9in; frame-height:0.7in; frame-page-xpos:4.0in; frame-page-ypos:4.2in; frame-pref-page:0">
+      <p xid="41"><image dataid="red.png" xid="230"/></p>
 </frame>
-<p style="Heading 2" xid="42">Contents</p>
-<toc xid="43" props="toc-has-heading:0; toc-source-style1:Heading 1; toc-dest-style1:Contents 1">
-<p xid="44" props="toc-dest-style:1">Rich Coverage Document&#9;1</p>
+    <p style="Heading 2" xid="42">Contents</p>
+    <toc xid="43" props="toc-has-heading:0; toc-source-style1:Heading 1; toc-dest-style1:Contents 1">
+      <p xid="44" props="toc-dest-style:1">Rich Coverage Document	1</p>
 </toc>
-<p style="Block Text" xid="45"><c>Indented block quote paragraph with a tab	stop.</c></p>
+    <p style="Block Text" xid="45">Indented block quote paragraph with a tab	stop.</p>
 </section>
-<section xid="50" props="columns:2; section-space-after:0.25in; column-gap:0.3in">
-<p xid="51"><c props="font-weight:bold">Second section (two columns).</c><c> Column text flows here; a page break follows.</c></p>
-<p xid="52"><pbr/><c>After the page break in section two.</c></p>
+  <section xid="50" props="columns:2; section-space-after:0.25in; column-gap:0.3in">
+    <p xid="51"><c props="font-weight:bold">Second section (two columns).</c> Column text flows here; a page break follows.</p>
+    <p xid="52"><pbr/>After the page break in section two.</p>
 </section>
-<section type="header" id="hdr01" xid="60">
-<p xid="61" props="text-align:center"><c props="font-size:9pt; color:888888">Coverage header</c></p>
+  <section type="header" id="hdr01" xid="60">
+    <p xid="61" props="text-align:center"><c props="font-size:9pt; color:888888">Coverage header</c></p>
 </section>
-<section type="footer" id="ftr01" xid="62">
-<p xid="63" props="text-align:center"><c>Page </c><field type="page_number"/><c> of </c><field type="page_count"/></p>
+  <section type="footer" id="ftr01" xid="62">
+    <p xid="63" props="text-align:center">Page <field type="page_number" xid="231"/> of <field type="page_count" xid="232"/></p>
 </section>
-<data>
-<d name="red.png" mime-type="image/png" base64="yes">
-iVBORw0KGgoAAAANSUhEUgAAACAAAAAYCAIAAAAUMWhjAAAAJElEQVR4nGM4ISdHU8QwasGoBaMWjFowasGoBaMWjFowNCwAAGcLDC4DZjluAAAAAElFTkSuQmCC
-</d>
-<d name="LatexMath0" base64="yes">eD0y</d>
-<d name="MathLatex0" mime-type="application/mathml+xml" base64="no"><![CDATA[<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mi>x</mi><mo>=</mo><mn>2</mn></mrow></math>]]></d>
-<d name="snapshot-svg-MathLatex0" mime-type="image/svg+xml" base64="yes">PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiI+PHRleHQgeT0iMTIiPng9MjwvdGV4dD48L3N2Zz4=</d>
-</data>
-</abiword>
+  <data>
+    <d name="LatexMath0" mime-type="image/png" base64="yes">eD0y</d>    <d name="MathLatex0" mime-type="application/mathml+xml" base64="no"><![CDATA[<math xmlns="http://www.w3.org/1998/Math/MathML"><mrow><mi>x</mi><mo>=</mo><mn>2</mn></mrow></math>
+]]>
+</d>    <d name="red.png" mime-type="image/png" base64="yes">iVBORw0KGgoAAAANSUhEUgAAACAAAAAYCAIAAAAUMWhjAAAAJElEQVR4nGM4ISdHU8QwasGoBaMWjFowasGoBaMWjFowNCwAAGcLDC4DZjluAAAAAElFTkSuQmCC</d>    <d name="snapshot-svg-MathLatex0" mime-type="image/svg+xml" base64="no"><![CDATA[<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><text y="12">x=2</text></svg>
+]]>
+</d></data>
+</abinova>

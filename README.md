@@ -2423,6 +2423,16 @@ desktop. Set `ABINOVA_TEST_LIVE_DISPLAY=1` to force the real session
 display for legs that genuinely need it (e.g. portal-mediated file
 choosers, or the `--fmt` leg's Wayland-backend paths).
 
+The unit suite also carries a DOCX fidelity corpus
+(`core.wp.impexp.covercorpus`): each Microsoft-template-derived cover
+`.docx` is imported and the re-exported markup is asserted for the
+design elements it must retain (anchored shapes, header/footer
+struxes, resolved fields, theme colors, custGeom paths). Those
+fixtures are not committed for licensing reasons — point
+`COVER_FIXTURES_DIR` at the directory holding them; when the variable
+is unset or a file is missing the tests `SKIP` cleanly instead of
+failing. The expectation table lives in `test/wp/tst05/FIXTURES.md`.
+
 ### Code coverage (gcov/lcov)
 
 Configure the tree with `--enable-coverage` to compile `src/` with

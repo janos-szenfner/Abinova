@@ -2196,6 +2196,22 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Section-break crash after page-geometry changes fixed** — the
+  column breaker kept a bare cached page pointer as its re-break
+  restart anchor; once that page was deleted (a paper-size or
+  orientation change, or any reflow that reaps empty pages), the next
+  section operation dereferenced freed memory and crashed. Deleting a
+  page now drops the anchor and the owning-section back-reference on
+  every affected section — including ones the layout's section chain
+  cannot reach — by notifying the owning section from the page's
+  destructor. Caught by the popover-lifecycle drive clicking
+  "Insert section break" after the margins/orientation/page-size
+  popovers had re-broken the document.
+- **"Borders and Shading" popover no longer collapses on small
+  windows** — the border-style list is taller than the space below its
+  button on short windows, and GTK retracts a popover whose presented
+  surface comes in under its minimum height; the list now sits in a
+  scrolled window with a capped height like the other long dropdowns.
 - **Embeddable `AbiWidget` API audited and kept** — the `abi_widget_*`
   C API in `libabinova-4.0` that lets host applications embed an
   Abinova canvas now actually honours `abi_widget_new_with_file()`
@@ -5498,6 +5514,40 @@ below are on `main` but the release has not been cut yet.
   insert/replace/remove plus undo-as-one-unit/redo. A dedicated
   negative test proves a deliberately-wedged selector state fails
   the flag assert before the real transition un-wedges it.
+- **Structural-content regression suite** (`fv_StructContent.t.cpp`)
+  — count/shape/attribute assertions on generated content, no
+  display needed: every cover preset is inserted and its emitted
+  frame/field/shape census compared against the declared preset
+  (badge's seal custGeom + two text frames + image blob, facet's
+  blue base band + overlay images, and so on), the TOC command is
+  asserted to emit its strux pair with the preset props and correct
+  field markers, and header/footer presets are checked for their
+  declared fields. A deliberately-dropped shape fails the census,
+  so the suite catches misgenerated or silently-missing content
+  that pixel tests would only hint at.
+- **DOCX fidelity corpus** (`ie_covercorpus.t.cpp`) — each
+  Microsoft-template-derived reference cover `.docx` is imported
+  and the re-exported document markup is asserted for the design
+  elements it must retain: anchored-image and custGeom shape paths,
+  header/footer struxes, resolved fields, theme colours and
+  per-file textual markers. The fixtures themselves are not
+  committed (licensing); the suite takes the directory from
+  `COVER_FIXTURES_DIR` and `SKIP`s cleanly when a file is absent,
+  and the expectation table is committed at
+  `test/wp/tst05/FIXTURES.md` so the coverage contract is visible
+  in-repo. `testwrap` also pins `LC_ALL=C` so a comma-decimal
+  desktop locale can no longer leak into `printf`/`atof`-sensitive
+  assertions.
+- **Popover/menu lifecycle leg** (`ui-drive --popovers`, wired into
+  `make check` via `drvwrap`) — every ribbon menu button's popover
+  is opened, each row activated, and the suite asserts the row
+  stays sensitive and the popover re-opens; check popovers verify
+  the tick lands on the clicked row, and the contextText/
+  contextTOC/contextImage edit methods are exercised through the
+  real nested-loop popup path with a genuine item activation. The
+  freeze and popovers legs now each copy the shared fixture to a
+  fresh scratch file — a wrapper-timeout kill mid-leg was able to
+  leave `rich.abw` truncated for the next leg.
 
 ### Resolved root causes worth noting
 

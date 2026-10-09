@@ -278,6 +278,7 @@ EXTRA_DIST = \
 	fmt/xp/t/fv_RefsTOC.t.cpp \
 	fmt/xp/t/fv_SignatureLine.t.cpp \
 	fmt/xp/t/fv_StateCycle.t.cpp \
+	fmt/xp/t/fv_StructContent.t.cpp \
 	fmt/xp/t/fv_TableOps.t.cpp \
 	fmt/xp/t/fv_TOCContext.t.cpp \
 	fmt/xp/t/fv_ViewModes.t.cpp \
