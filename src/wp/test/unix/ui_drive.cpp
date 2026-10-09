@@ -2129,6 +2129,10 @@ static int drive_abiwidget(const char *scratch_uri)
 #include "ev_UnixKeyboard.h"
 #include "ev_UnixMouse.h"
 #include "ev_UnixMenuPopup.h"
+#include "ev_UnixMenuBar.h"
+#include "ev_UnixFontCombo.h"
+#include "ev_UnixToolbar.h"
+#include "xap_UnixTableWidget.h"
 #include "ev_EditEventMapper.h"
 #include "ap_Prefs_SchemeIds.h"
 #include "gr_Graphics.h"
@@ -2644,6 +2648,437 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 			popup->refreshMenu(view);
 			delete popup;
 		});
+
+	/* ---- non-popup synthesis: the ribbon app's "Main" layout is
+	 * empty, so the accel-attribute branch in _createMenuItem
+	 * (_convertStringToGtkAccel over the Ctrl+/Alt+/Shift+/F-key/Del
+	 * forms) never runs in production.  Synthesizing a populated
+	 * layout with isPopup=false exercises it; a throwaway
+	 * EV_UnixMenuBar covers synthesizeMenuBar/rebuildMenuBar/destroy
+	 * and the class dtor. ---- */
+	EV_SECTION("menu nonpopup",
+		EV_UnixMenuPopup * np = new EV_UnixMenuPopup(
+			static_cast<XAP_UnixApp *>(app), frame,
+			"ContextText", AP_PREF_DEFAULT_StringSet);
+		if (np) {
+			/* isPopup=false: leaf items carry their shortcut into
+			 * the item's "accel" attribute */
+			np->synthesizeMenu(np->getMenuModel(), false);
+			if (view)
+				np->refreshMenu(view);
+			delete np;
+		}
+		EV_UnixMenuBar * mb = new EV_UnixMenuBar(
+			static_cast<XAP_UnixApp *>(app), frame,
+			"Main", AP_PREF_DEFAULT_StringSet);
+		if (mb) {
+			mb->synthesizeMenuBar();
+			mb->rebuildMenuBar();
+			if (view)
+				mb->refreshMenu(view);
+			mb->destroy();
+			delete mb;
+		});
+
+	/* ---- ContextSquiggle popup: SPELL_SUGGEST_n items have dynamic
+	 * labels (present only while the caret sits on a squiggle with
+	 * that many suggestions).  Refreshing across the presence flip
+	 * runs _ev_GetLabelName's dynamic branch and the deferred
+	 * bound-model rebuild (_rebuildBoundModel → _s_rebuildTick →
+	 * _ev_has_realized_popover → _setModelOnBoundWidget).  The bound
+	 * popover is never mapped — the tick's "still open, wait" arm
+	 * and _ev_popup_refresh belong to the real context-menu path. */
+	EV_SECTION("squiggle popup",
+		FV_View * fv = static_cast<FV_View *>(view);
+		if (fv) {
+			/* the "menu" section leaves the whole doc selected —
+			 * collapse to end-of-doc first so the insert does not
+			 * replace a selection spanning struxes */
+			fv->cmdCharMotion(true, 10000);
+			fv->cmdCharMotion(true, 1);
+			/* plant a misspelled word, caret inside it, and let the
+			 * squiggle queue mark it before the popup is built */
+			fv->cmdCharInsert(std::string("xxzqblorg "));
+			tf_guard::pump_for(800);
+			fv->cmdCharMotion(false, 3);
+			EV_UnixMenuPopup * sq = new EV_UnixMenuPopup(
+				static_cast<XAP_UnixApp *>(app), frame,
+				"ContextSquiggle", AP_PREF_DEFAULT_StringSet);
+			if (sq) {
+				sq->synthesizeMenuPopup();
+				sq->refreshMenu(view);
+				/* caret leaves the word → suggestion items vanish
+				 * → refreshMenu sees present != wantPresent and
+				 * defers the model swap through the timeout tick.
+				 * The bound popover is never mapped: the tick's
+				 * "popover open, keep waiting" arm is only reachable
+				 * while a real context menu is up, and _ev_popup_
+				 * refresh runs through that nested-loop path too. */
+				fv->cmdCharMotion(true, 1000);
+				sq->refreshMenu(view);
+				tf_guard::pump_for(400);   /* tick runs the swap */
+				delete sq;
+			}
+		});
+
+	/* ---- AbiFontCombo: standalone widget in its own window so the
+	 * entry-changed filter, arrow popover, selection apply, entry
+	 * activate and focus-leave paths all run on a real widget.  The
+	 * window is registered as preexisting so the stray sweep leaves
+	 * it alone; key driving happens in the "real input" section. */
+	GtkWidget *fcwin = nullptr;
+	AbiFontCombo *fc = nullptr;
+	EV_SECTION("font combo",
+		fcwin = gtk_window_new();
+		GtkWidget * fcw = abi_font_combo_new();
+		gtk_window_set_child(GTK_WINDOW(fcwin), fcw);
+		fc = ABI_FONT_COMBO(fcw);
+		static const gchar *fonts[] = {"Serif", "Sans", "Monospace",
+									   "ZoomFont", nullptr};
+		abi_font_combo_set_fonts(fc, fonts);
+		gtk_window_present(GTK_WINDOW(fcwin));
+		ctx.preexisting.push_back(fcwin);
+		tf_guard::pump_for(400);
+		abi_font_combo_insert_font(fc, "InsertedFont", FALSE);
+		abi_font_combo_insert_font(fc, "Serif", TRUE);	/* dup → find path */
+		(void)abi_font_combo_select_text(fc, "Sans");
+		gchar *txt = abi_font_combo_get_active_text(fc);
+		g_free(txt);
+		abi_font_combo_unselect(fc);
+		/* typing filters the list and pops the popover */
+		gtk_editable_set_text(GTK_EDITABLE(fc->entry), "Ser");
+		tf_guard::pump_for(250);
+		/* <enter> commits the typed name (activate cb) */
+		g_signal_emit_by_name(fc->entry, "activate");
+		tf_guard::pump_for(100);
+		/* arrow button: popup opens, show cb preselects + scrolls */
+		gtk_editable_set_text(GTK_EDITABLE(fc->entry), "Serif");
+		g_signal_emit_by_name(fc->arrow, "clicked");
+		tf_guard::pump_for(400);	/* popover maps; factory binds rows */
+		/* picking a row applies it immediately (selection cb) */
+		gtk_single_selection_set_selected(fc->sel, 0);
+		tf_guard::pump_for(100);
+		/* arrow while open → popdown arm */
+		g_signal_emit_by_name(fc->arrow, "clicked");
+		tf_guard::pump_for(100);
+		/* focus out of the entry commits a typed name (leave cb) */
+		gtk_widget_grab_focus(fc->entry);
+		gtk_widget_grab_focus(fc->arrow);
+		tf_guard::pump_for(100););
+
+	/* ---- toolbar widgets: drive every control class EV_UnixToolbar
+	 * builds — toggle/group buttons (incl. the "throw back a pressed
+	 * down button" arm), the AbiTable grid's "selected" signal, the
+	 * font/size/style/zoom combo apply chain and the color
+	 * menu-buttons' chooser/automatic popover entries — then the
+	 * toolbar lifecycle API: destroy()/rebuildToolbar() in place,
+	 * show/hide, refreshToolbar, repopulateStyles. ---- */
+	EV_SECTION("toolbar widgets",
+		/* the churn above may have replaced the frame's view — take
+		 * it fresh, and skip state refresh when the fixture failed
+		 * to load (view==NULL): the state fns deref pView */
+		AV_View *tview = frame->getCurrentView();
+		for (UT_sint32 ibar = 0; frame->getToolbar(ibar); ibar++) {
+			EV_UnixToolbar *tb = static_cast<EV_UnixToolbar *>(
+				frame->getToolbar(ibar));
+			if (!tb || !tb->m_wToolbar)
+				continue;
+			tb->show();
+			tb->hide();
+			tb->show();
+			(void)tb->getApp();
+			if (tview)
+				tb->refreshToolbar(tview, AV_CHG_ALL);
+			tb->repopulateStyles();
+			/* destroy + rebuild in place: the widget walk below then
+			 * drives the freshly synthesized controls */
+			UT_sint32 pos = tb->destroy();
+			tb->rebuildToolbar(pos);
+			std::vector<GtkWidget *> kids;
+			sweep_guard([&tb, &kids] {
+				tf_widgets::find_all(tb->m_wToolbar,
+									 [](GtkWidget *) { return true; },
+									 kids);
+			});
+			/* emissions below can dispose sibling controls (a combo
+			 * apply may rebuild another widget): hold a ref on every
+			 * collected widget so the loop never derefs a dead one */
+			for (GtkWidget *w : kids)
+				g_object_ref(w);
+			for (GtkWidget *w : kids) {
+				if (GTK_IS_TOGGLE_BUTTON(w)) {
+					/* flip twice: the second toggle on an active
+					 * group button hits toolbarEvent's
+					 * ShouldBeToggled throw-back arm */
+					GtkToggleButton * b = GTK_TOGGLE_BUTTON(w);
+					gtk_toggle_button_set_active(
+						b, !gtk_toggle_button_get_active(b));
+					gtk_toggle_button_set_active(
+						b, !gtk_toggle_button_get_active(b));
+				} else if (IS_ABITABLE_WIDGET(w)) {
+					g_signal_emit_by_name(w, "selected", 3u, 4u);
+				} else if (ABI_IS_FONT_COMBO(w)) {
+					abi_font_combo_select_text(ABI_FONT_COMBO(w),
+											   "Serif");
+					g_signal_emit_by_name(w, "changed");
+				} else if (GTK_IS_MENU_BUTTON(w)) {
+					/* color buttons: popover holds [automatic btn,
+					 * GtkColorChooserWidget] — fire both entries */
+					GtkPopover *pop = gtk_menu_button_get_popover(
+						GTK_MENU_BUTTON(w));
+					GtkWidget *box = pop ? gtk_popover_get_child(
+						pop) : nullptr;
+					for (GtkWidget *c = box
+							 ? gtk_widget_get_first_child(box)
+							 : nullptr;
+						 c; c = gtk_widget_get_next_sibling(c)) {
+						if (GTK_IS_COLOR_CHOOSER(c)) {
+							GdkRGBA rgba {0.25, 0.5, 0.75, 1.0};
+							g_signal_emit_by_name(c, "color-activated",
+												  &rgba);
+						} else if (GTK_IS_BUTTON(c)) {
+							g_signal_emit_by_name(c, "clicked");
+						}
+					}
+				} else if (GTK_IS_DROP_DOWN(w)) {
+					guint n = g_list_model_get_n_items(
+						gtk_drop_down_get_model(GTK_DROP_DOWN(w)));
+					if (n)
+						gtk_drop_down_set_selected(
+							GTK_DROP_DOWN(w), n > 1 ? 1 : 0);
+				} else if (GTK_IS_ENTRY(w)) {
+					/* the font-size entry: numeric text passes the
+					 * insert filter, alpha is rejected; focus-out
+					 * applies the value (entry's own controller —
+					 * clearing the window focus fires its "leave") */
+					gtk_editable_set_text(GTK_EDITABLE(w), "23");
+					gtk_editable_set_text(GTK_EDITABLE(w), "x");
+					gtk_editable_set_text(GTK_EDITABLE(w), "19");
+					gtk_widget_grab_focus(w);
+					/* the entry may live in a popover — its native
+					 * is then a GtkPopover, not a GtkWindow */
+					GtkNative *nat = gtk_widget_get_native(w);
+					if (GTK_IS_WINDOW(nat))
+						gtk_window_set_focus(GTK_WINDOW(nat),
+											 nullptr);
+				}
+				/* plain push buttons are skipped: their methods can
+				 * raise dialogs (Print would fault inside GTK like
+				 * the --id 8 leg) — toolbarEvent still gets its
+				 * dispatch coverage via the combo apply paths */
+			}
+			for (GtkWidget *w : kids)
+				g_object_unref(w);
+			tf_guard::pump_for(150);
+		}
+		/* a spare toolbar exercises ~EV_UnixToolbar + _wd teardown */
+		EV_UnixToolbar * spare = new EV_UnixToolbar(
+			static_cast<XAP_UnixApp *>(app), frame,
+			"ExtraOps", AP_PREF_DEFAULT_StringSet);
+		if (spare) {
+			if (spare->synthesize()) {
+				tf_guard::pump_for(100);
+				spare->destroy();
+			}
+			delete spare;
+		});
+
+#ifdef GDK_WINDOWING_X11
+	/* ---- real GdkEvent input: XTest injection on the document
+	 * canvas and the font combo runs the modifier/button branches of
+	 * EV_UnixMouse and the keyval/NVK mapping + translate_key arm of
+	 * ev_UnixKeyboard that null events cannot reach.  X11 + libXtst
+	 * only (same contract as drive_ruler); skipped on other
+	 * backends.  Plain button 3 is deliberately NOT injected — it is
+	 * bound to the nested-loop context menu.  Smooth-scroll deltas
+	 * cannot come from XTest (buttons yield discrete UP/DOWN), so
+	 * those arms stay an honest exclusion. ---- */
+	EV_SECTION("real input",
+		GdkDisplay *gd = gdk_display_get_default();
+		if (GDK_IS_X11_DISPLAY(gd)) {
+			Display *dpy = gdk_x11_display_get_xdisplay(gd);
+			void *xt = dlopen("libXtst.so.6", RTLD_NOW | RTLD_LOCAL);
+			if (!xt)
+				xt = dlopen("libXtst.so", RTLD_LOCAL);
+			typedef int (*XTestKeyFn)(Display *, unsigned int,
+									  Bool, unsigned long);
+			XTestBtnFn fakeBtn = xt ? reinterpret_cast<XTestBtnFn>(
+				dlsym(xt, "XTestFakeButtonEvent")) : nullptr;
+			XTestKeyFn fakeKeyEv = xt ? reinterpret_cast<XTestKeyFn>(
+				dlsym(xt, "XTestFakeKeyEvent")) : nullptr;
+			if (fakeBtn && fakeKeyEv) {
+				auto hold = [&](guint sym, bool down) {
+					KeyCode kc = XKeysymToKeycode(dpy,
+												  (KeySym)sym);
+					if (kc) {
+						fakeKeyEv(dpy, kc, down ? True : False, 0);
+						XFlush(dpy);
+						tf_guard::pump_for(30);
+					}
+				};
+				auto key = [&](guint sym) {
+					KeyCode kc = XKeysymToKeycode(dpy,
+												  (KeySym)sym);
+					if (kc) {
+						fakeKeyEv(dpy, kc, True, 0);
+						XFlush(dpy);
+						fakeKeyEv(dpy, kc, False, 0);
+						XFlush(dpy);
+						tf_guard::pump_for(45);
+					}
+				};
+				/* the document canvas: largest GtkDrawingArea under
+				 * the frame's toplevel */
+				GtkWidget *canvas = nullptr;
+				int best = 0;
+				std::vector<GtkWidget *> areas;
+				sweep_guard([&] {
+					tf_widgets::find_all(ctx.root,
+										 [](GtkWidget *c) {
+											 return GTK_IS_DRAWING_AREA(c);
+										 }, areas);
+				});
+				for (GtkWidget *a : areas) {
+					int sz = gtk_widget_get_width(a) *
+						gtk_widget_get_height(a);
+					if (sz > best) { best = sz; canvas = a; }
+				}
+				GtkWidget *native = canvas
+					? GTK_WIDGET(gtk_widget_get_native(canvas))
+					: nullptr;
+				GdkSurface *surf = native
+					? gtk_native_get_surface(GTK_NATIVE(native))
+					: nullptr;
+				if (surf && GDK_IS_X11_SURFACE(surf)) {
+					Window xid = gdk_x11_surface_get_xid(surf);
+					auto warp = [&](double px, double py) {
+						graphene_point_t in {(float)px, (float)py}, out;
+						if (gtk_widget_compute_point(canvas, native,
+													 &in, &out)) {
+							XWarpPointer(dpy, None, xid, 0, 0, 0, 0,
+										 (int)lrint(out.x),
+										 (int)lrint(out.y));
+							XFlush(dpy);
+						}
+						tf_guard::pump_for(45);
+					};
+					auto btn = [&](unsigned b, bool down = true,
+								   bool up = true) {
+						if (down)
+							fakeBtn(dpy, b, True, 0);
+						XFlush(dpy);
+						if (up) {
+							tf_guard::pump_for(30);
+							fakeBtn(dpy, b, False, 0);
+							XFlush(dpy);
+						}
+						tf_guard::pump_for(60);
+					};
+					int cw = gtk_widget_get_width(canvas);
+					int ch = gtk_widget_get_height(canvas);
+					double cx = cw / 2.0, cy = ch / 2.0;
+
+					warp(cx, cy);			/* plain motion, no button */
+					btn(1);					/* click: b1 click + up */
+					hold(GDK_KEY_Shift_L, true);
+					btn(1);					/* Shift+b1 */
+					hold(GDK_KEY_Shift_L, false);
+					hold(GDK_KEY_Control_L, true);
+					btn(1);					/* Ctrl+b1 */
+					hold(GDK_KEY_Control_L, false);
+					hold(GDK_KEY_Alt_L, true);
+					btn(2);					/* Alt+b2 (button2 arm) */
+					hold(GDK_KEY_Alt_L, false);
+					hold(GDK_KEY_Shift_L, true);
+					btn(3);					/* Shift+b3: b3 arm without
+											 * the context menu */
+					hold(GDK_KEY_Shift_L, false);
+					btn(1);					/* rapid pair → n_press 2 */
+					btn(1);					/* double-click arms */
+					fakeBtn(dpy, 1, True, 0);/* drag: press, move, */
+					XFlush(dpy);			/* release covers motion */
+					tf_guard::pump_for(40);	/* DRAG w/ BUTTON1 mask */
+					warp(cx + 40, cy + 15);
+					warp(cx + 80, cy + 25);
+					fakeBtn(dpy, 1, False, 0);
+					XFlush(dpy);
+					tf_guard::pump_for(60);
+					btn(4);					/* wheel up: discrete */
+					btn(5);					/* wheel down */
+					hold(GDK_KEY_Shift_L, true);
+					btn(5);					/* Shift+wheel */
+					hold(GDK_KEY_Shift_L, false);
+
+					/* keys land on the canvas (click grabbed focus):
+					 * char input, modified chars, the virtual-key
+					 * table and the Ctrl translate_key arm */
+					key(GDK_KEY_a);
+					key(GDK_KEY_b);
+					hold(GDK_KEY_Shift_L, true);
+					key(GDK_KEY_c);
+					hold(GDK_KEY_Shift_L, false);
+					key(GDK_KEY_Left);
+					key(GDK_KEY_Right);
+					key(GDK_KEY_Home);
+					key(GDK_KEY_End);
+					key(GDK_KEY_Page_Down);
+					hold(GDK_KEY_Control_L, true);
+					key(GDK_KEY_Left);		/* vk + ctrl: no translate */
+					hold(GDK_KEY_Control_L, false);
+					hold(GDK_KEY_Control_L, true);
+					key(GDK_KEY_d);			/* ctrl+char: translate */
+					hold(GDK_KEY_Control_L, false);
+					hold(GDK_KEY_Alt_L, true);
+					key(GDK_KEY_e);			/* alt+char */
+					hold(GDK_KEY_Alt_L, false);
+					key(GDK_KEY_space);
+					key(GDK_KEY_Return);
+					key(GDK_KEY_BackSpace);
+					key(GDK_KEY_Delete);
+					key(GDK_KEY_dead_acute);/* dead-key NVK arm */
+					tf_guard::pump_for(150);
+				}
+
+				/* font combo key paths: the popover grab routes
+				 * editing keys to the list — the popover key
+				 * controller forwards them to the entry (insert /
+				 * delete / commit / escape arms) */
+				if (fcwin && fc) {
+					gtk_window_present(GTK_WINDOW(fcwin));
+					tf_guard::pump_for(200);
+					gtk_widget_grab_focus(fc->entry);
+					tf_guard::pump_for(100);
+					g_signal_emit_by_name(fc->arrow, "clicked");
+					tf_guard::pump_for(300);
+					if (gtk_widget_get_mapped(fc->popover)) {
+						key(GDK_KEY_x);		/* printable → entry */
+						key(GDK_KEY_BackSpace);
+						key(GDK_KEY_Delete);
+						key(GDK_KEY_Left);	/* let-list-scroll arm */
+						key(GDK_KEY_Escape);/* popdown arm */
+					}
+					/* Down on the focused entry re-opens the
+					 * popup (entry key cb) */
+					gtk_widget_grab_focus(fc->entry);
+					tf_guard::pump_for(60);
+					key(GDK_KEY_Down);
+					tf_guard::pump_for(150);
+					if (gtk_widget_get_mapped(fc->popover))
+						key(GDK_KEY_Escape);
+					tf_guard::pump_for(100);
+				}
+			}
+		});
+#endif /* GDK_WINDOWING_X11 */
+
+	/* the font combo window survives to here so real input could
+	 * drive it; drop it now (covers abi_font_combo_dispose) */
+	EV_SECTION("font combo teardown",
+		if (fcwin)
+			gtk_window_destroy(GTK_WINDOW(fcwin));
+		fcwin = nullptr;
+		fc = nullptr;
+		tf_guard::pump_for(200););
 
 	g_source_remove(sweeper);
 	call_guard([&] { tf_guard::pump_for(300); }, "tail");

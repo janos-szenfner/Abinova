@@ -632,6 +632,16 @@ UT_sint32 EV_UnixToolbar::destroy(void)
 // Finally destroy the old toolbar widget
 //
 	gtk_widget_unparent(m_wToolbar);
+	m_wToolbar = nullptr;
+//
+// The _wd records describe children of the just-disposed box: drop
+// them too.  Leaving them lets a later rebuildToolbar() append fresh
+// entries while refreshToolbar() still resolves layout indices to
+// the stale head of the vector (use-after-free on the old widgets).
+//
+	for (_wd * w : m_vecToolbarWidgets)
+		delete w;
+	m_vecToolbarWidgets.clear();
 	return pos;
 }
 

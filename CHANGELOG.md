@@ -5671,6 +5671,22 @@ below are on `main` but the release has not been cut yet.
   decoding, bookmarks, footnotes/endnotes, ranged and point comments
   with author/initials metadata, and a `TOC` field. Overall line
   coverage: 72.24% -> 72.80% (`wp/impexp/xp` 69.3% -> 72.4%).
+- **Coverage wave on the GTK event layer landed** — the scripted
+  UI driver's `--ev` leg now synthesizes a non-popup menu layout
+  (exercising the menu accelerator-attribute path the ribbon app's
+  empty "Main" layout never reaches), drives the menu-bar
+  lifecycle, the spelling-suggestion popup's dynamic-label
+  refresh, the font combo's filter/popup/apply paths, every
+  toolbar control class (toggle throw-back, table-grid picker,
+  font/size combos, colour menu-buttons) through a real
+  destroy-and-rebuild cycle, and injects real X11 input
+  (modifier-click, drag, wheel, navigation/dead keys) via XTest.
+  It caught a genuine use-after-free: `EV_UnixToolbar::destroy()`
+  kept its widget records after disposing their widgets, so a
+  toolbar rebuild left state refreshes resolving stale freed
+  pointers — the records are now dropped along with the widgets.
+  `af/ev/gtk` line coverage 64.1% -> 78.5%; overall 73.68% ->
+  73.94%.
 
 ### Resolved root causes worth noting
 
