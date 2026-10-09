@@ -4149,6 +4149,14 @@ below are on `main` but the release has not been cut yet.
   drag-and-drop payloads over 64 MB are refused instead of being
   materialized into memory, and a refused paste or drop now shows an
   explanatory message instead of looking like an empty clipboard.
+- **WordPerfect import no longer crashes on document metadata** — a
+  `.wpd` whose extended document summary sets a category (`dc:type`)
+  crashed on a null dereference: the lookup tested `dc:type` but
+  dereferenced `dc:category`.  The fix reads the key it tests, and the
+  metadata map now also accepts the `librevenge:`/`meta:` spellings
+  libwps emits (`dc:creator`, `meta:initial-creator`, `meta:keyword`,
+  `dc:description`), so author/keywords/abstract survive import from
+  both engines.
 
 ### GTK4 port (core migration)
 

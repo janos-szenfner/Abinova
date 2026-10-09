@@ -565,20 +565,32 @@ bool IE_Imp_WordPerfect::pasteFromBuffer (PD_DocumentRange *,
 
 void IE_Imp_WordPerfect::setDocumentMetaData(const librevenge::RVNGPropertyList &propList)
 {
-	if (propList["dc:author"])
-		getDoc()->setMetaDataProp(PD_META_KEY_CREATOR, propList["dc:author"]->getStr().cstr());
+	// libwpd names doc-summary fields after Dublin Core (dc:*) while
+	// libwps uses some librevenge:* keys; cover both spellings. Each
+	// lookup must read the same key it tests -- propList[] returns
+	// nullptr for an absent key, so a mismatched pair dereferences null
+	const librevenge::RVNGProperty * creator =
+		propList["dc:author"] ? propList["dc:author"] :
+		propList["meta:initial-creator"] ? propList["meta:initial-creator"] :
+		propList["dc:creator"];
+	if (creator)
+		getDoc()->setMetaDataProp(PD_META_KEY_CREATOR, creator->getStr().cstr());
 	if (propList["dc:subject"])
 		getDoc()->setMetaDataProp(PD_META_KEY_SUBJECT, propList["dc:subject"]->getStr().cstr());
 	if (propList["dc:publisher"])
 		getDoc()->setMetaDataProp(PD_META_KEY_PUBLISHER, propList["dc:publisher"]->getStr().cstr());
 	if (propList["dc:type"])
-		getDoc()->setMetaDataProp(PD_META_KEY_TYPE, propList["dc:category"]->getStr().cstr());
+		getDoc()->setMetaDataProp(PD_META_KEY_TYPE, propList["dc:type"]->getStr().cstr());
 	if (propList["librevenge:keywords"])
 		getDoc()->setMetaDataProp(PD_META_KEY_KEYWORDS, propList["librevenge:keywords"]->getStr().cstr());
+	if (propList["meta:keyword"])
+		getDoc()->setMetaDataProp(PD_META_KEY_KEYWORDS, propList["meta:keyword"]->getStr().cstr());
 	if (propList["dc:language"])
 		getDoc()->setMetaDataProp(PD_META_KEY_LANGUAGE, propList["dc:language"]->getStr().cstr());
 	if (propList["librevenge:abstract"])
 		getDoc()->setMetaDataProp(PD_META_KEY_DESCRIPTION, propList["librevenge:abstract"]->getStr().cstr());
+	if (propList["dc:description"])
+		getDoc()->setMetaDataProp(PD_META_KEY_DESCRIPTION, propList["dc:description"]->getStr().cstr());
 }
 
 void IE_Imp_WordPerfect::startDocument(const librevenge::RVNGPropertyList & /* propList */)

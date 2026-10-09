@@ -154,6 +154,7 @@ timeout-*
 # gcov/lcov coverage artifacts (tools/coverage.sh, --enable-coverage)
 *.gcno
 *.gcda
+*.gcov
 coverage.raw.info
 coverage.brraw.info
 coverage.br.info

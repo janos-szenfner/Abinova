@@ -449,6 +449,91 @@ TFTEST_MAIN("WP04 wpd link/field/comment/textbox import")
 }
 
 // ------------------------------------------------------------------
+// WPCOV: synthetic WP6 kitchen sink (tools/mkwpdcov.py) — doc-summary
+// metadata, header/footer variants, ordered+unordered+nested lists,
+// foot/endnotes, two tables with cell fills/spans, paragraph and span
+// properties, page/column breaks.  The summary packet also pins the
+// dc:type-vs-dc:category metadata crash this fixture originally
+// exposed.
+// ------------------------------------------------------------------
+TFTEST_MAIN("WPCOV wpd kitchen sink")
+{
+	PD_Document *doc = import_file("/test/wp/wpcov/cov_rich.wpd");
+	TFPASS(doc);
+	if (!doc)
+		return;
+	std::string abwn;
+	TFPASS(export_abwn(doc, abwn));
+	// extended document summary -> document metadata
+	TFPASS(abwn.find("<m key=\"dc.creator\">WP Author") != std::string::npos);
+	TFPASS(abwn.find("<m key=\"dc.subject\">WP Subject") != std::string::npos);
+	TFPASS(abwn.find("<m key=\"dc.publisher\">WP Publisher")
+		   != std::string::npos);
+	TFPASS(abwn.find("<m key=\"dc.type\">WP Category") != std::string::npos);
+	TFPASS(abwn.find("<m key=\"abiword.keywords\">wpk1 wpk2")
+		   != std::string::npos);
+	TFPASS(abwn.find("<m key=\"dc.description\">WP abstract text")
+		   != std::string::npos);
+	// header/footer sections incl. the even variant; the footer
+	// carries an inline page-number field from the display ref
+	TFPASS(abwn.find("type=\"header\"") != std::string::npos);
+	TFPASS(abwn.find("type=\"header-even\"") != std::string::npos);
+	TFPASS(abwn.find("type=\"footer\"") != std::string::npos);
+	TFPASS(abwn.find("type=\"page_number\"") != std::string::npos);
+	// lists: bullet list + ordered list + a nested level
+	TFPASS(count_of(abwn, "list_label") >= 6);
+	TFPASS(abwn.find("list-style:5") != std::string::npos);
+	TFPASS(abwn.find("level=\"2\"") != std::string::npos);
+	TFPASS(abwn.find("Bullet") != std::string::npos);
+	TFPASS(abwn.find("Nested") != std::string::npos);
+	// notes
+	TFPASS(abwn.find("type=\"footnote_ref\"") != std::string::npos);
+	TFPASS(abwn.find("<foot ") != std::string::npos);
+	TFPASS(abwn.find("type=\"endnote_ref\"") != std::string::npos);
+	TFPASS(abwn.find("<endnote ") != std::string::npos);
+	// two tables with cell fill + a spanning attach
+	TFPASS(count_of(abwn, "<table") >= 2);
+	TFPASS(abwn.find("background-color:ff0000") != std::string::npos);
+	TFPASS(abwn.find("background-color:00ff00") != std::string::npos);
+	TFPASS(abwn.find("right-attach:2") != std::string::npos);
+	// paragraph + span properties
+	TFPASS(abwn.find("text-align:center") != std::string::npos);
+	TFPASS(abwn.find("text-align:right") != std::string::npos);
+	TFPASS(abwn.find("tabstops:") != std::string::npos);
+	TFPASS(abwn.find("font-weight:bold") != std::string::npos);
+	TFPASS(abwn.find("text-decoration:underline") != std::string::npos);
+	TFPASS(abwn.find("text-decoration:line-through") != std::string::npos);
+	TFPASS(abwn.find("text-position:superscript") != std::string::npos);
+	TFPASS(abwn.find("bgcolor:#ffff00") != std::string::npos);
+	TFPASS(abwn.find("color:#ff3333") != std::string::npos);
+	TFPASS(abwn.find("font-family:Coverage Serif") != std::string::npos);
+	// section/column/page breaks
+	TFPASS(abwn.find("columns:2") != std::string::npos);
+	TFPASS(abwn.find("<cbr/>") != std::string::npos);
+	TFPASS(abwn.find("<pbr/>") != std::string::npos);
+	doc->unref();
+}
+
+// ------------------------------------------------------------------
+// WPCOV: the same stream inside a structured container
+// ("PerfectOffice_MAIN" member of a zip) drives the importer's
+// isStructured()/getSubStreamByName() path
+// ------------------------------------------------------------------
+TFTEST_MAIN("WPCOV wpd structured container")
+{
+	PD_Document *doc = import_file("/test/wp/wpcov/cov_ole.wpd");
+	TFPASS(doc);
+	if (!doc)
+		return;
+	std::string abwn;
+	TFPASS(export_abwn(doc, abwn));
+	TFPASS(abwn.find("<m key=\"dc.creator\">WP Author") != std::string::npos);
+	TFPASS(abwn.find("Bullet") != std::string::npos);
+	TFPASS(abwn.find("type=\"footnote_ref\"") != std::string::npos);
+	doc->unref();
+}
+
+// ------------------------------------------------------------------
 // MTH01: markdown $...$ and $$...$$ become PTO_Math objects
 // ------------------------------------------------------------------
 TFTEST_MAIN("MTH01 markdown math becomes PTO_Math")
