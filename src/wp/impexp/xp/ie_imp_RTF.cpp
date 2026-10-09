@@ -2423,16 +2423,14 @@ void IE_Imp_RTF::HandleAnnotation(void)
 			m_pDelayedFrag = doc->getLastFrag();
 		UT_DEBUGMSG(("Delayed Frag set to %p \n", static_cast<void*>(m_pDelayedFrag)));
 		ann_attrs[2] = PT_PROPS_ATTRIBUTE_NAME;
-		UT_sint32 k = 0;
 		std::string sProperties;
-		for(k=0; k<i;k++)
+		// pszAnn holds name/value pairs
+		for(UT_sint32 k = 0; k + 1 < i; k += 2)
 		{
 			sProperties += pszAnn[k];
-			k++;
 			sProperties += ":";
-			sProperties += pszAnn[k];
-			k++;
-			if(k < i)
+			sProperties += pszAnn[k + 1];
+			if(k + 2 < i)
 				sProperties += ";";
 		}
 		ann_attrs[3] = sProperties.c_str();
@@ -4416,7 +4414,7 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		break;
 	case RTF_KW_b:
 		// bold - either on or off depending on the parameter
-		return HandleBold(fParam ? false : true);
+		return HandleBold(fParam ? (param != 0) : true);
 	case RTF_KW_bullet:
 		return ParseChar(UCS_BULLET);
 	case RTF_KW_brdrt:
@@ -5062,7 +5060,7 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		return HandleBackgroundColour(param);
 	case RTF_KW_i:
 		// italic - either on or off depending on the parameter
-		return HandleItalic(fParam ? false : true);
+		return HandleItalic(fParam ? (param != 0) : true);
 	case RTF_KW_info:
 		// TODO Ignore document info for the moment
 		return HandleInfoMetaData();
@@ -5446,9 +5444,9 @@ bool IE_Imp_RTF::TranslateKeywordID(RTF_KEYWORD_ID keywordID,
 		m_currentRTFState.m_paraProps.m_lineSpaceExact = (!fParam  ||  param == 0);
 		return true;
 	case RTF_KW_super:
-		return HandleSuperscript(fParam ? false : true);
+		return HandleSuperscript(fParam ? (param != 0) : true);
 	case RTF_KW_sub:
-		return HandleSubscript(fParam ? false : true);
+		return HandleSubscript(fParam ? (param != 0) : true);
 
 	case RTF_KW_tab:
 		return ParseChar('\t');
@@ -8401,7 +8399,7 @@ bool IE_Imp_RTF::ParseCharParaProps( char * pKeyword,
 	if (strcmp(pKeyword, "b") == 0) // bold
 	{
 		pbChars->bm_bold = true;
-		pChars->m_bold = fParam ? false : true;
+		pChars->m_bold = fParam ? (param != 0) : true;
 		return true;
 	}
 	else if (strcmp(pKeyword, "cf") == 0) // color
@@ -8420,7 +8418,7 @@ bool IE_Imp_RTF::ParseCharParaProps( char * pKeyword,
 	else if (strcmp(pKeyword, "deleted") == 0) // deleted
 	{
 		pbChars->bm_deleted = true;
-		return HandleBoolCharacterProp(fParam ? false : true, &(pChars->m_deleted));
+		return HandleBoolCharacterProp(fParam ? (param != 0) : true, &(pChars->m_deleted));
 	}
 	else if (strcmp(pKeyword,"dn") == 0) // subscript with position
 	{
@@ -8461,7 +8459,7 @@ bool IE_Imp_RTF::ParseCharParaProps( char * pKeyword,
 	{
 		// italic - either on or off depending on the parameter
 		pbChars->bm_italic = true;
-		return HandleBoolCharacterProp((fParam ? false : true), &(pChars->m_italic));
+		return HandleBoolCharacterProp((fParam ? (param != 0) : true), &(pChars->m_italic));
 	}
 	else if (strcmp(pKeyword, "lang") == 0)
 	{
@@ -8543,12 +8541,12 @@ bool IE_Imp_RTF::ParseCharParaProps( char * pKeyword,
 	else if (strcmp(pKeyword, "super") == 0)
 	{
 		pbChars->bm_superscript = true;
-		return HandleBoolCharacterProp((fParam ? false : true), &(pChars->m_superscript));
+		return HandleBoolCharacterProp((fParam ? (param != 0) : true), &(pChars->m_superscript));
 	}
 	else if (strcmp(pKeyword, "sub") == 0)
 	{
 		pbChars->bm_subscript = true;
-		return HandleBoolCharacterProp((fParam ? false : true), &(pChars->m_subscript));
+		return HandleBoolCharacterProp((fParam ? (param != 0) : true), &(pChars->m_subscript));
 	}
 	else if (strcmp(pKeyword, "tx") == 0)
 	{

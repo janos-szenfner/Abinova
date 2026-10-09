@@ -198,3 +198,5 @@
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_xxe.t.cpp"
 #undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_rtf.t.cpp"
+#undef TFSUITE

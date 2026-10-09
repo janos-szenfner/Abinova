@@ -3173,6 +3173,13 @@ below are on `main` but the release has not been cut yet.
   now guarded and falls back to the existing recovery path.
   A `docx -> rtf -> abinova` round-trip that previously aborted now
   converts cleanly.
+- **RTF import: explicit formatting toggles no longer inverted** —
+  `\b1`, `\i1`, `\super1`, `\sub1` and `\deleted1` (the control words
+  carrying an explicit non-zero parameter) were applied inverted, so
+  `\b1` turned bold OFF; the parameter value is now honored per the
+  RTF spec (`\b1`/`1` = on, `\b0` = off).  An annotation's
+  name/value property assembly was also bounded so an odd element
+  count cannot read past the property array.
 - **Untyped-pointer audit (TS05)** — audited every `void*`/`gpointer`
   channel in `src/` for type-identity loss (callback user-data,
   `g_object` data keys, timer instance data, wvWare element props,
