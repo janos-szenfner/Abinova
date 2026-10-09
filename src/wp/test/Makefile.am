@@ -28,7 +28,10 @@ check_PROGRAMS = Abinova-test dialog-smoke ui-drive
 
 Abinova_test_CPPFLAGS = $(WP_CPPFLAGS) \
 	-DABINOVA_DATADIR="\"$(ABINOVA_DATADIR)\"" \
-	-I$(top_srcdir)/src/af/tf/xp/
+	-I$(top_srcdir)/src/af/tf/xp/ \
+	-I$(top_srcdir)/src/wp/impexp/openxml/common/xp \
+	-I$(top_srcdir)/src/wp/impexp/openxml/exp/xp \
+	-I$(top_srcdir)/src/wp/impexp/openxml/imp/xp
 
 Abinova_test_LDFLAGS =  -L$(top_builddir)/src -labinova-@ABINOVA_SERIES@ \
 	-L$(top_builddir)/src/af/tf -labinova-@ABINOVA_SERIES@-test

@@ -3198,7 +3198,7 @@ void OXMLi_ListenerState_Valid::startElement (OXMLi_StartElementRequest * rqst)
 		//Section 2.15, Settings
 		case KEYWORD_activeWritingStyle:
 		{
-			rqst->valid = nameMatches(rqst->pName, NS_W_KEY, "viewMergedData") || 
+			rqst->valid = nameMatches(rqst->pName, NS_W_KEY, "activeWritingStyle") ||
 						  contextMatches(contextTag, NS_W_KEY, "settings");
 			break;
 		}
@@ -3408,7 +3408,7 @@ void OXMLi_ListenerState_Valid::startElement (OXMLi_StartElementRequest * rqst)
 		}
 		case KEYWORD_doNotHyphenateCaps:
 		{
-			rqst->valid = nameMatches(rqst->pName, NS_W_KEY, "doNotHypenateCaps") || 
+			rqst->valid = nameMatches(rqst->pName, NS_W_KEY, "doNotHyphenateCaps") ||
 						  contextMatches(contextTag, NS_W_KEY, "settings");
 			break;
 		}
@@ -4370,7 +4370,7 @@ void OXMLi_ListenerState_Valid::startElement (OXMLi_StartElementRequest * rqst)
 		}
 		case KEYWORD_checkBox:
 		{
-			rqst->valid = nameMatches(rqst->pName, NS_W_KEY, "calcOnExit") || 
+			rqst->valid = nameMatches(rqst->pName, NS_W_KEY, "checkBox") ||
 						  contextMatches(contextTag, NS_W_KEY, "ffData");
 			break;
 		}
@@ -4863,8 +4863,8 @@ void OXMLi_ListenerState_Valid::populateKeywordTable()
 	m_keywordMap.insert(std::make_pair("W:drawingGridHorizontalOrigin", KEYWORD_drawingGridHorizontalOrigin));
 	m_keywordMap.insert(std::make_pair("W:drawingGridHorizontalSpacing", KEYWORD_drawingGridHorizontalSpacing));
 	m_keywordMap.insert(std::make_pair("W:dropDownList", KEYWORD_dropDownList));
-	m_keywordMap.insert(std::make_pair("W:drawingGridVerticalOrigin", KEYWORD_drawingGridHorizontalOrigin));
-	m_keywordMap.insert(std::make_pair("W:drawingGridVerticalSpacing", KEYWORD_drawingGridHorizontalSpacing));
+	m_keywordMap.insert(std::make_pair("W:drawingGridVerticalOrigin", KEYWORD_drawingGridVerticalOrigin));
+	m_keywordMap.insert(std::make_pair("W:drawingGridVerticalSpacing", KEYWORD_drawingGridVerticalSpacing));
 	m_keywordMap.insert(std::make_pair("W:dstrike", KEYWORD_dstrike));
 	m_keywordMap.insert(std::make_pair("W:eastAsianLayout", KEYWORD_eastAsianLayout));
 	m_keywordMap.insert(std::make_pair("W:effect", KEYWORD_effect));
@@ -4987,6 +4987,7 @@ void OXMLi_ListenerState_Valid::populateKeywordTable()
 	m_keywordMap.insert(std::make_pair("W:marRight", KEYWORD_marRight));
 	m_keywordMap.insert(std::make_pair("W:marTop", KEYWORD_marTop));
 	m_keywordMap.insert(std::make_pair("W:marW", KEYWORD_marW));
+	m_keywordMap.insert(std::make_pair("W:matchSrc", KEYWORD_matchSrc));
 	m_keywordMap.insert(std::make_pair("W:maxLength", KEYWORD_maxLength));
 	m_keywordMap.insert(std::make_pair("W:mirrorIndents", KEYWORD_mirrorIndents));
 	m_keywordMap.insert(std::make_pair("W:mirrorMargins", KEYWORD_mirrorMargins));

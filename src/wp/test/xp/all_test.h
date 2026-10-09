@@ -206,3 +206,5 @@
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_msdoc.t.cpp"
 #undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_oxmlvalid.t.cpp"
+#undef TFSUITE

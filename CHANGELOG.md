@@ -4169,6 +4169,15 @@ below are on `main` but the release has not been cut yet.
   `GR_CairoGraphics::getCairo()` now applies the pending clip before
   handing the context out, which is what made image-filled frames
   disappear on screen.
+- **DOCX import accepts more valid elements** — found by the new
+  OOXML element-validation coverage suite: the importer's keyword
+  table misrouted four element names so `<w:activeWritingStyle>`,
+  `<w:doNotHyphenateCaps>` and `<w:checkBox>` (form fields) were
+  rejected on sight and `w:drawingGridVerticalOrigin`/`...Spacing`
+  in `settings.xml` mapped to the horizontal-grid keywords;
+  `<w:matchSrc>` inside `altChunkPr` was not registered at all.
+  All six now validate correctly, so affected documents no longer
+  silently drop those settings/form-field constructs.
 
 ### GTK4 port (core migration)
 
