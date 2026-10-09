@@ -1,0 +1,14 @@
+# lcov --remove globs applied by tools/coverage.sh and
+# tools/coverage-report.sh — the "excluded from the denominator" list
+# rendered verbatim into .devin/COVERAGE.md.  One glob per line.
+# When you add a pattern, also give it a reason in coverage-report.sh's
+# exclusion_reason() so the report stays self-documenting.
+/usr/*
+*/thirdparty/*
+*/fuzz-build/*
+*/xp/t/*
+*/gtk/t/*
+*/wp/test/*
+*/af/tf/*
+*/abi-resources.c
+*.gperf

@@ -25,7 +25,9 @@ EXTRA_DIST = \
 	fuzz-add-reproducer.sh \
 	coverage.sh \
 	coverage-dirs.sh \
+	coverage-excludes.txt \
 	coverage-gate.sh \
+	coverage-report.sh \
 	vendor-check.py \
 	portguard.sh \
 	portguard-baseline.txt \

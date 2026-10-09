@@ -5308,6 +5308,20 @@ below are on `main` but the release has not been cut yet.
   real crash: a `sum_rows`/`sum_cols` field placed outside a table
   dereferenced a NULL table strux when rendering or printing — it
   now displays `???` like Word does.
+- **Committed coverage baseline (`.devin/COVERAGE.md`)** — the test
+  suite now publishes a checked-in coverage report alongside the
+  gitignored HTML output: overall line/function/branch numbers
+  (currently 71.8% / 80.8% / 42.3% of the countable denominator),
+  an explicit definition of what counts toward the coverage target
+  and which sources are excluded and why (system headers, vendored
+  `thirdparty/`, the `fuzz-build` scratch tree, autotest drivers,
+  generated code — globs in `tools/coverage-excludes.txt`), a
+  per-directory breakdown, and the worst-covered directories and
+  files ranked by uncovered lines. `tools/coverage.sh` captures
+  branch coverage in the same pass and regenerates
+  `.devin/COVERAGE.md` via `tools/coverage-report.sh` on every
+  `make coverage`/`make check-coverage` run, so the baseline stays
+  current.
 - **Atomic save moved behind a portable helper** — the
   write-temp-then-rename sequence in the exporter core
   (`IE_Exp::writeFile`) now lives in `ut_go_file.cpp` as

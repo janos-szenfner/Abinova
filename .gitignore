@@ -155,6 +155,8 @@ timeout-*
 *.gcno
 *.gcda
 coverage.raw.info
+coverage.brraw.info
+coverage.br.info
 coverage.info
 coverage-summary.txt
 coverage-dirs.txt

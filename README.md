@@ -2460,8 +2460,16 @@ copy vendored in `tools/lcov/` — the host only needs `perl` and
 `coverage.info`, a filtered HTML report under `coverage-html/`, and a
 console `coverage-summary.txt`. The report excludes system headers,
 vendored `thirdparty/` code, the `fuzz-build/` scratch tree, test
-drivers and generated sources. All coverage artifacts are gitignored;
+drivers and generated sources (the exclusion globs live in
+`tools/coverage-excludes.txt`). Line, function and branch coverage
+are captured in a single pass. All coverage artifacts are gitignored;
 reconfiguring without `--enable-coverage` returns to a normal build.
+
+Every `make coverage`/`make check-coverage` run also refreshes the
+committed baseline `.devin/COVERAGE.md` (`tools/coverage-report.sh`):
+headline line/function/branch numbers, the countable-denominator
+definition, a per-directory breakdown, and the worst-covered
+directories and files ranked by uncovered lines.
 
 `make check-coverage` is the ratchet: it runs the whole `make check`
 suite, regenerates the report, and fails if total first-party line

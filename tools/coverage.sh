@@ -31,37 +31,41 @@ info_raw=coverage.raw.info
 info=coverage.info
 outdir=coverage-html
 
-# Capture all counters.  Ignore 'source' (headers/sources that moved or
-# were generated) and 'graph' (incomplete .gcno notes) so a single odd
-# object can't sink the run.
+# Capture all counters, branch data included (the committed
+# .devin/COVERAGE.md report is line + branch coverage).  Ignore
+# 'source' (headers/sources that moved or were generated), 'graph'
+# (incomplete .gcno notes) and 'gcov' (a .gcda being rewritten by a
+# still-running test) so a single odd object can't sink the run.
 "$LCOV" --capture --directory . --output-file "$info_raw" \
-	--rc lcov_branch_coverage=0 \
-	--ignore-errors source,graph
+	--rc lcov_branch_coverage=1 \
+	--ignore-errors gcov,source,graph
 
-# Restrict the report to first-party sources: drop system headers,
-# vendored thirdparty/, the instrumented fuzz-build scratch tree, test
-# drivers (xp/t/, gtk/t/, wp/test/) and generated resources.
-"$LCOV" --remove "$info_raw" \
-	'/usr/*' \
-	'*/thirdparty/*' \
-	'*/fuzz-build/*' \
-	'*/xp/t/*' \
-	'*/gtk/t/*' \
-	'*/wp/test/*' \
-	'*/abi-resources.c' \
-	'*.gperf' \
+# Restrict the report to first-party sources.  The exclusion globs live
+# in tools/coverage-excludes.txt — they are the "countable denominator"
+# documented in .devin/COVERAGE.md (system headers, vendored
+# thirdparty/, the fuzz-build scratch tree, autotest sources and
+# generated files).
+set -f # patterns must reach lcov verbatim, not glob-expand in cwd
+set -- $(grep -v '^#' "$tooldir/coverage-excludes.txt" | grep -v '^[[:space:]]*$')
+set +f
+"$LCOV" --remove "$info_raw" "$@" \
 	--output-file "$info" \
-	--rc lcov_branch_coverage=0
+	--rc lcov_branch_coverage=1
 
 "$GENHTML" "$info" --output-directory "$outdir" \
 	--title "Abinova test coverage" --legend \
 	--rc genhtml_branch_coverage=0 \
 	--ignore-errors source
 
-"$LCOV" --summary "$info" --rc lcov_branch_coverage=0 | tee coverage-summary.txt
+"$LCOV" --summary "$info" --rc lcov_branch_coverage=1 | tee coverage-summary.txt
 
 # Per-directory breakdown (COV01): the COV task targets each cite a
 # directory, so emit an aggregate row per bucket.  Record the table
 # into .devin/WORKLOG.md explicitly with:
 #   tools/coverage-dirs.sh coverage.info --worklog .devin/WORKLOG.md
 "$tooldir/coverage-dirs.sh" "$info" | tee coverage-dirs.txt
+
+# Committed baseline report (TST08): .devin/COVERAGE.md with the
+# denominator definition, headline numbers, per-directory breakdown and
+# the worst-covered directories/files.
+"$tooldir/coverage-report.sh" "$info" --output .devin/COVERAGE.md
