@@ -89,6 +89,8 @@
 #undef TFSUITE
 #include "src/af/gr/xp/t/gr_Primitives.t.cpp"
 #undef TFSUITE
+#include "src/af/gr/gtk/t/gr_Gtk.t.cpp"
+#undef TFSUITE
 #include "src/af/xap/xp/t/xap_Prefs.t.cpp"
 #undef TFSUITE
 #include "src/af/xap/xp/t/xap_UpdateCheck.t.cpp"

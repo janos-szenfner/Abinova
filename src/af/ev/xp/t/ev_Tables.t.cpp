@@ -35,16 +35,20 @@
 #include "ev_EditEventMapper.h"
 #include "ev_EditMethod.h"
 #include "ev_Keyboard.h"
+#include "ev_Menu.h"
 #include "ev_Menu_Actions.h"
 #include "ev_Menu_Labels.h"
 #include "ev_Menu_Layouts.h"
 #include "ev_Mouse.h"
 #include "ev_MouseListener.h"
 #include "ev_NamedVirtualKey.h"
+#include "ev_Toolbar.h"
 #include "ev_Toolbar_Actions.h"
 #include "ev_Toolbar_Control.h"
 #include "ev_Toolbar_Labels.h"
 #include "ev_Toolbar_Layouts.h"
+
+#include "ut_debugmsg.h"
 
 #define TFSUITE "core.af.ev.tables"
 
@@ -114,6 +118,16 @@ static EV_EditBits tf_mouse_bits(EV_EditMouseButton btn, EV_EditMouseOp op,
 	return static_cast<EV_EditBits>(btn) | static_cast<EV_EditBits>(op)
 		| static_cast<EV_EditBits>(ctx);
 }
+
+/* UT_ASSERT() in this build prints a message and asks stdin whether to
+ * continue; a few defensive guards can only be reached by deliberately
+ * tripping one, so silence the mechanism while we poke them. */
+struct TFAssertSilence
+{
+	TFAssertSilence() : m_save(ut_g_silent) { ut_g_silent = true; }
+	~TFAssertSilence() { ut_g_silent = m_save; }
+	bool m_save;
+};
 
 } /* anonymous namespace */
 
@@ -1073,4 +1087,385 @@ TFTEST_MAIN("EV_Toolbar_Control")
 	TFPASS(tc.getContents()->size() == 2);
 	TFPASS(!strcmp(tc.getNthItem(0), "one"));
 	TFPASS(!strcmp(tc.getNthItem(1), "two"));
+}
+
+/* ------------------------------------------------------------------ */
+/* call-data constructor forms + context-function dispatch            */
+/* ------------------------------------------------------------------ */
+
+TFTEST_MAIN("EV_EditMethodCallData forms")
+{
+	/* UCS-4 payload is copied */
+	const UT_UCS4Char ucs[] = {'h', 'i'};
+	EV_EditMethodCallData cd(ucs, 2);
+	TFPASS(cd.m_dataLength == 2);
+	TFPASS(cd.m_pData[0] == 'h' && cd.m_pData[1] == 'i');
+	TFPASS(cd.m_bAllocatedData);
+
+	/* 8-bit chars widen into UCS-4 */
+	EV_EditMethodCallData cd2("xy", 2);
+	TFPASS(cd2.m_dataLength == 2);
+	TFPASS(cd2.m_pData[1] == 'y');
+
+	/* zero-length data still lands on an allocated NUL slot */
+	EV_EditMethodCallData cd3(static_cast<const UT_UCS4Char *>(nullptr), 0);
+	TFPASS(cd3.m_dataLength == 0);
+	TFPASS(cd3.m_pData[0] == 0);
+
+	/* script-name form */
+	EV_EditMethodCallData cd4(UT_String("runMe"));
+	TFPASS(cd4.getScriptName() == "runMe");
+
+	EV_EditMethodCallData cd5;
+	TFPASS(cd5.getX() == 0 && cd5.getY() == 0);
+}
+
+TFTEST_MAIN("EV_EditMethod context function")
+{
+	int marker = 0;
+	EV_EditMethod ctxt("ctxtCmd", tf_record_call_ctxt, 0, "context-bearing",
+					   &marker);
+	EV_EditMethodCallData cd(static_cast<const UT_UCS4Char *>(nullptr), 0);
+	tf_reset();
+	TFPASS(ctxt.Fn(FAKE_VIEW, &cd));
+	TFPASS(s_pLastContext == &marker);
+	TFPASS(s_iCallCount == 1 && s_pLastView == FAKE_VIEW);
+	TFPASS(ctxt.getType() == 0);
+	TFPASS(!strcmp(ctxt.getName(), "ctxtCmd"));
+	TFPASS(!strcmp(ctxt.getDescription(), "context-bearing"));
+}
+
+TFTEST_MAIN("EV_EditMethodContainer dynamic methods")
+{
+	EV_EditMethodContainer emc(G_N_ELEMENTS(s_methods), s_methods);
+
+	/* dynamic add + linear search + repeat-lookup hash hit */
+	EV_EditMethod * dyn = new EV_EditMethod("dynCmd", tf_record_call, 0, "dyn");
+	TFPASS(emc.addEditMethod(dyn));
+	TFPASS(emc.countEditMethods() == G_N_ELEMENTS(s_methods) + 1);
+	TFPASS(emc.findEditMethodByName("dynCmd") == dyn);
+	TFPASS(emc.findEditMethodByName("dynCmd") == dyn); /* emHash hit */
+	TFPASS(emc.getNthEditMethod(G_N_ELEMENTS(s_methods)) == dyn);
+	TFPASS(emc.getNthEditMethod(0) == &s_methods[0]);
+
+	/* null/nameless entries are skipped by the linear scan */
+	EV_EditMethod * noname = new EV_EditMethod(nullptr, tf_record_call, 0, "nn");
+	TFPASS(emc.addEditMethod(noname));
+	{
+		TFAssertSilence quiet; /* addEditMethod asserts on nullptr */
+		TFPASS(emc.addEditMethod(nullptr));
+	}
+	TFPASS(emc.findEditMethodByName("zzz") == nullptr);
+
+	/* removal deletes the slot; a second removal reports the miss */
+	TFPASS(emc.removeEditMethod(dyn));
+	TFPASS(!emc.removeEditMethod(dyn));
+	delete dyn;
+	/* the name hash was invalidated by removeEditMethod(): the removed
+	 * method no longer resolves */
+	TFPASS(emc.findEditMethodByName("dynCmd") == nullptr);
+}
+
+/* ------------------------------------------------------------------ */
+/* EV_EditBindingMap: bounds, full mouse sweep, shortcut strings       */
+/* ------------------------------------------------------------------ */
+
+TFTEST_MAIN("EV_EditBindingMap bounds")
+{
+	EV_EditMethodContainer emc(G_N_ELEMENTS(s_methods), s_methods);
+	EV_EditBindingMap map(&emc);
+
+	/* out-of-range button field (7 is beyond BUTTON5) */
+	EV_EditBits badBtn = static_cast<EV_EditBits>(7 << 20)
+		| EV_EMO_SINGLECLICK | EV_EMC_TEXT;
+	TFPASS(map.findEditBinding(badBtn) == nullptr);
+	TFPASS(!map.setBinding(badBtn, "alphaCmd"));
+	TFPASS(!map.removeBinding(badBtn));
+
+	/* out-of-range mouse op needs a live button table first */
+	TFPASS(map.setBinding(tf_mouse_bits(EV_EMB_BUTTON1, EV_EMO_SINGLECLICK,
+										EV_EMC_TEXT), "alphaCmd"));
+	EV_EditBits badOp = EV_EMB_BUTTON1
+		| static_cast<EV_EditBits>(7 << 16) | EV_EMC_TEXT;
+	TFPASS(map.findEditBinding(badOp) == nullptr);
+	TFPASS(!map.setBinding(badOp, "alphaCmd"));
+	TFPASS(!map.removeBinding(badOp));
+
+	/* out-of-range mouse context the same way */
+	EV_EditBits badCtx = EV_EMB_BUTTON1 | EV_EMO_SINGLECLICK
+		| static_cast<EV_EditBits>(0xf0000000);
+	TFPASS(map.findEditBinding(badCtx) == nullptr);
+	TFPASS(!map.setBinding(badCtx, "alphaCmd"));
+	TFPASS(!map.removeBinding(badCtx));
+
+	/* named keys beyond EV_COUNT_NVK are clean misses/failures;
+	 * removeBinding needs an allocated NVK table */
+	TFPASS(map.setBinding(EV_EKP_PRESS | EV_NVK_F1, "betaCmd"));
+	EV_EditBits badNvk = EV_EKP_PRESS | EV_EKP_NAMEDKEY | 0x00ff;
+	TFPASS(map.findEditBinding(badNvk) == nullptr);
+	TFPASS(!map.setBinding(badNvk, "alphaCmd"));
+	TFPASS(!map.removeBinding(badNvk));
+
+	/* a 16-bit char outside the fullwidth remap window misses all
+	 * tables: findEditBinding substitutes the 'a' slot, set/remove
+	 * just fail */
+	EV_EditBinding * ba =
+		tf_bind_char(&map, 'a', static_cast<EV_EditModifierState>(0), "betaCmd");
+	TFPASS(ba && ba->getMethod() == &s_methods[1]);
+	TFPASS(map.findEditBinding(EV_EKP_PRESS | 0x0100) == ba);
+	TFPASS(!map.setBinding(EV_EKP_PRESS | 0x0100, "alphaCmd"));
+	TFPASS(!map.removeBinding(EV_EKP_PRESS | 0x0100));
+
+	/* edit bits that are neither mouse nor keyboard fall through to
+	 * the defensive return (each site asserts once, silenced) */
+	{
+		TFAssertSilence quiet;
+		TFPASS(map.findEditBinding(0) == nullptr);
+		TFPASS(!map.setBinding(0, "alphaCmd"));
+		TFPASS(!map.removeBinding(0));
+	}
+}
+
+TFTEST_MAIN("EV_EditBindingMap mouse sweep")
+{
+	EV_EditMethodContainer emc(G_N_ELEMENTS(s_methods), s_methods);
+	EV_EditBindingMap map(&emc);
+
+	/* bind every button x every context so getAll()/findEditBits()
+	 * walk every case of MakeMouseEditBits() */
+	static const EV_EditMouseButton btns[] = {
+		EV_EMB_BUTTON0, EV_EMB_BUTTON1, EV_EMB_BUTTON2,
+		EV_EMB_BUTTON3, EV_EMB_BUTTON4, EV_EMB_BUTTON5
+	};
+	static const EV_EditMouseContext ctxs[] = {
+		EV_EMC_UNKNOWN, EV_EMC_TEXT, EV_EMC_LEFTOFTEXT, EV_EMC_MISSPELLEDTEXT,
+		EV_EMC_IMAGE, EV_EMC_IMAGESIZE, EV_EMC_FIELD, EV_EMC_HYPERLINK,
+		EV_EMC_RIGHTOFTEXT, EV_EMC_REVISION, EV_EMC_VLINE, EV_EMC_HLINE,
+		EV_EMC_FRAME, EV_EMC_VISUALTEXTDRAG, EV_EMC_TOPCELL, EV_EMC_TOC,
+		EV_EMC_POSOBJECT, EV_EMC_MATH, EV_EMC_EMBED
+	};
+	for (size_t b = 0; b < G_N_ELEMENTS(btns); ++b)
+		for (size_t c = 0; c < G_N_ELEMENTS(ctxs); ++c)
+			TFPASS(map.setBinding(tf_mouse_bits(btns[b], EV_EMO_SINGLECLICK,
+												ctxs[c]), "gammaCmd"));
+
+	std::map<EV_EditBits, const char*> all;
+	map.getAll(all);
+	TFPASS(all.size() == G_N_ELEMENTS(btns) * G_N_ELEMENTS(ctxs));
+	TFPASS(all.count(tf_mouse_bits(EV_EMB_BUTTON5, EV_EMO_SINGLECLICK,
+								   EV_EMC_EMBED)) == 1);
+	TFPASS(all.count(tf_mouse_bits(EV_EMB_BUTTON0, EV_EMO_SINGLECLICK,
+								   EV_EMC_UNKNOWN)) == 1);
+
+	/* findEditBits reports the char slots too */
+	TFPASS(map.setBinding(EV_EKP_PRESS | 'c', "alphaCmd"));
+	std::vector<EV_EditBits> bits;
+	map.findEditBits("alphaCmd", bits);
+	TFPASS(bits.size() == 1);
+	TFPASS(bits[0] == (EV_EKP_PRESS | 'c'));
+}
+
+TFTEST_MAIN("EV_EditBindingMap shortcut strings")
+{
+	EV_EditMethodContainer emc(G_N_ELEMENTS(s_methods), s_methods);
+
+	/* Alt modifier + the Ctrl+Shift+Alt combo on a named key */
+	{
+		EV_EditBindingMap m(&emc);
+		TFPASS(m.setBinding(EV_EKP_PRESS | 'z' | EV_EMS_ALT, "alphaCmd"));
+		const char * sc = m.getShortcutFor(&s_methods[0]);
+		TFPASS(sc && !strcmp(sc, "Alt+Z"));
+
+		TFPASS(m.setBinding(EV_EKP_PRESS | EV_NVK_DELETE | EV_EMS_CONTROL
+							| EV_EMS_SHIFT | EV_EMS_ALT, "betaCmd"));
+		const char * sc2 = m.getShortcutFor(&s_methods[1]);
+		TFPASS(sc2 && !strcmp(sc2, "Ctrl+Shift+Alt+Del"));
+	}
+
+	/* every NVK case in the display-name switch */
+	static const struct { EV_EditBits nvk; const char * name; } nvks[] = {
+		{ EV_NVK_DELETE, "Del" },
+		{ EV_NVK_F1, "F1" },
+		{ EV_NVK_F3, "F3" },
+		{ EV_NVK_F4, "F4" },
+		{ EV_NVK_F7, "F7" },
+		{ EV_NVK_F10, "F10" },
+		{ EV_NVK_F11, "F11" },
+		{ EV_NVK_F12, "F12" },
+	};
+	for (size_t i = 0; i < G_N_ELEMENTS(nvks); ++i) {
+		EV_EditBindingMap m(&emc);
+		/* getShortcutFor bails when no char table exists at all */
+		TFPASS(m.setBinding(EV_EKP_PRESS | 'q', "gammaCmd"));
+		TFPASS(m.setBinding(EV_EKP_PRESS | nvks[i].nvk, "betaCmd"));
+		const char * sc = m.getShortcutFor(&s_methods[1]);
+		TFPASS(sc && !strcmp(sc, nvks[i].name));
+	}
+}
+
+/* ------------------------------------------------------------------ */
+/* EV_EditEventMapper: null map + mouse prefix chains                  */
+/* ------------------------------------------------------------------ */
+
+TFTEST_MAIN("EV_EditEventMapper guards")
+{
+	EV_EditMethodContainer emc(G_N_ELEMENTS(s_methods), s_methods);
+	EV_EditMethod * m = nullptr;
+
+	/* no top-level map: both entry points report a bogus start */
+	EV_EditEventMapper empty(nullptr);
+	TFPASS(empty.Keystroke(EV_EKP_PRESS | 'a', &m) == EV_EEMR_BOGUS_START);
+	TFPASS(empty.Mouse(tf_mouse_bits(EV_EMB_BUTTON1, EV_EMO_SINGLECLICK,
+								   EV_EMC_TEXT), &m) == EV_EEMR_BOGUS_START);
+	TFPASS(empty.getShortcutFor(&s_methods[0]) == nullptr);
+
+	/* null method arg is rejected before the map is consulted */
+	EV_EditBindingMap map(&emc);
+	EV_EditEventMapper eem(&map);
+	TFPASS(eem.getShortcutFor(nullptr) == nullptr);
+}
+
+TFTEST_MAIN("EV_EditEventMapper mouse prefix")
+{
+	EV_EditMethodContainer emc(G_N_ELEMENTS(s_methods), s_methods);
+	EV_EditBindingMap * sub = new EV_EditBindingMap(&emc);
+	EV_EditBindingMap map(&emc);
+
+	EV_EditBits press = tf_mouse_bits(EV_EMB_BUTTON2, EV_EMO_SINGLECLICK,
+									  EV_EMC_HYPERLINK);
+	EV_EditBits next = tf_mouse_bits(EV_EMB_BUTTON3, EV_EMO_DOUBLECLICK,
+									 EV_EMC_IMAGE);
+	TFPASS(sub->setBinding(next, "alphaCmd"));
+	TFPASS(map.setBinding(press, new EV_EditBinding(sub)));
+
+	EV_EditEventMapper eem(&map);
+	EV_EditMethod * m = nullptr;
+
+	/* mouse events can drive a prefix chain exactly like keystrokes */
+	TFPASS(eem.Mouse(press, &m) == EV_EEMR_INCOMPLETE);
+	TFPASS(eem.Mouse(next, &m) == EV_EEMR_COMPLETE);
+	TFPASS(m == &s_methods[0]);
+
+	delete sub;
+}
+
+/* ------------------------------------------------------------------ */
+/* EV_Menu / EV_Toolbar -- the XP shells over the factory tables       */
+/* ------------------------------------------------------------------ */
+
+TFTEST_MAIN("EV_Menu invokeMenuMethod")
+{
+	EV_EditMethodContainer emc(G_N_ELEMENTS(s_methods), s_methods);
+	EV_Menu menu(XAP_App::getApp(), &emc, "ContextText", "en-US");
+	TFPASS(menu.getLayout() != nullptr);
+
+	tf_reset();
+	/* null method is refused */
+	TFPASS(!menu.invokeMenuMethod(FAKE_VIEW, nullptr, nullptr, 0));
+	TFPASS(!menu.invokeMenuMethod(FAKE_VIEW, nullptr, UT_String("x")));
+	/* a document method needs a live view */
+	TFPASS(!menu.invokeMenuMethod(nullptr, &s_methods[0], nullptr, 0));
+	TFPASS(!menu.invokeMenuMethod(nullptr, &s_methods[0], UT_String("x")));
+	/* REQUIREDATA without data aborts before Fn() */
+	TFPASS(!menu.invokeMenuMethod(FAKE_VIEW, &s_methods[1], nullptr, 0));
+	TFPASS(!menu.invokeMenuMethod(FAKE_VIEW, &s_methods[1], UT_String("")));
+	TFPASS(s_iCallCount == 0);
+
+	/* happy paths dispatch through Fn() */
+	UT_UCS4Char data[] = {'Q'};
+	TFPASS(menu.invokeMenuMethod(FAKE_VIEW, &s_methods[1], data, 1));
+	TFPASS(s_iCallCount == 1 && s_lastData[0] == 'Q');
+	TFPASS(menu.invokeMenuMethod(FAKE_VIEW, &s_methods[0],
+								 UT_String("script")));
+	TFPASS(s_iCallCount == 2);
+
+	/* app-type methods may run with no view at all */
+	EV_EditMethod appCmd("appCmd", tf_record_call, EV_EMT_APP_METHOD,
+						 "app-level");
+	tf_reset();
+	TFPASS(menu.invokeMenuMethod(nullptr, &appCmd, nullptr, 0));
+	TFPASS(s_iCallCount == 1 && s_pLastView == nullptr);
+}
+
+namespace {
+
+/* getLabelName() is protected — platform menu classes reach it while
+ * building labels; promote it for the direct-call test */
+class TestMenu : public EV_Menu
+{
+public:
+	TestMenu(XAP_App * pApp, EV_EditMethodContainer * pEMC,
+			 const char * szLayout, const char * szLabelSet)
+		: EV_Menu(pApp, pEMC, szLayout, szLabelSet) {}
+	using EV_Menu::getLabelName;
+};
+
+} /* anonymous namespace */
+
+TFTEST_MAIN("EV_Menu getLabelName")
+{
+	EV_EditMethodContainer emc(G_N_ELEMENTS(s_methods), s_methods);
+	TestMenu menu(XAP_App::getApp(), &emc, "ContextText", "en-US");
+	XAP_App * app = XAP_App::getApp();
+
+	EV_Menu_Label lab(static_cast<XAP_Menu_Id>(7), "&File", "file menu");
+	EV_Menu_Label blank(static_cast<XAP_Menu_Id>(8), "", "no label");
+	EV_Menu_Action plain(static_cast<XAP_Menu_Id>(7), false, false,
+						 false, false, nullptr, nullptr, nullptr);
+
+	/* null args are refused outright */
+	TFPASS(menu.getLabelName(app, nullptr, &lab) == nullptr);
+	TFPASS(menu.getLabelName(app, &plain, nullptr) == nullptr);
+
+	/* an empty label string collapses to the two-null answer */
+	const char ** lbl = menu.getLabelName(app, &plain, &blank);
+	TFPASS(lbl && lbl[0] == nullptr && lbl[1] == nullptr);
+
+	/* a plain label with no method name returns just the text */
+	lbl = menu.getLabelName(app, &plain, &lab);
+	TFPASS(lbl && lbl[0] && !strcmp(lbl[0], "&File"));
+}
+
+TFTEST_MAIN("EV_Toolbar")
+{
+	EV_EditMethodContainer emc(G_N_ELEMENTS(s_methods), s_methods);
+	EV_Toolbar tb(&emc, "FileEditOps", "en-US");
+	TFPASS(tb.getToolbarLayout() != nullptr);
+	TFPASS(tb.getToolbarLabelSet() != nullptr);
+
+	/* show/hide bookkeeping */
+	TFPASS(!tb.isHidden());
+	tb.hide();
+	TFPASS(tb.isHidden());
+	tb.show();
+	TFPASS(!tb.isHidden());
+	TFPASS(!tb.synthesize());
+
+	/* invokeToolbarMethod guards */
+	tf_reset();
+	TFPASS(!tb.invokeToolbarMethod(nullptr, &s_methods[0], nullptr, 0));
+	TFPASS(!tb.invokeToolbarMethod(FAKE_VIEW, nullptr, nullptr, 0));
+	TFPASS(!tb.invokeToolbarMethod(FAKE_VIEW, &s_methods[1], nullptr, 0));
+	TFPASS(s_iCallCount == 0);
+
+	UT_UCS4Char data[] = {'T'};
+	TFPASS(tb.invokeToolbarMethod(FAKE_VIEW, &s_methods[1], data, 1));
+	TFPASS(s_iCallCount == 1 && s_lastData[0] == 'T');
+	TFPASS(tb.invokeToolbarMethod(FAKE_VIEW, &s_methods[0], nullptr, 0));
+	TFPASS(s_iCallCount == 2);
+}
+
+TFTEST_MAIN("EV_Toolbar_Layout bounds")
+{
+	EV_Toolbar_Layout tl("B", 2);
+	TFPASS(tl.setLayoutItem(0, static_cast<XAP_Toolbar_Id>(1), EV_TLF_Normal));
+
+	/* out-of-range access is a clean miss */
+	TFPASS(!tl.setLayoutItem(2, static_cast<XAP_Toolbar_Id>(9),
+						   EV_TLF_Normal));
+	TFPASS(!tl.setLayoutItem(99, static_cast<XAP_Toolbar_Id>(9),
+						   EV_TLF_Normal));
+	TFPASS(tl.getLayoutItem(2) == nullptr);
+	TFPASS(tl.getLayoutItem(99) == nullptr);
+	TFPASS(tl.getLayoutItem(0)->getToolbarId() == 1);
 }

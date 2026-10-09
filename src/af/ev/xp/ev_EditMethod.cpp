@@ -35,6 +35,10 @@
 #include "xap_App.h"
 #include "xap_Frame.h"
 
+/* name -> method lookup cache shared by findEditMethodByName() and
+ * invalidated by removeEditMethod(); file scope so both can see it */
+static std::map<std::string, EV_EditMethod *> s_emHash;
+
 /*****************************************************************/
 /*****************************************************************/
 
@@ -198,6 +202,11 @@ bool EV_EditMethodContainer::removeEditMethod(EV_EditMethod * pem)
 
 	if ( it == m_vecDynamicEditMethods.end() )
 	    return false;
+
+	/* drop the name cache entry too — otherwise findEditMethodByName()
+	 * would keep resolving the removed (and likely freed) method */
+	if (pem->getName())
+		s_emHash.erase(pem->getName());
 	m_vecDynamicEditMethods.erase(it);
 	return true;
 }
@@ -234,11 +243,9 @@ EV_EditMethod * EV_EditMethodContainer::findEditMethodByName(const char * szName
 	// TODO: make this also use a hashtable + bsearch
 
 	// first, see if it's in our hashtable
-	// TODO: should this be class-wide instead of static here?
-	static std::map<std::string,EV_EditMethod *> emHash;
 	std::map<std::string,EV_EditMethod *>::const_iterator iter;
-	iter = emHash.find(szName);
-	if (iter != emHash.end())
+	iter = s_emHash.find(szName);
+	if (iter != s_emHash.end())
 		return iter->second;
 
 	// nope, bsearch for it in our private array
@@ -252,7 +259,7 @@ EV_EditMethod * EV_EditMethodContainer::findEditMethodByName(const char * szName
 	{
 	    // found it, insert it into our hash table for quicker lookup
 	    // in the future and return
-	    emHash.insert(std::make_pair(szName, mthd));
+	    s_emHash.insert(std::make_pair(szName, mthd));
 	    return mthd;
 	}
 

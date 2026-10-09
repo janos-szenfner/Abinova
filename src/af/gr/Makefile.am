@@ -56,4 +56,5 @@ libgr_la_SOURCES += \
 
 
 EXTRA_DIST = \
-	xp/t/gr_Primitives.t.cpp
+	xp/t/gr_Primitives.t.cpp \
+	gtk/t/gr_Gtk.t.cpp

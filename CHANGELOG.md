@@ -5696,6 +5696,23 @@ below are on `main` but the release has not been cut yet.
   pointers — the records are now dropped along with the widgets.
   `af/ev/gtk` line coverage 64.1% -> 78.5%; overall 73.68% ->
   73.94%.
+- **Coverage wave on the event model and GTK graphics landed** —
+  `ev_Tables.t.cpp` grew table-driven mains over the event-queue
+  machinery (call-data constructors, context-callback dispatch,
+  dynamic edit-method add/lookup/remove, binding-map bounds, mouse
+  and keyboard binding sweeps, shortcut rendering, event-mapper
+  guards, and the menu/toolbar layout+label+action containers), and
+  a new `gr_Gtk.t.cpp` suite exercises the headless GTK graphics
+  paths — pixbuf image load/PNG round-trip/crop/transparency,
+  DrawingML blip effects, SVG vector images, cairo print graphics,
+  the widget-less cairo graphics, and the math/media embed
+  managers. It caught a real use-after-free:
+  `EV_EditMethodContainer::removeEditMethod()` never invalidated
+  the name-lookup cache, so a subsequent `findEditMethodByName()`
+  could hand back a pointer to the freed method — the cache is now
+  file-scoped and erased on removal. `af/ev/xp` line coverage
+  87.2% -> 95.0%, `af/gr/gtk` 83.3% -> 92.5%; overall 74.2% ->
+  74.3%.
 
 ### Resolved root causes worth noting
 
