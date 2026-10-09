@@ -4157,6 +4157,18 @@ below are on `main` but the release has not been cut yet.
   libwps emits (`dc:creator`, `meta:initial-creator`, `meta:keyword`,
   `dc:description`), so author/keywords/abstract survive import from
   both engines.
+- **Frame paint fixes found by the new frame-paint coverage suite** —
+  frames with a picture fill (`a:blipFill`) could have their image
+  swallowed by an opaque flat fill painted on top; the fill-alpha
+  paint now skips image fills, and the image painter applies the
+  alpha to its own underlay instead.  The clip rectangle for
+  vertical-text (`vert`/`vert270`) frames was un-rotated around the
+  wrong origin, so clipping landed on the wrong region.  And a
+  caller painting through the raw cairo context could run under a
+  stale clip left behind by an earlier container —
+  `GR_CairoGraphics::getCairo()` now applies the pending clip before
+  handing the context out, which is what made image-filled frames
+  disappear on screen.
 
 ### GTK4 port (core migration)
 

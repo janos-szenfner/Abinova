@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE abiword PUBLIC "-//ABISOURCE//DTD AWML 1.0 Strict//EN" "http://www.abisource.com/awml-1.0.dtd">
+<abiword version="1.0" file-format="1.1">
+<section>
+<p props="text-align:left">Body text before the painted frames.</p>
+<!-- drop shadow on a solid fill -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.4000in; frame-height:0.9000in; frame-page-xpos:0.4000in; frame-page-ypos:0.4000in; xpos:0.4000in; ypos:0.4000in; wrap-mode:above-text; background-color:3366CC; frame-shadow:outer; frame-shadow-offset:5pt; frame-shadow-dir:2700000; frame-shadow-blur:6pt; frame-shadow-color:102030; frame-shadow-alpha:0.5">
+<p>shadowed box</p>
+</frame>
+<!-- rotated frame, shadow offset pinned to page space -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.2000in; frame-height:0.8000in; frame-page-xpos:3.9000in; frame-page-ypos:0.4000in; xpos:3.9000in; ypos:0.4000in; wrap-mode:above-text; background-color:CC6633; frame-rotation:20; frame-shadow:outer; frame-shadow-offset:4pt; frame-shadow-blur:4pt; frame-shadow-rot:0">
+<p>rotated shadow</p>
+</frame>
+<!-- flipped frame -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.0000in; frame-height:0.7000in; frame-page-xpos:6.6000in; frame-page-ypos:0.4000in; xpos:6.6000in; ypos:0.4000in; wrap-mode:above-text; background-color:66AA66; frame-flip-horiz:1; frame-flip-vert:1; top-style:solid; top-thickness:2pt; top-color:003300; bot-style:solid; bot-thickness:2pt; bot-color:003300; left-style:solid; left-thickness:2pt; left-color:003300; right-style:solid; right-thickness:2pt; right-color:003300">
+<p>flipped</p>
+</frame>
+<!-- linear gradient fill, vertically centred text -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.4000in; frame-height:0.8000in; frame-page-xpos:0.4000in; frame-page-ypos:1.7000in; xpos:0.4000in; ypos:1.7000in; wrap-mode:above-text; fill-gradient:lin:2700000,0:FF0000,100000:0000FF; frame-valign:center; frame-group:pair-a">
+<p>gradient fill</p>
+</frame>
+<!-- translucent solid fill -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.4000in; frame-height:0.8000in; frame-page-xpos:2.2000in; frame-page-ypos:1.7000in; xpos:2.2000in; ypos:1.7000in; wrap-mode:above-text; background-color:00CC00; fill-alpha:0.4; frame-valign:bottom; frame-group:pair-a">
+<p>alpha fill</p>
+</frame>
+<!-- custGeom triangle, compound outline, round joins -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.5000in; frame-height:1.0000in; frame-page-xpos:4.1000in; frame-page-ypos:1.7000in; xpos:4.1000in; ypos:1.7000in; wrap-mode:above-text; background-color:FFEECC; shape-path:M 0 0 L 1000 0 L 500 1000 Z; top-style:solid; top-thickness:3pt; top-color:000000; bot-style:solid; bot-thickness:3pt; bot-color:000000; left-style:solid; left-thickness:3pt; left-color:000000; right-style:solid; right-thickness:3pt; right-color:000000; line-compound:dbl; line-join:round; line-cap:rnd">
+<p>custgeom dbl</p>
+</frame>
+<!-- custGeom diamond, gradient outline, inside-aligned stroke -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.4000in; frame-height:1.0000in; frame-page-xpos:6.1000in; frame-page-ypos:1.7000in; xpos:6.1000in; ypos:1.7000in; wrap-mode:above-text; shape-path:M 500 0 L 1000 500 L 500 1000 L 0 500 Z; top-style:solid; top-thickness:2pt; top-color:AA0000; bot-style:solid; bot-thickness:2pt; bot-color:AA0000; left-style:solid; left-thickness:2pt; left-color:AA0000; right-style:solid; right-thickness:2pt; right-color:AA0000; outline-gradient:lin:0,0:00FF00,100000:0000FF; line-align:in">
+<p>custgeom grad</p>
+</frame>
+<!-- tiled image fill -->
+<frame strux-image-dataid="tile.png_0" props="position-to:page-above-text; frame-type:image; frame-width:1.5000in; frame-height:1.0000in; frame-page-xpos:0.4000in; frame-page-ypos:3.2000in; xpos:0.4000in; ypos:3.2000in; wrap-mode:above-text; image-tile:0 0 40000 40000 xy ctr"/>
+<!-- cropped + stretched image fill over a translucent underlay -->
+<frame strux-image-dataid="tile.png_0" props="position-to:page-above-text; frame-type:image; frame-width:1.5000in; frame-height:1.0000in; frame-page-xpos:2.4000in; frame-page-ypos:3.2000in; xpos:2.4000in; ypos:3.2000in; wrap-mode:above-text; image-src-rect:10000 10000 10000 10000; image-fill-rect:25000 25000 10000 10000; background-color:FFFF00; fill-alpha:0.8"/>
+<!-- horizontal bar with arrowheads -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:2.4000in; frame-height:4pt; frame-page-xpos:0.4000in; frame-page-ypos:4.7000in; xpos:0.4000in; ypos:4.7000in; wrap-mode:above-text; background-color:000000; bar-h:1; line-start-arrow:triangle; line-start-arrow-w:lg; line-start-arrow-len:lg; line-end-arrow:stealth; line-end-arrow-w:lg; line-end-arrow-len:lg">
+<p></p>
+</frame>
+<!-- vertical bar with arrowheads -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:4pt; frame-height:1.5000in; frame-page-xpos:4.4000in; frame-page-ypos:4.5000in; xpos:4.4000in; ypos:4.5000in; wrap-mode:above-text; background-color:000000; bar-w:1; line-start-arrow:oval; line-start-arrow-w:sm; line-start-arrow-len:sm; line-end-arrow:arrow; line-end-arrow-w:med; line-end-arrow-len:med">
+<p></p>
+</frame>
+<!-- horizontal bar, compound line + round caps -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:2.0000in; frame-height:4pt; frame-page-xpos:5.2000in; frame-page-ypos:4.7000in; xpos:5.2000in; ypos:4.7000in; wrap-mode:above-text; background-color:000000; bar-h:1; line-compound:dbl; line-cap:rnd">
+<p></p>
+</frame>
+<!-- horizontal bar, preset dash + custom dash + gradient stroke -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:2.0000in; frame-height:3pt; frame-page-xpos:5.2000in; frame-page-ypos:5.1000in; xpos:5.2000in; ypos:5.1000in; wrap-mode:above-text; background-color:0000FF; bar-h:1; line-dash:dashdot; line-custom-dash:3 1 1 1; outline-gradient:lin:0,0:FF0000,100000:00FF00">
+<p></p>
+</frame>
+<!-- vertical text (vert270) -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:0.8000in; frame-height:1.8000in; frame-page-xpos:0.4000in; frame-page-ypos:6.1000in; xpos:0.4000in; ypos:6.1000in; wrap-mode:above-text; background-color:EEEEFF; frame-text-direction:vert270; top-style:solid; top-thickness:1pt; top-color:333399; bot-style:solid; bot-thickness:1pt; bot-color:333399; left-style:solid; left-thickness:1pt; left-color:333399; right-style:solid; right-thickness:1pt; right-color:333399">
+<p>vert270 text runs up the box</p>
+</frame>
+<!-- vertical text (vert, top-to-bottom) -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:0.8000in; frame-height:1.8000in; frame-page-xpos:1.7000in; frame-page-ypos:6.1000in; xpos:1.7000in; ypos:6.1000in; wrap-mode:above-text; background-color:FFEEEE; frame-text-direction:vert; top-style:solid; top-thickness:1pt; top-color:993333; bot-style:solid; bot-thickness:1pt; bot-color:993333; left-style:solid; left-thickness:1pt; left-color:993333; right-style:solid; right-thickness:1pt; right-color:993333">
+<p>vert text runs down</p>
+</frame>
+<!-- non-uniform border styles: double/triple/wave/dashdotdot edges -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.6000in; frame-height:1.0000in; frame-page-xpos:3.2000in; frame-page-ypos:6.2000in; xpos:3.2000in; ypos:6.2000in; wrap-mode:above-text; top-style:double; top-thickness:4pt; top-color:0000AA; right-style:triple; right-thickness:5pt; right-color:00AA00; bot-style:wave; bot-thickness:3pt; bot-color:AA00AA; left-style:dashdotdot; left-thickness:2pt; left-color:AA5500">
+<p>wild borders</p>
+</frame>
+<!-- uniform border + line extras: bevel join, miter limit, custom dash -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.4000in; frame-height:1.0000in; frame-page-xpos:5.2000in; frame-page-ypos:6.2000in; xpos:5.2000in; ypos:6.2000in; wrap-mode:above-text; top-style:dashed; top-thickness:2pt; top-color:224488; bot-style:dashed; bot-thickness:2pt; bot-color:224488; left-style:dashed; left-thickness:2pt; left-color:224488; right-style:dashed; right-thickness:2pt; right-color:224488; line-join:bevel; line-miter-limit:4; line-custom-dash:4 2 1 2">
+<p>extras border</p>
+</frame>
+<!-- non-uniform edges + compound strands -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.2000in; frame-height:1.0000in; frame-page-xpos:7.0000in; frame-page-ypos:6.2000in; xpos:7.0000in; ypos:6.2000in; wrap-mode:above-text; top-style:solid; top-thickness:4pt; top-color:000000; right-style:solid; right-thickness:2pt; right-color:666666; bot-style:solid; bot-thickness:4pt; bot-color:000000; left-style:none; line-compound:thickThin; line-cap:sq">
+<p>compound edges</p>
+</frame>
+<!-- text wrapped around the frame -->
+<frame props="position-to:column-above-text; frame-type:textbox; frame-width:2.0000in; frame-height:0.9000in; wrap-mode:wrapped-both; xpos:1.0000in; ypos:7.8000in; background-color:FFDDDD">
+<p>wrapped box</p>
+</frame>
+<!-- below-text frame paints under the body -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.6000in; frame-height:0.8000in; frame-page-xpos:4.2000in; frame-page-ypos:8.2000in; xpos:4.2000in; ypos:8.2000in; wrap-mode:below-text; background-color:DDDDFF">
+<p>behind</p>
+</frame>
+<!-- autofit font scale -->
+<frame props="position-to:page-above-text; frame-type:textbox; frame-width:1.6000in; frame-height:0.8000in; frame-page-xpos:6.2000in; frame-page-ypos:8.2000in; xpos:6.2000in; ypos:8.2000in; wrap-mode:above-text; background-color:EEEEEE; frame-font-scale:0.5; frame-linesp-reduction:0.2">
+<p props="font-size:24pt">scaled text at half size</p>
+</frame>
+<p props="text-align:left">Body text that wraps around the wrapped-both frame, with enough words to flow along both of its sides and exercise the wrap contour code. More filler text so the line actually has to break around the floating box on this page. And a little more for good measure.</p>
+<p>Trailing paragraph after all the frames.</p>
+</section>
+<data>
+<d name="tile.png_0" mime-type="image/png" base64="yes">iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAVElEQVR4nKXMyQ0AIAgEwK2E/kuxCHrRxETjDayP+Q6QkEWUBhXJP0kNfpIesMkUMMkWRJNjEEmugTd5Bp7EDKzEFbwSd3BLQsEpCQdrQgVjQgctKd4NEh/ea2ZpAAAAAElFTkSuQmCC</d>
+</data>
+</abiword>

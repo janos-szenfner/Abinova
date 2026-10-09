@@ -3681,6 +3681,26 @@ cairo_t *GR_CairoGraphics::getCairo()
 		UT_DEBUGMSG(("GR_CairoGraphics::getCairo: calling beginPaint() for you, expect strange side-effects.\n"));
 		beginPaint();
 	}
+	/* setClipRect() is lazy - the cairo clip only changes inside
+	 * _setProps() at the next GR drawing op.  A caller painting
+	 * through the raw cairo context would otherwise run under
+	 * whatever clip was applied last, which after a clip reset that
+	 * never reached a GR op is a stale (possibly empty or tiny)
+	 * leftover from an earlier container's children: the frame image
+	 * fills vanished on screen for exactly that reason. */
+	if (m_clipRectDirty)
+	{
+		_resetClip();
+		if (m_pRect)
+		{
+			cairo_rectangle(m_cr, _tdudX(m_pRect->left),
+							_tdudY(m_pRect->top),
+							_tduR(m_pRect->width),
+							_tduR(m_pRect->height));
+			cairo_clip(m_cr);
+		}
+		m_clipRectDirty = false;
+	}
 	UT_ASSERT(m_cr);
 	return m_cr;
 }

@@ -160,6 +160,8 @@
 
 #include "src/text/fmt/xp/t/fv_GoldenCovers.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fp_FramePaint.t.cpp"
+#undef TFSUITE
 #include "src/text/fmt/xp/t/fv_Fuzz.t.cpp"
 #undef TFSUITE
 #include "src/wp/ap/xp/t/ap_KeyBindings.t.cpp"
@@ -195,6 +197,8 @@
 #include "src/wp/impexp/xp/t/ie_sniffers.t.cpp"
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_wmfimp.t.cpp"
+#undef TFSUITE
+#include "src/wp/impexp/xp/t/ie_wpgimp.t.cpp"
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_xxe.t.cpp"
 #undef TFSUITE

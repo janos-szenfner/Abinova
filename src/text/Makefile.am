@@ -266,6 +266,7 @@ EXTRA_DIST = \
 	fmt/xp/t/fl_AutoNum.t.cpp \
 	fmt/xp/t/fl_TableStyles.t.cpp \
 	fmt/xp/t/fp_FieldTableSum.t.cpp \
+	fmt/xp/t/fp_FramePaint.t.cpp \
 	fmt/xp/t/fv_EditOps.t.cpp \
 	fmt/xp/t/fv_FieldContext.t.cpp \
 	fmt/xp/t/fv_FrameContext.t.cpp \

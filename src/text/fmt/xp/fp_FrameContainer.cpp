@@ -305,17 +305,18 @@ static void s_unrotateFrameRect(UT_Rect & r, UT_sint32 ox, UT_sint32 oy,
 	UT_Rect t;
 	if (rot == 90)
 	{
-		/* forward map: lx = py - oy, ly = ox + iw - px */
-		t.left = r.top - oy;
-		t.top = ox + iw - (r.left + r.width);
+		/* forward map: lx = px' + (py - oy), ly = ox' + oy - px */
+		t.left = ox + r.top - oy;
+		t.top = oy + ox + iw - (r.left + r.width);
 		t.width = r.height;
 		t.height = r.width;
 	}
 	else
 	{
-		/* vert270, forward map: lx = oy + ih - py, ly = px - ox */
-		t.left = oy + ih - (r.top + r.height);
-		t.top = r.left - ox;
+		/* vert270: forward map lx = ox + oy + ih - py,
+		 * ly = px - ox + oy */
+		t.left = ox + oy + ih - (r.top + r.height);
+		t.top = oy + r.left - ox;
 		t.width = r.height;
 		t.height = r.width;
 	}
@@ -493,6 +494,12 @@ static bool s_paintFrameAlpha(GR_Graphics * pG,
 		return false;
 	if (alpha < 0.0)
 		alpha = 0.0;
+	/* a:blipFill frames keep fill-alpha for the solid underlay that
+	 * sits beneath the image - painting a flat alpha fill here would
+	 * swallow the picture entirely (s_paintFrameImageFill applies the
+	 * alpha to the underlay itself) */
+	if (pFC->getFillType().getFillType() == FG_FILL_IMAGE)
+		return false;
 
 	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
 	if (!pCG)
