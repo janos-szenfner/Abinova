@@ -273,7 +273,30 @@ fb_LineBreaker::breakParagraph(fl_BlockLayout* pBlock,
 					m_iWorkingLineWidth -= pCurrentRun->getWidth();
 
 					pLine->getWorkingDirectionAndTabstops(eWorkingDirection, eUseTabStop);
-					pLine->calculateWidthOfRun(m_iWorkingLineWidth,iIndx,eWorkingDirection,eUseTabStop);
+
+					/* calculateWidthOfRun() expects the run index
+					 * in sweep order; under a backward sweep the
+					 * run now being processed sits at
+					 * countRuns-1-iIndx */
+					UT_uint32 iSweepIndx = iIndx;
+					if(eWorkingDirection == WORK_BACKWARD)
+					{
+						UT_sint32 iCountRuns = pLine->countRuns();
+						if(iCountRuns > static_cast<UT_sint32>(iIndx))
+							iSweepIndx = iCountRuns - iIndx - 1;
+						else
+							iSweepIndx = 0;
+					}
+					UT_sint32 iBeforeTab = m_iWorkingLineWidth;
+					pLine->calculateWidthOfRun(m_iWorkingLineWidth,iSweepIndx,eWorkingDirection,eUseTabStop);
+					if(eWorkingDirection == WORK_BACKWARD)
+					{
+						/* the sweep returns the tab's left edge,
+						 * but this accumulator counts line width
+						 * left to right — grow it by the tab's
+						 * width instead */
+						m_iWorkingLineWidth = iBeforeTab + pCurrentRun->getWidth();
+					}
 					break;
 				}
 				case FPRUN_FMTMARK:

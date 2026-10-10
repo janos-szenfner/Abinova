@@ -2248,6 +2248,15 @@ below are on `main` but the release has not been cut yet.
   any leftover justification, and the last line of a justified
   paragraph no longer keeps the stretched spacing it was given while
   it was still a middle line.
+- **Right-aligned paragraphs with tab stops no longer overflow the
+  right margin** — two long-standing line-breaker defects could put
+  far too much text on one line or inflate a tab into a multi-inch
+  gap: while re-wrapping a right-aligned paragraph the tab-width
+  calculation was applied to the wrong run (driving the width
+  accumulator negative), and a backward layout pass could snap a tab
+  to a stop on the wrong side of the text, blowing it up instead of
+  collapsing it. List labels followed by a tab (numbered/bulleted
+  items) hit the same overflow.
 - **Uninitialised-memory fixes from the pre-release valgrind sweep** —
   the caret blink timer read an uninitialised duration when GTK
   settings are unavailable (headless), text measurement left trailing

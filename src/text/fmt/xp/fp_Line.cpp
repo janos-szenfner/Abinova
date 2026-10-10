@@ -2531,13 +2531,33 @@ inline void fp_Line::_calculateWidthOfRun(	UT_sint32 &iX,
 				// we need to remember what the iX was
 				UT_sint32 iXprev;
 				iXprev = iX;
-				
+
 				UT_BidiCharType iVisDirection = pTabRun->getVisDirection();
-				
+
+				if(eWorkingDirection == WORK_BACKWARD)
+				{
+					/* the segment to the left of this tab (up to
+					 * the previous tab run) will be laid ending at
+					 * the tab's left edge — the tab can never
+					 * reach further left than that segment is
+					 * wide, or right of the working position */
+					iScanWidth = 0;
+					for ( UT_uint32 j = iIndx+1; j < iCountRuns; j++ )
+					{
+						UT_uint32 iJ = iCountRuns - j - 1;
+						pScanRun = m_vecRuns[_getRunLogIndx(iJ)];
+
+						if(!pScanRun || pScanRun->getType() == FPRUN_TAB)
+							break;
+						iScanWidth += pScanRun->getWidth();
+					}
+				}
+
 				switch ( iTabType )
 				{
 				case FL_TAB_LEFT:
-					if(iVisDirection == UT_BIDI_LTR && iDomDirection == UT_BIDI_LTR)
+					if(iVisDirection == UT_BIDI_LTR && iDomDirection == UT_BIDI_LTR
+					   && eWorkingDirection == WORK_FORWARD)
 					{
 						iX = iPos;
 						
@@ -2716,6 +2736,23 @@ inline void fp_Line::_calculateWidthOfRun(	UT_sint32 &iX,
 					default:
 						UT_ASSERT(UT_NOT_IMPLEMENTED);
 				}; //switch
+
+				/* a backward sweep may only fill a tab leftward,
+				 * and never left of the segment that precedes it —
+				 * a stop on the wrong side of the working position
+				 * would otherwise snap the tab forward into an
+				 * inflated width that pushes the line out of the
+				 * text area */
+				if(eWorkingDirection == WORK_BACKWARD)
+				{
+					UT_sint32 iTabLeft = iX;
+					if(iTabLeft > iXprev)
+						iTabLeft = iXprev;
+					if(iTabLeft < iScanWidth)
+						iTabLeft = UT_MIN(iScanWidth, iXprev);
+					iWidth = iXprev - iTabLeft;
+					iX = iTabLeft;
+				}
 
 				// if working backwards, set the new X coordinance
 				// and decide if line needs erasing
