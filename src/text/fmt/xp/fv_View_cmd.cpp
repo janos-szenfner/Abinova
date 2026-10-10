@@ -5411,6 +5411,37 @@ void FV_View::cmdSelect(UT_sint32 xPos, UT_sint32 yPos, FV_DocPos dpBeg, FV_DocP
 {
 	UT_DEBUGMSG(("Double click on mouse \n"));
 
+	if (IS_SELECTALL(dpBeg, dpEnd))
+	{
+		/* Select-all (Ctrl+A, Edit>Select All): keyboard and menu
+		 * invocations carry (x,y) = (0,0), so warping the caret to that
+		 * canvas point is meaningless — and harmful: (0,0) can map into
+		 * a header/footer shadow (or the point can sit inside one while
+		 * a hdrftr edit session is active), which makes
+		 * getEditableBounds() clamp BOD/EOD to that story and produces
+		 * a partial selection.  Word parity: Ctrl+A always selects the
+		 * whole main text, including from a header/footer session. */
+		if (isHdrFtrEdit())
+			clearHdrFtrEdit();
+		PT_DocPosition posBOD = 0, posEOD = 0;
+		if (!getEditableBounds(false, posBOD, true) ||
+			!getEditableBounds(true, posEOD, true))
+		{
+			return;
+		}
+		fl_DocSectionLayout * pDSL = m_pLayout->getFirstSection();
+		if (pDSL)
+		{
+			fl_ContainerLayout * pCL = pDSL->getFirstLayout();
+			if (pCL && (pCL->getContainerType() == FL_CONTAINER_TABLE))
+			{
+				posBOD = pCL->getPosition(true);
+			}
+		}
+		cmdSelect(posBOD, posEOD);
+		return;
+	}
+
 	warpInsPtToXY(xPos, yPos,true);
 	PT_DocPosition iPosLeft = _getDocPos(dpBeg, false);
 	PT_DocPosition iPosRight = _getDocPos(dpEnd, false);

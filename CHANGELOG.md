@@ -807,6 +807,18 @@ below are on `main` but the release has not been cut yet.
   Ctrl+F12 Open, Ctrl+Shift+F12 Print, Ctrl+F2 print preview.
 - **Editing** — Ctrl+Alt+V Paste Special, Ctrl+Shift+V paste
   formatting (format painter), F5 Go To.
+- **Select All (Ctrl+A) always spans the whole document** —
+  previously the command warped the caret to canvas coordinate (0,0)
+  first; when that point (or an active header/footer edit session)
+  mapped into a header/footer region, the selection was silently
+  clamped to that story instead of the document. Ctrl+A now selects
+  the entire main text directly — including from inside a
+  header/footer edit session, which it exits (Word parity). As part
+  of the same fix, Ctrl+Space now clears direct character
+  formatting (Word parity) instead of triggering Select All —
+  the space key got its own binding-table row so the old
+  space-remapped-to-'a' hack is gone; in vi command mode Space now
+  moves the cursor right instead of wrongly entering append mode.
 - **Formatting** — Ctrl+Shift+X strikethrough, Ctrl+= subscript,
   Ctrl+Shift+= superscript, Ctrl+D font dialog.
 - **Paragraph** — Ctrl+L align left, Ctrl+M / Ctrl+Shift+M

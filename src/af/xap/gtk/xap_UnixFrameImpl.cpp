@@ -1203,6 +1203,11 @@ gboolean XAP_UnixFrameImpl::_fe::key_press_event(GtkEventControllerKey * c,
 			(state & GDK_META_MASK))
 			return FALSE;
 
+		/* Enable this trace when Ctrl chords (Ctrl+A etc.) appear dead:
+		 * an IM that claims filtered keys without reinjecting them
+		 * swallows every non-Alt accelerator here. */
+		xxx_UT_DEBUGMSG(("key_press_event: IM consumed keyval=%#x state=%#x\n",
+						 keyval, static_cast<unsigned>(state)));
 		// ... else, stop this event
 		return TRUE;
 	}

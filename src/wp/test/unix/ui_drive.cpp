@@ -3189,6 +3189,204 @@ static void snapshot_widget(GtkWidget *w)
 		gsk_render_node_unref(node);
 }
 
+/* ---------------- KEYB01: select-all key delivery ---------------- */
+
+/* Real key-press path: XTest injects a Ctrl+A on the document
+ * canvas — the same delivery a physical keyboard produces, through
+ * the frame's GtkEventControllerKey, the IM prefilter and
+ * ev_UnixKeyboard::keyPressEvent — then asserts the resulting
+ * selection spans the editable document bounds.  A second pass
+ * enters a header/footer edit session first: select-all must still
+ * cover the whole main text (Word parity), not clamp to the shadow.
+ * X11 + libXtst only; other backends report a skip. */
+static int drive_keys(AP_UnixApp *app, const char *scratch)
+{
+	alarm(0);
+	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
+	sweep_guard([&ctx] { ctx.preexisting = tf_widgets::toplevels(); });
+
+	XAP_Frame *frame = app->newFrame();
+	if (!frame) {
+		g_printerr("drive: no frame\n");
+		return 1;
+	}
+	char *uri = g_strdup_printf("file://%s", scratch);
+	frame->loadDocument(uri, IEFT_Unknown, true);
+	g_free(uri);
+	frame->show();
+	tf_guard::pump_for(800);
+
+	FV_View *view = static_cast<FV_View *>(frame->getCurrentView());
+	GtkWidget *win = nullptr;
+	{
+		std::vector<GtkWidget *> after;
+		sweep_guard([&after] { after = tf_widgets::toplevels(); });
+		for (GtkWidget *w : after)
+			if (!contains(ctx.preexisting, w)) {
+				win = w;
+				break;
+			}
+	}
+	ctx.root = win;
+	guint sweeper = g_timeout_add(150, stray_sweep_cb, &ctx);
+
+	auto body = [&]() -> int {
+#ifdef GDK_WINDOWING_X11
+		if (!view || !win) {
+			g_printerr("keys: no view/window\n");
+			return 1;
+		}
+		GdkDisplay *gd = gdk_display_get_default();
+		if (!GDK_IS_X11_DISPLAY(gd)) {
+			g_printerr("keys: skip — not an X11 display "
+					   "(XTest injection unavailable)\n");
+			return 0;
+		}
+		Display *dpy = gdk_x11_display_get_xdisplay(gd);
+		void *xt = dlopen("libXtst.so.6", RTLD_NOW | RTLD_LOCAL);
+		if (!xt)
+			xt = dlopen("libXtst.so", RTLD_LOCAL);
+		typedef int (*XTestKeyFn)(Display *, unsigned int,
+								  Bool, unsigned long);
+		XTestBtnFn fakeBtn = xt ? reinterpret_cast<XTestBtnFn>(
+			dlsym(xt, "XTestFakeButtonEvent")) : nullptr;
+		XTestKeyFn fakeKeyEv = xt ? reinterpret_cast<XTestKeyFn>(
+			dlsym(xt, "XTestFakeKeyEvent")) : nullptr;
+		if (!fakeBtn || !fakeKeyEv) {
+			g_printerr("keys: skip — libXtst unavailable\n");
+			return 0;
+		}
+
+		auto hold = [&](guint sym, bool down) {
+			KeyCode kc = XKeysymToKeycode(dpy, (KeySym)sym);
+			if (kc) {
+				fakeKeyEv(dpy, kc, down ? True : False, 0);
+				XFlush(dpy);
+				tf_guard::pump_for(30);
+			}
+		};
+		auto key = [&](guint sym) {
+			KeyCode kc = XKeysymToKeycode(dpy, (KeySym)sym);
+			if (kc) {
+				fakeKeyEv(dpy, kc, True, 0);
+				XFlush(dpy);
+				fakeKeyEv(dpy, kc, False, 0);
+				XFlush(dpy);
+				tf_guard::pump_for(45);
+			}
+		};
+		auto ctrl_a = [&] {
+			hold(GDK_KEY_Control_L, true);
+			key(GDK_KEY_a);
+			hold(GDK_KEY_Control_L, false);
+			tf_guard::pump_for(250);
+		};
+
+		/* the document canvas: largest GtkDrawingArea under the
+		 * frame's toplevel — click it so key delivery lands there */
+		GtkWidget *canvas = nullptr;
+		int best = 0;
+		std::vector<GtkWidget *> areas;
+		sweep_guard([&] {
+			tf_widgets::find_all(win, [](GtkWidget *c) {
+				return GTK_IS_DRAWING_AREA(c);
+			}, areas);
+		});
+		for (GtkWidget *a : areas) {
+			int sz = gtk_widget_get_width(a) * gtk_widget_get_height(a);
+			if (sz > best) { best = sz; canvas = a; }
+		}
+		GtkWidget *native = canvas
+			? GTK_WIDGET(gtk_widget_get_native(canvas)) : nullptr;
+		GdkSurface *surf = native
+			? gtk_native_get_surface(GTK_NATIVE(native)) : nullptr;
+		if (!surf || !GDK_IS_X11_SURFACE(surf)) {
+			g_printerr("keys: no X11 document canvas\n");
+			return 1;
+		}
+		Window xid = gdk_x11_surface_get_xid(surf);
+		auto focus_canvas = [&] {
+			graphene_point_t in {(float)(gtk_widget_get_width(canvas) / 2),
+								 (float)(gtk_widget_get_height(canvas) / 2)};
+			graphene_point_t out;
+			if (gtk_widget_compute_point(canvas, native, &in, &out)) {
+				XWarpPointer(dpy, None, xid, 0, 0, 0, 0,
+							 (int)lrint(out.x), (int)lrint(out.y));
+				XFlush(dpy);
+			}
+			tf_guard::pump_for(60);
+			fakeBtn(dpy, 1, True, 0);
+			XFlush(dpy);
+			tf_guard::pump_for(30);
+			fakeBtn(dpy, 1, False, 0);
+			XFlush(dpy);
+			tf_guard::pump_for(60);
+		};
+
+		auto check_whole = [&](const char *tag) -> bool {
+			PT_DocPosition beg = 0, end = 0,
+				left = view->getSelectionLeftAnchor(),
+				right = view->getSelectionRightAnchor();
+			view->getEditableBounds(false, beg, true);
+			view->getEditableBounds(true, end, true);
+			g_print("keys: %s bounds [%u,%u] selection [%u,%u]\n",
+					tag, beg, end, left, right);
+			return !view->isSelectionEmpty()
+				&& left <= beg + 8
+				&& right >= end - 8
+				&& right > left;
+		};
+
+		/* pass 1: plain Ctrl+A — whole editable document */
+		focus_canvas();
+		ctrl_a();
+		if (!check_whole("ctrl+a")) {
+			g_printerr("keys: FAIL — Ctrl+A selection is not the "
+					   "whole document\n");
+			return 1;
+		}
+
+		/* pass 2: inside a header/footer edit session Ctrl+A must
+		 * still select the main text, not clamp to the shadow */
+		view->cmdEditHeader();
+		tf_guard::pump_for(300);
+		if (!view->isHdrFtrEdit()) {
+			/* first call inserts a missing header; the second
+			 * enters its edit session */
+			view->cmdEditHeader();
+			tf_guard::pump_for(300);
+		}
+		if (!view->isHdrFtrEdit()) {
+			g_printerr("keys: skip — could not enter header edit\n");
+		} else {
+			focus_canvas();
+			ctrl_a();
+			if (view->isHdrFtrEdit()) {
+				g_printerr("keys: FAIL — Ctrl+A left hdrftr edit "
+						   "active\n");
+				return 1;
+			}
+			if (!check_whole("ctrl+a in hdrftr")) {
+				g_printerr("keys: FAIL — Ctrl+A in a hdrftr session "
+						   "did not select the main text\n");
+				return 1;
+			}
+		}
+		g_print("drive: keys — PASS\n");
+		return 0;
+#else
+		g_printerr("keys: skip — built without X11 support\n");
+		return 0;
+#endif
+	};
+	int rc = 1;
+	call_guard([&] { rc = body(); }, "keys");
+
+	g_source_remove(sweeper);
+	s_gcov_dump();
+	return rc;
+}
+
 static int drive_fmt(AP_UnixApp *app, const char *scratch)
 {
 	alarm(0);
@@ -5887,7 +6085,7 @@ int main(int argc, char **argv)
 		 wantEv = false, wantFmt = false, wantFileNew = false,
 		 wantRuler = false, wantFreeze = false, wantToc = false,
 		 wantMarkup = false, wantPopovers = false,
-		 wantRevisions = false;
+		 wantRevisions = false, wantKeys = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -5914,17 +6112,19 @@ int main(int argc, char **argv)
 			wantPopovers = true;
 		else if (strcmp(argv[i], "--revisions") == 0)
 			wantRevisions = true;
+		else if (strcmp(argv[i], "--keys") == 0)
+			wantKeys = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
 	if (!wantList && !wantFrame && !wantAbi && !wantEv && !wantFmt &&
 		!wantFileNew && !wantRuler && !wantFreeze && !wantToc &&
-		!wantMarkup && !wantPopovers && !wantRevisions &&
+		!wantMarkup && !wantPopovers && !wantRevisions && !wantKeys &&
 		wantId < 0) {
 		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev"
 				   " | --fmt | --filenew | --ruler | --freeze"
 				   " | --toc | --markup | --popovers"
-				   " | --revisions\n", argv[0]);
+				   " | --revisions | --keys\n", argv[0]);
 		return 2;
 	}
 
@@ -6006,6 +6206,8 @@ int main(int argc, char **argv)
 		return drive_revisions(app, src);
 	if (wantPopovers)
 		return drive_popovers(app, src);
+	if (wantKeys)
+		return drive_keys(app, src);
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {

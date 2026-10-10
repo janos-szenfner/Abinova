@@ -30,6 +30,7 @@
 const ap_bs_Char s_CharTable[] =
 {
 //	{char, /* desc   */ { none,					_C,					_A,				_A_C				}},
+	{0x20, /* space  */ { "replaceChar",			"",					"",				""					}},
 	{0x21, /* !      */ { "replaceChar",			"",					"",				""					}},
 	{0x22, /* "      */ { "replaceChar",			"",					"",				""					}},
 	{0x23, /* #      */ { "replaceChar",			"",					"",				""					}},

@@ -165,10 +165,8 @@ bool ev_UnixKeyboard::charDataEvent(AV_View* pView, EV_EditBits state, const cha
 	UT_UCS4String ucs (text, len);
 
 	UT_uint32 charData = static_cast<UT_uint32>(ucs[0]);
-	
+
 	xxx_UT_DEBUGMSG(("DOM: charData: %d | length: %d | string: '%s'\n", charData, len, text));
-	if (charData == 32)
-	  charData = 'a'; // HACK!!! for space bar not working. investigate more....
 
 	if(charData>0xff || charData == 0)
 	  result = m_pEEM->Keystroke(EV_EKP_PRESS|state|'a',&pEM);

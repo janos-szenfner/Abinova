@@ -80,6 +80,7 @@ extern ap_bs_NVK_Prefix NVKTable_P[];
 const ap_bs_Char s_CharTable[] =
 {
 //	{char, /* desc   */ { none,					_C,					_A,				_A_C				}},
+	{0x20, /* space  */ { "insertData",			"",					"",				""					}},
 	{0x21, /* !      */ { "insertData",			"",					"",				""					}},
 	{0x22, /* "      */ { "insertData",			"",					"",				""					}},
 	{0x23, /* #      */ { "insertData",			"",					"",				""					}},

@@ -72,6 +72,7 @@ extern ap_bs_NVK_Prefix NVKTable_P[];
 const ap_bs_Char s_CharTable[] =
 {
 //	{char, /* desc   */ { none,					_C,					_A,				_A_C				}},
+	{0x20, /* space  */ { "warpInsPtRight",		"",					"",				""					}},
 	{0x21, /* !      */ { "",					"",					"",				""					}},
 	{0x22, /* "      */ { "",					"",					"",				""					}},
 	{0x23, /* #      */ { "",					"",					"",				""					}},
