@@ -1043,30 +1043,6 @@ fp_Container * fl_DocSectionLayout::getLastEndnoteContainer(void) const
 }
 
 
-fl_FootnoteLayout * fl_DocSectionLayout::getFootnoteLayout(UT_uint32 pid)
-{
-	fl_ContainerLayout * pCL = getFirstLayout();
-	fl_FootnoteLayout * pFL = nullptr;
-	bool bFound = false;
-	while(pCL && !bFound)
-	{
-		if(pCL->getContainerType() == FL_CONTAINER_FOOTNOTE)
-		{
-			pFL = static_cast<fl_FootnoteLayout *>(pCL);
-			if(pFL->getFootnotePID() == pid)
-			{
-				bFound = true;
-				break;
-			}
-		}
-		pCL = pCL->getNext();
-	}
-	if(bFound)
-	{
-		return pFL;
-	}
-	return nullptr;
-}
 
 
 fl_AnnotationLayout * fl_DocSectionLayout::getAnnotationLayout(UT_uint32 pid)

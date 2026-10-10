@@ -388,7 +388,6 @@ class ABI_EXPORT PD_RDFSemanticItem
     PD_DocumentRDFHandle getRDF() const;
     PD_DocumentRDFMutationHandle createMutation();
 
-    std::string requestExportFileNameByDialog();
 
 
     /**
@@ -651,10 +650,6 @@ class ABI_EXPORT PD_RDFSemanticItem
     void updateTriple( time_t&      toModify, time_t newValue, const PD_URI& predString );
     void updateTriple( double&      toModify, double newValue, const PD_URI& predString );
 
-    /**
-     * Create a bnode with a uuid
-     */
-    PD_URI createUUIDNode();
 
 
 protected:
@@ -815,7 +810,6 @@ public:
 
     virtual ~PD_RDFSemanticStylesheet();
     static std::string stylesheetTypeSystem();
-    static std::string stylesheetTypeUser();
 
     std::string uuid() const;
     std::string name() const;

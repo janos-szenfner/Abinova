@@ -51,7 +51,6 @@ private:
 	bool m_bSuspendDirectDrawing;
 
 	void callUnifiedDraw();
-	void redrawEntireScreen();
 
 	struct ViewDrawFunctionArguments
 	{

@@ -232,10 +232,6 @@ bool fp_FrameContainer::isFlippedVert(void) const
 	return s_frameBoolProp(this, "frame-flip-vert");
 }
 
-bool fp_FrameContainer::isTransformed(void) const
-{
-	return getRotation() != 0.0 || isFlippedHoriz() || isFlippedVert();
-}
 
 /*!
  * The "frame-group" id shared by the members of a group, or nullptr

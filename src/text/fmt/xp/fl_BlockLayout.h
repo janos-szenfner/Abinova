@@ -178,10 +178,7 @@ public:
 	bool            setFramesOnPage(fp_Line * pLastLine);
 	UT_sint32       getMinWrapWidth(void) const;
 	UT_sint32       getHeightOfBlock(bool b_withMargins = true) const;
-	fp_Line *       findLineWithFootnotePID(UT_uint32 pid) const;
 	UT_sint32 getMaxNonBreakableRun(void) const;
-	fp_Line* findPrevLineInDocument(fp_Line*) const;
-	fp_Line* findNextLineInDocument(fp_Line*) const;
 	virtual void     appendTextToBuf(UT_GrowBuf & buf) const override;
 	void             appendUTF8String(UT_UTF8String & sText) const;
 	virtual fp_Run* getFirstRun(void) const override { return m_pFirstRun; }
@@ -193,7 +190,6 @@ public:
 	void  getListPropertyVector(PP_PropertyVector & vp) const;
 
 	void  refreshRunProperties(void) const;
-	char *	getFormatFromListType(FL_ListType iListType) const;
 	void remItemFromList(void);
 	virtual void listUpdate(void) override;
 	void resumeList( fl_BlockLayout * prevList);
@@ -387,12 +383,6 @@ public:
 	UT_uint32				m_uBackgroundCheckReasons;
 	void                    setPrevListLabel(bool b)
 	{ m_bPrevListLabel = b;}
-	bool                    getNextTableElement(UT_GrowBuf * buf,
-												PT_DocPosition startPos,
-												PT_DocPosition & begPos,
-												PT_DocPosition & endPos,
-												UT_UTF8String & sWord,
-												UT_uint32 iDelim) const;
 	bool                   itemizeSpan(PT_BlockOffset blockOffset, UT_uint32 len,GR_Itemization & I);
 	const UT_RGBColor      getShadingingForeColor(void) const;
 	const UT_RGBColor      getShadingingBackColor(void) const;
@@ -514,8 +504,6 @@ protected:
 
 	void					_createListLabel(void);
 	void					_deleteListLabel(void);
-	inline void 			_addBlockToPrevList( fl_BlockLayout * prevBlockInList, UT_uint32 level);
-	inline void 			_prependBlockToPrevList( fl_BlockLayout * nextBlockInList);
 	UT_sint32 				m_iNeedsReformat; // will store offset
 											  // from which reformat
 											  // is need, -1 if not

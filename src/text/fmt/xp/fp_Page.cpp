@@ -3301,9 +3301,6 @@ fp_ShadowContainer* fp_Page::getHdrFtrContainer(fl_HdrFtrSectionLayout* pHFSL)
 
 // Frame methods
 
-void fp_Page::frameHeightChanged(void) const
-{
-}
 
 void fp_Page::clearScreenFrames(void)
 {

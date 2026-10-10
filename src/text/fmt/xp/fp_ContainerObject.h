@@ -134,7 +134,6 @@ public:
 	void           setColor(const char * pszColor);
 	void           setTransColor(UT_RGBColor & color);
 	void           setTransColor(const char * pszColor);
-	void           setTransparent(void);
 	void           setWidthHeight(GR_Graphics * pG, UT_sint32 width, UT_sint32 height, bool doImage = false);
 	void           setWidth(GR_Graphics * pG, UT_sint32 width);
 	void           setHeight(GR_Graphics * pG, UT_sint32 height);
@@ -287,7 +286,6 @@ public:
 	UT_sint32              countCons(void) const;
 	UT_sint32              findCon(fp_ContainerObject * pCon) const;
 	UT_sint32              findConFrom(fp_ContainerObject * pCon, UT_sint32 iStart) const;
-	void                   justRemoveNthCon(UT_sint32 i);
 	void                   deleteNthCon(UT_sint32 i);
 	void                   insertConAt(fp_ContainerObject * pCon, UT_sint32 i);
 	UT_sint32              getConInsertHint(void) const

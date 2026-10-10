@@ -42,16 +42,7 @@ fl_PartOfBlock::fl_PartOfBlock(UT_sint32 iOffset, UT_sint32 iPTLength,
 {
 }
 
-void fl_PartOfBlock::setGrammarMessage(const std::string & sMsg)
-{
-	m_sGrammarMessage = sMsg;
-}
 
-const std::string&
-fl_PartOfBlock::getGrammarMessage() const
-{
-	return m_sGrammarMessage;
-}
 
 /*!
   Does POB touch region

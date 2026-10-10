@@ -148,10 +148,8 @@ public:
 	void						setParentItem(pf_Frag_Strux* pItem);
 	bool					isContainedByList(const pf_Frag_Strux* pItem) const;
 	pf_Frag_Strux*			getNthBlock(UT_uint32 i) const;
-	pf_Frag_Strux*			getPrevInList(const pf_Frag_Strux* pItem) const;
 
 	bool					isItem(const pf_Frag_Strux* pItem) const;
-	bool						doesItemHaveLabel(const fl_BlockLayout * pItem) const;
 	bool					isEmpty(void) const;
 	pf_Frag_Strux*			getFirstItem(void) const;
 	pf_Frag_Strux*			getLastItem(void) const;
@@ -163,13 +161,11 @@ public:
 	void						fixListOrder(void);
 	void						markAsDirty(void);
 	void						findAndSetParentItem(void);
-	void						setAsciiOffset(UT_uint32 new_asciioffset);
 
 	void						update(UT_uint32 start);
 	bool						isUpdating(void) const { return m_bUpdatingItems; }
 	UT_uint32					getID() const { return m_iID; }
 	UT_uint32					getParentID() const { return m_iParentID; }
-	bool						isIDSomeWhere(UT_uint32 ID) const;
 	static char *				dec2roman(UT_sint32 value, bool lower);
 	static char *				dec2ascii(UT_sint32 value, UT_uint32 offset);
 	static void					dec2hebrew(UT_UCS4Char labelStr[], UT_uint32 * insPoint, UT_sint32 value, UT_uint32 maxlen);
@@ -188,7 +184,6 @@ protected:
 												const pf_Frag_Strux* pLayout,
 												UT_uint32 maxlen) const;
 	bool						_updateItems(UT_sint32 start, const pf_Frag_Strux* notMe);
-	UT_uint32					_getLevelValue(const fl_AutoNumConstPtr & pAutoNum) const;
 
 	fl_AutoNumWeakPtr			m_pParent;
 

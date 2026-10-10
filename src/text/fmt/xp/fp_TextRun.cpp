@@ -2849,17 +2849,6 @@ bool fp_TextRun::isLastCharacter(UT_UCS4Char Character) const
 	return false;
 }
 
-bool fp_TextRun::isFirstCharacter(UT_UCS4Char Character) const
-{
-	UT_UCS4Char c;
-
-	if (getCharacter(0, c))
-		return c == Character;
-
-	// not found
-
-	return false;
-}
 
 
 bool	fp_TextRun::doesContainNonBlankData(void) const

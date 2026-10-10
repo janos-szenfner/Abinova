@@ -155,7 +155,6 @@ public:
 	/* "frame-flip-horiz" / "frame-flip-vert" properties */
 	bool                isFlippedHoriz(void) const;
 	bool                isFlippedVert(void) const;
-	bool                isTransformed(void) const;
 	/* "frame-group" property - shared id linking grouped frames */
 	const char *        getGroupId(void) const;
 	/* bounding box of the (possibly rotated) frame in page coords */

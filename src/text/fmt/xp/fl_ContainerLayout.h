@@ -143,7 +143,6 @@ public:
 // For Folded Text
 
 	UT_sint32               getFoldedLevel(void) const;
-	UT_uint32               getFoldedID(void) const;
     void                    lookupFoldedLevel(void);
 
 	void                    lookupProperties(void);

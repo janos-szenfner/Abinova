@@ -211,7 +211,6 @@ public:
 	void		setPendingWordForSpell(const fl_BlockLayout *pBlock,
 					       const fl_PartOfBlockPtr& pWord);
 	bool		checkPendingWordForSpell(void);
-	void        dequeueAll(void);
 	void        queueAll(UT_uint32 iReason);
 	void 		queueBlockForBackgroundCheck(UT_uint32 reason, fl_BlockLayout *pBlock, bool bHead=false);
 	bool 		dequeueBlockForBackgroundCheck(fl_BlockLayout *pBlock);
@@ -303,7 +302,6 @@ public:
 	UT_sint32           getAnnotationVal(UT_uint32 footpid) const;
 	fl_AnnotationLayout * findAnnotationLayout(UT_uint32 footpid) const;
 	bool                displayAnnotations(void) const;
-	void                setDisplayAnnotations(bool bDisplayAnnotations);
 	bool                collapseAnnotations(void);
 
 // --------------------------------------------------------------------
@@ -319,7 +317,6 @@ public:
 // --------------------------------------------------------------------
 // RDF Anchor Methods
 	bool                displayRDFAnchors(void) const;
-	void                setDisplayRDFAnchors(bool v);
 
 // ---------------------------------------------------
 // Table of contents

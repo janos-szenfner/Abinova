@@ -348,13 +348,6 @@ UT_sint32 fl_ContainerLayout::getFoldedLevel(void) const
 }
 
 
-/*!
- * This method returns the ID of the list that is folded.
- */
-UT_uint32 fl_ContainerLayout::getFoldedID(void) const
-{
-	return m_iFoldedID;
-}
 
 /*!
  * This Method looks up the folded level of the strux.

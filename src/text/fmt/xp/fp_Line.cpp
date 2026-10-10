@@ -751,20 +751,6 @@ UT_sint32  fp_Line::getColumnGap(void) const
 	return (static_cast<fp_Column *>(getColumn()))->getColumnGap();
 }
 
-bool fp_Line::containsOffset(PT_DocPosition blockOffset)
-{
-	fp_Run * pRun = getFirstVisRun();
-	if(blockOffset < pRun->getBlockOffset())
-	{
-		return false;
-	}
-	pRun = getLastVisRun();
-	if(blockOffset > (pRun->getBlockOffset() + pRun->getLength()))
-	{
-		return false;
-	}
-	return true;
-}
 
 /*!
  * Return two rectangles that represent the space left to the left and right
@@ -1057,23 +1043,6 @@ void fp_Line::setContainer(fp_Container* pContainer)
 	recalcHeight();
 }
 
-UT_sint32 fp_Line::getWidthToRun(fp_Run * pLastRun)
-{
-	calcLeftBorderThick();
-	UT_sint32 width = getLeftThick();
-	UT_sint32 count = static_cast<UT_sint32>(m_vecRuns.size());
-	UT_sint32 i = 0;
-	for(i=0;i<count;i++)
-	{
-		fp_Run * pRun = m_vecRuns[i];
-		if(pRun == pLastRun)
-		{
-			return width;
-		}
-		width += pRun->getWidth();
-	}
-	return getLeftThick();
-}
 
 UT_sint32 fp_Line::getFilledWidth(void) const
 {
@@ -3450,29 +3419,6 @@ fp_Run* fp_Line::getLastRun(void) const
 	}
 }
 
-fp_Run* fp_Line::getLastTextRun(void) const
-{
-	const UT_sint32 i = static_cast<UT_sint32>(m_vecRuns.size());
-	fp_Run * pRun = nullptr;
-	if(i <= 0)
-	{
-		pRun = getBlock()->getFirstRun();
-		return pRun;
-	}
-	else
-	{
-		pRun = m_vecRuns.back();
-		while(pRun != nullptr && pRun->getType() != FPRUN_TEXT)
-		{
-			pRun = pRun->getPrevRun();
-		}
-		if(pRun == nullptr)
-		{
-			pRun = getBlock()->getFirstRun();
-		}
-		return pRun;
-	}
-}
 
 bool	fp_Line::findNextTabStop(UT_sint32 iStartX, UT_sint32& iPosition, eTabType & iType, eTabLeader & iLeader )
 {
@@ -4065,57 +4011,6 @@ void fp_Line::justify(UT_sint32 iAmount)
 	split we would recalculated the bidi map, and that is not worth it
 */
 
-void fp_Line::_splitRunsAtSpaces(void)
-{
-	UT_sint32 count = static_cast<UT_sint32>(m_vecRuns.size());
-	if(!count)
-		return;
-
-	UT_sint32 countOrig = count;
-
-	for (UT_sint32 i = 0; i < count; i++)
-	{
-		fp_Run* pRun = m_vecRuns[i];
-		UT_nonnull_or_continue(pRun);
-		if (pRun->getType() == FPRUN_TEXT)
-		{
-			fp_TextRun* pTR = static_cast<fp_TextRun *>(pRun);
-			UT_sint32 iSpacePosition;
-
-			iSpacePosition = pTR->findCharacter(0, UCS_SPACE);
-
-			if ((iSpacePosition > 0) &&
-				(static_cast<UT_uint32>(iSpacePosition) < pTR->getBlockOffset() + pTR->getLength() - 1))
-			{
-				addDirectionUsed(pRun->getDirection(),false);
-				pTR->split(iSpacePosition + 1);
-				count++;
-			}
-		}
-	}
-
-	fp_Run* pRun = getLastRun();
-
-	if (pRun->getType() == FPRUN_TEXT)
-	{
-		fp_TextRun* pTR = static_cast<fp_TextRun *>(pRun);
-		UT_sint32 iSpacePosition = pTR->findCharacter(0, UCS_SPACE);
-
-		if ((iSpacePosition > 0) &&
-			(static_cast<UT_uint32>(iSpacePosition) < pTR->getBlockOffset() + pTR->getLength() - 1))
-		{
-			addDirectionUsed(pRun->getDirection(),false);
-			pTR->split(iSpacePosition + 1);
-		}
-	}
-
-	count = static_cast<UT_sint32>(m_vecRuns.size());
-	if(count != countOrig)
-	{
-		m_bMapDirty = true;
-		_createMapOfRuns();
-	}
-}
 
 /*!
 	Creates a map for conversion from visual to logical position of runs on the line.
@@ -4442,27 +4337,6 @@ void fp_Line::changeDirectionUsed(UT_BidiCharType oldDir, UT_BidiCharType newDir
 	}
 }
 
-/*!
-    Scan through the runs on this line, checking for footnote anchor
-    fields.  Return true if so.
-*/
-void fp_Line::_updateContainsFootnoteRef(void)
-{
-	m_bContainsFootnoteRef = false;
-
-	UT_sint32 count = static_cast<UT_sint32>(m_vecRuns.size());
-	for (UT_sint32 i = 0; i < count; i++)
-	{
-		const fp_Run * r = static_cast<const fp_Run *>(m_vecRuns[i]);
-		UT_nonnull_or_continue(r);
-		if (r->getType() == FPRUN_FIELD)
-		{
-			const fp_FieldRun * fr = static_cast<const fp_FieldRun*>(r);
-			if (fr->getFieldType() == FPFIELD_endnote_ref)
-				m_bContainsFootnoteRef = true;
-		}
-	}
-}
 
 UT_sint32 fp_Line::getDrawingWidth() const
 {

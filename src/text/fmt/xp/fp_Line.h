@@ -113,7 +113,6 @@ public:
 	virtual void        setHeight(UT_sint32 i) override;
 	virtual UT_sint32   getWidth(void) const override { return m_iWidth;}
 	virtual UT_sint32   getDrawingWidth(void) const override;
-	UT_sint32           getWidthToRun(fp_Run * pLastRun);
 	UT_sint32           getFilledWidth(void) const;
 	virtual bool        isVBreakable(void) override { return false;}
 	virtual bool        isHBreakable(void) override {return true;}
@@ -141,7 +140,6 @@ public:
 	inline	int 		countRuns(void) const			{ return static_cast<int>(m_vecRuns.size()); }
 	inline	fp_Run*     getFirstRun(void) const			{ if(countRuns() > 0)  return m_vecRuns.front(); else return nullptr; }
 	fp_Run*     getLastRun(void) const ;
-	fp_Run*     getLastTextRun(void) const ;
 
 	fp_Run*	calculateWidthOfRun(UT_sint32 &iX,
 				    UT_uint32 iIndxVisual,
@@ -165,7 +163,6 @@ public:
 	virtual void  clearScreen(void) override;
 	void		clearScreenFromRunToEnd(UT_uint32 runIndex);
 	void		clearScreenFromRunToEnd(fp_Run * pRun);
-	bool        containsOffset(PT_DocPosition blockOffset);
 	void         setScreenCleared(bool bisCleared)
 		{   m_bIsCleared = bisCleared;}
 	bool         isScreenCleared(void) const { return m_bIsCleared;}
@@ -259,7 +256,6 @@ protected:
 								 );
 
 private:
-	void		_splitRunsAtSpaces(void);
 	void        _doClearScreenFromRunToEnd(UT_sint32 runIndex);
 	bool        _containsRunType(FP_RUN_TYPE eType) const;
 
@@ -318,7 +314,6 @@ private:
 	UT_sint32		m_iMaxDirLevel;
 	bool            m_bIsCleared;
 	bool			m_bContainsFootnoteRef; // updated when runs added/removed.
-	void			_updateContainsFootnoteRef(void);
 	UT_sint32       m_iBreakTick;
 	bool            m_bIsWrapped;
 	bool            m_bIsSameYAsPrevious;

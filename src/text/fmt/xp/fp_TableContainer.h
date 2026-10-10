@@ -126,7 +126,6 @@ public:
 	void                draw(fp_Line * pLine);
 	fp_TableContainer * getBrokenTable(const fp_Container * pCon) const;
 	fp_VerticalContainer * getColumn(const fp_Container *pCon) const;
-	fp_Container *      getFirstContainerInBrokenTable(const fp_TableContainer * pBroke) const;
 	UT_sint32           wantCellVBreakAt(UT_sint32,UT_sint32) const;
 	virtual void		draw(dg_DrawArgs*) override;
 	virtual void		draw(GR_Graphics*) override {}
@@ -157,7 +156,6 @@ public:
 	void                extendBotRight(PP_PropertyMap::Line & line,GR_Graphics * pG,UT_sint32 & iextRight);
 
 	UT_sint32           getCellX(fp_Line * pLine) const;
-	UT_sint32           getCellY(fp_Line * pLine) const;
 	UT_sint32           getSpannedHeight(void) const;
 	void                setLineMarkers(void);
 	using fp_VerticalContainer::deleteBrokenAfter;
@@ -415,15 +413,12 @@ public:
 	void                setHomogeneous (bool bIsHomogeneous);
 	void                setColSpacings (UT_sint32  spacing);
 	void                setRowSpacings ( UT_sint32 spacing);
-	void                setColSpacing(UT_sint32 column,UT_sint32 spacing);
-	void                setRowSpacing (UT_sint32 row, UT_sint32  spacing);
 	void                resize(UT_sint32 n_rows, UT_sint32 n_cols);
 	void                setLineThickness(UT_sint32 iLineThickness)
 		{ m_iLineThickness = iLineThickness;}
 	UT_sint32           getLineThickness(void) const
 		{ return m_iLineThickness;}
 	void                queueResize(void);
-	UT_sint32           getYOfRowOrColumn(UT_sint32 row, bool bRow) const;
 	UT_sint32           getYOfRow(UT_sint32 row, bool bBottomOffset = true) const;
 	UT_sint32           getXOfColumn(UT_sint32 col) const;
 	fp_CellContainer *  getCellAtRowColumn(UT_sint32 row, UT_sint32 column) const;

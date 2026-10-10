@@ -3283,10 +3283,6 @@ void FL_DocLayout::_setDocPageDimensions(void)
 	m_iPageHeight = UT_convertSizeToLayoutUnits(m_docViewPageSize.Height(DIM_IN),DIM_IN);
 }
 
-void FL_DocLayout::setDisplayAnnotations(bool bDisplayAnnotations)
-{
-  m_bDisplayAnnotations = bDisplayAnnotations;
-}
 
 bool FL_DocLayout::displayAnnotations(void) const
 {
@@ -3298,10 +3294,6 @@ bool FL_DocLayout::displayRDFAnchors(void) const
     return m_bDisplayRDFAnchors;
 }
 
-void FL_DocLayout::setDisplayRDFAnchors(bool v)
-{
-    m_bDisplayRDFAnchors = v;
-}
 
 
 
@@ -3538,29 +3530,6 @@ FL_DocLayout::queueBlockForBackgroundCheck(UT_uint32 iReason,
 	}
 }
 
-void FL_DocLayout::dequeueAll(void)
-{
-	fl_BlockLayout *pB = spellQueueHead();
-	while (pB != nullptr)
-	{
-		fl_BlockLayout *pNext = pB->nextToSpell();
-		pB->clearQueueing();
-		pB = pNext;
-	}
-	setSpellQueueHead(nullptr);
-	setSpellQueueTail(nullptr);
-	UT_DEBUGMSG(("Dequeue all \n"));
-
-	m_PendingBlockForGrammar = nullptr;
-	m_bStopSpellChecking = true;
-	if(m_pBackgroundCheckTimer)
-	{
-		m_pBackgroundCheckTimer->stop();
-		/* the worker runs on this same thread: if we got here
-		 * reentrantly (a block died mid-check), spinning on
-		 * m_bImSpellCheckingNow could never terminate — just stop */
-	}
-}
 
 void FL_DocLayout::queueAll(UT_uint32 iReason)
 {

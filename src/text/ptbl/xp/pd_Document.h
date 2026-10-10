@@ -329,7 +329,6 @@ public:
 	bool                    isShowAuthors(void) const
 	{ return m_bShowAuthors;}
 	bool                    isExportAuthorAtts(void) const;
-	void                    setExportAuthorAtts(bool bExport);
 	std::vector<std::unique_ptr<pp_Author>>& getAuthors()
 	{ return m_vecAuthors; }
 	UT_sint32               getMyAuthorInt(void) const;
@@ -541,10 +540,6 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 												  UT_ConstByteBufPtr & pByteBuf,
                                                   std::string* pMimeType,
                                                   PD_DataItemHandle* ppHandle) const override;
-	bool					setDataItemToken(PD_DataItemHandle pHandle, const char* pToken) const;
-	bool					getDataItemData(PD_DataItemHandle pHandle,
-											const char ** pszName, UT_ConstByteBufPtr & pByteBuf,
-											const char** ppToken) const;
 	bool					getDataItemFileExtension(const char *szDataID, std::string &sExt, bool bDot = true) const;
 	bool					enumDataItems(UT_uint32 k,
 										  PD_DataItemHandle* ppHandle, const char ** pszName,
@@ -593,7 +588,6 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
     const pf_Frag_Strux*       findForwardStyleStrux(const gchar * szStyle, PT_DocPosition pos) const;
 	bool					updateDocForStyleChange(const gchar * szStyleName,
 													bool isParaStyle);
-	void                    updateAllLayoutsInDoc(const pf_Frag_Strux* sdh);
 	void					clearIfAtFmtMark(PT_DocPosition dpos);
 
 	virtual UT_uint32		getLastSavedAsType() const override { return m_lastSavedAsType; }

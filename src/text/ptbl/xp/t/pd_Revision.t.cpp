@@ -85,8 +85,6 @@ struct RevDoc
 
 	PT_DocPosition posBlock1() const
 		{ return doc->getStruxPosition(sdhBlock1); }
-	PT_DocPosition posBlock2() const
-		{ return doc->getStruxPosition(sdhBlock2); }
 
 	PD_Document *doc = nullptr;
 	pf_Frag_Strux *sdhSection = nullptr;

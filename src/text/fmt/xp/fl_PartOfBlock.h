@@ -51,8 +51,6 @@ public:
 	{m_bIsInvisible = true;}
 	bool             isInvisible(void) const
 	{ return m_bIsInvisible;}
-	void             setGrammarMessage(const std::string & sMsg);
-	const std::string& getGrammarMessage() const;
 
 private:
 	UT_sint32	m_iOffset;

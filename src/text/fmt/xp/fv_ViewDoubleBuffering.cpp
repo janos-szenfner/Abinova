@@ -150,13 +150,6 @@ bool FV_ViewDoubleBuffering::noRecordedDrawCalls()
 	return mostExtArgs.callCount == 0;
 }
 
-void FV_ViewDoubleBuffering::redrawEntireScreen()
-{
-	this->m_pView->_draw(
-		0, 0,
-		m_pView->getWindowWidth(), m_pView->getWindowHeight(),
-		false, false);
-}
 
 void FV_ViewDoubleBuffering::initMostExtArgs() 
 {

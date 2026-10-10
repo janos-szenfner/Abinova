@@ -614,12 +614,6 @@ fp_Container* fl_FrameLayout::getNewContainer(const fp_Container*)
 	return static_cast<fp_Container *>(getLastContainer());
 }
 
-void fl_FrameLayout::_insertFrameContainer(fp_Container * /*pNewFC*/)
-{
-
-// This is all done fl_BlockLayout::setFramesOnPage
-
-}
 
 
 void fl_FrameLayout::miniFormat(void)

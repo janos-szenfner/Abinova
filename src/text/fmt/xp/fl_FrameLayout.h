@@ -153,7 +153,6 @@ private:
 	virtual void		     _lookupMarginProperties(const PP_AttrProp* pAP) override;
 	void                     _purgeLayout(void);
 	void                     _createFrameContainer(void);
-	void                     _insertFrameContainer(fp_Container * pNewFC);
 	FL_FrameType             m_iFrameType;
 	FL_FrameFormatMode       m_iFramePositionTo;
 	bool                     m_bNeedsRebuild;

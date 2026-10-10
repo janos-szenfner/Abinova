@@ -472,12 +472,6 @@ void pt_PieceTable::_unlinkFrag(const pf_Frag * pf,
 	UT_ASSERT(pp && (pp->getNext() != pf));
 }
 
-bool pt_PieceTable::_struxHasContent(const pf_Frag_Strux * pfs) const
-{
-	// return true iff the paragraph has content (text).
-
-	return (pfs->getNext() && (pfs->getNext()->getType() == pf_Frag::PFT_Text));
-}
 
 bool  pt_PieceTable::_struxIsEmpty(const pf_Frag_Strux * pfs) const
 {

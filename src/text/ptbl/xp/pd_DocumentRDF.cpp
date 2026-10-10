@@ -1524,12 +1524,6 @@ PD_RDFSemanticItem::createMutation()
     return m_rdf->createMutation();
 }
 
-std::string
-PD_RDFSemanticItem::requestExportFileNameByDialog()
-{
-    std::string ret = getExportToFileName( "", getDefaultExtension(), getExportTypes() );
-    return ret;
-}
 
 
 
@@ -1785,13 +1779,6 @@ void PD_RDFSemanticItem::updateTriple_add( PD_DocumentRDFMutationHandle m,
 
 
 
-PD_URI
-PD_RDFSemanticItem::createUUIDNode()
-{
-    std::string uuid = XAP_App::getApp()->createUUIDString();
-    return PD_URI( uuid );
-    
-}
 
 void
 PD_RDFSemanticItem::importFromFile( const std::string& filename_const )
@@ -2686,11 +2673,6 @@ PD_RDFSemanticStylesheet::stylesheetTypeSystem()
     return "System";
 }
 
-std::string
-PD_RDFSemanticStylesheet::stylesheetTypeUser()
-{
-    return "User";
-}
 
 
 std::string

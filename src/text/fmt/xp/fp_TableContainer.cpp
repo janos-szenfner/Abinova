@@ -1679,16 +1679,6 @@ UT_sint32 fp_CellContainer::getCellX(fp_Line * /*pLine*/) const
 	return 0;
 }
 
-/*!
- * Return the y coordinate offset of this cell. 
- * We need to know the line for situations where the cell is broken over
- * different pages.
- */
-UT_sint32 fp_CellContainer::getCellY(fp_Line * /*pLine*/) const
-{
-	fp_TableContainer * pTab = getTopmostTable();
-	return pTab->getY();
-}
 
 /*!
  Draw container content
@@ -2508,26 +2498,6 @@ fp_Container * fp_CellContainer::getPrevContainerInSection() const
   a broken table. It returns nullptr if no container is inside  the broken table
 */
 
-fp_Container * fp_CellContainer::getFirstContainerInBrokenTable(const fp_TableContainer * pBroke) const
-{
-	if (!pBroke->isThisBroken())
-	{
-		return nullptr;
-	}
-
-	UT_sint32 count = countCons();
-	UT_sint32 k = 0;
-	fp_Container * pCon = nullptr;
-	for (k = 0; k < count; k++)
-	{
-		pCon = static_cast<fp_Container *>(getNthCon(k));
-		if (pBroke->isInBrokenTable(this, pCon))
-		{
-			return pCon;
-		}
-	}
-	return nullptr;
-}
 
 void fp_CellContainer::sizeRequest(fp_Requisition * pRequest)
 {
@@ -3078,10 +3048,6 @@ void fp_TableContainer::clearBrokenCellCache(const fp_CellContainer * pCell)
 
 
 
-UT_sint32 fp_TableContainer::getYOfRowOrColumn(UT_sint32 row, bool bRow) const
-{
-	return ((bRow) ? getYOfRow(row) : getXOfColumn(row));
-}
 
 /*!
  * Return the Y location of row number row
@@ -4540,23 +4506,7 @@ void fp_TableContainer::setContainer(fp_Container * pContainer)
 }
 
 
-void fp_TableContainer::setRowSpacing (UT_sint32 row, UT_sint32  spacing)
-{
-  if (getNthRow(row)->spacing != spacing)
-  {
-      getNthRow(row)->spacing = spacing;
-	  queueResize();
-  }
-}
 
-void fp_TableContainer::setColSpacing(UT_sint32 column,UT_sint32 spacing)
-{
-  if (getNthCol(column)->spacing != spacing)
-  {
-      getNthCol(column)->spacing = spacing;
-	  queueResize();
-  }
-}
 
 void fp_TableContainer::setRowSpacings ( UT_sint32 spacing)
 {

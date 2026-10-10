@@ -241,7 +241,6 @@ public:
 	virtual void        setFirstContainer(fp_Container * pCon) override;
 	virtual void        setLastContainer(fp_Container * pCon) override;
 
-	fl_FootnoteLayout  *       getFootnoteLayout(UT_uint32 footnotePID);
 	fl_AnnotationLayout  *       getAnnotationLayout(UT_uint32 footnotePID);
 
 

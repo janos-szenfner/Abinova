@@ -483,10 +483,6 @@ bool  PD_Document::isExportAuthorAtts(void) const
 	return m_bExportAuthorAtts;
 }
 
-void  PD_Document::setExportAuthorAtts(bool bAuthor)
-{
-	m_bExportAuthorAtts = bAuthor;
-}
 /*!
  * Returns the integer mapping for this session
  */
@@ -5211,50 +5207,7 @@ bool PD_Document::getDataItemFileExtension(const char *szDataID, std::string &sE
 }
 
 
-bool PD_Document::setDataItemToken(PD_DataItemHandle pHandle,
-									  const char* pToken) const
-{
-	UT_return_val_if_fail (pHandle, false);
-	UT_return_val_if_fail (pToken, false);
 
-	_dataItemPair* pPair = pHandle;
-	UT_return_val_if_fail (pPair, false);
-
-	// the slot always holds an owned g_strdup'd string (the mime type —
-	// see createDataItem); overwrite in place so callers can neither
-	// leak the old value nor stash a non-string pointer that the
-	// mime-type readers and ~PD_Document's FREEP would misinterpret
-	g_free(const_cast<void *>(pPair->pToken));
-	pPair->pToken = g_strdup(pToken);
-
-	return true;
-}
-
-bool PD_Document::getDataItemData(PD_DataItemHandle pHandle,
-									 const char ** pszName,
-									 UT_ConstByteBufPtr & pByteBuf,
-									 const char** ppToken) const
-{
-	UT_return_val_if_fail (pHandle,false);
-
-	_dataItemPair* pPair = pHandle;
-
-	pByteBuf = pPair->pBuf;
-
-	if (ppToken)
-	{
-		*ppToken = static_cast<const char *>(pPair->pToken);
-	}
-
-	if (pszName)
-	{
-		UT_ASSERT_HARMLESS(UT_TODO);
-		*pszName = nullptr;
-		//*pszName = pHashEntry->pszLeft;
-	}
-
-	return true;
-}
 
 bool PD_Document::enumDataItems(UT_uint32 k,
                                 PD_DataItemHandle* ppHandle, const char ** pszName,
@@ -5788,18 +5741,6 @@ bool   PD_Document::updateDocForStyleChange(const gchar * szStyle,
 }
 
 
-/*!
- * This method updates all the layouts associated with the document.
-*/
-void  PD_Document::updateAllLayoutsInDoc(const pf_Frag_Strux* pfs)
-{
-	PT_AttrPropIndex indexAP = pfs->getIndexAP();
-	PT_DocPosition pos = getStruxPosition(pfs);
-	PX_ChangeRecord * pcr = new PX_ChangeRecord(PX_ChangeRecord::PXT_ChangeStrux,
-												pos,indexAP,pfs->getXID());
-	notifyListeners(pfs, pcr);
-	delete pcr;
-}
 
 //////////////////////////////////////////////////////////////////
 

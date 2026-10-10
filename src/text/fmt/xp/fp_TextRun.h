@@ -82,7 +82,6 @@ public:
 
 	bool					getCharacter(UT_uint32 run_offset, UT_UCS4Char &Character) const;
 	UT_sint32				findCharacter(UT_uint32 startPosition, UT_UCS4Char Character) const;
-	bool					isFirstCharacter(UT_UCS4Char Character) const;
 	bool					isLastCharacter(UT_UCS4Char Character) const;
 	virtual bool	doesContainNonBlankData(void) const override;
 	virtual bool isSuperscript(void) const override;

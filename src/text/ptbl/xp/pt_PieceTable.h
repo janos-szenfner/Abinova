@@ -450,7 +450,6 @@ protected:
 														pf_Frag_Strux ** ppfs) const;
     pf_Frag_Strux*          _getBlockFromPosition(PT_DocPosition pos) const;
     bool					_doTheDo(PX_ChangeRecord* pcr, bool bUndo);
-	bool					_struxHasContent(const pf_Frag_Strux * pfs) const;
 	bool					_struxIsEmpty(const pf_Frag_Strux * pfs) const;
 	bool					_unlinkStrux(pf_Frag_Strux * pfs,
 										 pf_Frag ** ppfEnd, UT_uint32 * pfragOffsetEnd);

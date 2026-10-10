@@ -139,8 +139,6 @@ public:
 	UT_sint32           getAnnotationHeight(void) const;
 	UT_sint32           getAnnotationPos( UT_uint32 pid) const;
 
-	// Frame functions.
-	void 				frameHeightChanged(void) const;
 	UT_sint32			countAboveFrameContainers(void) const;
 	UT_sint32			countBelowFrameContainers(void) const;
 	fp_FrameContainer*  getNthAboveFrameContainer(UT_sint32 n) const;

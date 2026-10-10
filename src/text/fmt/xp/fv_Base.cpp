@@ -83,10 +83,6 @@ void FV_Base::_endGlob(void)
 	UT_DEBUGMSG(("End Glob count %d \n",m_iGlobCount));
 }
 
-UT_sint32 FV_Base::getGlobCount() const
-{
-	return m_iGlobCount;
-}
 
 void FV_Base::_checkDimensions()
 {

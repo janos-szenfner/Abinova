@@ -617,16 +617,6 @@ bool fp_Container::getPageRelativeOffsets(UT_Rect &r) const
 	return true;
 }
 
-void fp_Container::justRemoveNthCon(UT_sint32 i)
-{
-        fp_ContainerObject * pCon = getNthCon(i);
-	pCon->unref();
-	m_vecContainers.erase(m_vecContainers.begin() + i);
-	if (m_iConInsertHint > i)
-	{
-		--m_iConInsertHint;
-	}
-}
 
 void  fp_Container::deleteNthCon(UT_sint32 i)
 {
@@ -851,14 +841,6 @@ void fg_FillType::setTransColor(const char * pszColor)
 	}
 }
 
-/*!
- * set this class to be transparent.
- */
-void fg_FillType::setTransparent(void)
-{
-	m_FillType = FG_FILL_TRANSPARENT;
-	m_bTransparentForPrint = false;
-}
 
 /*!
  * Set the doc layout for this class.

@@ -679,11 +679,6 @@ void fl_AutoNum::setStartValue(UT_uint32 start)
 	_updateItems(0, nullptr);
 }
 
-void fl_AutoNum::setAsciiOffset(UT_uint32 new_asciioffset)
-{
-	m_iAsciiOffset = static_cast<UT_uint16>(new_asciioffset);
-	m_bDirty = true;
-}
 
 UT_uint32 fl_AutoNum::getStartValue32() const
 {
@@ -975,30 +970,6 @@ pf_Frag_Strux* fl_AutoNum::getLastItem() const
 	return m_items.back();
 }
 
-bool fl_AutoNum::doesItemHaveLabel(const fl_BlockLayout * pItem) const
-{
-	fp_Run * pRun = pItem->getFirstRun();
-	bool bStop = false;
-	while(bStop == false)
-	{
-		if(pRun->getType() == FPRUN_FIELD)
-		{
-			fp_FieldRun * pFRun = static_cast<fp_FieldRun *>(pRun);
-			if(pFRun->getFieldType() == FPFIELD_list_label)
-			{
-				bStop = true;
-				return true;
-			}
-		}
-		pRun = pRun->getNextRun();
-		if(pRun == nullptr)
-		{
-			bStop = true;
-			return false;
-		}
-	}
-	return false;
-}
 
 
 bool fl_AutoNum::isLastOnLevel(const pf_Frag_Strux* pItem) const
@@ -1019,22 +990,6 @@ fl_AutoNumPtr fl_AutoNum::getActiveParent(void) const
 	return pAutoNum;
 }
 
-/*!
- * This method returns true if the requested ID is somewhere in this
- * List heiracy.
- */
-bool fl_AutoNum::isIDSomeWhere(UT_uint32 ID) const
-{
-	fl_AutoNumConstPtr pAuto = shared_from_this();
-	while (pAuto) {
-		if(pAuto->getID() == ID)
-		{
-			return true;
-		}
-		pAuto = pAuto->getParent();
-	}
-	return false;
-}
 
 void fl_AutoNum::_setParent(const fl_AutoNumPtr & pParent)
 {
@@ -1196,34 +1151,7 @@ pf_Frag_Strux* fl_AutoNum::getNthBlock( UT_uint32 list_num) const
 	return m_items.at(list_num);
 }
 
-pf_Frag_Strux* fl_AutoNum::getPrevInList(const pf_Frag_Strux* pItem) const
-{
-	UT_sint32 itemloc = m_items.findItem(pItem);
-	if (itemloc == -1 || itemloc == 0)
-		return nullptr;
-	return m_items.at(static_cast<UT_uint32>(itemloc) - 1);
-}
 
-inline UT_uint32 fl_AutoNum::_getLevelValue(const fl_AutoNumConstPtr & pAutoNum) const
-{
-	const pf_Frag_Strux* pBlock = getFirstItem();
-	fl_AutoNumConstPtr pCurr = shared_from_this();
-
-	while (1)
-	{
-		if (pAutoNum->isItem(pBlock))
-		{
-			break;
-		}
-		else
-		{
-			pCurr = pCurr->getParent();
-			pBlock = pCurr->getFirstItem();
-		}
-	}
-
-	return pAutoNum->getValue(pBlock);
-}
 
 char *  fl_AutoNum::dec2roman(UT_sint32 value, bool lower)
 {

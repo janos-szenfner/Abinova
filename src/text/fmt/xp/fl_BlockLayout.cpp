@@ -1917,38 +1917,6 @@ fl_DocSectionLayout * fl_BlockLayout::getDocSectionLayout(void) const
 }
 
 
-fp_Line * fl_BlockLayout::findLineWithFootnotePID(UT_uint32 pid) const
-{
-	fp_Line * pLine = static_cast<fp_Line *>(getFirstContainer());
-	std::vector<fp_FootnoteContainer *> vecFoots;
-	bool bFound = false;
-	while(pLine && !bFound)
-	{
-		vecFoots.clear();
-		if(pLine->getFootnoteContainers(&vecFoots))
-		{
-			UT_sint32 i = 0;
-			for(i=0; i< static_cast<UT_sint32>(vecFoots.size()); i++)
-			{
-				fp_FootnoteContainer * pFC = vecFoots[i];
-				UT_nonnull_or_continue(pFC);
-				fl_FootnoteLayout * pFL = static_cast<fl_FootnoteLayout *>(pFC->getSectionLayout());
-				UT_nonnull_or_continue(pFL);
-				if(pFL->getFootnotePID() == pid)
-				{
-					bFound = true;
-					break;
-				}
-			}
-		}
-		pLine = static_cast<fp_Line *>(pLine->getNext());
-	}
-	if(bFound)
-	{
-		return pLine;
-	}
-	return nullptr;
-}
 
 FootnoteType fl_BlockLayout::getTOCNumType(void) const
 {
@@ -4767,84 +4735,7 @@ fl_BlockLayout::findPointCoords(PT_DocPosition iPos,
 	return pPrevRun;
 }
 
-fp_Line* fl_BlockLayout::findPrevLineInDocument(fp_Line* pLine) const
-{
-	if (pLine->getPrev())
-	{
-		return static_cast<fp_Line *>(pLine->getPrev());
-	}
-	else
-	{
-		if (getPrev())
-		{
-			return static_cast<fp_Line *>(getPrev()->getLastContainer());
-		}
-		else
-		{
-			auto pSL = static_cast<const fl_SectionLayout *>(m_pSectionLayout->getPrev());
 
-			if (!pSL)
-			{
-				// at EOD, so just bail
-				return nullptr;
-			}
-
-			// is this cast safe? Could not some other layout class be returned?
-			// if this assert fails, then this code needs to be fixed up. Tomas
-			UT_ASSERT_HARMLESS( pSL->getLastLayout() && pSL->getLastLayout()->getContainerType() == FL_CONTAINER_BLOCK );
-			fl_ContainerLayout * pLastL = pSL->getLastLayout();
-			if (!pLastL || pLastL->getContainerType() != FL_CONTAINER_BLOCK)
-			{
-				return nullptr;
-			}
-			auto pBlock = static_cast<const fl_BlockLayout *>(pLastL);
-			return static_cast<fp_Line *>(pBlock->getLastContainer());
-		}
-	}
-
-	UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-	return nullptr;
-}
-
-fp_Line* fl_BlockLayout::findNextLineInDocument(fp_Line* pLine) const
-{
-	if (pLine->getNext())
-	{
-		return static_cast<fp_Line *>(pLine->getNext());
-	}
-
-	if (getNext())
-	{
-		// grab the first line from the next block
-		return static_cast<fp_Line *>(getNext()->getFirstContainer());
-	}
-	else
-	{
-		// there is no next line in this section, try the next
-		auto pSL = static_cast<const fl_SectionLayout*>(m_pSectionLayout->getNext());
-
-		if (!pSL)
-		{
-			// at EOD, so just bail
-			return nullptr;
-		}
-
-		// is this cast safe? Could not some other layout class be returned?
-		// if this assert fails, then this code needs to be fixed up. Tomas
-		UT_ASSERT_HARMLESS( pSL->getFirstLayout() && pSL->getFirstLayout()->getContainerType() == FL_CONTAINER_BLOCK );
-
-		fl_ContainerLayout * pFirstL = pSL->getFirstLayout();
-		if (!pFirstL || pFirstL->getContainerType() != FL_CONTAINER_BLOCK)
-		{
-			return nullptr;
-		}
-		auto pBlock = static_cast<const fl_BlockLayout*>(pFirstL);
-		return static_cast<fp_Line *>(pBlock->getFirstContainer());
-	}
-
-	UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
-	return nullptr;
-}
 
 /*****************************************************************/
 
@@ -9827,16 +9718,6 @@ FL_ListType fl_BlockLayout::getListTypeFromStyle( const gchar* style) const
 }
 
 
-char *	fl_BlockLayout::getFormatFromListType( FL_ListType iListType) const
-{
-	UT_sint32 nlisttype = static_cast<UT_sint32>(iListType);
-	char * pFormat = nullptr;
-	if(nlisttype < 0 || nlisttype >= static_cast<UT_sint32>(NOT_A_LIST))
-		return pFormat;
-	fl_AutoLists al;
-	pFormat = const_cast<char *>(al.getFmtList(nlisttype));
-	return pFormat;
-}
 
 FL_ListType fl_BlockLayout::decodeListType(char * listformat) const
 {
@@ -10951,45 +10832,8 @@ const UT_UCS4Char * fl_BlockLayout::getListLabel(void) const
 	return nullptr;
 }
 
-inline void fl_BlockLayout::_addBlockToPrevList( fl_BlockLayout * prevBlockInList, UT_uint32 level)
-{
-	//
-	// Insert the current block to the list at the point after prevBlockInList
-	//
-	fl_AutoNumPtr pAutoNum;
-	bool bMatchList = false;
-
-	UT_return_if_fail(prevBlockInList);
-
-	pAutoNum = prevBlockInList->getAutoNum();
-	while(pAutoNum && !bMatchList)
-	{
-		if (pAutoNum->getLevel() == level)
-		{
-			bMatchList = true;
-			UT_DEBUGMSG(("Matched List. Returning.\n"));
-		}
-		else
-		{
-			pAutoNum = pAutoNum->getParent();
-			UT_DEBUGMSG(("Didn't match list. Going Up.\n"));
-		}
-	}
-	UT_DEBUGMSG(("Found List with Id: %d\n", pAutoNum->getID()));
-	m_pAutoNum = pAutoNum;
-	m_pAutoNum->insertItem(getStruxDocHandle(), prevBlockInList->getStruxDocHandle());
-}
 
 
-inline void fl_BlockLayout::_prependBlockToPrevList( fl_BlockLayout * nextBlockInList)
-{
-	//
-	// Insert the current block to the list at the point before nextBlockInList
-	//
-	UT_return_if_fail(nextBlockInList);
-	m_pAutoNum = nextBlockInList->getAutoNum();
-	m_pAutoNum->prependItem(getStruxDocHandle(), nextBlockInList->getStruxDocHandle());
-}
 
 UT_uint32 fl_BlockLayout::getLevel(void) const
 {
@@ -11010,120 +10854,6 @@ void fl_BlockLayout::setStopping( bool bValue)
 	m_bStopList = bValue;
 }
 
-/*!
- * This Method searches for the next piece of of the block that could
- * be used for texttotable conversions.
-\returns true if a valid piece of text was found and there is more, false otherwise
-\param buf reference to a growbug containing the text in the block
-\param startPos - start search from this position
-\param begPos - first character of the word
-\param endPos - Last character of the word
-\param sWord - UTF8 string containing the word
-\param delim: use tab (0), comma (1), space (2) or all (>2) as delimiters
-*/
-bool fl_BlockLayout::getNextTableElement(UT_GrowBuf * buf,
-										 PT_DocPosition startPos, 
-										 PT_DocPosition & begPos,
-										 PT_DocPosition & endPos,
-										 UT_UTF8String & sWord,
-										 UT_uint32 iDelim) const
-{
-	UT_uint32 offset = startPos - getPosition(false);
-	UT_uint32 i = 0;
-	UT_UCS4Char curChar = 0;
-	if(offset >= buf->getLength())
-	{
-		begPos = 0;
-		endPos = 0;
-		return false;
-	}
-	UT_uint32 iMax = buf->getLength() - offset;
-	bool bFoundFootnote = false;
-	//
-	// skip initial spaces
-	for(i= 0; i < iMax; i++)
-	{
-		curChar = static_cast<UT_UCS4Char>(*buf->getPointer(offset+i));
-		xxx_UT_DEBUGMSG(("Pre CurChar %c pos %d \n",curChar,offset+i+begPos));
-		if(curChar == 7)
-		{
-			break; // don't split on fields
-		}
-		//
-		// Don't split on numbers
-		//
-		if(curChar >= static_cast<UT_uint32>('0') && curChar <= static_cast<UT_uint32>('9'))
-	    {
-			break;
-		}
-		if(!(curChar == UCS_SPACE))
-		{
-			break;
-		}
-	}
-	if( i == iMax)
-	{
-		begPos = 0;
-		endPos = 0;
-		return false;
-	}
-	begPos = getPosition(false) + offset + i;
-	for(; i< iMax; i++)
-	{
-		curChar = static_cast<UT_UCS4Char>(*buf->getPointer(offset+i));
-		xxx_UT_DEBUGMSG(("CurChar %c pos %d \n",curChar,offset+i+begPos));
-		if(curChar == 0)
-		{
-			PT_DocPosition pos = offset+i+begPos;
-			if(m_pDoc->isFootnoteAtPos(pos))
-			{
-				bFoundFootnote = true;
-				continue;
-			}
-			if(m_pDoc->isEndFootnoteAtPos(pos))
-			{
-				bFoundFootnote = false;
-				continue;
-			}
-		}
-		if(bFoundFootnote)
-		{
-			continue;
-		}
-		sWord += curChar;
-		if(curChar == 7)
-		{
-			continue; // don't split on fields
-		}
-		//
-		// Don't split on numbers
-		//
-		if(curChar >= static_cast<UT_uint32>('0') && curChar <= static_cast<UT_uint32>('9'))
-	    {
-			continue;
-		}
-		if(UT_isWordDelimiter(curChar,UCS_UNKPUNK,UCS_UNKPUNK))
-		{
-			if(((iDelim == 0) && (curChar == UCS_TAB)) ||
-			   ((iDelim == 1) && (curChar == ',')) ||
-			   ((iDelim == 2) && (curChar == UCS_SPACE)) ||
-			   ((iDelim >  2) && (curChar==',' || curChar== UCS_TAB || curChar== UCS_SPACE)))
-			{
-				break;
-			}
-		}
-	}
-	if(i< iMax)
-	{
-		endPos = getPosition(false) + offset + i;
-	}
-	else
-	{
-		endPos = getPosition(false) + offset + i;
-	}
-	xxx_UT_DEBUGMSG(("Split at %d \n",endPos));
-	return true;
-}
 
 void fl_BlockLayout::setDominantDirection(UT_BidiCharType iDirection)
 {
