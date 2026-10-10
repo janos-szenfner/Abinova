@@ -419,7 +419,15 @@ EXTRA_DIST = \
 	xp/t/ie_wmfimp.t.cpp \
 	xp/t/ie_wpgimp.t.cpp \
 	xp/t/ie_wpimp.t.cpp \
-	xp/t/ie_epub.t.cpp
+	xp/t/ie_epub.t.cpp \
+	xp/t/ie_abinova.t.cpp \
+	xp/t/ie_clipcopy.t.cpp \
+	xp/t/ie_math.t.cpp \
+	xp/t/ie_pastelistener.t.cpp \
+	xp/t/ie_sniffers.t.cpp \
+	xp/t/ie_tocstyle.t.cpp \
+	xp/t/ie_xxe.t.cpp \
+	xp/t/ut_abwncrypt.t.cpp
 
 # EPUB importer/exporter, formerly a plugin
 libimpexp_la_SOURCES += \

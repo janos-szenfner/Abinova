@@ -221,7 +221,6 @@ void ODe_DocumentData::handleDefaultTabInterval(ODe_Style_Style* pStyle) {
 bool ODe_DocumentData::writeStylesXML(GsfOutfile* pOdt) const {
     GsfOutput* pStylesStream;
     bool ok;
-    UT_uint32 count, i;
     
     pStylesStream = gsf_outfile_new_child (pOdt, "styles.xml", FALSE);
     

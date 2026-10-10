@@ -6328,12 +6328,6 @@ static void _cover_card_draw(GtkDrawingArea *, cairo_t * cr,
 		cairo_rectangle(cr, 12, y, pw - 24, hh);
 		cairo_fill(cr);
 	};
-	auto fband = [&](double y, double hh, double r, double g, double b)
-	{
-		cairo_set_source_rgb(cr, r, g, b);
-		cairo_rectangle(cr, 0, y, pw, hh);
-		cairo_fill(cr);
-	};
 	auto tbar = [&](double x, double y, double ww, double hh,
 					double r, double g, double b)
 	{

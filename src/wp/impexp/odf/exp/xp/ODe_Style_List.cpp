@@ -49,7 +49,6 @@ ODe_Style_List::~ODe_Style_List() {
 bool ODe_Style_List::write(GsfOutput* pODT,
                            const UT_UTF8String& rSpacesOffset) const {
                             
-    UT_uint32 i, count;
     UT_UTF8String subElementSpacesOffset;
     UT_UTF8String output;
     bool ok;
