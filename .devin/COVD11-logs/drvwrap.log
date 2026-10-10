@@ -1,0 +1,14 @@
+make[1]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+PASS: unix/drvwrap.sh
+============================================================================
+Testsuite summary for abinova 4.0.0
+============================================================================
+# TOTAL: 1
+# PASS:  1
+# SKIP:  0
+# XFAIL: 0
+# FAIL:  0
+# XPASS: 0
+# ERROR: 0
+============================================================================
+make[1]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'

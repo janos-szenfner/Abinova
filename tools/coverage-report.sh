@@ -263,6 +263,15 @@ exclusion_reason() {
 		printf "| %s | %d | %d | %.1f%% |\n", $2, $1, $4, pct }' \
 		"$tmpd/files-top.tsv"
 	printf '\n'
+
+	# COVD11: the coverage program's declared plateau — committed
+	# rationale for the residual uncovered lines, spliced in so the
+	# documentation survives report regeneration.
+	plateau=$tooldir/coverage-plateau.md
+	if [ -f "$plateau" ]; then
+		cat "$plateau"
+		printf '\n'
+	fi
 } > "$output"
 
 echo "coverage-report.sh: wrote $output" >&2

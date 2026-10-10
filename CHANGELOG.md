@@ -5732,6 +5732,18 @@ below are on `main` but the release has not been cut yet.
   `af/util/unix` line coverage 65.1% -> 97.7%, `text/fmt/gtk`
   87.0% -> 89.2%, `wp/ap/grammar` 87.2% -> 95.5%, `wp/main`
   11.1% -> 100%; overall 74.3% -> 74.6%.
+- **Coverage program closed at a documented plateau** — the final
+  whole-denominator re-measurement on zeroed counters reads 73.2%
+  line / 82.3% function / 43.1% branch coverage of the countable
+  first-party denominator. `.devin/COVERAGE.md` now carries a
+  closing plateau assessment — spliced in from the committed
+  `tools/coverage-plateau.md` on every regeneration — that
+  enumerates the residual gaps and why no further test wave
+  retires them: live-session UI paths, modal/native dialog flows,
+  format-variant arms in the legacy importers, defensive
+  error-recovery branches, and Redland-gated RDF code. The
+  `make check-coverage` ratchet floor moves to 72% so the level
+  the drive reached cannot silently regress.
 
 ### Resolved root causes worth noting
 
