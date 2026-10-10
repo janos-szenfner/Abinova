@@ -42,7 +42,6 @@ public:
 	XAP_Args *XArgs;
 
 	GOptionContext * getContext() const { return m_context; }
-	void addOptions(GOptionGroup *options);
 
 	/* Parse options. */
 	void parseOptions();

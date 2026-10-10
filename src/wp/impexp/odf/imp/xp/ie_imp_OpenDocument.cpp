@@ -413,24 +413,6 @@ UT_Error IE_Imp_OpenDocument::_handleMetaStream ()
 }
 
 
-/**
- * Handle the setting-stream
- */
-UT_Error IE_Imp_OpenDocument::_handleSettingsStream ()
-{
-    if (gsf_infile_child_exists (m_pGsfInfile, "settings.xml")) {
-        UT_Error error;
-    
-	error = m_pStreamListener->setState("SettingsStream");
-	if (error != UT_OK) {
-	    return error;
-	}
-    
-	return _handleStream (m_pGsfInfile, "settings.xml", *m_pStreamListener);
-    }
-
-    return UT_OK;
-}
 
 
 /**

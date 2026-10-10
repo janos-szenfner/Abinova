@@ -280,27 +280,8 @@ bool AP_UnixClipboard::addTextData(T_AllowGet tTo, const void* pData, UT_sint32 
   return false;
 }
 
-bool AP_UnixClipboard::addRichTextData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes)
-{
-  if ( addData ( tTo, AP_CLIPBOARD_TXT_RTF, pData, iNumBytes ) && 
-       addData ( tTo, AP_CLIPBOARD_APPLICATION_RTF, pData, iNumBytes ) )
-    return true ;
-  return false ;
-}
 
-bool AP_UnixClipboard::addHtmlData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes, bool xhtml)
-{
-  if (xhtml)
-    {
-      return addData (tTo, AP_CLIPBOARD_APPLICATION_XHTML, pData, iNumBytes) ? true : false;
-    }
-  return addData (tTo, AP_CLIPBOARD_TXT_HTML, pData, iNumBytes) ? true : false;
-}
 
-bool AP_UnixClipboard::addODTData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes)
-{
-  return addData ( tTo, AP_CLIPBOARD_APPLICATION_ODT, pData, iNumBytes );
-}
 
 bool AP_UnixClipboard::addPNGData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes)
 {
@@ -352,35 +333,8 @@ bool  AP_UnixClipboard::getTextData(T_AllowGet tFrom,
 	return rval;
 }
 
-bool  AP_UnixClipboard::getRichTextData(T_AllowGet tFrom,
-					const void ** ppData, UT_uint32 * pLen,
-					const char **pszFormatFound)
-{
-  void * pTmp = nullptr;
-  bool rval = getData( tFrom, rtfszFormatsAccepted, &pTmp, pLen, pszFormatFound ) ;
-  *ppData = pTmp;
-  return rval;
-}
 
-bool AP_UnixClipboard::getImageData(T_AllowGet tFrom,
-									const void ** ppData, UT_uint32 * pLen,
-									const char **pszFormatFound)
-{
-  void * pTmp = nullptr;
-  bool rval = getData ( tFrom, imgszFormatsAccepted, &pTmp, pLen, pszFormatFound );
-  *ppData = pTmp;
-  return rval;
-}
 
-bool AP_UnixClipboard::getDynamicData(T_AllowGet tFrom,
-			  const void ** ppData, UT_uint32 * pLen,
-			  const char **pszFormatFound)
-{
-  void * pTmp = nullptr;
-  bool rval = getData ( tFrom, &vec_DynamicFormatsAccepted[0], &pTmp, pLen, pszFormatFound );
-  *ppData = pTmp;
-  return rval;
-}
 
 bool AP_UnixClipboard::isTextTag ( const char * tag )
 {

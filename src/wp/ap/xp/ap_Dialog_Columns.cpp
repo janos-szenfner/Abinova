@@ -350,18 +350,6 @@ void AP_Dialog_Columns::setSpaceAfter(const char * szAfter)
 }
 
 
-void AP_Dialog_Columns::_drawColumnButton(GR_Graphics *gc, UT_Rect rect, UT_uint32 iColumns)
-{
-	GR_Painter painter(gc);
-
-	painter.clearArea(rect.left, rect.top, rect.width, rect.height);
-
-	rect.left += gc->tdu(2);
-	rect.width -= gc->tdu(4);
-	rect.top += gc->tdu(2);
-	rect.height -= gc->tdu(4);
-	m_previewDrawer.draw(gc, rect, iColumns, false, 0.0, 0.0);
-}
 
 /*!
  * Converts the string sz into the units seleced for the ruler.

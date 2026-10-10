@@ -48,7 +48,6 @@ public:
 	void                setFrame(XAP_Frame * pFrame);
 	void                setFootnoteVal(UT_sint32 iVal);
 	UT_sint32           getFootnoteVal(void);
-	void                getFootnoteValString(UT_String & sVal);
 	void                setFootnoteType(FootnoteType iFootType);
 	FootnoteType        getFootnoteType(void);
 	void                setRestartFootnoteOnSection(bool bVal);
@@ -58,7 +57,6 @@ public:
 
 	void                setEndnoteVal(UT_sint32 iVal);
 	UT_sint32           getEndnoteVal(void);
-	void                getEndnoteValString(UT_String & sVal);
 	void                setEndnoteType(FootnoteType iFootType);
 	FootnoteType        getEndnoteType(void);
 	void                setRestartEndnoteOnSection(bool bVal);

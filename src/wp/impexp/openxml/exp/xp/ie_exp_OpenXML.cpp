@@ -1921,16 +1921,6 @@ UT_Error IE_Exp_OpenXML::setAbstractNumberingId(int target, UT_uint32 id)
 	return writeTargetStream(target, str.c_str());
 }
 
-/**
- * Sets the numbering format of the list
- */
-UT_Error IE_Exp_OpenXML::setNumberingFormat(int target, const char* format)
-{
-	std::string str("<w:numFmt w:val=\"");
-	str += format;
-	str += "\"/>";
-	return writeTargetStream(target, str.c_str());
-}
 
 /**
  * Sets the multilevel type of the list

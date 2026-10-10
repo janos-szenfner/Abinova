@@ -112,7 +112,6 @@ protected:
 	void                _getPropString(const std::string& sPropString, const char * szProp, std::string & sVal);
 	void                _newRow(void);
 	void                _outputTableBorders(UT_sint32 iThick);
-	void                _outputCellBorders(UT_sint32 iThick);
 	double              _getColumnWidthInches(void);
  private:
 	PD_Document *		m_pDocument;

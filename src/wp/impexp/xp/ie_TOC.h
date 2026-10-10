@@ -18,7 +18,6 @@ class ABI_EXPORT IE_TOCHelper
   ~IE_TOCHelper();
 
   bool hasTOC() const; // true if there are any "headings" in the document
-  bool docHasTOC() const; // true if the doc has 1 or more tables of contents
 
   bool isTOCStyle(const UT_UTF8String & styleName, int * out_level = nullptr) const;
   bool isTOCStyle(const char * styleName, int * out_level = nullptr) const;

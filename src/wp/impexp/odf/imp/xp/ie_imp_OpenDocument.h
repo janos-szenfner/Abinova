@@ -69,7 +69,6 @@ private:
     UT_Error _handleManifestStream ();
     UT_Error _handleMimetype ();
     UT_Error _handleMetaStream ();
-    UT_Error _handleSettingsStream ();
     UT_Error _handleStylesStream ();
     UT_Error _handleContentStream ();
     UT_Error _handleRDFStreams ();

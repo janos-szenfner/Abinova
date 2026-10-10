@@ -64,8 +64,6 @@ public:
 	 * back, destroying whatever the nested import left installed. */
 	static OXML_Document* detachInstance();
 	static void restoreInstance(OXML_Document* inst);
-	//! Provides a pointer to the last section that was appended (or empty SharedSection if none found).
-	static OXML_SharedSection getCurrentSection();
 
 	//! Returns a reference to the FIRST style with corresponding ID OR empty SharedStyle if none found.
 	OXML_SharedStyle getStyleById(const std::string & id) const;
@@ -109,8 +107,6 @@ public:
 
 	//! Retrieves the last appended section of the document OR empty SharedSection if no sections have been appended.
 	OXML_SharedSection getLastSection() const;
-	//! Returns a reference to the FIRST section with corresponding ID OR empty SharedSection if none found.
-	OXML_SharedSection getSection(const std::string & id) const;
 	//! Appends a new section at the end of the list.
 	UT_Error appendSection(const OXML_SharedSection & obj);
 	UT_Error clearSections();

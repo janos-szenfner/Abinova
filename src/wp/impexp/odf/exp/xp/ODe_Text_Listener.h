@@ -133,7 +133,6 @@ public:
 
 private:
     void _initDefaultHeadingStyles();
-    bool _blockIsPlainParagraph(const PP_AttrProp* pAP) const;
     void _openODListItem(const PP_AttrProp* pAP);
     void _openODParagraph(const PP_AttrProp* pAP);
     void _closeODParagraph();

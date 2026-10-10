@@ -231,10 +231,6 @@ bool IE_TOCHelper::hasTOC() const
   return mHasTOC;
 }
 
-bool IE_TOCHelper::docHasTOC() const
-{
-  return mDocHasTOC;
-}
 
 bool IE_TOCHelper::_tocNameLevelHelper(const UT_UTF8String & style_name,
 				       const char * base_name) const

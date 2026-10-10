@@ -90,10 +90,6 @@ AP_Args::~AP_Args()
 	g_option_context_free (m_context);
 }
 
-void AP_Args::addOptions(GOptionGroup *options)
-{
-	g_option_context_add_group (m_context, options);
-}
 
 #ifdef _WIN32
 

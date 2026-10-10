@@ -53,7 +53,6 @@ public:
 
 	void event_paraPreviewInvalidate(void);
 	void event_paraPreviewDraw(cairo_t *cr);
-	void event_charPreviewInvalidate(void);
 	void event_charPreviewDraw(cairo_t *cr);
 
 	virtual void			event_Apply(void);
@@ -73,12 +72,10 @@ public:
 
 	bool         event_Modify_OK(void);
 	void         event_Modify_Cancel(void);
-	void         event_ModifyDelete(void);
 	void         event_ModifyParagraph();
 	void         event_ModifyFont();
 	void         event_ModifyNumbering();
 	void         event_ModifyLanguage();
-	void event_ModifyPreviewInvalidate();
 	void event_ModifyPreviewDraw(cairo_t *cr);
 	void         event_RemoveProperty(void);
 	void         rebuildDeleteProps(void);

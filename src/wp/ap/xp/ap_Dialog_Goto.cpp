@@ -121,59 +121,8 @@ void AP_Dialog_Goto::performGoto(AP_JumpTarget target, const char * value) const
 	m_pView->gotoTarget (target, value);
 }
 
-std::string AP_Dialog_Goto::performGotoNext(AP_JumpTarget target, UT_sint32 idx) const
-{
-	std::string dest;
-	if (!m_pView)
-		return dest;
-	if(target == AP_JUMPTARGET_BOOKMARK) {
-		if(!getExistingBookmarksCount()) {
-			return dest;
-		}
-		if(idx >= 0) {
-			idx++;
-			// wrap it
-			if(idx >= getExistingBookmarksCount()) {
-				idx = 0;
-			}
-		}
-		else {
-			idx = 0;
-		}
-		dest = getNthExistingBookmark(idx);
-		m_pView->gotoTarget (target, dest.c_str());	
-	}
-	else {
-		m_pView->gotoTarget (target, "+1");
-	}
-	return dest;
-}
 
 
-std::string AP_Dialog_Goto::performGotoPrev(AP_JumpTarget target, UT_sint32 idx) const
-{
-	std::string dest;
-	if (!m_pView)
-		return dest;
-	if(target == AP_JUMPTARGET_BOOKMARK) {
-		if(!getExistingBookmarksCount()) {
-			return dest;
-		}
-		idx--;
-		if(idx < 0) {
-			idx = getExistingBookmarksCount();
-			if(idx) {
-				idx--;
-			}
-		}
-		dest = getNthExistingBookmark(idx);
-		m_pView->gotoTarget (target, dest.c_str());
-	}
-	else {
-		m_pView->gotoTarget (target, "-1");
-	}
-	return dest;
-}
 
 
 

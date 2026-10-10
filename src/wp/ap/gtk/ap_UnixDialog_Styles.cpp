@@ -401,12 +401,6 @@ void AP_UnixDialog_Styles::event_paraPreviewDraw(cairo_t *cr)
 }
 
 
-void AP_UnixDialog_Styles::event_charPreviewInvalidate(void)
-{
-	if (m_pCharPreview) {
-		event_charPreviewUpdated();
-	}
-}
 
 void AP_UnixDialog_Styles::event_charPreviewDraw(cairo_t *cr)
 {
@@ -1263,10 +1257,6 @@ void AP_UnixDialog_Styles::event_Modify_Cancel(void)
 	m_answer = AP_Dialog_Styles::a_CANCEL;
 }
 
-void AP_UnixDialog_Styles::event_ModifyDelete(void)
-{
-	m_answer = AP_Dialog_Styles::a_CANCEL;
-}
 
 void  AP_UnixDialog_Styles::modifyRunModal(void)
 {
@@ -1339,10 +1329,6 @@ void  AP_UnixDialog_Styles::modifyRunModal(void)
 	DELETEP(m_pAbiPreviewWidget);
 }
 
-void AP_UnixDialog_Styles::event_ModifyPreviewInvalidate(void)
-{
-	invalidatePreview();
-}
 
 void AP_UnixDialog_Styles::event_ModifyPreviewDraw(cairo_t *cr)
 {

@@ -67,17 +67,6 @@ const UT_UCS4Char * OXML_Element_Text::getText_UCS4String()
 	return m_pString->ucs4_str();
 }
 
-const char * OXML_Element_Text::getText()
-{
-	UT_return_val_if_fail(m_pString != nullptr, nullptr);
-	if(getType() == LIST)
-	{
-		const char* pStr = m_pString->utf8_str();
-		if(pStr && (*pStr == '\t'))
-			return pStr+1; //get rid of the initial tab
-	}
-	return m_pString->utf8_str();
-}
 
 UT_Error OXML_Element_Text::serialize(IE_Exp_OpenXML* exporter)
 {

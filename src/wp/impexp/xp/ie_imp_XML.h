@@ -107,7 +107,6 @@ protected:
     virtual UT_Error _loadFile(GsfInput * input) override;
     int             _mapNameToToken (const char * name, xmlToIdMapping * idlist, int len);
 
-    const gchar* _getXMLPropValue(const gchar *name, const gchar **atts);
 
     UT_uint32		_getInlineDepth(void) const;
     void			_pushInlineFmt(const PP_PropertyVector & atts);

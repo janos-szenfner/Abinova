@@ -109,7 +109,6 @@ public:
   static const std::vector<std::string> & getSupportedSuffixes();
   static const char * getMimeTypeForSuffix (const char * suffix);
 
-  static UT_Error               constructImporterWithDescription(const char * szDesc, IE_ImpGraphic ** ppieg);
 
   static UT_Error       constructImporter(const UT_ConstByteBufPtr & bytes,
 						  IEGraphicFileType ft,

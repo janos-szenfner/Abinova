@@ -73,10 +73,6 @@ void AP_Preview_Annotation::setDescription(const gchar * pDescription)
 	m_sDescription = pDescription;
 }
 
-void AP_Preview_Annotation::setAnnotationID(UT_uint32 aID)
-{
-	m_iAID = aID;
-}
 
 void AP_Preview_Annotation::_createAnnotationPreviewFromGC(GR_Graphics * gc, UT_uint32 width, UT_uint32 height)
 {

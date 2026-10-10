@@ -56,7 +56,6 @@ protected:
 	void			_doLineNumbers();
 	void			_doBorders();
 	void			_writeDefaultTemplate();
-	void			_redrawPreview();
 
 	static void		_s_response(GtkDialog * dlg, gint resp, gpointer data);
 	static void		_s_default_response(GtkDialog * dlg, gint resp,

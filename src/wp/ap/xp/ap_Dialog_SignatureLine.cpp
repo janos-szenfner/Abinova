@@ -52,7 +52,3 @@ FV_SignatureSetup & AP_Dialog_SignatureLine::getSignatureSetup(void)
 	return m_sig;
 }
 
-void AP_Dialog_SignatureLine::setSignatureSetup(const FV_SignatureSetup & sig)
-{
-	m_sig = sig;
-}

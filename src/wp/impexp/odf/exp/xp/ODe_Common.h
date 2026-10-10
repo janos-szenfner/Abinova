@@ -59,6 +59,3 @@ void ODe_writeAttribute(UT_UTF8String& rOutput,
                         const gchar* pName,
                         const gchar* pValue);
 
-// The source file is rewinded before writing its contents into the destination
-// and after that it's left on its EOF state.
-void ODe_writeToFile(GsfOutput* pDestinationFile, GsfInput* pSourceFile);

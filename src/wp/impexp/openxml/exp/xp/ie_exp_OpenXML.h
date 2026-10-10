@@ -180,7 +180,6 @@ public:
 	UT_Error setListLevelText(int target, const char* text);
 	UT_Error setListType(int target, const char* type);
 	UT_Error setAbstractNumberingId(int target, UT_uint32 id);
-	UT_Error setNumberingFormat(int target, const char* format);
 	UT_Error setMultilevelType(int target, const char* type);
 	UT_Error setHyperlinkRelation(int target, const char* id, const char* addr, const char* mode);
 	UT_Error setImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* szNvPr = nullptr);

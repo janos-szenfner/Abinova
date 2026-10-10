@@ -37,9 +37,6 @@ public:
 	virtual ~AP_UnixClipboard();
 
 	bool addTextData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes);
-	bool addRichTextData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes);
-	bool addHtmlData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes, bool xhtml);
-	bool addODTData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes);
 	bool addPNGData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes);
 
 	bool getSupportedData(T_AllowGet tFrom,
@@ -50,17 +47,8 @@ public:
 					  const void ** ppData, UT_uint32 * pLen,
 					  const char **pszFormatFound);
 
-	bool  getRichTextData(T_AllowGet tFrom,
-			      const void ** ppData, UT_uint32 * pLen,
-			      const char **pszFormatFound);
 
-	bool getImageData(T_AllowGet tFrom,
-			  const void ** ppData, UT_uint32 * pLen,
-			  const char **pszFormatFound);
 
-	bool getDynamicData(T_AllowGet tFrom,
-			  const void ** ppData, UT_uint32 * pLen,
-			  const char **pszFormatFound);
 
 	void addFormat(const char * fmt);
 	void deleteFormat(const char * fmt);

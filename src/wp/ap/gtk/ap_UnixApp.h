@@ -128,7 +128,6 @@ public:
 	virtual void errorMsgBadFile(XAP_Frame * pFrame, const char * file,
 								 UT_Error error) override;
 	virtual bool doWindowlessArgs (const AP_Args *, bool & bSuccess) override;
-	bool makePngPreview(const char * pszInFile,const char * pszPNGFile,  UT_sint32 iWidth, UT_sint32 iHeight);
 
 	virtual XAP_UnixClipboard * getClipboard () override { return m_pClipboard; }
 

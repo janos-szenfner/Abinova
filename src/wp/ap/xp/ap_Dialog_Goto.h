@@ -59,8 +59,6 @@ public:
 	 * @param value the target value
 	 */
 	void                        performGoto(AP_JumpTarget target, const char *value) const;
-	std::string                 performGotoNext(AP_JumpTarget target, UT_sint32 idx) const;
-	std::string                 performGotoPrev(AP_JumpTarget target, UT_sint32 idx) const;
 protected:
 	// These are the "current use" dialog data items,
 	// which are liberally read and set by the

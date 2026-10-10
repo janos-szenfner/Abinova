@@ -209,13 +209,6 @@ EV_EditBindingMap * AP_BindingSet::getMap(const char * szName)
 }
 
 
-EV_EditBindingMap * AP_BindingSet::createMap(const char * szName)
-{
-  c_lb * pc_lb = new c_lb(false,szName,nullptr,nullptr);
-  m_vecBindings.push_back(pc_lb);
-  pc_lb->m_pebm = new EV_EditBindingMap(m_pemc);
-  return pc_lb->m_pebm;
-}
 
 /*****************************************************************/
 

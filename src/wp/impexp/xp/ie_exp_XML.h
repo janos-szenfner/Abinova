@@ -40,7 +40,6 @@ public:
 	void addFloat(char const *id, double value, int precision = -1);
 	void addInt(char const *id, int value);
 	void addLint(char const *id, long value);
-	void addLuint(char const *id, unsigned long value);
 	void addString(char const *id, char const *value);
 	void addString(char const *id, std::string const &value);
 	void addString(char const *id, UT_UCS4Char const *data, int length);

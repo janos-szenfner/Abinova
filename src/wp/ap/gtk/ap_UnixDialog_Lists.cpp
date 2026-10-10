@@ -728,10 +728,6 @@ void AP_UnixDialog_Lists::updateDialog(void)
 		setXPFromLocal();
 }
 
-void AP_UnixDialog_Lists::setAllSensitivity(void)
-{
-	PopulateDialogData();
-}
 
 /*****************************************************************/
 /* Window construction                                            */

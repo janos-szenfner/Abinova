@@ -452,13 +452,6 @@ void IE_Exp_RTF::_rtf_keyword(const char * szKey, const char * val)
   m_bLastWasKeyword = true;
 }
 
-void IE_Exp_RTF::_rtf_keyword_hex2(const char * szKey, UT_sint32 d)
-{
-	write("\\");
-	write(szKey);
-	write(UT_String_sprintf("%02x",d));
-	m_bLastWasKeyword = true;
-}
 
 void IE_Exp_RTF::_rtf_keyword_ifnotdefault(const char * szKey, const char * szValue, UT_sint32 defaultValue)
 {
@@ -2581,21 +2574,7 @@ const ie_exp_RTF_ListOveride& IE_Exp_RTF::getNthOveride(UT_uint32 i) const
 	return m_vecOverides[i];
 }
 
-/*!
- * Get Number of multilevel lists in the document
- */
-UT_uint32  IE_Exp_RTF::getMultiLevelCount(void) const
-{
-	return m_vecMultiLevel.size();
-}
 
-/*!
- * Get Number of simple lists in the document
- */
-UT_uint32  IE_Exp_RTF::getSimpleListCount(void) const
-{
-	return m_vecSimpleList.size();
-}
 /*!
  * Get Number of overides in the document
  */
@@ -3411,39 +3390,6 @@ ie_exp_RTF_MsWord97List * ie_exp_RTF_MsWord97ListMulti::getListAtLevel(UT_uint32
 }
 
 
-/*!
- * Return the listID of the first list element at the level that contains
- * the list that matches listID
- \param listID the listID we're looking for.
- \retval the List ID number of the first list on the level that contains
- the ID. Return 0 if there is no match in the structure.
- */
-UT_uint32 ie_exp_RTF_MsWord97ListMulti::getMatchingID(UT_uint32 listID) const
-{
-	UT_uint32 i;
-	UT_sint32 j;
-	ie_exp_RTF_MsWord97List * pList97 = nullptr;
-	bool bFound = false;
-	UT_uint32 foundID = 0;
-	UT_uint32 firstID = 0;
-	for(i=0; (i < 8) && !bFound; i++)
-	{
-		for(j=0; m_vLevels[i] && (j < m_vLevels[i]->size()) && !bFound; j++)
-		{
-			pList97 = (*m_vLevels[i])[j];
-			if(j==0)
-			{
-				firstID = pList97->getID();
-			}
-			bFound = pList97->getID() == listID;
-			if(bFound)
-			{
-				foundID = firstID;
-			}
-		}
-	}
-	return foundID;
-}
 
 ie_exp_RTF_ListOveride::ie_exp_RTF_ListOveride(const fl_AutoNumConstPtr & pAuto)
     : m_pAutoNum(pAuto)

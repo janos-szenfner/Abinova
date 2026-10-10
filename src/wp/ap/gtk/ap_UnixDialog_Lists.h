@@ -62,7 +62,6 @@ class AP_UnixDialog_Lists
 	void					setXPFromLocal(void);
 	void					loadXPDataIntoLocal(void);
 	void					updateFromDocument(void);
-	void					setAllSensitivity(void);
 	void					updateDialog(void);
 	bool					dontUpdate(void);
 	static void				autoupdateLists(UT_Worker * pTimer);

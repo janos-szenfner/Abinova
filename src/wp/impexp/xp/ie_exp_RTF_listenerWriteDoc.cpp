@@ -3843,25 +3843,6 @@ void s_RTF_ListenerWriteDoc::_outputTableBorders(UT_sint32 iThick)
 	m_pie->write(" ");											
 }
 
-void s_RTF_ListenerWriteDoc::_outputCellBorders(UT_sint32 iThick)
-{
-	m_pie->_rtf_keyword("clbrdrt"); // cell top border
-	m_pie->_rtf_keyword("brdrs"); // plain border
-	m_pie->_rtf_keyword("brdrw",10*iThick); //border thickness
-	m_pie->write(" ");											
-	m_pie->_rtf_keyword("clbrdrl"); // cell left border
-	m_pie->_rtf_keyword("brdrs");
-	m_pie->_rtf_keyword("brdrw",10*iThick); // border thickness
-	m_pie->write(" ");											
-	m_pie->_rtf_keyword("clbrdrb"); // cell bottom border
-	m_pie->_rtf_keyword("brdrs");
-	m_pie->_rtf_keyword("brdrw",10*iThick); // border thickness
-	m_pie->write(" ");											
-	m_pie->_rtf_keyword("clbrdrr"); // cell right border
-	m_pie->_rtf_keyword("brdrs");
-	m_pie->_rtf_keyword("brdrw",10*iThick); // border thickness
-	m_pie->write(" ");											
-}
 
 double s_RTF_ListenerWriteDoc::_getColumnWidthInches(void)
 {

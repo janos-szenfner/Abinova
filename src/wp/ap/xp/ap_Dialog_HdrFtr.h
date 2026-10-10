@@ -49,7 +49,6 @@ public:
 	AP_Dialog_HdrFtr::tAnswer		getAnswer(void) const;
 	void    setValue(AP_Dialog_HdrFtr::HdrFtr_Control which, bool value, bool changed);
 	bool        getValue(AP_Dialog_HdrFtr::HdrFtr_Control which);
-	bool        isChanged(AP_Dialog_HdrFtr::HdrFtr_Control which);
     bool        isRestartChanged(void) const;
 	bool        isRestart(void) const;
 	UT_sint32   getRestartValue(void) const;

@@ -118,12 +118,6 @@ void IE_Exp_XML::addLint(char const *id, long value)
 	gsf_xml_out_add_cstr_unchecked(m_xml, id, buf.str().c_str());
 }
 
-void IE_Exp_XML::addLuint(char const *id, unsigned long value)
-{
-	std::ostringstream buf;
-	buf << value;
-	gsf_xml_out_add_cstr_unchecked(m_xml, id, buf.str().c_str());
-}
 
 void IE_Exp_XML::addString(char const *id, char const *value)
 {

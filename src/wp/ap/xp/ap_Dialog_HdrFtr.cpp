@@ -70,10 +70,6 @@ bool AP_Dialog_HdrFtr::getValue(AP_Dialog_HdrFtr::HdrFtr_Control which)
 }
 
 
-bool AP_Dialog_HdrFtr::isChanged(AP_Dialog_HdrFtr::HdrFtr_Control which)
-{
-	return m_bHdrFtrChanged[which];
-}
 
 bool AP_Dialog_HdrFtr::isRestartChanged(void) const
 {

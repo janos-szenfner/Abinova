@@ -66,11 +66,6 @@ void OXML_Document::restoreInstance(OXML_Document* inst)
 	s_docInst = inst;
 }
 
-OXML_SharedSection OXML_Document::getCurrentSection()
-{
-	UT_return_val_if_fail(s_docInst != nullptr, OXML_SharedSection() );
-	return s_docInst->getLastSection();
-}
 
 OXML_Document::OXML_Document()
 	: OXML_ObjectWithAttrProp(),
@@ -350,12 +345,6 @@ OXML_SharedSection OXML_Document::getLastSection() const
 	return m_sections.back();
 }
 
-OXML_SharedSection OXML_Document::getSection(const std::string & id) const
-{
-	OXML_SectionVector::const_iterator it;
-	it = std::find(m_sections.begin(), m_sections.end(), id);
-	return ( it != m_sections.end() ) ? (*it) : OXML_SharedSection() ;
-}
 
 UT_Error OXML_Document::appendSection(const OXML_SharedSection & obj)
 {

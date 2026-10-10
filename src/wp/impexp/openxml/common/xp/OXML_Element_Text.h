@@ -45,7 +45,6 @@ public:
 
 	void setText(const gchar * text, int length);
 	const UT_UCS4Char * getText_UCS4String();
-	const char* getText();
 
 	virtual UT_Error serialize(IE_Exp_OpenXML* exporter) override;
 	virtual UT_Error addToPT(PD_Document * pDocument) override;

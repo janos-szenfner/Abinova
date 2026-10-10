@@ -27,25 +27,6 @@ IE_FileInfo::IE_FileInfo ()
 	// 
 }
 
-void IE_FileInfo::setFileInfo (const char * psz_MIME_TypeOrPseudo,
-							   const char * psz_PreferredExporter,
-							   const char * psz_PreferredImporter)
-{
-	if (psz_MIME_TypeOrPseudo)
-		m_MIME_TypeOrPseudo = psz_MIME_TypeOrPseudo;
-	else
-		m_MIME_TypeOrPseudo = "";
-
-	if (psz_PreferredExporter)
-		m_PreferredExporter = psz_PreferredExporter;
-	else
-		m_PreferredExporter = "";
-
-	if (psz_PreferredImporter)
-		m_PreferredImporter = psz_PreferredImporter;
-	else
-		m_PreferredImporter = "";
-}
 
 struct AliasMIME
 {
@@ -54,9 +35,3 @@ struct AliasMIME
 };
 
 
-/* TODO rob: do away with this
- */
-const char * IE_FileInfo::mapAlias (const char * alias) // may return alias itself
-{
-	return alias;
-}

@@ -106,7 +106,6 @@ protected:
 	void			   _createPreviewFromGC(GR_Graphics * gc,
 							UT_uint32 width,
 							UT_uint32 height);
-	void			   _drawColumnButton(GR_Graphics *gc, UT_Rect rect, UT_uint32 iColumns);
 	void			_convertToPreferredUnits(XAP_Frame * pFrame,const
 	char *sz, gchar * pRet);
 	AP_Dialog_Columns::tAnswer m_answer;

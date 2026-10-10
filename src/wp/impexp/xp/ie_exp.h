@@ -125,7 +125,6 @@ public:
 	static UT_uint32	getExporterCount(void);
 
 	static void registerExporter (IE_ExpSniffer *);
-	static void unregisterExporter (IE_ExpSniffer *);
 	static void unregisterAllExporters ();
 
 	virtual ~IE_Exp();

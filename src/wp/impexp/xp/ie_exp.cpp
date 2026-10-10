@@ -153,25 +153,6 @@ void IE_Exp::registerExporter (IE_ExpSniffer * s)
 	s->setFileType(ndx+1);
 }
 
-void IE_Exp::unregisterExporter (IE_ExpSniffer * s)
-{
-	UT_uint32 ndx = 0;
-
-	ndx = s->getFileType(); // 1:1 mapping
-
-	m_sniffers.erase(m_sniffers.begin() + (ndx-1));
-
-	// Refactor the indexes
-	IE_ExpSniffer * pSniffer = nullptr;
-	UT_uint32 size  = m_sniffers.size();
-	UT_uint32 i     = 0;
-	for( i = ndx-1; i < size; i++)
-	{
-		pSniffer = m_sniffers[i];
-		if (pSniffer)
-        	pSniffer->setFileType(i+1);
-	}
-}
 
 void IE_Exp::unregisterAllExporters ()
 {

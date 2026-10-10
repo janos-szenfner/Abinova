@@ -608,22 +608,6 @@ bool RTF_msword97_listOverride::isTab(UT_uint32 iLevel)
 	return (pLevel->m_pbParaProps->bm_tabStops);
 }
 /*!
- * This function returns true if deleted is changed in the list definition.
- */
-bool RTF_msword97_listOverride::isDeletedChanged(UT_uint32 iLevel)
-{
-	RTF_msword97_level * pLevel = m_pList->m_RTF_level[iLevel];
-	return (pLevel->m_pbCharProps->bm_deleted);
-}
-/*!
- * This function returns the Deleted state in the list definition
- */
-bool RTF_msword97_listOverride::getDeleted(UT_uint32 iLevel)
-{
-	RTF_msword97_level * pLevel = m_pList->m_RTF_level[iLevel];
-	return (pLevel->m_pCharProps->m_deleted);
-}
-/*!
  * This function returns true if Bold is changed in the list definition.
  */
 bool RTF_msword97_listOverride::isBoldChanged(UT_uint32 iLevel)
@@ -710,15 +694,6 @@ bool RTF_msword97_listOverride::getSuperscript(UT_uint32 iLevel)
 	return (pLevel->m_pCharProps->m_superscript);
 }
 /*!
- * This function returns true if Superscript Position is changed in the list
- * definition.
- */
-bool RTF_msword97_listOverride::isSuperscriptPosChanged(UT_uint32 iLevel)
-{
-	RTF_msword97_level * pLevel = m_pList->m_RTF_level[iLevel];
-	return (pLevel->m_pbCharProps->bm_superscript_pos);
-}
-/*!
  * This function returns the Superscript Position in the list definition.
  */
 double RTF_msword97_listOverride::getSuperscriptPos(UT_uint32 iLevel)
@@ -742,14 +717,6 @@ bool RTF_msword97_listOverride::getSubscript(UT_uint32 iLevel)
 {
 	RTF_msword97_level * pLevel = m_pList->m_RTF_level[iLevel];
 	return (pLevel->m_pCharProps->m_subscript);
-}
-/*!
- * This function returns the Subscript state in the list definition.
- */
-bool RTF_msword97_listOverride::isSubscriptPosChanged(UT_uint32 iLevel)
-{
-	RTF_msword97_level * pLevel = m_pList->m_RTF_level[iLevel];
-	return (pLevel->m_pbCharProps->bm_subscript_pos);
 }
 /*!
  * This function returns the Subscript state in the list definition.
@@ -794,15 +761,6 @@ bool RTF_msword97_listOverride::getHasColour(UT_uint32 iLevel)
 	return (pLevel->m_pCharProps->m_hasColour);
 }
 /*!
- * This function returns true if ColourNumber is changed in the list definition.
- */
-bool RTF_msword97_listOverride::isColourNumberChanged(UT_uint32 iLevel)
-{
-	RTF_msword97_level * pLevel = m_pList->m_RTF_level[iLevel];
-	UT_return_val_if_fail(pLevel && pLevel->m_pbCharProps, false);
-	return (pLevel->m_pbCharProps->bm_colourNumber);
-}
-/*!
  * This function returns the ColourNumber in the list definition.
  */
 UT_uint32 RTF_msword97_listOverride::getColourNumber(UT_uint32 iLevel)
@@ -826,15 +784,6 @@ bool RTF_msword97_listOverride::getHasBgColour(UT_uint32 iLevel)
 {
 	RTF_msword97_level * pLevel = m_pList->m_RTF_level[iLevel];
 	return (pLevel->m_pCharProps->m_hasBgColour);
-}
-/*!
- * This function returns true if BgColourNumber is changed in the list definition.
- */
-bool RTF_msword97_listOverride::isBgColourNumberChanged(UT_uint32 iLevel)
-{
-	RTF_msword97_level * pLevel = m_pList->m_RTF_level[iLevel];
-	UT_return_val_if_fail(pLevel && pLevel->m_pbCharProps, false);
-	return (pLevel->m_pbCharProps->bm_bgcolourNumber);
 }
 /*!
  * This function returns the BgColourNumber  in the list definition.
@@ -2142,14 +2091,6 @@ void IE_Imp_RTF::_setStringProperty(std::string & sPropsString,
 }
 
 
-void IE_Imp_RTF::FlushTableProps(void)
-{
-	if(bUseInsertNotAppend())
-	{
-		return;
-	}
-	getTable()->setAutoFit( m_currentRTFState.m_tableProps.m_bAutoFit );
-}
 
 void IE_Imp_RTF::HandleCellX(UT_sint32 cellx)
 {
@@ -10825,10 +10766,6 @@ bool IE_Imp_RTF::HandleBoolCharacterProp(bool state, bool* pProp)
 	return ok;
 }
 
-bool IE_Imp_RTF::HandleDeleted(bool state)
-{
-	return HandleBoolCharacterProp(state, &m_currentRTFState.m_charProps.m_deleted);
-}
 
 bool IE_Imp_RTF::HandleBold(bool state)
 {

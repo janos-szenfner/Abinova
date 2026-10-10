@@ -106,16 +106,8 @@ UT_sint32 AP_Dialog_FormatFootnotes::getEndnoteVal(void)
 	return m_iEndnoteVal;
 }
 
-void AP_Dialog_FormatFootnotes::getEndnoteValString(UT_String & sVal)
-{
-	sVal = m_sEndnoteVal;
-}
 
 
-void AP_Dialog_FormatFootnotes::getFootnoteValString(UT_String & sVal)
-{
-	sVal = m_sFootnoteVal;
-}
 
 void AP_Dialog_FormatFootnotes::setRestartFootnoteOnSection(bool bVal)
 {

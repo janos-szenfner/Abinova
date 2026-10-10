@@ -119,8 +119,6 @@ public:
 	const ie_exp_RTF_MsWord97ListMulti& getNthMultiLevel(UT_uint32 i) const;
 	const ie_exp_RTF_MsWord97ListSimple& getNthSimple(UT_uint32 i) const;
 	const ie_exp_RTF_ListOveride& getNthOveride(UT_uint32 i) const;
-	UT_uint32 getMultiLevelCount(void) const;
-	UT_uint32 getSimpleListCount(void) const;
 	UT_uint32 getOverideCount(void)  const;
 	UT_uint32 getMatchingOverideNum(UT_uint32 ID) const;
 	void exportHdrFtr(const char * pszHdrFtr , const char * pszHdrFtrID,const char * pszKeyword);
@@ -145,7 +143,6 @@ protected:
 	void                _rtf_keyword(const char * szKey, const char * szValue);
 	void				_rtf_nonascii_hex2(UT_sint32 d);
 	void				_rtf_nonascii_hex2(UT_sint32 d, UT_String & pStr) const;
-	void				_rtf_keyword_hex2(const char * szKey, UT_sint32 d);
 	void				_rtf_keyword_ifnotdefault(const char * szKey, const char * szValue, UT_sint32 defaultValue);
 	void				_rtf_keyword_ifnotdefault_twips(const char * szKey, const char * szValue, UT_sint32 defaultValue);
 	void				_rtf_semi(void);
@@ -273,8 +270,6 @@ class ABI_EXPORT ie_exp_RTF_MsWord97ListSimple : public ie_exp_RTF_MsWord97List
  public:
 	ie_exp_RTF_MsWord97ListSimple(const fl_AutoNumConstPtr & pAuto);
 	~ie_exp_RTF_MsWord97ListSimple(void);
-	bool isSimple(void) const { return true;}
-	bool isMulti(void) const { return false;}
  private:
 };
 
@@ -287,7 +282,6 @@ class ABI_EXPORT ie_exp_RTF_MsWord97ListMulti : public ie_exp_RTF_MsWord97List
 	bool isMulti(void) const { return true;}
 	void addLevel(UT_uint32 iLevel, ie_exp_RTF_MsWord97List * pMsWord97List);
 	ie_exp_RTF_MsWord97List * getListAtLevel(UT_uint32 iLevel, UT_uint32 nthList) const;
-	UT_uint32 getMatchingID(UT_uint32 listID) const;
  private:
 	std::vector<ie_exp_RTF_MsWord97List*> * m_vLevels[9];
 };

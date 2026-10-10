@@ -1291,27 +1291,6 @@ void ODe_Text_Listener::insertPositionedImage(const gchar* pImageName,
 }
 
 
-/**
- * Returns true if the properties belongs to a plain paragraph, false otherwise.
- * An Abinova <p> tag (block) can be, for instance, a list item if it has
- * a "listid" and/or "level" attribute.
- */
-bool ODe_Text_Listener::_blockIsPlainParagraph(const PP_AttrProp* pAP) const {
-    const gchar* pValue;
-    bool ok;
-    
-    ok = pAP->getAttribute("level", pValue);
-    if (ok && pValue != nullptr) {
-        return false;
-    }
-    
-    ok = pAP->getAttribute("listid", pValue);
-    if (ok && pValue != nullptr) {
-        return false;
-    }
-    
-    return true;
-}
 
 
 /**

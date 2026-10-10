@@ -46,7 +46,6 @@ public:
 	const FV_SignatureSetup & getSignatureSetup(void) const;
 	FV_SignatureSetup &       getSignatureSetup(void);
 
-	void				setSignatureSetup(const FV_SignatureSetup & sig);
 
 private:
 	tAnswer				m_answer;

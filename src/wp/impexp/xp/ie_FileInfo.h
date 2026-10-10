@@ -32,9 +32,6 @@ class ABI_EXPORT IE_FileInfo
 public:
 	IE_FileInfo ();
 
-	void setFileInfo(const char * psz_MIME_TypeOrPseudo = nullptr,
-					  const char * psz_PreferredExporter = nullptr,
-					  const char * psz_PreferredImporter = nullptr);
 
 	const UT_UTF8String & PreferredImporter () const { return m_PreferredImporter; }
 	const UT_UTF8String & PreferredExporter () const { return m_PreferredExporter; }
@@ -46,7 +43,6 @@ private:
 	UT_UTF8String m_MIME_TypeOrPseudo;
 
 public:
-	static const char * mapAlias (const char * alias); // may return alias itself
 };
 
 #endif /* ! IE_FILEINFO_H */

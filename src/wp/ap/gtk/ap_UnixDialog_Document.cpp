@@ -837,10 +837,6 @@ void AP_UnixDialog_Document::_s_combo_changed(GtkDropDown * /*dd*/,
 	gtk_widget_queue_draw(self->m_wPreview);
 }
 
-void AP_UnixDialog_Document::_redrawPreview()
-{
-	gtk_widget_queue_draw(m_wPreview);
-}
 
 /* Page Setup… - the regular Abinova page-setup dialog applies
  * size/orientation/scale to the document immediately */

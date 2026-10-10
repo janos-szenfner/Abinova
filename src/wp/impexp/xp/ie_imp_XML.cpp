@@ -445,8 +445,3 @@ void IE_Imp_XML::_popInlineFmt(void)
 						 m_vecInlineFmt.end());
 }
 
-const gchar * IE_Imp_XML::_getXMLPropValue(const gchar *name,
-											  const gchar ** atts)
-{
-	return UT_getAttribute(name, atts);
-}

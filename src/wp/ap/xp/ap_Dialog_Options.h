@@ -140,7 +140,6 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 	virtual void _initEnableControlsPlatformSpecific(){};
 
 
-	void _eventSave(void);
 
 
 #define SET_GATHER(a,u) virtual u _gather##a(void) = 0; \

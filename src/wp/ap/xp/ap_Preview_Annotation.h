@@ -55,7 +55,6 @@ public:
 	const std::string&		getDescription() const
 		{ return m_sDescription; }
 
-	void		setAnnotationID(UT_uint32 aID);
 	UT_uint32	getAnnotationID() const
 	{  return m_iAID; }
 

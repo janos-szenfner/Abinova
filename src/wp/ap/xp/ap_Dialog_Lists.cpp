@@ -129,11 +129,6 @@ AP_Dialog_Lists::tAnswer AP_Dialog_Lists::getAnswer(void) const
 
 /************************************************************************/
 
-void
-AP_Dialog_Lists::copyCharToWindowName(const char* pszName)
-{
-    m_WindowName += pszName;
-}
 
 const char *
 AP_Dialog_Lists::getWindowName() const

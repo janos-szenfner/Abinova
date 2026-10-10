@@ -174,7 +174,6 @@ protected:
     {
         return m_pszFont;
     }
-    void copyCharToWindowName(const char* pszName);
     const char * getWindowName() const;
 	AP_Lists_preview* getListsPreview() { return m_pListsPreview; }
 	void              setCurrentFold(UT_sint32 iLevel)

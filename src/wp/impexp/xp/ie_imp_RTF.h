@@ -387,8 +387,6 @@ public:
 	std::vector<UT_sint32>* getTabStopVect(UT_uint32 iLevel);
 	std::vector<eTabType>* getTabTypeVect(UT_uint32 iLevel);
 	std::vector<eTabLeader>* getTabLeaderVect(UT_uint32 iLevel);
-	bool isDeletedChanged(UT_uint32 iLevel);
-	bool getDeleted(UT_uint32 iLevel);
 	bool isBoldChanged(UT_uint32 iLevel);
 	bool getBold(UT_uint32 iLevel);
 	bool isItalicChanged(UT_uint32 iLevel);
@@ -399,21 +397,17 @@ public:
 	bool getStrikeout(UT_uint32 iLevel);
 	bool isSuperscriptChanged(UT_uint32 iLevel);
 	bool getSuperscript(UT_uint32 iLevel);
-	bool isSuperscriptPosChanged(UT_uint32 iLevel);
 	double getSuperscriptPos(UT_uint32 iLevel);
 	bool isSubscriptChanged(UT_uint32 iLevel);
 	bool getSubscript(UT_uint32 iLevel);
-	bool isSubscriptPosChanged(UT_uint32 iLevel);
 	double getSubscriptPos(UT_uint32 iLevel);
  	bool isFontSizeChanged(UT_uint32 iLevel);
  	double getFontSize(UT_uint32 iLevel);
  	bool isHasColourChanged(UT_uint32 iLevel);
  	bool getHasColour(UT_uint32 iLevel);
- 	bool isColourNumberChanged(UT_uint32 iLevel);
  	UT_uint32 getColourNumber(UT_uint32 iLevel);
  	bool isHasBgColourChanged(UT_uint32 iLevel);
  	bool getHasBgColour(UT_uint32 iLevel);
-	bool isBgColourNumberChanged(UT_uint32 iLevel);
  	UT_uint32 getBgColourNumber(UT_uint32 iLevel);
  	bool isFontNumberChanged(UT_uint32 iLevel);
  	UT_uint32 getFontNumber(UT_uint32 iLevel);
@@ -747,7 +741,6 @@ private:
 	bool buildCharacterProps(std::string & propBuffer);
 	bool ApplyCharacterAttributes();
 	bool HandleBoolCharacterProp(bool state, bool* pProp);
-	bool HandleDeleted(bool state);
 	bool HandleBold(bool state);
 	bool HandleItalic(bool state);
 	bool HandleHidden(bool state);
@@ -809,7 +802,6 @@ private:
     ie_imp_table * getTable(void);
 	ie_imp_cell *  getCell(void);
 	void           FlushCellProps(void);
-	void           FlushTableProps(void);
 	void           OpenTable(bool bDontFlush = false);
 	void           CloseTable(bool bForceClose = false);
 	void           SaveRowInfo(void);

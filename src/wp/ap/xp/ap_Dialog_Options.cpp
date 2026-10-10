@@ -393,14 +393,6 @@ const gchar * AP_Dialog_Options::_gatherColorForTransparent(void)
 	return static_cast<const gchar *>( m_CurrentTransparentColor);
 }
 
-void AP_Dialog_Options::_eventSave(void)
-{
-	m_answer = a_SAVE;
-
-	_storeWindowData();
-
-	m_answer = a_OK;
-}
 
 void AP_Dialog_Options::_populateWindowData(void)
 {

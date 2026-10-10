@@ -86,12 +86,6 @@ AP_UnixDialog_PageNumbers::~AP_UnixDialog_PageNumbers(void)
 	DELETEP (m_unixGraphics);
 }
 
-void AP_UnixDialog_PageNumbers::event_PreviewInvalidate(void)
-{
-	if (m_preview) {
-		m_preview->queueDraw();
-	}
-}
 
 void AP_UnixDialog_PageNumbers::event_PreviewDraw(cairo_t *cr)
 {
