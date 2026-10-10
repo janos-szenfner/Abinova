@@ -50,6 +50,7 @@ EXTRA_DIST = \
 	io.github.janos_szenfner.Abinova.desktop \
 	io.github.janos_szenfner.Abinova.yml \
 	abinova.keys \
+	abwn.dtd \
 	libabinova.pc.in \
 	artwork \
 	dist \

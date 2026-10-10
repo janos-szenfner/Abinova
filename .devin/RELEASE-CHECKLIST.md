@@ -552,6 +552,59 @@ integrity fixes. The 84 api-surface accessors are a judgement call —
 default keep unless the class is clearly internal. Everything else is
 verified-live or generated.
 
+## RELQA07 — pre-release gate: dead-code removal
+
+Applied the RELQA03 findings proven unreferenced, in four batches,
+each rebuilt and gated on the core unit suite.
+
+|| Batch | Contents | Gate result |
+||-------|----------|-------------|
+|| 1 | `-Wunused` removals (ribbon `fband` lambda, `ODe_DocumentData`/`ODe_Style_List` dead locals) + both `make dist` fixes (stale `gtk/xap_UnixWidget.t.cpp` path → `gtk/t/`; the 8 missing `.t.cpp` EXTRA_DIST entries) | `make -j2` clean; testwrap/rtwrap/portwrap/dlgswrap PASS (drvwrap leg cut by the run watchdog mid-run — rerun of the leg, not a failure) |
+|| 2 | 42 candidate-dead removals in `src/af/**` (836 lines) | `make -j2` clean; testwrap 13,382 tests / 0 failures |
+|| 3 | 47 candidate-dead removals in `src/text/**` (792 lines) | `make -j2` clean; testwrap 13,382 / 0 |
+|| 4 | 55 candidate-dead removals in `src/wp/**` (597 lines) | `make -j2` clean; testwrap 13,382 / 0; final-state rtwrap + portwrap PASS |
+
+Also shipped: `abwn.dtd` added to top-level `EXTRA_DIST` (RELQA03's
+optional packaging gap).
+
+### Kept on per-item review (36 of the 180 candidates)
+
+- **Installed ABI** — all 11 `abi_widget_*` entry points:
+  `abiwidget.h` is a shipped public header; the C embedding API is
+  kept regardless of in-tree callers.
+- **Indirect dispatch** — `doclistener_deleteEndFrame`,
+  `bl_doclistener_insertFootnote`, `bl_doclistener_insertAnnotation`,
+  `event_MenuChanged`/`event_SpinIncrement`/`event_SpinDecrement`
+  (paragraph-dialog signal callbacks).
+- **Virtual/override** — `gr_CairoNullGraphics` `drawRGBImage`/
+  `drawGrayImage`/`drawBWImage`, `fp_Run::_getHeight`.
+- **Live inlines mis-flagged** — `ie_Table.h` `isMergedRight`,
+  `isFirstVerticalMerged`, `isFirstHorizontalMerged`, `setImpTable`,
+  `isAutoFit`, `getInsertionPoint`; `fl_TOCLayout.h` `hasLabel`,
+  `getNumLabel` (same-TU/cross-TU calls cppcheck could not see).
+- **Deliberate API/helpers** — `fl_TestRoutines` `__dump_fmt`/`__dump_pt`/
+  `__dump_ch`/`__dump_sq` (documented gdb-session dump routines),
+  `ap_UnixApp::getPrefsValueDirectory`, `XAP_Frame::
+  translateDocumentToScreen`, `IE_Exp::rewindChar` (kept conservative —
+  part of the exporter base API).
+
+### api-surface (84) verdict
+
+All 84 unused inline header accessors **kept** — they are zero-cost
+public class API (get/set pairs); none belongs to a clearly internal
+class where removal would aid maintenance. Documented decision, no
+action.
+
+### `#if 0` / marker triage
+
+Zero real `#if 0` blocks exist (RELQA03). The 1,274 TODO/FIXME/XXX/HACK
+markers are inherited documentation debt; none is attached to a removal
+item — no action.
+
+### Known-failing exceptions update
+
+None added by this leg.
+
 ## Known-failing exceptions
 
 (none)

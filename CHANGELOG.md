@@ -5798,6 +5798,16 @@ below are on `main` but the release has not been cut yet.
   gaps (a stale `EXTRA_DIST` path and eight test files missing from
   the dist list), and five dead locals/stores. No code was removed
   in this pass.
+- **Pre-release dead-code removal landed** — the verified-unreferenced
+  half of the sweep's worklist: 144 dead functions deleted
+  (~2,200 lines) across `af/`, `text/fmt`, `text/ptbl`, `wp/ap` and
+  `wp/impexp`, plus the `make dist` fixes (stale `EXTRA_DIST` path,
+  the eight missing test files, `abwn.dtd` now shipped) and the five
+  dead locals/stores. Kept on review: the installed `abi_widget_*`
+  embedding API, doclistener table callbacks, virtual overrides,
+  signal-connected dialog handlers, live inline accessors, and the
+  `__dump_*` debugger helpers. The unit suite stays green after
+  every removal batch.
 
 ### Resolved root causes worth noting
 
