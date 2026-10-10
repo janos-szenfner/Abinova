@@ -229,6 +229,7 @@ public:
     void closeComment();
 
     void enableXmlMode(bool enable = true);
+    bool isXmlMode() const { return m_bXmlModeEnabled; }
 private:
 
     inline void _closeAttributes();

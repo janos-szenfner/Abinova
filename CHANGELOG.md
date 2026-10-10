@@ -2426,6 +2426,17 @@ below are on `main` but the release has not been cut yet.
   containing paragraph early, which pushed note markup (and sometimes
   `</body>`) past the end of the document body; multi-paragraph notes
   now export in full.
+- **EPUB/XHTML export emits strictly well-formed XML** — preserved
+  space runs used to be written as the named entity `&nbsp;`, which is
+  undefined in XML and made exported chapters containing them malformed
+  for conforming parsers; XML-mode output now uses `&#160;` while
+  HTML4 export keeps `&nbsp;`.
+- **HTML/XHTML/EPUB export no longer drops computed field values** —
+  fields whose results were never laid out (e.g. `.doc`-imported
+  documents exported headlessly) used to serialize as empty spans.
+  The exporter now runs the same null-graphics field-population pass
+  the plain-text exporter already used, so dates, page/word/char
+  counts, filenames and cross-reference results appear in the output.
 - **EPUB import reconstructs real footnotes/endnotes** — an
   `<a epub:type="noteref">` pointing at an `epub:type="footnote"` /
   `rearnote` body (as written by Abinova's own export) is imported as a

@@ -1,0 +1,71 @@
+=== dlgswrap 2026-10-10T13:06:03,251733140+02:00 ===
+make  Abinova-test dialog-smoke ui-drive testwrap.sh-stamp rtwrap.sh-stamp portwrap.sh-stamp dlgswrap.sh-stamp drvwrap.sh-stamp unix/testwrap.sh unix/rtwrap.sh unix/portwrap.sh unix/dlgswrap.sh unix/drvwrap.sh
+make[1]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[1]: 'Abinova-test' is up to date.
+make[1]: 'dialog-smoke' is up to date.
+make[1]: 'ui-drive' is up to date.
+make[1]: 'testwrap.sh-stamp' is up to date.
+make[1]: 'rtwrap.sh-stamp' is up to date.
+make[1]: 'portwrap.sh-stamp' is up to date.
+make[1]: 'dlgswrap.sh-stamp' is up to date.
+make[1]: 'drvwrap.sh-stamp' is up to date.
+make[1]: 'unix/testwrap.sh' is up to date.
+make[1]: 'unix/rtwrap.sh' is up to date.
+make[1]: 'unix/portwrap.sh' is up to date.
+make[1]: 'unix/dlgswrap.sh' is up to date.
+make[1]: 'unix/drvwrap.sh' is up to date.
+make[1]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make  check-TESTS
+make[1]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[2]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+PASS: unix/dlgswrap.sh
+============================================================================
+Testsuite summary for abinova 4.0.0
+============================================================================
+# TOTAL: 1
+# PASS:  1
+# SKIP:  0
+# XFAIL: 0
+# FAIL:  0
+# XPASS: 0
+# ERROR: 0
+============================================================================
+make[2]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[1]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+DLGSWRAP_RC=0
+=== drvwrap 2026-10-10T13:08:34,184781321+02:00 ===
+make  Abinova-test dialog-smoke ui-drive testwrap.sh-stamp rtwrap.sh-stamp portwrap.sh-stamp dlgswrap.sh-stamp drvwrap.sh-stamp unix/testwrap.sh unix/rtwrap.sh unix/portwrap.sh unix/dlgswrap.sh unix/drvwrap.sh
+make[1]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[1]: 'Abinova-test' is up to date.
+make[1]: 'dialog-smoke' is up to date.
+make[1]: 'ui-drive' is up to date.
+make[1]: 'testwrap.sh-stamp' is up to date.
+make[1]: 'rtwrap.sh-stamp' is up to date.
+make[1]: 'portwrap.sh-stamp' is up to date.
+make[1]: 'dlgswrap.sh-stamp' is up to date.
+make[1]: 'drvwrap.sh-stamp' is up to date.
+make[1]: 'unix/testwrap.sh' is up to date.
+make[1]: 'unix/rtwrap.sh' is up to date.
+make[1]: 'unix/portwrap.sh' is up to date.
+make[1]: 'unix/dlgswrap.sh' is up to date.
+make[1]: 'unix/drvwrap.sh' is up to date.
+make[1]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make  check-TESTS
+make[1]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[2]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+PASS: unix/drvwrap.sh
+============================================================================
+Testsuite summary for abinova 4.0.0
+============================================================================
+# TOTAL: 1
+# PASS:  1
+# SKIP:  0
+# XFAIL: 0
+# FAIL:  0
+# XPASS: 0
+# ERROR: 0
+============================================================================
+make[2]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[1]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+DRVWRAP_RC=0
+=== DONE 2026-10-10T13:18:01,255126679+02:00 ===

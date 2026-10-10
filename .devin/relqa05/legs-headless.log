@@ -1,0 +1,1078 @@
+=== portwrap 2026-10-10T13:06:03,251863837+02:00 ===
+make  Abinova-test dialog-smoke ui-drive testwrap.sh-stamp rtwrap.sh-stamp portwrap.sh-stamp dlgswrap.sh-stamp drvwrap.sh-stamp unix/testwrap.sh unix/rtwrap.sh unix/portwrap.sh unix/dlgswrap.sh unix/drvwrap.sh
+make[1]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[1]: 'Abinova-test' is up to date.
+make[1]: 'dialog-smoke' is up to date.
+make[1]: 'ui-drive' is up to date.
+make[1]: 'testwrap.sh-stamp' is up to date.
+make[1]: 'rtwrap.sh-stamp' is up to date.
+make[1]: 'portwrap.sh-stamp' is up to date.
+make[1]: 'dlgswrap.sh-stamp' is up to date.
+make[1]: 'drvwrap.sh-stamp' is up to date.
+make[1]: 'unix/testwrap.sh' is up to date.
+make[1]: 'unix/rtwrap.sh' is up to date.
+make[1]: 'unix/portwrap.sh' is up to date.
+make[1]: 'unix/dlgswrap.sh' is up to date.
+make[1]: 'unix/drvwrap.sh' is up to date.
+make[1]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make  check-TESTS
+make[1]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[2]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+PASS: unix/portwrap.sh
+============================================================================
+Testsuite summary for abinova 4.0.0
+============================================================================
+# TOTAL: 1
+# PASS:  1
+# SKIP:  0
+# XFAIL: 0
+# FAIL:  0
+# XPASS: 0
+# ERROR: 0
+============================================================================
+make[2]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[1]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+PORTWRAP_RC=0
+=== rtwrap 2026-10-10T13:06:07,253834471+02:00 ===
+make  Abinova-test dialog-smoke ui-drive testwrap.sh-stamp rtwrap.sh-stamp portwrap.sh-stamp dlgswrap.sh-stamp drvwrap.sh-stamp unix/testwrap.sh unix/rtwrap.sh unix/portwrap.sh unix/dlgswrap.sh unix/drvwrap.sh
+make[1]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[1]: 'Abinova-test' is up to date.
+make[1]: 'dialog-smoke' is up to date.
+make[1]: 'ui-drive' is up to date.
+make[1]: 'testwrap.sh-stamp' is up to date.
+make[1]: 'rtwrap.sh-stamp' is up to date.
+make[1]: 'portwrap.sh-stamp' is up to date.
+make[1]: 'dlgswrap.sh-stamp' is up to date.
+make[1]: 'drvwrap.sh-stamp' is up to date.
+make[1]: 'unix/testwrap.sh' is up to date.
+make[1]: 'unix/rtwrap.sh' is up to date.
+make[1]: 'unix/portwrap.sh' is up to date.
+make[1]: 'unix/dlgswrap.sh' is up to date.
+make[1]: 'unix/drvwrap.sh' is up to date.
+make[1]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make  check-TESTS
+make[1]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[2]: Entering directory '/home/szefi/Documents/exp-abi/src/wp/test'
+PASS: unix/rtwrap.sh
+============================================================================
+Testsuite summary for abinova 4.0.0
+============================================================================
+# TOTAL: 1
+# PASS:  1
+# SKIP:  0
+# XFAIL: 0
+# FAIL:  0
+# XPASS: 0
+# ERROR: 0
+============================================================================
+make[2]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+make[1]: Leaving directory '/home/szefi/Documents/exp-abi/src/wp/test'
+RTWRAP_RC=0
+=== epub-rt-check 2026-10-10T13:08:20,170042917+02:00 ===
+./tools/epub-rt-check.sh: line 18: $1: unbound variable
+EPUBRT_RC=1
+=== check-fuzz 2026-10-10T13:08:20,171706709+02:00 ===
+./tools/check-fuzz.sh
+check-fuzz: PASS fuzz_abw corpus (6 seeds)
+check-fuzz: PASS fuzz_doc corpus (9 seeds)
+check-fuzz: PASS fuzz_doc regress/crash-433d2ef4af5380926a6bb33b8180b36668fb26d6
+check-fuzz: PASS fuzz_doc regress/crash-ab929f653444a29eb6305a59f166acd0f512459d.doc
+check-fuzz: PASS fuzz_doc regress/crash-b642d288a8f59531117cdc09da8dee877cdaba84
+check-fuzz: PASS fuzz_doc regress/crash-cb4e143b33c6e75a2692f3c11cc0b7d43e61c85d
+check-fuzz: PASS fuzz_doc regress/crash-e0db70fade4734fef2a6ee51633b2129bfa85431
+check-fuzz: PASS fuzz_doc regress/oom-4879d388bb5916f46213f5c4f86d9318de8f7d46
+check-fuzz: PASS fuzz_doc regress/oom-660706abdcbfe33fb50736bd9e9d8f382bae616c
+check-fuzz: PASS fuzz_doc regress/repro-80ae8a2dbc9f-doc07_float.doc
+check-fuzz: PASS fuzz_doc regress/timeout-9b888d7bd14fa9747cb3f7e542b4dfa8022cd64c
+check-fuzz: PASS fuzz_doc regress/timeout-a55e1cfb647066b1b97bd02e12750be0ff9fb423
+check-fuzz: PASS fuzz_docx corpus (6 seeds)
+check-fuzz: PASS fuzz_epub corpus (4 seeds)
+check-fuzz: PASS fuzz_libwpd corpus (5 seeds)
+check-fuzz: PASS fuzz_libwpg corpus (6 seeds)
+check-fuzz: PASS fuzz_libwps corpus (10 seeds)
+check-fuzz: PASS fuzz_md corpus (4 seeds)
+check-fuzz: PASS fuzz_mht corpus (7 seeds)
+check-fuzz: PASS fuzz_odt corpus (8 seeds)
+check-fuzz: PASS fuzz_rtf corpus (7 seeds)
+check-fuzz: PASS fuzz_tex corpus (4 seeds)
+check-fuzz: PASS fuzz_tex regress/repro-e91152c52aa5-tex_trailing_backslash_hang.tex
+check-fuzz: PASS fuzz_tex regress/repro-f66e29eda637-tex_trailing_backslash_oom.tex
+check-fuzz: PASS fuzz_wpd corpus (4 seeds)
+check-fuzz: PASS fuzz_wpg corpus (6 seeds)
+check-fuzz: PASS fuzz_wps corpus (5 seeds)
+check-fuzz: PASS fuzz_xhtml corpus (4 seeds)
+check-fuzz: 28/28 runs clean, 0 targets skipped
+FUZZ_RC=0
+=== check-freeze 2026-10-10T13:08:23,662780128+02:00 ===
+./tools/check-freeze.sh
+check-freeze: unit time bounds
+
+(process:817018): Gdk-CRITICAL **: 13:08:23.729: gdk_display_get_clipboard: assertion 'GDK_IS_DISPLAY (display)' failed
+
+(process:817018): Gdk-CRITICAL **: 13:08:23.729: gdk_display_get_primary_clipboard: assertion 'GDK_IS_DISPLAY (display)' failed
+
+(process:817018): Gtk-CRITICAL **: 13:08:23.729: gtk_icon_theme_get_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+
+(process:817018): Gtk-CRITICAL **: 13:08:23.729: gtk_icon_theme_add_resource_path: assertion 'GTK_IS_ICON_THEME (self)' failed
+core.af.xap.misc: Testing "XAP_StatusBar" in xap_Misc.t.cpp:
+! xap_Misc.t.cpp:250   sb1.lastMsg == "hello bar"               ok
+! xap_Misc.t.cpp:251   sb2.lastMsg == "hello bar"               ok
+! xap_Misc.t.cpp:252   sb1.count == 2 && sb2.count == 2         ok
+! xap_Misc.t.cpp:257   g_get_monotonic_time() - t0 < 200 * 1000 ok
+! xap_Misc.t.cpp:258   sb1.lastUrgent && sb2.lastUrgent         ok
+! xap_Misc.t.cpp:262   sb2.lastMsg == "debug only"              ok
+! xap_Misc.t.cpp:263   sb1.lastMsg == "urgent msg"              ok
+! xap_Misc.t.cpp:267   sb1.lastMsg == "urgent msg"              ok
+! xap_Misc.t.cpp:268   sb2.lastMsg == "one bar left"            ok
+! tf_test.cpp:197   new_valgrind_errs == old_valgrind_errs   ok
+memleaks: sure:0 dubious:0 reachable:0 suppress:0
+! tf_test.cpp:201   new_valgrind_leaks == old_valgrind_leaks ok
+
+core.af.xap.misc: Testing "XAP_Frame backup timing" in xap_Misc.t.cpp:
+! xap_Misc.t.cpp:308   doc->createRawDocument() == UT_OK        ok
+! xap_Misc.t.cpp:309   doc->appendStrux(PTX_Section, PP_NOPROPS) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+! xap_Misc.t.cpp:312   doc->appendStrux(PTX_Block, PP_NOPROPS)  ok
+! xap_Misc.t.cpp:314   doc->appendSpan(s.ucs4_str(), s.length()) ok
+backup: 9 ms for a 400-paragraph doc
+! xap_Misc.t.cpp:327   err == UT_OK                             ok
+! xap_Misc.t.cpp:331   us < 5 * G_TIME_SPAN_SECOND              ok
+! tf_test.cpp:197   new_valgrind_errs == old_valgrind_errs   ok
+memleaks: sure:0 dubious:0 reachable:0 suppress:0
+! tf_test.cpp:201   new_valgrind_leaks == old_valgrind_leaks ok
+
+core.af.xap.addoc: Testing "AD_Document basics" in xad_Document.t.cpp:
+! xad_Document.t.cpp:105   doc->getType() == ADDOCUMENT_ABIWORD     ok
+! xad_Document.t.cpp:113   doc->getFilename() == "/tmp/doc.abw"     ok
+! xad_Document.t.cpp:115   doc->getFilename().empty()               ok
+! xad_Document.t.cpp:117   doc->getPrintFilename() == "/tmp/print.abw" ok
+! xad_Document.t.cpp:120   doc->getEncodingName() == nullptr        ok
+! xad_Document.t.cpp:122   doc->getEncodingName() && !strcmp(doc->getEncodingName(), "UTF-8") ok
+! xad_Document.t.cpp:124   doc->getEncodingName() == nullptr        ok
+! xad_Document.t.cpp:127   !doc->isForcedDirty()                    ok
+! xad_Document.t.cpp:129   doc->isForcedDirty()                     ok
+! xad_Document.t.cpp:130   !doc->isDirty()                          ok
+! xad_Document.t.cpp:133   doc->getLastOpenedTime() > 0             ok
+! xad_Document.t.cpp:135   doc->getLastSavedTime() == 1000          ok
+! xad_Document.t.cpp:136   doc->getTimeSinceSave() >= 0             ok
+! xad_Document.t.cpp:138   doc->getEditTime() >= 42                 ok
+! xad_Document.t.cpp:140   doc->getDocVersion() == 7                ok
+! xad_Document.t.cpp:143   doc->getDocUUID() != nullptr             ok
+! xad_Document.t.cpp:144   doc->isOrigUUID()                        ok
+! xad_Document.t.cpp:145   doc->getDocUUIDString() != nullptr       ok
+! xad_Document.t.cpp:146   doc->getOrigDocUUIDString() != nullptr   ok
+! xad_Document.t.cpp:147   !doc->getMyUUIDString().empty()          ok
+! xad_Document.t.cpp:151   u1 != nullptr                            ok
+! xad_Document.t.cpp:152   u1->isValid()                            ok
+! xad_Document.t.cpp:154   u2 != nullptr                            ok
+! xad_Document.t.cpp:155   !(*u1 == *u2)                            ok
+! xad_Document.t.cpp:156   doc->getNewUUID32() != 0                 ok
+! xad_Document.t.cpp:157   doc->getNewUUID64() != 0                 ok
+! xad_Document.t.cpp:163   doc->getContentSerial() != doc->getContentSerial() ok
+! xad_Document.t.cpp:164   doc->getLastContentChange() == 0         ok
+! tf_test.cpp:197   new_valgrind_errs == old_valgrind_errs   ok
+memleaks: sure:0 dubious:0 reachable:0 suppress:0
+! tf_test.cpp:201   new_valgrind_leaks == old_valgrind_leaks ok
+
+core.text.ptbl.piecetable: Testing "PD_Document content serial tracks mutations" in pt_PieceTable.t.cpp:
+! pt_PieceTable.t.cpp:120   doc->createRawDocument() == UT_OK        ok
+! pt_PieceTable.t.cpp:122   doc->appendStrux(PTX_Block, PP_NOPROPS, &blk) ok
+! pt_PieceTable.t.cpp:124   doc->appendSpan(seed.ucs4_str(), seed.length()) ok
+! pt_PieceTable.t.cpp:126   !doc->isPieceTableChanging()             ok
+! pt_PieceTable.t.cpp:130   t0 <= time(nullptr)                      ok
+! pt_PieceTable.t.cpp:135   doc->insertSpan(pos, ins.ucs4_str(), 1)  ok
+! pt_PieceTable.t.cpp:137   s1 != s0                                 ok
+! pt_PieceTable.t.cpp:138   doc->getLastContentChange() >= t0        ok
+! pt_PieceTable.t.cpp:139   doc->getLastContentChange() <= time(nullptr) ok
+! pt_PieceTable.t.cpp:143   doc->insertSpan(pos + 1, ins.ucs4_str(), 1) ok
+! pt_PieceTable.t.cpp:145   s2 != s1                                 ok
+! pt_PieceTable.t.cpp:146   s2 != s0                                 ok
+! pt_PieceTable.t.cpp:149   doc->undoCmd(1)                          ok
+! pt_PieceTable.t.cpp:151   s3 != s2                                 ok
+! pt_PieceTable.t.cpp:152   doc->redoCmd(1)                          ok
+! pt_PieceTable.t.cpp:153   doc->getContentSerial() != s3            ok
+! tf_test.cpp:197   new_valgrind_errs == old_valgrind_errs   ok
+memleaks: sure:0 dubious:0 reachable:0 suppress:0
+! tf_test.cpp:201   new_valgrind_leaks == old_valgrind_leaks ok
+
+core.text.ptbl.docedits: Testing "notifyPieceTableChangeStart does not stall on the redraw flag" in pt_DocEdits.t.cpp:
+! pt_DocEdits.t.cpp:1455  d.build()                                ok
+! pt_DocEdits.t.cpp:1456  d.para("hello")                          ok
+! pt_DocEdits.t.cpp:1467  elapsed < 50 * 1000                      ok
+! pt_DocEdits.t.cpp:1469  d.doc->isRedrawHappenning()              ok
+! pt_DocEdits.t.cpp:1470  d.doc->isPieceTableChanging()            ok
+! pt_DocEdits.t.cpp:1472  !d.doc->isPieceTableChanging()           ok
+! tf_test.cpp:197   new_valgrind_errs == old_valgrind_errs   ok
+memleaks: sure:0 dubious:0 reachable:0 suppress:0
+! tf_test.cpp:201   new_valgrind_leaks == old_valgrind_leaks ok
+
+core.af.xap.unixclipboard: Testing "oversized clipboard payload is rejected and flagged" in xap_UnixClipboard.t.cpp:
+! xap_UnixClipboard.t.cpp:50    clip->addData(XAP_UnixClipboard::TAG_ClipboardOnly, "text/plain", small, sizeof(small) - 1) ok
+! xap_UnixClipboard.t.cpp:52    !clip->wasDataOversized()                ok
+! xap_UnixClipboard.t.cpp:58    clip->getData(XAP_UnixClipboard::TAG_ClipboardOnly, formats, &pData, &len, &fmt) ok
+! xap_UnixClipboard.t.cpp:60    len == sizeof(small) - 1                 ok
+! xap_UnixClipboard.t.cpp:61    fmt && !std::strcmp(fmt, "text/plain")   ok
+! xap_UnixClipboard.t.cpp:69    !clip->addData(XAP_UnixClipboard::TAG_ClipboardOnly, "image/png", huge.get(), T_CAP_BYTES + 1) ok
+! xap_UnixClipboard.t.cpp:71    clip->wasDataOversized()                 ok
+! xap_UnixClipboard.t.cpp:76    !clip->getData(XAP_UnixClipboard::TAG_ClipboardOnly, pngFormats, &pData, &len, &fmt) ok
+! xap_UnixClipboard.t.cpp:78    pData == nullptr && len == 0             ok
+! xap_UnixClipboard.t.cpp:80    clip->wasDataOversized()                 ok
+! xap_UnixClipboard.t.cpp:84    !clip->wasDataOversized()                ok
+! xap_UnixClipboard.t.cpp:85    !clip->canPaste(XAP_UnixClipboard::TAG_ClipboardOnly) ok
+! tf_test.cpp:197   new_valgrind_errs == old_valgrind_errs   ok
+memleaks: sure:0 dubious:0 reachable:0 suppress:0
+! tf_test.cpp:201   new_valgrind_leaks == old_valgrind_leaks ok
+
+core.af.xap.unixclipboard: Testing "snapshotData hands the provider an owned payload copy" in xap_UnixClipboard.t.cpp:
+! xap_UnixClipboard.t.cpp:101   clip->addData(XAP_UnixClipboard::TAG_ClipboardOnly, "application/octet-stream", payload, payloadLen) ok
+! xap_UnixClipboard.t.cpp:108   clip->snapshotData("application/octet-stream", false, &out, &outLen, &err) ok
+! xap_UnixClipboard.t.cpp:110   out && outLen == payloadLen              ok
+! xap_UnixClipboard.t.cpp:111   !std::memcmp(out, payload, payloadLen)   ok
+! xap_UnixClipboard.t.cpp:114   !std::memcmp(out, payload, payloadLen)   ok
+! xap_UnixClipboard.t.cpp:121   !clip->snapshotData("text/plain", false, &out, &outLen, &err) ok
+! xap_UnixClipboard.t.cpp:123   out == nullptr && outLen == 0            ok
+! tf_test.cpp:197   new_valgrind_errs == old_valgrind_errs   ok
+memleaks: sure:0 dubious:0 reachable:0 suppress:0
+! tf_test.cpp:201   new_valgrind_leaks == old_valgrind_leaks ok
+
+TF_Test: WARNING: only ran tests starting with specifed prefix(es).
+TF_Test: 896 tests, 0 failures.
+check-freeze: heartbeat leg
+libEGL warning: DRI3 error: Could not get DRI3 device
+libEGL warning: Ensure your X server supports DRI3 to get accelerated rendering
+(process:817085): GLib-GIO-DEBUG: 13:08:23.995: Using cross-namespace EXTERNAL authentication (this will deadlock if server is GDBus < 2.73.3)
+(process:817085): GLib-GIO-DEBUG: 13:08:24.005: _g_io_module_get_default: Found default implementation gvfs (GDaemonVfs) for ‘gio-vfs’
+(process:817085): Gtk-DEBUG: 13:08:24.037: Connecting to session manager
+(process:817085): Gtk-DEBUG: 13:08:24.066: Connecting to session manager
+(process:817085): GLib-GIO-DEBUG: 13:08:25.104: _g_io_module_get_default: Found default implementation dconf (DConfSettingsBackend) for ‘gsettings-backend’
+(process:817085): dconf-DEBUG: 13:08:25.104: watch_fast: "/org/gtk/gtk4/settings/color-chooser/" (establishing: 0, active: 0)
+(process:817085): dconf-DEBUG: 13:08:25.105: watch_established: "/org/gtk/gtk4/settings/color-chooser/" (establishing: 1)
+(process:817085): Gtk-DEBUG: 13:08:25.107: Using GtkColorPickerPortal for picking colors
+(process:817085): dconf-DEBUG: 13:08:25.107: change_fast
+(process:817085): dconf-DEBUG: 13:08:25.107: change_fast
+(process:817085): dconf-DEBUG: 13:08:25.108: watch_fast: "/org/gtk/gtk4/settings/color-chooser/" (establishing: 0, active: 1)
+(process:817085): Gtk-DEBUG: 13:08:25.109: Using GtkColorPickerPortal for picking colors
+(process:817085): dconf-DEBUG: 13:08:25.109: change_fast
+(process:817085): dconf-DEBUG: 13:08:25.109: change_fast
+(process:817085): Gtk-DEBUG: 13:08:25.243: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.243: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.243: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.244: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.244: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.244: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.244: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.244: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.244: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.244: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.244: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.720: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:25.720: snapshot symbolic icon using mask
+
+(process:817085): Gtk-WARNING **: 13:08:25.803: Trying to snapshot GtkBox 0x57a8edd84420 without a current allocation
+(process:817085): Gtk-DEBUG: 13:08:26.087: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:26.087: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:28.018: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:28.018: snapshot symbolic icon using mask
+(process:817085): Gtk-DEBUG: 13:08:28.225: snapshot symbolic icon using mask
+freeze: worst main-loop gap 1173 ms at "freeze: loadDocument" (interactive bound 750 ms)
+check-freeze: heartbeat leg ok
+check-freeze: PASS
+FREEZE_RC=0
+=== DONE 2026-10-10T13:08:28,654557363+02:00 ===

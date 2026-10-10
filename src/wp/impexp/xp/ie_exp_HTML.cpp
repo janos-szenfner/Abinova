@@ -581,6 +581,8 @@ UT_Error IE_Exp_HTML::_writeDocument()
 
 UT_Error IE_Exp_HTML::_writeDocument(bool /*bClipBoard*/, bool /*bTemplateBody*/)
 {
+    populateFields();
+
     if (m_exp_opt.bSplitDocument && m_pNavigationHelper->hasTOC()
         && !m_exp_opt.bMultipart)
     {

@@ -115,6 +115,7 @@ public:
     virtual void insertMeta(const std::string& name, const std::string& content,
             const std::string& httpEquiv) override;
     virtual void insertText(const UT_UTF8String &text) override;
+    virtual bool isXmlOutput() const override { return !m_pTagWriter || m_pTagWriter->isXmlMode(); }
     virtual void insertImage(const UT_UTF8String &url, const UT_UTF8String &align,
         const UT_UTF8String &style, const UT_UTF8String &title,
         const UT_UTF8String &alt) override;

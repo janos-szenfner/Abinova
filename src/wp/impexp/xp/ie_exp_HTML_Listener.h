@@ -132,6 +132,11 @@ public:
 
     virtual void insertText(const UT_UTF8String &text) = 0;
 
+    /* true when the output is strict XML (XHTML/EPUB): named HTML
+     * entities such as &nbsp; are undefined there, so text must use
+     * numeric character references.  Defaults to the XML-safe choice. */
+    virtual bool isXmlOutput() const { return true; }
+
     virtual void insertTOC(const gchar * title,
 						   const std::vector<UT_UTF8String> &items,
 						   const std::vector<UT_UTF8String> &itemUri) = 0;

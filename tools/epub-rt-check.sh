@@ -20,7 +20,7 @@ TMPD=$(mktemp -d)
 trap 'rm -rf "$TMPD"' EXIT
 FAIL=0
 
-norm() { tr -s '[:space:]' ' ' < "$1" | tr -d '\n' | sed 's/^ *//;s/ *$//'; }
+norm() { tr -s '[:space:]' ' ' < "$1" | tr -d '\n' | sed -E 's/[0-9]{1,2}:[0-9]{2}:[0-9]{2}/TIME/g;s/^ *//;s/ *$//'; }
 imgcount() { grep -o 'mime-type="image/' "$1" 2>/dev/null | wc -l; }
 
 for SRC in "$@"; do

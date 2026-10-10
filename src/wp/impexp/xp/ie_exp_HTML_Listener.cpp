@@ -766,7 +766,8 @@ void IE_Exp_HTML_Listener::_outputData(const UT_UCS4Char* pData,
     UT_ASSERT(sizeof (UT_Byte) == sizeof (char));
     sBuf.reserve(length);
 	UT_uint32 spaceCount = 0;
-	
+	const char* szNbsp = m_pCurrentImpl->isXmlOutput() ? "&#160;" : "&nbsp;";
+
     for (p = pData; (p < pData + length); /**/)
     {
 		if ((*p != ' ') && (spaceCount > 0))
@@ -775,7 +776,7 @@ void IE_Exp_HTML_Listener::_outputData(const UT_UCS4Char* pData,
 			spaceCount--;
 			while (spaceCount > 0)
 			{
-				sBuf += "&nbsp;";
+				sBuf += szNbsp;
 				spaceCount--;
 			}
 		}
@@ -848,7 +849,7 @@ void IE_Exp_HTML_Listener::_outputData(const UT_UCS4Char* pData,
         spaceCount--;
         while (spaceCount > 0)
         {
-            sBuf += "&nbsp;";
+            sBuf += szNbsp;
             spaceCount--;
         }
     }
