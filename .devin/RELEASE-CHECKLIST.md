@@ -605,6 +605,24 @@ item — no action.
 
 None added by this leg.
 
+## RELQA04 — pre-release gate: release dry-run A
+
+Clean-clone build + bundle assembly + container smoke + version
+consistency, all green:
+
+| Leg | Result |
+|-----|--------|
+| `git clone --no-hardlinks` → `./autogen.sh` + `./configure` | rc=0; configure summary matches the working tree (no missing committed files; `clipart`/`templates` = opt-in defaults, identical in both) |
+| clean-clone `make -j4` (thirdparty + src + user + icons + fonts) | rc=0; `src/abinova --version` → `4.0.0`; libabinova-4.0.so links |
+| `dist/linux-bundle.sh` on the clone (patchelf 0.18.0 built from source — not installed) | rc=0; 274 shared libs staged, RUNPATH verify PASS, in-build headless convert OK; bundle `dist/abinova-4.0.0-linux-x86_64` (360M) |
+| `dist/bundle-verify.sh --os linux --backend bwrap` | 3/3 PASS — debian trixie (fresh pull), ubuntu 24.04, openSUSE Leap 15.6: `--version` → 4.0.0, ldd closure = bundle + libc family only, docx→pdf OK |
+| version-string sweep | consistent: `configure.ac` abi_version 4.0.0, `--version` 4.0.0 (main tree + all 3 containers), bundle name `abinova-4.0.0-linux-x86_64`, `abinova.1` "Abinova 4.0", NSIS `-DVERSION=4.0.0`, Flatpak `tag: v4.0.0` |
+| fix landed | AppStream metainfo template (`io.github.janos_szenfner.Abinova.metainfo.xml.in`) had no `<releases>` block (`releases-info-missing` pedantic notice) — added `<release version="4.0.0">`; `appstreamcli validate --pedantic` now clean except cosmetic `cid-contains-uppercase-letter` |
+
+### Known-failing exceptions update
+
+None added by this leg.
+
 ## Known-failing exceptions
 
 (none)

@@ -25,4 +25,7 @@
   <url type="vcs-browser">https://github.com/janos-szenfner/Abinova</url>
   <url type="bugtracker">https://github.com/janos-szenfner/Abinova/issues</url>
   <content_rating type="oars-1.0" />
+  <releases>
+    <release version="4.0.0" date="2026-10-10" type="stable" />
+  </releases>
 </component>

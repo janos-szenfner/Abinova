@@ -5808,6 +5808,16 @@ below are on `main` but the release has not been cut yet.
   signal-connected dialog handlers, live inline accessors, and the
   `__dump_*` debugger helpers. The unit suite stays green after
   every removal batch.
+- **Release dry-run gate passed** — a clean `git clone` of the tree
+  configures and builds from scratch (no uncommitted-only files),
+  `dist/linux-bundle.sh` assembles the self-contained bundle and
+  `dist/bundle-verify.sh` runs it inside clean Debian, Ubuntu and
+  openSUSE rootfs containers: `abinova --version` reports `4.0.0`,
+  `ldd` resolves only bundled + libc-family libraries, and a
+  `.docx`→`.pdf` conversion succeeds on all three. The version
+  sweep found every string consistent (`configure.ac` 4.0.0,
+  `--version`, bundle names, man page, NSIS, Flatpak); the AppStream
+  metainfo now also declares a `<releases>` entry for 4.0.0.
 
 ### Resolved root causes worth noting
 
