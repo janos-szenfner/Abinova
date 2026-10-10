@@ -5950,6 +5950,20 @@ below are on `main` but the release has not been cut yet.
 
 ### Resolved root causes worth noting
 
+- **Table Design style-option checkboxes did nothing** — the six
+  Table Style Options toggles (Header Row, Total Row, Banded Rows,
+  First/Last Column, Banded Columns) ticked and immediately snapped
+  back, as if unclickable. The look flags (`tbl-look`) and style id
+  (`tbl-style`) are written to the table strux via `changeStruxFmt`,
+  which resolves the strux *containing* each endpoint — the code
+  passed the strux's own position, which resolves to the parent
+  container, so every write (and the table-wait-index layout bump)
+  failed silently and the next ribbon refresh restored the old
+  state. Positions now follow the codebase-wide `struxPos + 1`
+  convention, so toggles persist, styled tables re-render their
+  banding/conditional parts immediately, and styleless tables keep
+  the tick recorded (Word parity: the implicit Table Grid has no
+  conditional parts).
 - **"double free or corruption" after ODF export** — was a stale
   `opendocument.so` in the user plugin dir colliding on
   `ODe_Style_Style::m_NCStyleMappings` with `libabinova`, not an

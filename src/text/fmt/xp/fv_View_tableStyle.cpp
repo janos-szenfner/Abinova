@@ -166,7 +166,15 @@ static bool fv_enumTable(const FV_View * view, const PD_Document * doc,
 		return false;
 
 	out.tableSDH = tableSDH;
-	out.posTable = doc->getStruxPosition(tableSDH);
+	/* changeStruxFmt resolves the strux CONTAINING each endpoint, so
+	 * callers must pass a position inside the table, not the strux's
+	 * own position (the convention everywhere else: struxPos + 1).
+	 * Passing the raw position silently resolved to the parent
+	 * container, the lookup failed, and tbl-style/tbl-look writes —
+	 * plus the table-wait-index bump in _change/_restoreCellParams —
+	 * were dropped, which is why the ribbon's style-option checks
+	 * snapped back as if unclickable */
+	out.posTable = doc->getStruxPosition(tableSDH) + 1;
 	const pf_Frag_Strux * endSDH = doc->getEndTableStruxFromTableStrux(tableSDH);
 	if (!endSDH)
 		return false;
@@ -394,6 +402,11 @@ bool FV_View::cmdTableSetStyleOption(UT_sint32 iOption, bool bOn)
 	default: UT_return_val_if_fail(0, false);
 	}
 
+	/* Word-parity on a styleless table: the option still ticks and
+	 * the look is recorded (it's the implicit Table Grid's look —
+	 * which, like Word's, defines no conditional parts, so there is
+	 * deliberately no re-render).  Forcing the TableGrid recipe here
+	 * would clobber manually-removed borders for zero visual gain */
 	std::string styleId = getTableStyleId();
 
 	_changeCellParams(t.posTable, t.tableSDH);
