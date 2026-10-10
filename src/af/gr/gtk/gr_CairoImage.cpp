@@ -267,7 +267,7 @@ GR_Image *GR_RSVGVectorImage::createImageSegment(GR_Graphics * pG, const UT_Rect
 	{
 		createImageSurface();
 	}
-	return m_rasterImage->createImageSegment(pG, rec);
+	return m_rasterImage ? m_rasterImage->createImageSegment(pG, rec) : nullptr;
 #else
 	return nullptr;
 #endif

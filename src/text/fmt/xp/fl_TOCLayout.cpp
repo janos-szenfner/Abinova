@@ -691,6 +691,11 @@ void fl_TOCLayout::_createAndFillTOCEntry(PT_DocPosition posStart, PT_DocPositio
 			pNewBlock = static_cast<fl_BlockLayout *>(pNewBlock->getNext());
 		}
 	}
+	if (pNewBlock == nullptr)
+	{
+		/* no block yet (empty TOC being rebuilt) — nothing to attach */
+		return;
+	}
 
 	// OK Now add the block to our vector.
 	TOCEntry *pNewEntry = createNewEntry(pNewBlock);
@@ -1378,9 +1383,16 @@ void fl_TOCLayout::_createTOCContainer(void)
 		pCL = pCL->myContainingLayout();
 	}
 	UT_ASSERT(pCL);
-
+	if (!pCL)
+	{
+		return;
+	}
 	fp_Container * pCon = pCL->getLastContainer();
 	UT_ASSERT(pCon);
+	if (!pCon)
+	{
+		return;
+	}
 	UT_sint32 iWidth = pCon->getWidth();
 	pTOCContainer->setWidth(iWidth);
 	if(m_bHasEndTOC)

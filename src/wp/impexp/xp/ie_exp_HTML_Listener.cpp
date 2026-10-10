@@ -901,16 +901,19 @@ void IE_Exp_HTML_Listener::_openSpan(PT_AttrPropIndex api)
 	const gchar * szP_BgColor = nullptr;
 	const gchar * szP_Display = nullptr;
 
-	pAP->getProperty("font-weight", szP_FontWeight);
-	pAP->getProperty("font-style", szP_FontStyle);
-	pAP->getProperty("font-size", szP_FontSize);
-	pAP->getProperty("font-family", szP_FontFamily);
-	pAP->getProperty("text-decoration", szP_TextDecoration);
-	pAP->getProperty("text-position", szP_TextPosition);
-	pAP->getProperty("text-transform", szP_TextTransform);
-	pAP->getProperty("color", szP_Color);
-	pAP->getProperty("bgcolor", szP_BgColor);
-	pAP->getProperty("display", szP_Display);
+	if (pAP)
+	{
+		pAP->getProperty("font-weight", szP_FontWeight);
+		pAP->getProperty("font-style", szP_FontStyle);
+		pAP->getProperty("font-size", szP_FontSize);
+		pAP->getProperty("font-family", szP_FontFamily);
+		pAP->getProperty("text-decoration", szP_TextDecoration);
+		pAP->getProperty("text-position", szP_TextPosition);
+		pAP->getProperty("text-transform", szP_TextTransform);
+		pAP->getProperty("color", szP_Color);
+		pAP->getProperty("bgcolor", szP_BgColor);
+		pAP->getProperty("display", szP_Display);
+	}
 
 	UT_UTF8String style;
 	UT_UTF8String tmp;
@@ -1106,18 +1109,21 @@ void IE_Exp_HTML_Listener::_openBlock(PT_AttrPropIndex api)
 	const gchar * szP_MarginRight = nullptr;
 	const gchar * szP_TextIndent = nullptr;
 
-	pAP->getProperty("text-align", szP_TextAlign);
-	pAP->getProperty("margin-bottom", szP_MarginBottom);
-	pAP->getProperty("margin-top", szP_MarginTop);
-	pAP->getProperty("margin-right", szP_MarginRight);
+	if (pAP)
+	{
+		pAP->getProperty("text-align", szP_TextAlign);
+		pAP->getProperty("margin-bottom", szP_MarginBottom);
+		pAP->getProperty("margin-top", szP_MarginTop);
+		pAP->getProperty("margin-right", szP_MarginRight);
 
-	if (pAP->getProperty("margin-left", szP_MarginLeft))
-		if (strstr(szP_MarginLeft, "0.0000"))
-			szP_MarginLeft = nullptr;
+		if (pAP->getProperty("margin-left", szP_MarginLeft))
+			if (strstr(szP_MarginLeft, "0.0000"))
+				szP_MarginLeft = nullptr;
 
-	if (pAP->getProperty("text-indent", szP_TextIndent))
-		if (strstr(szP_TextIndent, "0.0000"))
-			szP_TextIndent = nullptr;
+		if (pAP->getProperty("text-indent", szP_TextIndent))
+			if (strstr(szP_TextIndent, "0.0000"))
+				szP_TextIndent = nullptr;
+	}
 
 	UT_UTF8String style;
 	bool first = true;
@@ -2284,7 +2290,7 @@ void IE_Exp_HTML_Listener::_openList(PT_AttrPropIndex api, bool recursiveCall)
     
     if (!recursiveCall)
     {
-        if ((m_listInfoStack.size() > 0) && (g_ascii_strcasecmp(szListId, 
+        if ((m_listInfoStack.size() > 0) && szListId && (g_ascii_strcasecmp(szListId,
 				m_listInfoStack.back().szId) == 0))
         {
 
@@ -2312,7 +2318,8 @@ void IE_Exp_HTML_Listener::_openList(PT_AttrPropIndex api, bool recursiveCall)
     else
     {
         const gchar* szListStyle = nullptr;
-        pAP->getProperty("list-style", szListStyle);
+        if (pAP)
+            pAP->getProperty("list-style", szListStyle);
         bool isOrdered = szListStyle
 			&& (g_ascii_strcasecmp(szListStyle, "Bullet List") != 0);
 #ifdef DEBUG
@@ -2560,7 +2567,7 @@ void IE_Exp_HTML_Listener::_insertTOC(PT_AttrPropIndex api)
 
     std::string szTOCHeading;
     pValue = nullptr;
-    ok = pAP->getProperty("toc-heading", pValue);
+    ok = pAP && pAP->getProperty("toc-heading", pValue);
     if (ok && pValue) {
         szTOCHeading = pValue;
     } else {

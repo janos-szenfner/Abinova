@@ -402,9 +402,9 @@ PD_RDFStatement
 AP_UnixDialog_RDFEditor::rowToStatement( AbiRdfTripleRow* row )
 {
     return PD_RDFStatement( getModel(),
-                            PD_URI( row->subj ),
-                            PD_URI( row->pred ),
-                            PD_Object( row->obj ) );
+                            PD_URI( row->subj ? row->subj : "" ),
+                            PD_URI( row->pred ? row->pred : "" ),
+                            PD_Object( row->obj ? row->obj : "" ) );
 }
 
 /* position of the row whose statement equals st inside the view's

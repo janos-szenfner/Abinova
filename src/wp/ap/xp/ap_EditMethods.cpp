@@ -2417,13 +2417,14 @@ static bool s_AskForPathname(XAP_Frame * pFrame,
 			{
 			case XAP_DIALOG_FILEOPENSAVEAS_FILE_TYPE_AUTO:
 				// do some automagical detecting
-				*ieft = IEFT_Unknown;
+				if (ieft)
+					*ieft = IEFT_Unknown;
 				break;
 			default:
 				// it returned a type we don't know how to handle
 				UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
 			}
-		else
+		else if (ieft)
 			*ieft = static_cast<IEFileType>(pDialog->getFileType());
 
 		// If the user asked for password protection in the save dialog,
@@ -3778,6 +3779,7 @@ Defun1(fileNewUsingTemplate)
 	
 		pFrame->raise();
 	}
+	UT_return_val_if_fail(pFrame, false);
 	XAP_App * pApp = XAP_App::getApp();
 	UT_return_val_if_fail (pApp, false);
 
@@ -3998,7 +4000,7 @@ s_closeWindow (AV_View * pAV_View, EV_EditMethodCallData * pCallData,
 				{
 					pDoc->signalListeners(PD_SIGNAL_SAVEDOC);
 				}
-				bRemoteSave = pDoc->isDirty();
+				bRemoteSave = pDoc && pDoc->isDirty();
 				UT_DEBUGMSG(("remote save %d\n", bRemoteSave));
 			}
 			if(bRemoteSave)
@@ -16627,14 +16629,17 @@ Defun(hyperlinkStatusBar)
 	pAnnPview->setTitle(sTitle);	
 	pAnnPview->setAuthor(sAuthor);
 	
-	fp_Line * pLine = pHRun->getLine();
-	if(pLine)
+	if(pG)
 	{
-		UT_Rect pRect = pLine->getScreenRect().value();
-		UT_sint32 ioff = pRect.top;
-		pAnnPview->setOffset(pG->tdu(ypos - ioff));
+		fp_Line * pLine = pHRun->getLine();
+		if(pLine)
+		{
+			UT_Rect pRect = pLine->getScreenRect().value();
+			UT_sint32 ioff = pRect.top;
+			pAnnPview->setOffset(pG->tdu(ypos - ioff));
+		}
+		pAnnPview->setXY(pG->tdu(xpos),pG->tdu(ypos));
 	}
-	pAnnPview->setXY(pG->tdu(xpos),pG->tdu(ypos));
 	pAnnPview->runModeless(pFrame);
 	
 	//UT_sint32 xoff = 0, yoff = 0;
@@ -16643,7 +16648,7 @@ Defun(hyperlinkStatusBar)
 	// Sevior's infamous + 1....
 	//yoff += pHRun->getLine()->getAscent() - pHRun->getAscent() + 1;
 	UT_DEBUGMSG(("hyperlinkStatusBar: xypos %d %d\n",xpos,ypos));
-	UT_DEBUGMSG(("hyperlinkStatusBar: setXY %d %d\n",pG->tdu(xpos),pG->tdu(ypos)));
+	UT_DEBUGMSG(("hyperlinkStatusBar: setXY %d %d\n",pG ? pG->tdu(xpos) : xpos,pG ? pG->tdu(ypos) : ypos));
 	//UT_DEBUGMSG(("hyperlinkStatusBar: pRungetxy %d %d\n",pHRun->getX(),pHRun->getY()));
 	//UT_DEBUGMSG(("hyperlinkStatusBar: getScreenOffsets %d %d\n",xoff,yoff));
 	

@@ -448,10 +448,10 @@ struct MLatexParser {
 		if (nm == "quad")  return spaceNode(100);
 		if (nm == "qquad") return spaceNode(200);
 		if (nm == "enspace") return spaceNode(50);
-		if (nm == "hspace") { arg(); return spaceNode(100); }
+		if (nm == "hspace") { delete arg(); return spaceNode(100); }
 		if (nm == "color" || nm == "colorbox" || nm == "fcolorbox" ||
 		    nm == "definecolor" || nm == "pagecolor") {
-			arg();                    /* swallow the colour spec */
+			delete arg();             /* swallow the colour spec */
 			if (nm == "colorbox" || nm == "fcolorbox") return arg();
 			return mkNode(MNode::ROW);
 		}
@@ -489,7 +489,7 @@ struct MLatexParser {
 		if (nm == "&") { MNode *a = charAtom('&'); a->fl = style; return a; }
 		if (nm == "_") { MNode *a = charAtom('_'); a->fl = style; return a; }
 		if (nm == "newline" || nm == "\\" ) return mkNode(MNode::ROW);
-		if (nm == "leftroot" || nm == "uproot") { arg(); return mkNode(MNode::ROW); }
+		if (nm == "leftroot" || nm == "uproot") { delete arg(); return mkNode(MNode::ROW); }
 
 		/* unknown command: render its name so nothing silently vanishes */
 		MNode *a = mkNode(MNode::ATOM);
@@ -956,10 +956,14 @@ struct MMLParser {
 			return r;
 		}
 		if (!strcmp(nm, "mfenced")) {
-			const char *o = attr(e, "open"), *c = attr(e, "close");
+			/* attr() returns a shared buffer: copy each value before the
+			 * next call or the first pointer is invalidated */
+			std::string o, c;
+			if (const char *p = attr(e, "open")) o = p;
+			if (const char *p = attr(e, "close")) c = p;
 			MNode *d = mkNode(MNode::FENCE);
-			d->t = (o && *o) ? o : "(";
-			d->t2 = (c && *c) ? c : ")";
+			d->t = !o.empty() ? o.c_str() : "(";
+			d->t2 = !c.empty() ? c.c_str() : ")";
 			/* map utf8 delimiters back to our drawn ids */
 			mapDelim(d->t); mapDelim(d->t2);
 			MNode *inner = mkNode(MNode::ROW);

@@ -66,13 +66,13 @@ void GR_XPRenderInfo::_constructorCommonCode()
 {
 	if(!s_iClassInstanceCount)
 	{
-		s_pCharBuff = new UT_UCS4Char [GRIXP_STATIC_BUFFER_SIZE];
+		s_pCharBuff = new UT_UCS4Char [GRIXP_STATIC_BUFFER_SIZE]();
 		UT_return_if_fail(s_pCharBuff);
 
-		s_pWidthBuff = new UT_sint32 [GRIXP_STATIC_BUFFER_SIZE];
+		s_pWidthBuff = new UT_sint32 [GRIXP_STATIC_BUFFER_SIZE]();
 		UT_return_if_fail(s_pWidthBuff);
 
-		s_pAdvances = new UT_sint32 [GRIXP_STATIC_BUFFER_SIZE];
+		s_pAdvances = new UT_sint32 [GRIXP_STATIC_BUFFER_SIZE]();
 		UT_return_if_fail(s_pAdvances);
 
 		s_iBuffSize = GRIXP_STATIC_BUFFER_SIZE;

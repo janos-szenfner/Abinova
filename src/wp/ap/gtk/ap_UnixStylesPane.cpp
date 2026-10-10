@@ -263,8 +263,11 @@ void AP_UnixStylesPane::refresh(const char * szCurrentStyle)
 {
 	if (szCurrentStyle)
 	{
+		/* szCurrentStyle may alias m_szCurrent (refresh(m_szCurrent) is a
+		 * real call path) — duplicate before freeing */
+		char *szDup = g_strdup(szCurrentStyle);
 		g_free(m_szCurrent);
-		m_szCurrent = g_strdup(szCurrentStyle);
+		m_szCurrent = szDup;
 	}
 	if (m_wCurrent)
 	{

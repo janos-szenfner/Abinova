@@ -511,11 +511,13 @@ void FV_FrameEdit::setDragType(UT_sint32 x, UT_sint32 y, bool bDrawFrame)
 		getDoc()->getStruxOfTypeFromPosition(m_pView->getLayout()->getLID(),posAtXY+1,
 										   PTX_SectionFrame, &psfh);
 		pFL = static_cast<fl_FrameLayout *>(psfh);
-		UT_ASSERT(pFL->getContainerType() == FL_CONTAINER_FRAME);
-		pFCon = static_cast<fp_FrameContainer *>(pFL->getFirstContainer());
-		UT_ASSERT(pFCon->getContainerType() == FP_CONTAINER_FRAME);
+		if(pFL && (pFL->getContainerType() == FL_CONTAINER_FRAME))
+		{
+			pFCon = static_cast<fp_FrameContainer *>(pFL->getFirstContainer());
+			UT_ASSERT(!pFCon || (pFCon->getContainerType() == FP_CONTAINER_FRAME));
+		}
 	}
-	else
+	if(pFCon == nullptr)
 	{
 		pBL = m_pView->_findBlockAtPosition(posAtXY);
 		UT_return_if_fail(pBL);
@@ -1097,7 +1099,15 @@ void FV_FrameEdit::mouseRelease(UT_sint32 x, UT_sint32 y)
 		fv_FrameStrings FrameStrings;
 		fl_BlockLayout * pCloseBL = nullptr;
 		fp_Page * pPage = nullptr;
-		getFrameStrings(m_recCurFrame.left,m_recCurFrame.top,FrameStrings,&pCloseBL,&pPage);
+		if(!getFrameStrings(m_recCurFrame.left,m_recCurFrame.top,FrameStrings,&pCloseBL,&pPage)
+		   || (pCloseBL == nullptr))
+		{
+			while(m_iGlobCount > 0)
+				_endGlob();
+			getDoc()->enableListUpdates();
+			m_pView->_restorePieceTableState();
+			return;
+		}
 		pf_Frag_Strux * pfFrame = nullptr;
 		// WARNING: Will need to change this to accomodate variable styles without constantly resetting to solid.
 		//				 Recommend to do whatever is done for thickness, which must also have a default set but not
@@ -1143,10 +1153,19 @@ void FV_FrameEdit::mouseRelease(UT_sint32 x, UT_sint32 y)
 		pCloseBL->getAP(pBlockAP);
 		posAtXY = pCloseBL->getPosition();
 		getDoc()->insertStrux(posAtXY, PTX_SectionFrame, PP_NOPROPS, props, &pfFrame);
+		if(pfFrame == nullptr)
+		{
+			while(m_iGlobCount > 0)
+				_endGlob();
+			getDoc()->enableListUpdates();
+			m_pView->_restorePieceTableState();
+			return;
+		}
 		PT_DocPosition posFrame = pfFrame->getPos();
 		PT_DocPosition posEOD= 0;
 		m_pView->getEditableBounds(true,posEOD);
-		getDoc()->insertStrux(posFrame+1,PTX_Block,PP_NOPROPS,pBlockAP->getProperties());
+		getDoc()->insertStrux(posFrame+1,PTX_Block,PP_NOPROPS,
+							pBlockAP ? pBlockAP->getProperties() : PP_NOPROPS);
 		getDoc()->insertStrux(posFrame+2,PTX_EndFrame);
 		m_pView->insertParaBreakIfNeededAtPos(posFrame+3);
 
@@ -1265,8 +1284,15 @@ void FV_FrameEdit::mouseRelease(UT_sint32 x, UT_sint32 y)
 		fl_BlockLayout * pCloseBL = nullptr;
 		fp_Page * pPage = nullptr;
 		fl_FrameLayout *pFL = m_pFrameLayout;
-		getFrameStrings(m_recCurFrame.left,m_recCurFrame.top,FrameStrings,
-				&pCloseBL,&pPage);
+		if(!getFrameStrings(m_recCurFrame.left,m_recCurFrame.top,FrameStrings,
+				&pCloseBL,&pPage) || (pCloseBL == nullptr) || (pFL == nullptr))
+		{
+			while(m_iGlobCount > 0)
+				_endGlob();
+			getDoc()->enableListUpdates();
+			m_pView->_restorePieceTableState();
+			return;
+		}
 		posAtXY = pCloseBL->getPosition();
 
 		const PP_PropertyVector props = {
@@ -1320,6 +1346,12 @@ void FV_FrameEdit::mouseRelease(UT_sint32 x, UT_sint32 y)
 		getDoc()->enableListUpdates();
 		getDoc()->updateDirtyLists();
 		m_pView->_restorePieceTableState();
+		if(pFL == nullptr)
+		{
+			while(m_iGlobCount > 0)
+				_endGlob();
+			return;
+		}
 		PT_DocPosition posFrame = getDoc()->getStruxPosition(pFL->getStruxDocHandle());
 		m_pView->setPoint(posFrame+1);
 		bool bOK = true;

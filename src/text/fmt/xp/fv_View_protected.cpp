@@ -3318,6 +3318,7 @@ bool FV_View::_insertField(const char* szName,
 	     }
 	}
 
+	UT_return_val_if_fail(szName,false);
 	PP_PropertyVector attributes = extra_attrs;
 	attributes.push_back("type");
 	attributes.push_back(szName);
@@ -3809,7 +3810,8 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 
 		fl_BlockLayout* pBlock2 = pCurRun->getBlock();
 		fp_Line * pLine = pCurRun->getLine();
-		if(pLine == nullptr || (pLine->getContainer()->getPage()== nullptr))
+		if(pLine == nullptr || pLine->getContainer() == nullptr
+		   || (pLine->getContainer()->getPage()== nullptr))
 		{
 			vecTables.clear();
 			return true;
@@ -3830,7 +3832,7 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 //
 		fl_ContainerLayout * pCL = pBlock2->myContainingLayout();
 		bool bCellSelected = false;
-		if(pCL->getContainerType() == FL_CONTAINER_CELL)
+		if(pCL && (pCL->getContainerType() == FL_CONTAINER_CELL))
 		{
 			fp_Container * pCP = static_cast<fp_Container *>(pLine->getContainer());
 			if(pCP)
@@ -3858,7 +3860,7 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 //
 			bCellSelected = pCellLayout->isCellSelected();
 			fp_Container * pNextCon = nullptr;
-			if(bCellSelected)
+			if(bCellSelected && pCurRun)
 			{
 				pNextCon = pCell->drawSelectedCell(pCurRun->getLine());
 				if(pNextCon == nullptr)
@@ -3906,7 +3908,8 @@ bool FV_View::_drawOrClearBetweenPositions(PT_DocPosition iPos1, PT_DocPosition 
 
 		if(!pCurRun->isHidden())
 		{
-			if(pLine == nullptr || (pLine->getContainer()->getPage()== nullptr))
+			if(pLine == nullptr || pLine->getContainer() == nullptr
+		   || (pLine->getContainer()->getPage()== nullptr))
 			{
 				vecTables.clear();
 				return true;
@@ -5127,7 +5130,7 @@ bool FV_View::_charMotion(bool bForward,UT_uint32 countChars, bool bSkipCannotCo
 	// run on the left of the requested position, so we just need to move
 	// to its end if the position does not fall into that run
 	xxx_UT_DEBUGMSG(("_charMotion: iRunEnd %d \n",iRunEnd));
-	if(!bForward && (iRunEnd < m_iInsPoint) && (pRun->getBlockOffset() > 0))
+	if(!bForward && (iRunEnd < m_iInsPoint) && pRun && (pRun->getBlockOffset() > 0))
 	{
 		_setPoint(iRunEnd - 1);
 	}
@@ -5701,6 +5704,10 @@ UT_UCS4Char * FV_View::_lookupSuggestion(fl_BlockLayout* pBL,
 
 		// grab a copy of the word
 		UT_GrowBuf pgb(1024);
+		if(pBL == nullptr)
+		{
+			return nullptr;
+		}
 		bool bRes = pBL->getBlockBuf(&pgb);
 		UT_ASSERT(bRes);
 		if(!bRes) 
@@ -5934,7 +5941,9 @@ void FV_View::_populateThisHdrFtr(fl_HdrFtrSectionLayout * pHdrFtrSrc, fl_HdrFtr
 	PD_DocumentRange dr_source;
 	PT_DocPosition iPos1,iPos2;
 
+	UT_return_if_fail(pHdrFtrSrc && pHdrFtrDest);
 	UT_return_if_fail(pHdrFtrSrc->getFirstLayout());
+	UT_return_if_fail(pHdrFtrDest->getFirstLayout());
 	iPos1 = m_pDoc->getStruxPosition(pHdrFtrSrc->getFirstLayout()->getStruxDocHandle());
 
 	fl_ContainerLayout * pLastL = pHdrFtrSrc->getLastLayout();

@@ -211,8 +211,10 @@ GR_Image* FG_GraphicVector::generateImage(GR_Graphics* pG,
 		m_pSpanAP = pSpanAP;
 	}
 
-	bool bFoundWidthProperty = m_pSpanAP->getProperty("width", pszWidth);
-	bool bFoundHeightProperty = m_pSpanAP->getProperty("height", pszHeight);
+	bool bFoundWidthProperty = m_pSpanAP
+		&& m_pSpanAP->getProperty("width", pszWidth);
+	bool bFoundHeightProperty = m_pSpanAP
+		&& m_pSpanAP->getProperty("height", pszHeight);
 
 	m_iMaxH = maxH;
 	m_iMaxW = maxW;

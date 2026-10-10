@@ -94,7 +94,7 @@ bool IE_Imp_RTF::LoadPictData(PictFormat format, const char * image_name,
 	UT_Byte pic_byte = 0;
 	FG_ConstGraphicPtr pFG;
 	UT_Error error = UT_OK;
-	unsigned char ch;
+	unsigned char ch = 0;
 
 	if (!isBinary) {
 		if (!ReadCharFromFile(&ch)) {
@@ -134,8 +134,10 @@ bool IE_Imp_RTF::LoadPictData(PictFormat format, const char * image_name,
 		}
 	}
 
-	// We let the caller handle this
-	SkipBackChar(ch);
+	// We let the caller handle this — but only if a character was
+	// actually consumed (binary path with non-positive length reads none)
+	if (!isBinary || binaryLen > 0)
+		SkipBackChar(ch);
 
 	error = IE_ImpGraphic::loadGraphic(pictData, iegftForRTF(format), pFG);
 

@@ -789,7 +789,7 @@ const gchar * PP_evalProperty (const gchar *  pszName,
 							}
 						if ((szValue == nullptr) && (bInherit || pProp->canInherit ()))
 						{
-							const PP_AttrProp * pDocAP = pDoc->getAttrProp ();
+							const PP_AttrProp * pDocAP = pDoc ? pDoc->getAttrProp () : nullptr;
 							if (pDocAP)
 								pDocAP->getProperty (pszName, szValue);
 						}
@@ -824,7 +824,7 @@ const gchar * PP_evalProperty (const gchar *  pszName,
 					}
 				if ((szValue == nullptr) && (bInherit || pProp->canInherit ()))
 				{
-					const PP_AttrProp * pDocAP = pDoc->getAttrProp ();
+					const PP_AttrProp * pDocAP = pDoc ? pDoc->getAttrProp () : nullptr;
 					if (pDocAP)
 						pDocAP->getProperty (pszName, szValue);
 				}
@@ -843,14 +843,14 @@ const gchar * PP_evalProperty (const gchar *  pszName,
 			}
 		if ((szValue == nullptr) && (bInherit || pProp->canInherit ()))
 		{
-			const PP_AttrProp * pDocAP = pDoc->getAttrProp ();
+			const PP_AttrProp * pDocAP = pDoc ? pDoc->getAttrProp () : nullptr;
 			if (pDocAP)
 				pDocAP->getProperty (pszName, szValue);
 		}
 	}
 	else
 	{
-		const PP_AttrProp * pDocAP = pDoc->getAttrProp ();
+		const PP_AttrProp * pDocAP = pDoc ? pDoc->getAttrProp () : nullptr;
 		if (pDocAP)
 		{
 			pDocAP->getProperty (pszName, szValue);

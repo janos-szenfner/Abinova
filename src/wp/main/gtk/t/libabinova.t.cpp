@@ -31,7 +31,9 @@
 
 #include "../libabinova.h"
 
-extern "C" void __gcov_dump(void);
+/* weak so non-coverage builds (san-build, normal) link — NULL when
+   libgcov is absent */
+extern "C" void __gcov_dump(void) __attribute__((weak));
 
 #define TFSUITE "core.wp.main"
 
@@ -44,7 +46,8 @@ int run_in_child(void (*fn)(void))
 	if (pid == 0)
 	{
 		fn();
-		__gcov_dump();
+		if (__gcov_dump)
+			__gcov_dump();
 		_exit(0);
 	}
 	int status = 0;

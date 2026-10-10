@@ -92,8 +92,10 @@ s_getSuffixInfo (void)
 		formatIter = formatIter->next;
 	}
 
-	suffixInfo.suffixes = const_cast<const gchar **>( new gchar*[suffixInfo.count + 1]);
-	suffixInfo.mimes = const_cast<const gchar **>( new gchar*[suffixInfo.count + 1]);
+	// value-initialized so a later count/fill mismatch can never leave
+	// uninitialized pointers behind for the lookup loops
+	suffixInfo.suffixes = const_cast<const gchar **>( new gchar*[suffixInfo.count + 1]());
+	suffixInfo.mimes = const_cast<const gchar **>( new gchar*[suffixInfo.count + 1]());
 
 	// build list
 	formatIter = formatList;
@@ -786,7 +788,8 @@ const char * IE_ImpGraphicGdkPixbuf_Sniffer::mimeTypeForSuffix(const char * suff
 		suffix++;
 
 	const SuffixInfo *suffixInfo = s_getSuffixInfo ();
-	for (gsize i = 0; i < static_cast<gsize>(suffixInfo->count); i++) {
+	for (gsize i = 0; i < static_cast<gsize>(suffixInfo->count)
+		 && suffixInfo->suffixes[i]; i++) {
 		if (0 == g_ascii_strcasecmp (suffix, suffixInfo->suffixes[i]))
 			return suffixInfo->mimes[i];
 	}

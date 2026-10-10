@@ -6274,12 +6274,13 @@ void IE_Imp_MsWord_97::_cell_open (MsTableCtx * ctx,
 	  ctx->iLeftCellPos = 0;
 	  UT_sint32 iLeft, iRight, i;
 	  if (ps->cellbounds)
-		  ctx->iLeftCellPos = ps->cellbounds[0];
-	  for(i = 0; i < ps->nocellbounds-1; i++)
 	  {
-		  iLeft = i;
-		  iRight = i+1;
-		  UT_sint32 width = ps->cellbounds[iRight] - ps->cellbounds[iLeft];
+		  ctx->iLeftCellPos = ps->cellbounds[0];
+		  for(i = 0; i < ps->nocellbounds-1; i++)
+		  {
+			  iLeft = i;
+			  iRight = i+1;
+			  UT_sint32 width = ps->cellbounds[iRight] - ps->cellbounds[iLeft];
 		  if (width <= 0)
 			  break;
 		  MsColSpan * pSpan = new MsColSpan();
@@ -6288,6 +6289,7 @@ void IE_Imp_MsWord_97::_cell_open (MsTableCtx * ctx,
 		  pSpan->width = width;
 		  xxx_UT_DEBUGMSG(("MsImport iLeft %d  iRight %d width  %d \n",iLeft,iRight,width));
 		  ctx->vecColumnWidths.push_back(pSpan);
+		  }
 	  }
   }
 

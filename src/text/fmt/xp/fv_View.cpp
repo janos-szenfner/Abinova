@@ -2568,7 +2568,10 @@ void FV_View::toggleCase (ToggleCase c)
 			// findBlockAtPosition() returned to us is actually the block _before_ the one
 			// we are interested in
 			pBL = pBL->getNextBlockInDocument();
-			UT_return_if_fail( pBL );
+			if (!pBL)
+			{
+				break;
+			}
 			buffer.truncate(0);
 			pBL->getBlockBuf(&buffer);
 
@@ -2612,7 +2615,7 @@ void FV_View::toggleCase (ToggleCase c)
 		}
 		if(pBL == nullptr)
 		{
-			return;
+			break;
 		}
 		if(pBL->getContainerType() != FL_CONTAINER_BLOCK)
 		{

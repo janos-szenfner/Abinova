@@ -1860,28 +1860,40 @@ void ODe_AbiDocListener::_appendSpaces(UT_UTF8String* sBuf, UT_uint32 count) {
 void ODe_AbiDocListener::_handleListenerImplAction() {
     switch (m_listenerImplAction.getAction()) {
         case ODe_ListenerAction::ACTION_PUSH:
+        {
+            ODe_AbiDocListenerImpl* pNewImpl =
+                    m_listenerImplAction.getListenerImpl();
+            if (pNewImpl == nullptr) {
+                UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+                break;
+            }
             m_implStack.push_back(
                 ODe_AbiDocListener::StackCell(m_pCurrentImpl, m_deleteCurrentWhenPop));
-                
-            m_pCurrentImpl = m_listenerImplAction.getListenerImpl();
-            m_deleteCurrentWhenPop = m_listenerImplAction.deleteWhenPop();
 
-            UT_ASSERT(m_pCurrentImpl);
+            m_pCurrentImpl = pNewImpl;
+            m_deleteCurrentWhenPop = m_listenerImplAction.deleteWhenPop();
             break;
+        }
         
         case ODe_ListenerAction::ACTION_POP:
+            if (m_implStack.size() == 0) {
+                /* POP without a matching PUSH would leave m_pCurrentImpl
+                 * null and crash the next event — keep the current impl */
+                UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+                break;
+            }
             if (m_deleteCurrentWhenPop) {
                 DELETEP(m_pCurrentImpl);
             } else {
                 m_pCurrentImpl = nullptr;
             }
 
-            if (m_implStack.size() > 0) {
+            {
                 StackCell stackCell;
                 stackCell = m_implStack.back();
                 m_pCurrentImpl = stackCell.m_pListenerImpl;
                 m_deleteCurrentWhenPop = stackCell.m_deleteWhenPop;
-                
+
                 m_implStack.pop_back();
             }
             break;

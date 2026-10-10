@@ -494,7 +494,10 @@ bool pt_PieceTable::_deleteStruxWithNotify(PT_DocPosition dpos,
 	UT_return_val_if_fail (pcrs, false);
 
 	if (!_unlinkStrux(pfs,ppfEnd,pfragOffsetEnd))
+	{
+		delete pcrs;
 		return false;
+	}
 
 	// add record to history.  we do not attempt to coalesce these.
 	if (bWithRec)

@@ -1441,13 +1441,15 @@ bool  AP_UnixDialog_Styles::_populateModify(void)
 //
 // Get Style name and put in in the text entry
 //
-	const char * szCurrentStyle = nullptr;
+	/* getCurrentStyle() returns a pointer into a static buffer that is
+	 * overwritten by the next call — copy it up front */
+	std::string sCurrentStyle;
 	std::string s;
 
 	if(!isNew())
 	{
-		szCurrentStyle= getCurrentStyle();
-		if(!szCurrentStyle)
+		const char * sz = getCurrentStyle();
+		if(!sz)
 		{
 			// TODO: change me to use a real messagebox
 			pSS->getValueUTF8(AP_STRING_ID_DLG_Styles_ErrNoStyle,s);
@@ -1455,8 +1457,9 @@ bool  AP_UnixDialog_Styles::_populateModify(void)
 			m_answer = AP_Dialog_Styles::a_CANCEL;
 			return false;
 		}
+		sCurrentStyle = sz;
 		std::string sLoc;
-		pt_PieceTable::s_getLocalisedStyleName(getCurrentStyle(), sLoc);
+		pt_PieceTable::s_getLocalisedStyleName(sCurrentStyle.c_str(), sLoc);
 		XAP_gtk_entry_set_text(GTK_EDITABLE(m_wStyleNameEntry), sLoc.c_str());
 		gtk_editable_set_editable(GTK_EDITABLE(m_wStyleNameEntry),FALSE );
 	}
@@ -1475,8 +1478,8 @@ bool  AP_UnixDialog_Styles::_populateModify(void)
 	if(!isNew())
 	{
 		PD_Style * pStyle = nullptr;
-		if(szCurrentStyle)
-			getDoc()->getStyle(szCurrentStyle,&pStyle);
+		if(!sCurrentStyle.empty())
+			getDoc()->getStyle(sCurrentStyle.c_str(),&pStyle);
 		if(!pStyle)
 		{
 			// TODO: do a real error dialog
@@ -1510,9 +1513,9 @@ bool  AP_UnixDialog_Styles::_populateModify(void)
 		}
 		if(pFollowedByStyle && pcStyle == pFollowedByStyle)
 			szFollowedBy = name;
-		if(szCurrentStyle && strcmp(name,szCurrentStyle) != 0)
+		if(!sCurrentStyle.empty() && strcmp(name,sCurrentStyle.c_str()) != 0)
 			m_gbasedOnStyles.push_back(sLoc);
-		else if(szCurrentStyle == nullptr)
+		else if(sCurrentStyle.empty())
 			m_gbasedOnStyles.push_back(sLoc);
 
 		m_gfollowedByStyles.push_back(sLoc);
@@ -1600,7 +1603,7 @@ bool  AP_UnixDialog_Styles::_populateModify(void)
 	}
 	else
 	{
-		fillVecWithProps(szCurrentStyle,true);
+		fillVecWithProps(sCurrentStyle.c_str(),true);
 	}
 //
 // Allow callback's now.

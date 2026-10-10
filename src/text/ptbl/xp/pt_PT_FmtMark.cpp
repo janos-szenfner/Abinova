@@ -169,7 +169,11 @@ bool pt_PieceTable::_insertFmtMark(pf_Frag * pf, UT_uint32 fragOffset, PT_AttrPr
 		// split the current fragment and insert the FmtMark between
 		// them.
 
-		UT_return_val_if_fail (pf->getType() == pf_Frag::PFT_Text,false);
+		if (pf->getType() != pf_Frag::PFT_Text)
+		{
+			DELETEP(pffm);
+			return false;
+		}
 		pf_Frag_Text * pft = static_cast<pf_Frag_Text *>(pf);
 		UT_uint32 lenTail = pft->getLength() - fragOffset;
 		PT_BufIndex biTail = m_varset.getBufIndex(pft->getBufIndex(),fragOffset);

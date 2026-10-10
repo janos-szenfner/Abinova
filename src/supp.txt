@@ -1,0 +1,8 @@
+leak:FcConfig
+leak:FcPattern
+leak:FcValue
+leak:FcFont
+leak:FcLang
+leak:FcInit
+leak:libfontconfig
+leak:libexpat

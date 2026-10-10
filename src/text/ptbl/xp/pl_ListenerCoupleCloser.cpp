@@ -58,7 +58,7 @@ PD_Bookmark::PD_Bookmark( PD_Document* pDoc, PT_AttrPropIndex api )
         m_isEnd = false;
     }
 
-    if(m_pAP->getAttribute("name",pValue) && pValue)
+    if(m_pAP && m_pAP->getAttribute("name",pValue) && pValue)
     {
         m_id = pValue;
     }

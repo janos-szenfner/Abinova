@@ -487,7 +487,12 @@ const gchar ** UT_splitPropsToArray(gchar * pProps)
 			{
 				pPropsArray[j++] = pStart;
 				char * colon = const_cast<char *>(  strchr(pStart, ':'));
-				UT_return_val_if_fail( colon,nullptr );
+				if(!colon)
+				{
+					UT_ASSERT(colon);
+					delete [] pPropsArray;
+					return nullptr;
+				}
 				*colon = 0;
 				pPropsArray[j++] = colon + 1;
 
@@ -500,7 +505,12 @@ const gchar ** UT_splitPropsToArray(gchar * pProps)
 			}
 		}
 	
-		UT_return_val_if_fail( j == 2 * iPropCount, nullptr );
+		if(j != 2 * iPropCount)
+		{
+			UT_ASSERT(j == 2 * iPropCount);
+			delete [] pPropsArray;
+			return nullptr;
+		}
 
 		pPropsArray[j] = nullptr;
 		return pPropsArray;

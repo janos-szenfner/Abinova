@@ -2645,8 +2645,8 @@ fl_BlockLayout* FL_DocLayout::findBlockAtPosition(PT_DocPosition pos, bool bLook
 	if (!pMyC) {
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
 	}
-	if (pMyC && (pMyC->getContainerType() == FL_CONTAINER_HDRFTR)
-	      || (pMyC->getContainerType() == FL_CONTAINER_SHADOW))
+	if (pMyC && ((pMyC->getContainerType() == FL_CONTAINER_HDRFTR)
+	      || (pMyC->getContainerType() == FL_CONTAINER_SHADOW)))
 	{
 		fl_HdrFtrShadow * pShadow = nullptr;
 		FV_View * pView = getView();

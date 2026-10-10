@@ -595,8 +595,15 @@ UT_uint32 AP_Frame::getNewZoom(XAP_Frame::tZoomType * tZoom)
 			return iZoom;
 		}
 	}
-	iZoom = pF->getZoomPercentage();
-	*tZoom = pF->getZoomType();
+	if(pF)
+	{
+		iZoom = pF->getZoomPercentage();
+		*tZoom = pF->getZoomType();
+	}
+	else
+	{
+		*tZoom = getZoomType();
+	}
 	return iZoom;
 }
 

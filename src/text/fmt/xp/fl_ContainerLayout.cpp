@@ -1211,6 +1211,9 @@ bool fl_ContainerLayout::isOnScreen() const
 	if(bHidden)
 		return false;
 
+	if (!pView)
+		return false;
+
 	std::vector<UT_Rect> vRect;
 	std::vector<fp_Page*> vPages;
 

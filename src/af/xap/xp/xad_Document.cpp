@@ -322,6 +322,8 @@ bool AD_Document::areDocumentsRelated(const AD_Document & d) const
 {
 	if((!m_pUUID && d.getDocUUID()) || (m_pUUID && !d.getDocUUID()))
 		return false;
+	if(!m_pUUID || !d.getDocUUID())
+		return false;
 
 	return (*m_pUUID == *(d.getDocUUID()));
 }
@@ -336,6 +338,8 @@ bool AD_Document::areDocumentHistoriesEqual(const AD_Document & d, UT_uint32 &iV
 	iVersion = 0;
 	
 	if((!m_pUUID && d.getDocUUID()) || (m_pUUID && !d.getDocUUID()))
+		return false;
+	if(!m_pUUID || !d.getDocUUID())
 		return false;
 
 	if(!(*m_pUUID == *(d.getDocUUID())))

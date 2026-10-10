@@ -230,7 +230,7 @@ void ODe_Main_Listener::_openHeaderFooterSection(
     } else {
         UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
     }
-    
+
 
     ok = pAP->getAttribute("type", pValue);
     if (!ok || pValue == nullptr) {
@@ -239,7 +239,10 @@ void ODe_Main_Listener::_openHeaderFooterSection(
     }
 
     ok = false;
-    if (!strcmp("header", pValue)) {
+    // pId may be null for a malformed section without an "id" attribute;
+    // skip the master-page match and fall through to the memory-output
+    // fallback below
+    if (pId != nullptr && !strcmp("header", pValue)) {
 
         for (const auto& kv : m_rDocumentData.m_masterStyles) {
             pMPageStyle = kv.second;
@@ -251,7 +254,7 @@ void ODe_Main_Listener::_openHeaderFooterSection(
             }
         }
 
-    } else if (!strcmp("header-even", pValue)) {
+    } else if (pId != nullptr && !strcmp("header-even", pValue)) {
 
         for (const auto& kv : m_rDocumentData.m_masterStyles) {
             pMPageStyle = kv.second;
@@ -263,7 +266,7 @@ void ODe_Main_Listener::_openHeaderFooterSection(
             }
         }
 
-    } else if (!strcmp("footer", pValue)) {
+    } else if (pId != nullptr && !strcmp("footer", pValue)) {
 
         for (const auto& kv : m_rDocumentData.m_masterStyles) {
             pMPageStyle = kv.second;
@@ -275,7 +278,7 @@ void ODe_Main_Listener::_openHeaderFooterSection(
             }
         }
 
-    } else if (!strcmp("footer-even", pValue)) {
+    } else if (pId != nullptr && !strcmp("footer-even", pValue)) {
 
         for (const auto& kv : m_rDocumentData.m_masterStyles) {
             pMPageStyle = kv.second;

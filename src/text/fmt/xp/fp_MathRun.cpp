@@ -72,6 +72,7 @@ void fp_MathRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 									GR_Graphics * pG)
 {
   xxx_UT_DEBUGMSG(("fp_MathRun _lookupProperties span %x run is % uid is %d \n",pSpanAP,this,m_iMathUID));
+	UT_return_if_fail(pSpanAP);
 	m_pSpanAP = pSpanAP;
 	m_bNeedsSnapshot = true;
 	pSpanAP->getAttribute("dataid", m_pszDataID);

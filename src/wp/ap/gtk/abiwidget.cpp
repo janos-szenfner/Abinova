@@ -714,9 +714,14 @@ public:
 		
 		if ((AV_CHG_ALL) & mask)
 		{
-			FIRE_BOOL(m_pView->canDo(true), can_undo_, can_undo);
-			FIRE_BOOL(m_pView->canDo(false), can_redo_, can_redo);
-			FIRE_BOOL(m_pView->getDocument()->isDirty(), is_dirty_, is_dirty);
+			if (m_pView)
+			{
+				PD_Document * pDoc = m_pView->getDocument();
+				FIRE_BOOL(m_pView->canDo(true), can_undo_, can_undo);
+				FIRE_BOOL(m_pView->canDo(false), can_redo_, can_redo);
+				if (pDoc)
+					FIRE_BOOL(pDoc->isDirty(), is_dirty_, is_dirty);
+			}
 			
 			/* report OUR frame's zoom - the last-focussed frame can
 			 * belong to the host application or another AbiWidget */

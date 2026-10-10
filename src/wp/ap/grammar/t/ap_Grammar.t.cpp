@@ -57,7 +57,9 @@
 
 #define TFSUITE "core.wp.ap.grammar"
 
-extern "C" void __gcov_dump(void);
+/* weak so non-coverage builds (san-build, normal) link — NULL when
+   libgcov is absent */
+extern "C" void __gcov_dump(void) __attribute__((weak));
 
 namespace {
 
@@ -151,7 +153,8 @@ int dict_child(int (*fn)(const char *), const char *arg)
 	if (pid == 0)
 	{
 		int rc = fn(arg);
-		__gcov_dump();
+		if (__gcov_dump)
+			__gcov_dump();
 		_exit(rc);
 	}
 	int st = 0;

@@ -57,7 +57,9 @@
 #include "ut_unixIdle.h"
 #include "ut_unixTimer.h"
 
-extern "C" void __gcov_dump(void); /* checkpoint coverage counters */
+/* weak so non-coverage builds (san-build, normal) link — NULL when
+   libgcov is absent */
+extern "C" void __gcov_dump(void) __attribute__((weak)); /* checkpoint coverage counters */
 
 #define TFSUITE "core.af.util.unix"
 
@@ -144,7 +146,8 @@ int run_assert_in_child(const char *input)
 		setpgid(0, 0);
 		StdinFeed feed(input);
 		int rc = UT_UnixAssertMsg("test assert", __FILE__, __LINE__);
-		__gcov_dump();
+		if (__gcov_dump)
+			__gcov_dump();
 		_exit(rc < 0 ? 0 : rc);
 	}
 	int status = 0;

@@ -46,6 +46,29 @@
 
 /****************************************************************/
 /****************************************************************/
+
+namespace {
+
+// Ensures endMultiStepGlob() runs on every exit path of a multi-step
+// change -- several early error returns previously skipped it, which
+// left undo globs unbalanced.
+struct pt_GlobGuard
+{
+	pt_GlobGuard(pt_PieceTable * pt, bool bActive)
+		: m_pt(bActive ? pt : nullptr)
+	{
+		if (m_pt)
+			m_pt->beginMultiStepGlob();
+	}
+	~pt_GlobGuard()
+	{
+		if (m_pt)
+			m_pt->endMultiStepGlob();
+	}
+	pt_PieceTable * m_pt;
+};
+
+}
 bool pt_PieceTable::changeStruxForLists(pf_Frag_Strux* sdh,
 										const char * pszParentID)
 {
@@ -131,14 +154,13 @@ bool pt_PieceTable::changeStruxFmt(PTChangeFmt ptc,
 		// a simple change.  otherwise, we have a multistep change.
 		bool bSimple = (pfs_First == pfs_End);
 
-		if (!bSimple)
-			beginMultiStepGlob();
+		pt_GlobGuard globGuard(this, !bSimple);
 
 		pf_Frag * pf = pfs_First;
 		bool bFinished = false;
 
 		// simple loop for normal strux change
-		while (!bFinished)
+		while (!bFinished && pf)
 		{
 			switch (pf->getType())
 			{
@@ -212,9 +234,6 @@ bool pt_PieceTable::changeStruxFmt(PTChangeFmt ptc,
 
 			pf = pf->getNext();
 		}
-
-		if (!bSimple)
-			endMultiStepGlob();
 		return true;
 	}
 	else
@@ -518,8 +537,7 @@ bool pt_PieceTable::_realChangeStruxFmt(PTChangeFmt ptc,
 	// NOTE: the undo/redo won't be properly bracketed.
 
 	bool bSimple = (!bApplyStyle && (pfs_First == pfs_End));
-	if (!bSimple)
-		beginMultiStepGlob();
+	pt_GlobGuard globGuard(this, !bSimple);
 
 	pf_Frag * pf = pfs_First;
 	bool bFinished = false;
@@ -565,7 +583,8 @@ bool pt_PieceTable::_realChangeStruxFmt(PTChangeFmt ptc,
 				break;
 			}
 
-			pf = pf->getNext();
+			if (pf)
+				pf = pf->getNext();
 		}
 	}
 	else
@@ -715,9 +734,6 @@ bool pt_PieceTable::_realChangeStruxFmt(PTChangeFmt ptc,
 			pf = pfNewEnd;
 		}
 	}
-
-	if (!bSimple)
-		endMultiStepGlob();
 
 	return true;
 }

@@ -1417,7 +1417,10 @@ void fp_Run::draw(dg_DrawArgs* pDA)
 			UT_sint32 xRight = xLeft + getWidth();
 			UT_sint32 x1,y1,x2,y2,height;
 			bool bDir;
-			FL_DocLayout * pLayout = getBlock()->getDocLayout();
+			fl_BlockLayout * pBL = getBlock();
+			UT_nonnull_or_return(pBL, );
+			FL_DocLayout * pLayout = pBL->getDocLayout();
+			UT_nonnull_or_return(pLayout, );
 			UT_uint32 iPageNumber = pLayout->findPage(pLine->getPage());
 			auto view = _getView();
 			UT_nonnull_or_return(view, );

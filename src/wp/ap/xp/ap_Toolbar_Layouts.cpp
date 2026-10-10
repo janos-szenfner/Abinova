@@ -178,6 +178,11 @@ void XAP_Toolbar_Factory_vec::insertItemBefore(XAP_Toolbar_Factory_lt * p,
 		}
 	}
 	UT_ASSERT_HARMLESS(bFound);
+	if(!bFound)
+	{
+		/* ownership passed in; drop it rather than leak */
+		DELETEP(p);
+	}
 }
 
 
@@ -205,6 +210,10 @@ void XAP_Toolbar_Factory_vec::insertItemAfter(XAP_Toolbar_Factory_lt * p,
 		}
 	}
 	UT_ASSERT_HARMLESS(bFound);
+	if(!bFound)
+	{
+		DELETEP(p);
+	}
 }
 
 void XAP_Toolbar_Factory_vec::insertLastItem(XAP_Toolbar_Factory_lt * p)

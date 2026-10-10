@@ -347,15 +347,16 @@ UT_uint32 AP_TopRuler::getWidth(void) const
 		return 0;
 	}
 	GR_Graphics * pG = pView->getGraphics();
-	if ((m_pG == nullptr) && (pG == nullptr))
-	{
-		return 0;
-	}
-	else if(isHidden())
+	if(isHidden())
 	{
 		return pView->getWindowWidth();
 	}
-	return m_pG->tlu(m_iWidth);
+	GR_Graphics * pGr = m_pG ? m_pG : pG;
+	if (!pGr)
+	{
+		return 0;
+	}
+	return pGr->tlu(m_iWidth);
 }
 
 /*****************************************************************/
@@ -958,7 +959,7 @@ UT_uint32 AP_TopRuler::getTabToggleAreaWidth() const
 	GR_Graphics * pG = pView->getGraphics();
 
 	UT_sint32 xFixed = pG ? static_cast<UT_sint32>(pG->tlu(UT_MAX(m_iLeftRulerWidth,s_iFixedWidth))) : 0;
-	if(pView->getViewMode() != VIEW_PRINT)
+	if(pG && pView->getViewMode() != VIEW_PRINT)
 		xFixed = pG->tlu(s_iFixedWidth);
 
 #ifdef EMBEDDED_TARGET

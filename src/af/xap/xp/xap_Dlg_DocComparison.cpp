@@ -143,7 +143,7 @@ const char * XAP_Dialog_DocComparison::getResultLabel(UT_uint32 indx) const
 
 std::string XAP_Dialog_DocComparison::getResultValue(UT_uint32 indx) const
 {
-	UT_return_val_if_fail(m_pSS, nullptr);
+	UT_return_val_if_fail(m_pSS, std::string());
 
 	struct tm * tM;
 	char * s;

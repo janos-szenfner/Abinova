@@ -484,6 +484,8 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 								bLoop = false;
 							}
 						}
+						UT_nonnull_or_return(pFirst, nullptr);
+						UT_nonnull_or_return(pFirst->getFirstContainer(), nullptr);
 						fp_Column * pFirstCol = static_cast<fp_Column *>(pFirst->getFirstContainer()->getColumn());
 						pBL = pFirst;
 						std::vector<fl_BlockLayout *> vecCollapse;
@@ -536,7 +538,9 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
  								pLine->setSameYAsPrevious(true);
  							}
  						}
-						if(pLine->isSameYAsPrevious())
+						if(pLine->isSameYAsPrevious() && pPrev
+						   && pPrev->getScreenRect().has_value()
+						   && pLine->getScreenRect().has_value())
 						{
 						  //
 						  // Look for a gap between lines.
@@ -777,6 +781,10 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 	if(pFirstBL)
 	{
 		pNewFirstCon = pFirstBL->getFirstContainer();
+		if(pNewFirstCon == nullptr)
+		{
+			return nullptr;
+		}
 		pNextCol = static_cast<fp_Column *>(pNewFirstCon->getColumn());
 	}
 	else
@@ -787,7 +795,7 @@ fp_Container * fp_Page::updatePageForWrapping(fp_Column *& pNextCol)
 	{
 		pNewFirstCon = static_cast<fp_Container *>(pNewFirstCon->getNext());
 	}
-	if(pNewFirstCon->getColumn() == nullptr)
+	if(pNewFirstCon == nullptr || pNewFirstCon->getColumn() == nullptr)
 	{
 	       return nullptr;
 	}

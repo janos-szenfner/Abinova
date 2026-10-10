@@ -1717,7 +1717,8 @@ fp_Container* fl_DocSectionLayout::getNewContainer(const fp_Container* pFirstCon
 		UT_ASSERT(m_pFirstColumn);
 
 		m_pLastColumn->setNext(pLeaderColumn);
-		pLeaderColumn->setPrev(m_pLastColumn);
+		if (pLeaderColumn)
+			pLeaderColumn->setPrev(m_pLastColumn);
 	}
 	else
 	{
@@ -2133,8 +2134,10 @@ bool fl_DocSectionLayout::doclistener_changeStrux(const PX_ChangeRecord_StruxCha
 	const gchar * val1 = nullptr;
 	const gchar * val2 = nullptr;
 
-	pAP1->getProperty(prop, val1);
-	pAP2->getProperty(prop, val2);
+	if (pAP1)
+		pAP1->getProperty(prop, val1);
+	if (pAP2)
+		pAP2->getProperty(prop, val2);
 
 	if(!val1 || !val2 || strcmp(val1, val2))
 	{

@@ -380,7 +380,7 @@ bool XAP_UnixDialog_FileOpenSaveAs::_run_main_loop(XAP_Frame * pFrame,
 				pPrefs->getPrefsValueBool(XAP_PREF_KEY_UseSuffix, wantSuffix);
 				UT_DEBUGMSG(("UseSuffix: %d\n", wantSuffix));
 
-				if (nFileType > 0 && getDialogId() != XAP_DIALOG_ID_FILE_SAVE_IMAGE) // 0 means autodetect
+				if (nFileType > 0 && m_nTypeList != nullptr && getDialogId() != XAP_DIALOG_ID_FILE_SAVE_IMAGE) // 0 means autodetect
 				{
 					if (!UT_pathSuffix(dialogFilename).empty()) {
 						// warn if we have a suffix that doesn't match the selected file type

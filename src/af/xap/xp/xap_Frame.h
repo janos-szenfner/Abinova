@@ -113,7 +113,7 @@ public:
 
 	XAP_FrameImpl * getFrameImpl() const { return m_pFrameImpl; }
 
-	void                        nullUpdate () const { m_pFrameImpl->_nullUpdate(); }
+	void                        nullUpdate () const { if(m_pFrameImpl) m_pFrameImpl->_nullUpdate(); }
 	AV_View *		       		getCurrentView() const;
 	AD_Document *				getCurrentDoc() const;
 	void                        setView(AV_View * pView) {m_pView = pView;}

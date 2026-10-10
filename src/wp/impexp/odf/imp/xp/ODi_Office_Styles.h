@@ -128,6 +128,9 @@ public:
     const ODi_Style_PageLayout* getPageLayoutStyle(
                                              const gchar* pStyleName) const
         {
+            if (!pStyleName) {
+                return nullptr;
+            }
             std::map<std::string, ODi_Style_PageLayout*>::const_iterator
                 iter = m_pageLayoutStyles.find(pStyleName);
             if(iter != m_pageLayoutStyles.end()) {
@@ -139,6 +142,9 @@ public:
     const ODi_Style_MasterPage* getMasterPageStyle(
                                              const gchar* pStyleName) const
         {
+            if (!pStyleName) {
+                return nullptr;
+            }
             std::map<std::string, ODi_Style_MasterPage*>::const_iterator
                 iter = m_masterPageStyles.find(pStyleName);
             if(iter != m_masterPageStyles.end()) {
@@ -149,6 +155,9 @@ public:
 
     ODi_Style_List* getList(const gchar* pStyleName) const
         {
+            if (!pStyleName) {
+                return nullptr;
+            }
             std::map<std::string, ODi_Style_List*>::const_iterator
                 iter = m_listStyles.find(pStyleName);
             if(iter != m_listStyles.end()) {
@@ -160,6 +169,9 @@ public:
     const ODi_NotesConfiguration* getNotesConfiguration(
                                                const gchar* pNoteClass) const
         {
+            if (!pNoteClass) {
+                return nullptr;
+            }
             std::map<std::string, ODi_NotesConfiguration*>::const_iterator
                 iter = m_notesConfigurations.find(pNoteClass);
             if(iter != m_notesConfigurations.end()) {

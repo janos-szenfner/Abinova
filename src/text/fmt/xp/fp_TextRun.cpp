@@ -3661,8 +3661,12 @@ UT_uint32 fp_TextRun::adjustCaretPosition(UT_uint32 iDocumentPosition, bool bFor
 
 	PD_StruxIterator * text =  new PD_StruxIterator(getBlock()->getStruxDocHandle(),
 						  getBlockOffset() + fl_BLOCK_STRUX_OFFSET);
-	
-	UT_return_val_if_fail(text->getStatus() == UTIter_OK, iDocumentPosition);
+
+	if (text->getStatus() != UTIter_OK)
+	{
+		delete text;
+		return iDocumentPosition;
+	}
 	xxx_UT_DEBUGMSG(("sdh %p text->getPosition() %d getLength() %d \n",getBlock()->getStruxDocHandle(),text->getPosition(),getLength()));
 	text->setUpperLimit(text->getPosition() + getLength() - 1);
 	xxx_UT_DEBUGMSG(("text->getUpperLimit() %d \n",text->getUpperLimit()));
@@ -3694,8 +3698,12 @@ void fp_TextRun::adjustDeletePosition(UT_uint32 &iDocumentPosition, UT_uint32 &i
 
 	PD_StruxIterator * text =  new PD_StruxIterator(getBlock()->getStruxDocHandle(),
 						  getBlockOffset() + fl_BLOCK_STRUX_OFFSET);
-	
-	UT_return_if_fail(text->getStatus() == UTIter_OK);
+
+	if (text->getStatus() != UTIter_OK)
+	{
+		delete text;
+		return;
+	}
 	xxx_UT_DEBUGMSG(("sdh %p text->getPosition() %d getLength() %d \n",getBlock()->getStruxDocHandle(),text->getPosition(),getLength()));
 	text->setUpperLimit(text->getPosition() + getLength() - 1);
 	xxx_UT_DEBUGMSG(("text->getUpperLimit() %d \n",text->getUpperLimit()));

@@ -376,6 +376,12 @@ UT_sint32 fb_LineBreaker::_moveBackToFirstNonBlankData(fp_Run *pCurrentRun, fp_R
 
 	UT_sint32 iTrailingBlank = 0;
 
+	if (!pCurrentRun)
+	{
+		if (pOffendingRun)
+			*pOffendingRun = nullptr;
+		return 0;
+	}
 	do
 	{
 		if(!pCurrentRun->doesContainNonBlankData())

@@ -6334,6 +6334,7 @@ UT_Error FV_View::cmdInsertHyperlink(const char * szName, const char * szTitle)
 // despite being past the end of the block. This extra fail-safe code
 // prevents this.
 //
+	UT_return_val_if_fail(pBl1,false);
 	if((pBl1->getPosition() + pBl1->getLength() -1) < posEnd)
 	{
 		return false;

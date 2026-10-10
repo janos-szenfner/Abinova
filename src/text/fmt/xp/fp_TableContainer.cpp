@@ -1164,7 +1164,7 @@ bool fp_CellContainer::drawLines(fp_TableContainer * pBroke,GR_Graphics * pG, bo
 	bool bDrawBot = true;
 	xxx_UT_DEBUGMSG(("m_iBotY %d \n",m_iBotY));
 	m_bLinesDrawn = true;
-	UT_sint32 iLeft,iRight,iTop,iBot = 0;
+	UT_sint32 iLeft = 0, iRight = 0, iTop = 0, iBot = 0;
 	UT_sint32 col_y = 0;
 	fp_Column * pCol = nullptr;
 	fp_ShadowContainer * pShadow = nullptr;
@@ -1180,7 +1180,7 @@ bool fp_CellContainer::drawLines(fp_TableContainer * pBroke,GR_Graphics * pG, bo
 
 	iTop -= pBroke->getYBreak();
 	iBot -= pBroke->getYBreak();
-	xxx_UT_DEBUGMSG(("drawLines: ibot = %d col_y %d m_iBotY %d pCol->getHeight() %d left %d top %d \n",iBot,col_y,m_iBotY,pCol->getHeight(),m_iLeftAttach,m_iTopAttach));
+	xxx_UT_DEBUGMSG(("drawLines: ibot = %d col_y %d m_iBotY %d pCol->getHeight() %d left %d top %d \n",iBot,col_y,m_iBotY,(pCol ? pCol->getHeight() : -1),m_iLeftAttach,m_iTopAttach));
 	if(iTop < col_y)
 	{
 		xxx_UT_DEBUGMSG(("iTop < col_y !! iTop %d col_y %d row is %d \n",iTop,col_y,getTopAttach()));
@@ -1192,7 +1192,7 @@ bool fp_CellContainer::drawLines(fp_TableContainer * pBroke,GR_Graphics * pG, bo
 			pBroke->setBrokenTop(true);
 		}
 	}
-	xxx_UT_DEBUGMSG(("drawlines: After iTop %d iBot = %d  sum %d left %d top %d  \n",iTop,iBot,col_y + pCol->getHeight(),m_iLeftAttach,m_iTopAttach));
+	xxx_UT_DEBUGMSG(("drawlines: After iTop %d iBot = %d  sum %d left %d top %d  \n",iTop,iBot,col_y + (pCol ? pCol->getHeight() : 0),m_iLeftAttach,m_iTopAttach));
 	UT_sint32 iColHeight = 0;
 	if(pCol)
 	{
@@ -4759,15 +4759,19 @@ void  fp_TableContainer::_size_request_pass1(void)
 	  if (child->getLeftAttach() == (child->getRightAttach() - 1))
 	  {
 	      width = child_requisition.width + child->getLeftPad() + child->getRightPad();
-	      getNthCol(child->getLeftAttach())->requisition = UT_MAX (getNthCol(child->getLeftAttach())->requisition, width);
+	      fp_TableRowColumn *pCol = getNthCol(child->getLeftAttach());
+	      if (pCol)
+		      pCol->requisition = UT_MAX (pCol->requisition, width);
 	  }
-	  
+
 	  /* Child spans a single row.
 	   */
 	  if (child->getTopAttach() == (child->getBottomAttach() - 1))
 	  {
 	      height = child_requisition.height + child->getTopPad() + child->getBotPad();
-	      getNthRow(child->getTopAttach())->requisition = UT_MAX (getNthRow(child->getTopAttach())->requisition, height);
+	      fp_TableRowColumn *pRow = getNthRow(child->getTopAttach());
+	      if (pRow)
+		      pRow->requisition = UT_MAX (pRow->requisition, height);
 	  }
 	  child = static_cast<fp_CellContainer *>(child->getNext());
   }
@@ -5125,11 +5129,15 @@ void  fp_TableContainer::_size_request_pass2(void)
       m_iCols = m_vecColumns.size();
       for (col = 0; col < m_iCols; col++)
 	  {
-		  max_width = UT_MAX (max_width, getNthCol(col)->requisition);
+		  fp_TableRowColumn *pCol = getNthCol(col);
+		  if (pCol)
+			  max_width = UT_MAX (max_width, pCol->requisition);
 	  }
       for (col = 0; col < m_iCols; col++)
 	  {
-		  getNthCol(col)->requisition = max_width;
+		  fp_TableRowColumn *pCol = getNthCol(col);
+		  if (pCol)
+			  pCol->requisition = max_width;
 	  }
 //
 // Don't want homogeneous in height
@@ -5543,11 +5551,11 @@ void  fp_TableContainer::_size_allocate_pass1(void)
 		  {
 			  nshrink = total_nshrink;
 			  m_iCols = m_vecColumns.size();
-			  for (col = 0; col < m_iCols; col++)
+			  for (col = 0; col < m_iCols && nshrink > 0; col++)
 			  {
 				  fp_TableRowColumn *pCol= getNthCol(col);
 
-				  if (pCol->shrink)
+				  if (pCol && pCol->shrink)
 				  {
 					  UT_sint32 allocation = pCol->allocation;
 					  pCol->allocation = UT_MAX (1, static_cast<UT_sint32>(pCol->allocation) - extra / nshrink);

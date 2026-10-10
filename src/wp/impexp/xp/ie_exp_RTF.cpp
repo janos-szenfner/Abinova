@@ -1523,28 +1523,32 @@ void IE_Exp_RTF::_write_parafmt(const PP_AttrProp * pSpanAP, const PP_AttrProp *
 
 		_rtf_open_brace();
 		_rtf_keyword("abifieldfont");
-		_rtf_chardata( static_cast<const char *>(szAbiFieldFont) ,strlen(szAbiFieldFont));
+		_rtf_chardata( static_cast<const char *>(szAbiFieldFont ? szAbiFieldFont : "") ,
+					   szAbiFieldFont ? strlen(szAbiFieldFont) : 0);
 		_rtf_close_brace();
 
 		/// list decimal
 
 		_rtf_open_brace();
 		_rtf_keyword("abilistdecimal");
-		_rtf_chardata(static_cast<const char *>(szAbiListDecimal) ,strlen(szAbiListDecimal));
+		_rtf_chardata(static_cast<const char *>(szAbiListDecimal ? szAbiListDecimal : "") ,
+					  szAbiListDecimal ? strlen(szAbiListDecimal) : 0);
 		_rtf_close_brace();
 
 		/// list delim
 
 		_rtf_open_brace();
 		_rtf_keyword("abilistdelim");
-		_rtf_chardata(static_cast<const char *>(szAbiListDelim) ,strlen( szAbiListDelim));
+		_rtf_chardata(static_cast<const char *>(szAbiListDelim ? szAbiListDelim : "") ,
+					  szAbiListDelim ? strlen( szAbiListDelim) : 0);
 		_rtf_close_brace();
 
 		/// list style
 
 		_rtf_open_brace();
 		_rtf_keyword("abiliststyle");
-		_rtf_chardata(static_cast<const char *>(szListStyle) ,strlen( szListStyle));
+		_rtf_chardata(static_cast<const char *>(szListStyle ? szListStyle : "") ,
+					  szListStyle ? strlen( szListStyle) : 0);
 		_rtf_close_brace();
 
 		/// Finished!

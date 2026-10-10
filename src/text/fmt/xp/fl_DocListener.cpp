@@ -262,7 +262,7 @@ bool fl_DocListener::populateStrux(pf_Frag_Strux* sdh,
 	{
 		pFrame = nullptr;
 	}
-	if(pFrame)
+	if(pFrame && m_pLayout)
 	{
 		if(pcrx->getStruxType() == PTX_Block && !m_bFootnoteInProgress)
 		{
@@ -270,7 +270,9 @@ bool fl_DocListener::populateStrux(pf_Frag_Strux* sdh,
 			{
 				xxx_UT_DEBUGMSG(("Null Update in Populate Strux \n"));
 				PT_DocPosition pos = pcrx->getPosition();
-				UT_sint32 percentFilled = 100*pos/m_pLayout->getDocSize();
+				UT_sint32 docSize = m_pLayout->getDocSize();
+				UT_sint32 percentFilled = docSize > 0 ?
+					static_cast<UT_sint32>(100*pos/docSize) : 0;
 				if(percentFilled > m_iFilled)
 				{
 				  pFrame->nullUpdate();
@@ -320,7 +322,7 @@ bool fl_DocListener::populateStrux(pf_Frag_Strux* sdh,
 //
 // If so it moves the insertion point from 0.
 //
-	if(m_pLayout->getView() && (m_pLayout->getView()->getPoint() == 0))
+	if(m_pLayout && m_pLayout->getView() && (m_pLayout->getView()->getPoint() == 0))
 	{
 		fl_DocSectionLayout * pDSL = m_pLayout->getFirstSection();
 		if(pDSL)
@@ -1366,9 +1368,10 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 							   __FILE__, __LINE__));
 			}
 			pf_Frag_Strux* sdh = pL2->getStruxDocHandle();
-	
+
 			const gchar* pszSectionType = nullptr;
-			pAP->getAttribute("type", pszSectionType);
+			if (pAP)
+				pAP->getAttribute("type", pszSectionType);
 			//
 			// OK Sevior adds code to actually change a 
 			// sectionlayout to
@@ -1490,7 +1493,8 @@ bool fl_DocListener::change(fl_ContainerLayout* sfh,
 			}
 	
 			const gchar* pszHFSectionType = nullptr;
-			pHFAP->getAttribute("type", pszHFSectionType);
+			if (pHFAP)
+				pHFAP->getAttribute("type", pszHFSectionType);
 			//
             // Look for type of Hdr/Ftr
 			//

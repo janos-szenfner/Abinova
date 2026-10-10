@@ -10439,24 +10439,24 @@ bool IE_Imp_RTF::insertStrux(PTStruxType pts , const PP_PropertyVector & attrs, 
 		return true;
 	}
 	FV_View * pView = static_cast<FV_View*>(pFrame->getCurrentView());
-	PT_DocPosition posEOD = 0;
-	pView->getEditableBounds(true,posEOD);
 	if(pView == nullptr)
 	{
 		m_currentRTFState.m_destinationState = RTFStateStore::rdsSkip;
 		return true;
 	}
+	PT_DocPosition posEOD = 0;
+	pView->getEditableBounds(true,posEOD);
 	if(!m_bStruxInserted)
 	{
 		fp_Run *pHyperRun = pView->getHyperLinkRun(m_dposPaste);
 		if((pHyperRun != nullptr) ||(m_iHyperlinkOpen > 0) )
 		{
 			fp_HyperlinkRun * pRHyper = static_cast<fp_HyperlinkRun *>(pHyperRun);
-			if(pRHyper->getHyperlinkType() == HYPERLINK_NORMAL)
+			if(pRHyper && pRHyper->getHyperlinkType() == HYPERLINK_NORMAL)
 				bInHyperlink = true;
 		}
 		fl_BlockLayout * pBL = pView->getBlockAtPosition(m_dposPaste);
-		if(pBL->getPosition() < m_dposPaste)
+		if(pBL && pBL->getPosition() < m_dposPaste)
 		{
 			bDoExtraBlock = true;
 		}
@@ -11333,6 +11333,7 @@ void IE_Imp_RTF::_appendHdrFtr ()
 			break;
 		default:
 			UT_ASSERT_NOT_REACHED();
+			continue;
 		}
 		UT_DEBUGMSG (("id is %s\n", tempBuffer.c_str()));
 		hdrftrID = tempBuffer;
@@ -11367,6 +11368,7 @@ void IE_Imp_RTF::_appendHdrFtr ()
  */
 bool IE_Imp_RTF::_appendField (const gchar *xmlField, const gchar ** pszAttribs)
 {
+	UT_return_val_if_fail(xmlField, false);
 	bool ok;
 	PP_PropertyVector propsArray;
 	std::string propBuffer;
@@ -11685,9 +11687,9 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 	const char styleTypeC[] = "C";
 	const char * styleType = styleTypeP;
 	
-	UT_sint32 BasedOn[2000]; // 2000 styles. I know this should be a Vector.
-	UT_sint32 FollowedBy[2000]; // 2000 styles. I know this should be a Vector.
-	UT_sint32 styleCount = 0;
+	std::vector<UT_sint32> BasedOn;    // parallel to vecStyles; -1 = not set
+	std::vector<UT_sint32> FollowedBy; // (documents can legitimately hold
+	UT_sint32 styleCount = 0;          //  more than any fixed bound)
 	std::vector<std::vector<const gchar*>*> vecStyles;
 	std::unique_ptr<RTFProps_ParaProps> pParas(new RTFProps_ParaProps);
 	std::unique_ptr<RTFProps_CharProps> pChars(new RTFProps_CharProps);
@@ -11731,6 +11733,10 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 //
 // So remember it and fill it later..
 //
+					if (static_cast<size_t>(styleCount) >= BasedOn.size())
+					{
+						BasedOn.resize(styleCount + 1, -1);
+					}
 					BasedOn[styleCount] = static_cast<UT_sint32>(parameter);
 					attribs.push_back(PT_BASEDON_ATTRIBUTE_NAME);
 					attribs.push_back("");
@@ -11746,6 +11752,10 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 //
 // So remember it and fill it later..
 //
+					if (static_cast<size_t>(styleCount) >= FollowedBy.size())
+					{
+						FollowedBy.resize(styleCount + 1, -1);
+					}
 					FollowedBy[styleCount] = static_cast<UT_sint32>(parameter);
 					attribs.push_back(PT_FOLLOWEDBY_ATTRIBUTE_NAME);
 					attribs.push_back("");
@@ -11914,7 +11924,8 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 			{
 				if(nullptr == szValue)
 				{
-					UT_sint32 istyle = BasedOn[i];
+					UT_sint32 istyle = (static_cast<size_t>(i) < BasedOn.size())
+							? BasedOn[i] : -1;
 					if (istyle >= 0 && static_cast<UT_uint32>(istyle) < m_styleTable.size()) {
 						attribs.push_back(m_styleTable[istyle]);
 					} else {
@@ -11932,7 +11943,8 @@ bool IE_Imp_RTF::HandleStyleDefinition(void)
 			{
 				if(nullptr == szValue)
 				{
-					UT_sint32 istyle = FollowedBy[i];
+					UT_sint32 istyle = (static_cast<size_t>(i) < FollowedBy.size())
+							? FollowedBy[i] : -1;
 					if (istyle >= 0 && static_cast<UT_uint32>(istyle) < m_styleTable.size()) {
 						attribs.push_back(m_styleTable[istyle]);
 					} else {

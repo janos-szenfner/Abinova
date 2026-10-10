@@ -25,6 +25,8 @@
 
 #include "ie_exp_HTML.h"
 
+#include <memory>
+
 #include <pd_DocumentRDF.h>
 #include "ut_std_string.h"
 #include "ut_raii.h"
@@ -695,6 +697,8 @@ UT_Error IE_Exp_HTML::writeToPackage(GsfOutfile *root, const char *indexName)
 void IE_Exp_HTML::_createChapter(PD_DocumentRange* range, const std::string &title,
     bool isIndex)
 {
+    /* takes ownership of range */
+    std::unique_ptr<PD_DocumentRange> rangeOwner(range);
     std::string filename;
     GsfOutput *output = nullptr;
     bool bOwnsOutput = false;

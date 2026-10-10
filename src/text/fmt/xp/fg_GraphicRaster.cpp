@@ -307,8 +307,10 @@ GR_Image* FG_GraphicRaster::generateImage(GR_Graphics* pG,
 	{
 		m_pSpanAP = pSpanAP;
 	}
-	bool bFoundWidthProperty = m_pSpanAP->getProperty("width", pszWidth);
-	bool bFoundHeightProperty = m_pSpanAP->getProperty("height", pszHeight);
+	bool bFoundWidthProperty = m_pSpanAP
+		&& m_pSpanAP->getProperty("width", pszWidth);
+	bool bFoundHeightProperty = m_pSpanAP
+		&& m_pSpanAP->getProperty("height", pszHeight);
 
 	UT_sint32 iDisplayWidth = 0;
 	UT_sint32 iDisplayHeight = 0;

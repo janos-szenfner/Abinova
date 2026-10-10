@@ -72,33 +72,40 @@ XAP_Dialog_Language::XAP_Dialog_Language(XAP_DialogFactory * pDlgFactory, XAP_Di
 	
 	is_utf8_encoding = g_ascii_strcasecmp (XAP_App::getApp()->getDefaultEncoding(), "UTF-8") == 0;
 	
-	for(i=0; i<m_iLangCount; i++)                                           
-	{                                                                       
+	for(i=0; i<m_iLangCount; i++)
+	{
+		const gchar * name = m_pLangTable->getNthLangName(i);
+		if (!name)
+			continue;
 		if (m_pLangTable->getNthId(i)==XAP_STRING_ID_LANG_0) // Unsorted languages
 		{
-			m_ppLanguages[nDontSort]=m_pLangTable->getNthLangName(i);                                                    
-			nDontSort++;                                             
+			m_ppLanguages[nDontSort]=name;
+			nDontSort++;
 		}
 		else
 		{
-			ppLanguagesTemp[nSort] = m_pLangTable->getNthLangName(i);                                                                     
+			ppLanguagesTemp[nSort] = name;
 			nSort++;
 		}
-	}                                                                       
+	}
 
 	// sort the temporary array
-	std::sort(ppLanguagesTemp, ppLanguagesTemp + (m_iLangCount-nDontSort), s_compare);
+	std::sort(ppLanguagesTemp, ppLanguagesTemp + nSort, s_compare);
 
 	  
 	// Copy the sorted codes and a ssign each language its code
 	for(UT_uint32 nLang = 0; nLang < m_iLangCount; nLang++)
 	{
+		m_ppLanguagesCode[nLang] = nullptr;
 		if (nLang>=nDontSort)
 			m_ppLanguages[nLang]=ppLanguagesTemp[nLang-nDontSort];
+		if (m_ppLanguages[nLang] == nullptr)
+			continue;
 
 		for(i = 0; i < m_iLangCount; i++)
 		{
-			if (strcmp (m_ppLanguages[nLang], m_pLangTable->getNthLangName(i))==0)
+			const gchar * name = m_pLangTable->getNthLangName(i);
+			if (name && strcmp (m_ppLanguages[nLang], name)==0)
 			{
 				m_ppLanguagesCode[nLang] = m_pLangTable->getNthLangCode(i);
 				break;

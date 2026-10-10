@@ -896,7 +896,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 					if (cy) top->setProperty("grp-height", cy);
 				}
 			}
-			else if (rqst->context->size() >= 2 &&
+			else if (rqst->context && rqst->context->size() >= 2 &&
 					 OXMLi_contextParent(rqst->context) ==
 						 "wps:spPr")
 			{

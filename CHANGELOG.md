@@ -4199,6 +4199,16 @@ below are on `main` but the release has not been cut yet.
   caption text anchored before the table strux, images/objects
   anchored before an end-cell strux, and character formats applied
   through a format mark on such spans were all silently lost.
+- **Static-analysis hardening sweep across importers, layout and the
+  app framework** — a clang analyzer pass over all ~645 translation
+  units surfaced ~50 real defects now fixed: a stack overflow in the
+  RTF importer's style based-on/followed-by tables (fixed-size arrays
+  replaced by bounded vectors), unchecked null dereferences on
+  malformed RTF/DOC/ODF/XHTML input, leaked text runs and document
+  ranges on importer/exporter early-exit paths, a piece-table
+  fragment container that could leave a multi-step glob unclosed on
+  failure, and a stale-pointer style-name read in the Styles dialog.
+  Full finding list in `.devin/AUDIT01-report.md`.
 
 ### GTK4 port (core migration)
 

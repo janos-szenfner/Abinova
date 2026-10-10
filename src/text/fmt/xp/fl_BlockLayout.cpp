@@ -5394,16 +5394,28 @@ bool	fl_BlockLayout::_doInsertTextSpan(PT_BlockOffset blockOffset, UT_uint32 len
 			fp_TextRun* pNewRun = new fp_TextRun(this, blockOffset + iRunOffset, iRunSegment);
 			iRunOffset += iRunSegment;
 			iRunLength -= iRunSegment;
-			
-			UT_return_val_if_fail(pNewRun && pNewRun->getType() == FPRUN_TEXT, false);
+
+			if (!pNewRun || pNewRun->getType() != FPRUN_TEXT)
+			{
+				delete pNewRun;
+				return false;
+			}
 			pNewRun->setDirOverride(m_iDirOverride);
 
 			auto item = I.getNthItem(i);
-			UT_nonnull_or_return(item, false);
+			if (!item)
+			{
+				delete pNewRun;
+				return false;
+			}
 			GR_Item * pItem = item->makeCopy();
-			UT_nonnull_or_return(pItem, false);
+			if (!pItem)
+			{
+				delete pNewRun;
+				return false;
+			}
 			pNewRun->setItem(pItem);
-		
+
 			if(!_doInsertRun(pNewRun))
 				return false;
 		}
@@ -8201,6 +8213,11 @@ bool fl_BlockLayout::doclistener_insertSection(const PX_ChangeRecord_Strux * pcr
 		break;
 	}
 
+	if (pSL == nullptr)
+	{
+		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
+		return false;
+	}
 	PT_DocPosition posSL = m_pDoc->getStruxPosition(pSL->getStruxDocHandle());
 	PT_DocPosition posThis = m_pDoc->getStruxPosition(getStruxDocHandle());
 
@@ -10715,9 +10732,15 @@ void fl_BlockLayout::transferListFlags(void)
 	{
 		return;
 	}
-	if (getNextBlockInDocument()->isListItem()) // this is wrong. It should be next in the list.
+	fl_BlockLayout * pNextBlock = getNextBlockInDocument();
+	if (pNextBlock && pNextBlock->isListItem()) // this is wrong. It should be next in the list.
 	{
-		UT_uint32 nId = getNext()->getAutoNum()->getID();
+		const fl_AutoNumPtr & pNextAutoNum = static_cast<fl_BlockLayout*>(getNext())->getAutoNum();
+		if (!pNextAutoNum)
+		{
+			return;
+		}
+		UT_uint32 nId = pNextAutoNum->getID();
 		UT_uint32 cId=0, pId=0;
 		fl_BlockLayout * pPrev = getPreviousList();
 		if(pPrev && pPrev->getAutoNum() == nullptr)
@@ -10726,21 +10749,21 @@ void fl_BlockLayout::transferListFlags(void)
 		}
 		if(pPrev != nullptr)
 			pId = pPrev->getAutoNum()->getID();
-		if(isListItem())
+		if(isListItem() && getAutoNum())
 			cId = getAutoNum()->getID();
 		if(cId == nId)
 		{
-			if (!getNextBlockInDocument()->m_bStartList)
-				getNextBlockInDocument()->m_bStartList = m_bStartList;
-			if (!getNextBlockInDocument()->m_bStopList)
-				getNextBlockInDocument()->m_bStopList = m_bStopList;
+			if (!pNextBlock->m_bStartList)
+				pNextBlock->m_bStartList = m_bStartList;
+			if (!pNextBlock->m_bStopList)
+				pNextBlock->m_bStopList = m_bStopList;
 		}
-		else if ( pId == nId)
+		else if (pPrev != nullptr && pId == nId)
 		{
-			if (!getNextBlockInDocument()->m_bStartList)
-				getNextBlockInDocument()->m_bStartList = pPrev->m_bStartList;
-			if (!getNextBlockInDocument()->m_bStopList)
-				getNextBlockInDocument()->m_bStopList = pPrev->m_bStopList;
+			if (!pNextBlock->m_bStartList)
+				pNextBlock->m_bStartList = pPrev->m_bStartList;
+			if (!pNextBlock->m_bStopList)
+				pNextBlock->m_bStopList = pPrev->m_bStopList;
 		}
 	}
 }

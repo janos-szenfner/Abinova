@@ -446,7 +446,8 @@ bool PD_Style::getAllAttributes(PP_PropertyVector & vAttribs, UT_sint32 depth) c
 	const gchar * szName = nullptr;
 	const gchar * szValue = nullptr;
 	for (UT_sint32 i = 0; i < count; i++) {
-		getNthAttribute(i, szName, szValue);
+		if (!getNthAttribute(i, szName, szValue))
+			continue;
 		bool bfound = false;
 //
 // Only keep the most recently defined properties
@@ -481,7 +482,8 @@ bool PD_Style::getAllProperties(PP_PropertyVector & vProps, UT_sint32 depth) con
 	const gchar * szValue = nullptr;
 
 	for (UT_sint32 i = 0; i < count; i++) {
-		getNthProperty(i, szName, szValue);
+		if (!getNthProperty(i, szName, szValue))
+			continue;
 		bool bfound = false;
 //
 // Only keep the most recently defined properties
