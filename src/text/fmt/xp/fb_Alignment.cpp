@@ -35,7 +35,7 @@ void fb_Alignment_left::initialize(fp_Line * pLine )
 {
 		if(pLine->getBlock()->getDominantDirection() == UT_BIDI_RTL)
 		{
-		    m_iStartPosition = pLine->getRightThick() - pLine->calculateWidthOfTrailingSpaces();
+		    m_iStartPosition = pLine->getLeftThick() - pLine->calculateWidthOfTrailingSpaces();
 	 	}
 	 	else
 	 	{
@@ -61,10 +61,13 @@ void fb_Alignment_center::initialize(fp_Line *pLine)
 {
 	UT_sint32 iWidth = pLine->calculateWidthOfLine();
 	UT_sint32 m_iExtraWidth = pLine->getAvailableWidth() - iWidth;
+	// the text area starts at the left border thickness; a line wider
+	// than the area starts at that boundary rather than inside the
+	// border/margin
 	if (m_iExtraWidth > 0)
-	    m_startPosition = m_iExtraWidth / 2;
+	    m_startPosition = pLine->getLeftThick() + m_iExtraWidth / 2;
 	else
-	    m_startPosition = 0;
+	    m_startPosition = pLine->getLeftThick();
 }
 
 UT_sint32 fb_Alignment_center::getStartPosition()
@@ -86,8 +89,15 @@ void fb_Alignment_right::initialize(fp_Line *pLine)
 	UT_sint32 iTrailing = pLine->calculateWidthOfTrailingSpaces();
 	UT_sint32 iWidth = pLine->calculateWidthOfLine() - iTrailing;
 
-	m_startPosition = pLine->getAvailableWidth() - iWidth;
-	
+	// the right edge of the text area is leftThick + availableWidth;
+	// a line wider than the area must start at the left text boundary
+	// rather than being pushed left into the margin/pasteboard —
+	// the overflow then extends to the right like a left-aligned line
+	m_startPosition = pLine->getLeftThick() +
+		pLine->getAvailableWidth() - iWidth;
+	if(m_startPosition < pLine->getLeftThick())
+		m_startPosition = pLine->getLeftThick();
+
 	if(pLine->getBlock()->getDominantDirection() == UT_BIDI_RTL)
 	{
 	     m_startPosition -= iTrailing;
@@ -119,10 +129,13 @@ void fb_Alignment_right::eraseLineFromRun(fp_Line *pLine, UT_uint32 runIndex)
 
 void fb_Alignment_justify::initialize(fp_Line *pLine)
 {
+	// a line that is not being justified on this pass — the last line
+	// of the block, or a line whose runs kept the inflated widths from
+	// an earlier justify — must not keep the stretched justification
+	pLine->resetJustification(false); // non-permanent reset
+
 	if (!pLine->isLastLineInBlock())
 	{
-		pLine->resetJustification(false); // non-permanent reset
-
 		UT_sint32 iWidth = pLine->calculateWidthOfLine() - pLine->calculateWidthOfTrailingSpaces();
 
 		m_iExtraWidth = pLine->getAvailableWidth() - iWidth;
@@ -132,7 +145,7 @@ void fb_Alignment_justify::initialize(fp_Line *pLine)
 
 		if(pLine->getBlock()->getDominantDirection() == UT_BIDI_RTL)
 		{
-			m_iStartPosition = pLine->getAvailableWidth();
+			m_iStartPosition = pLine->getLeftThick() + pLine->getAvailableWidth();
 		}
 		else
 		{
@@ -141,7 +154,7 @@ void fb_Alignment_justify::initialize(fp_Line *pLine)
 	}
 	else if(pLine->getBlock()->getDominantDirection() == UT_BIDI_RTL) //this is RTL block, the last line behaves as if right-justified
 	{
-	    m_iStartPosition = pLine->getAvailableWidth();
+	    m_iStartPosition = pLine->getLeftThick() + pLine->getAvailableWidth();
 	}
 	else
 	{

@@ -2966,6 +2966,14 @@ void fp_Line::layout(void)
 	///////////////////////////////////////////////////////////////////
 	//	now we are ready to deal with the alignment
 	//
+	//	a line that is not being justified on this pass must not keep
+	//	justification applied by an earlier pass — the inflated run
+	//	widths would push right-aligned content left of the text area
+	//	(the justify alignment resets inside its initialize())
+	if(eAlignment != FB_ALIGNMENT_JUSTIFY)
+	{
+		resetJustification(false);
+	}
 	pAlignment->initialize(this);
 	iStartX = pAlignment->getStartPosition();
 

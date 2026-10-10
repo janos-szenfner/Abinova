@@ -2235,6 +2235,19 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Aligned text can no longer escape the text column** —
+  right-aligning a paragraph whose laid-out width exceeds the column
+  (for example a line still carrying the expansion a justify pass had
+  given it) pushed the surplus off the left edge into the margin and
+  pasteboard. The right/center anchors now measure from the actual
+  text-area edge — which fixes right-aligned text sitting a border's
+  thickness short of the right edge in bordered paragraphs — and a
+  too-wide line clamps at the left boundary so the overflow extends
+  right like Word instead of shifting the whole line off-page.
+  Re-laying out a line under a non-justify alignment also now drops
+  any leftover justification, and the last line of a justified
+  paragraph no longer keeps the stretched spacing it was given while
+  it was still a middle line.
 - **Uninitialised-memory fixes from the pre-release valgrind sweep** —
   the caret blink timer read an uninitialised duration when GTK
   settings are unavailable (headless), text measurement left trailing
