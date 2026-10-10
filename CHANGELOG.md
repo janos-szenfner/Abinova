@@ -820,13 +820,25 @@ below are on `main` but the release has not been cut yet.
   space-remapped-to-'a' hack is gone; in vi command mode Space now
   moves the cursor right instead of wrongly entering append mode.
 - **Formatting** — Ctrl+Shift+X strikethrough, Ctrl+= subscript,
-  Ctrl+Shift+= superscript, Ctrl+D font dialog.
+  Ctrl+Shift+= superscript, Ctrl+D / Ctrl+Shift+F / Ctrl+Shift+P font
+  dialog, Ctrl+Shift+A all caps (new `toggleAllCaps` method),
+  Ctrl+Shift+K small caps (new `toggleSmallCaps` method),
+  Ctrl+Shift+H hidden text, Ctrl+Shift+C / Ctrl+Shift+V copy/paste
+  formatting (format painter), Ctrl+[ / Ctrl+] shrink/grow font,
+  Ctrl+Shift+Z clear character formatting (Word ResetChar; Ctrl+Y and
+  F4 are the redo chords).
 - **Paragraph** — Ctrl+L align left, Ctrl+M / Ctrl+Shift+M
-  indent/un-indent, Ctrl+0 toggle space-before-paragraph (new
+  indent/un-indent, Ctrl+T / Ctrl+Shift+T hanging indent (new
+  `hangingIndent`/`unHangingIndent` methods, ½-inch steps like Word),
+  Ctrl+Shift+L bullets, Ctrl+0 toggle space-before-paragraph (new
   `toggleParaBefore` method), Ctrl+Q clear direct paragraph
   formatting (new `FV_View::resetBlockFormat()` — clears the block
-  `props` attribute while keeping the paragraph style),
-  Ctrl+Shift+N Normal style (new `setStyleNormal` method).
+  `props` attribute while keeping the paragraph style; the audit
+  also fixed the piece-table merge short-circuit in
+  `PP_AttrProp::areAlreadyPresent` that made the clear a silent
+  no-op), Ctrl+Shift+N Normal style (new `setStyleNormal` method).
+- **Fields & marks** — F9 update field, Ctrl+F9 insert field,
+  Ctrl+Shift+F5 insert bookmark, F4 redo.
 - **Insertions** — new char-insert edit methods for Word's symbol
   keys: Ctrl+- optional hyphen (U+00AD), Ctrl+Shift+-
   non-breaking hyphen (U+2011), Ctrl+Alt+- em dash,
@@ -842,11 +854,13 @@ below are on `main` but the release has not been cut yet.
   GDK_META_MASK/GDK_SUPER_MASK (⌘ under Quartz/XQuartz) into
   EV_EMS_CONTROL, so every Ctrl binding resolves as its Cmd
   equivalent; Cmd+Shift+Z resolves to `redo` via a platform-conditional
-  binding (Ctrl+Shift+Z stays `undo` elsewhere), Cmd+Q quits
-  (`querySaveAndExit`; Cmd+Shift+Q keeps `clearParaFormatting` on
-  macOS), Option+←/→ move by
+  binding (Ctrl+Shift+Z is `clearFormatting` — Word's ResetChar —
+  elsewhere), Cmd+Q quits (`querySaveAndExit`; Cmd+Shift+Q keeps
+  `clearParaFormatting` on macOS; elsewhere Ctrl+Q itself is
+  `clearParaFormatting`), Option+←/→ move by
   word (`warpInsPtBOW`/`warpInsPtEOW`), Option+Delete deletes a word
-  left (`delBOW`), Cmd+; spell check, Cmd+, Preferences.
+  left (`delBOW` — Alt+Backspace is `undo` on other platforms, per
+  Word), Cmd+; spell check, Cmd+, Preferences.
 - **Reassigned (Word takes precedence)** — Ctrl+K hyperlink
   (strikethrough moved to Ctrl+Shift+X), Ctrl+L align-left (was
   bullets), Ctrl+M indent (was symbol dialog), Ctrl+N fileNew on
@@ -857,13 +871,23 @@ below are on `main` but the release has not been cut yet.
   second paste), F12 Save As (was input-mode cycling —
   `cycleInputMode` remains available programmatically), Ctrl+=
   subscript and Ctrl+- optional hyphen (zoom remains on
-  Ctrl+mouse-wheel).
+  Ctrl+mouse-wheel), Ctrl+Shift+C format-painter (was plain copy),
+  Ctrl+Shift+F/G/H/K/L/P font dialog/word-count/hidden/small-caps/
+  bullets/font dialog (were find/go/replace/hyperlink/align-left/
+  print — the unshifted chords keep those functions), Ctrl+T and
+  Ctrl+Shift+T hanging-indent (was outline-mode toggle), Ctrl+[ /
+  Ctrl+] font size (was header/footer editing — still reachable from
+  the Insert menu), Alt+Backspace undo (was word-delete, which stays
+  on Ctrl+Backspace; macOS Option+Delete keeps word-delete).
 - **Skipped (no function exists)** — double underline, word-only
-  underline, small caps and all-caps format toggles, hanging
-  indent, Styles-pane shortcut, format-copy, thesaurus, Shift+F5
-  go-back, F8 extend-selection, vertical-block selection, all field
-  lock/unlink/toggle shortcuts (F9/Alt+F9/Ctrl+F9/F11 family),
+  underline, Styles-pane shortcut, thesaurus, Shift+F5
+  go-back, F8 extend-selection, vertical-block selection, the field
+  lock/unlink/toggle shortcuts (Alt+F9/Ctrl+F11 family),
   mark-citation (requires call data), and table AutoSum variants.
+  (Small caps, all caps, hanging indent and format-painter previously
+  sat on this list — `toggleSmallCaps`, `toggleAllCaps`,
+  `hangingIndent`/`unHangingIndent` and the `formatPainter` binding
+  now exist.)
 - **Dead keybinding entries removed** — every active binding string in
   `ap_LB_*.cpp` is now verified against the registered edit-method
   table: the image double-click binding dropped `dlgFmtImage`

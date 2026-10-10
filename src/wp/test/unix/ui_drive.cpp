@@ -115,10 +115,15 @@
 #include "ap_LeftRuler.h"
 #include "ap_UnixTopRuler.h"
 #include "ap_UnixLeftRuler.h"
+#include "ev_EditBits.h"
+#include "ev_NamedVirtualKey.h"
+#include "pp_AttrProp.h"
+#include "ut_units.h"
 #include "tf_guard.h"
 #include "tf_widgets.h"
 
 #include <cmath>
+#include <algorithm>
 
 #ifdef GDK_WINDOWING_X11
 #include <gdk/x11/gdkx.h>
@@ -3266,6 +3271,12 @@ static int drive_keys(AP_UnixApp *app, const char *scratch)
 			}
 		};
 		auto key = [&](guint sym) {
+			/* every injected keysym is bounded work — re-arm the
+			 * section watchdog so call_guard's 40s measures "time
+			 * since last delivered key" rather than total battery
+			 * wall time (a genuinely wedged injection can no longer
+			 * re-arm and still gets caught) */
+			alarm(40);
 			KeyCode kc = XKeysymToKeycode(dpy, (KeySym)sym);
 			if (kc) {
 				fakeKeyEv(dpy, kc, True, 0);
@@ -3306,6 +3317,7 @@ static int drive_keys(AP_UnixApp *app, const char *scratch)
 		}
 		Window xid = gdk_x11_surface_get_xid(surf);
 		auto focus_canvas = [&] {
+			alarm(40);                  /* bounded work — re-arm */
 			graphene_point_t in {(float)(gtk_widget_get_width(canvas) / 2),
 								 (float)(gtk_widget_get_height(canvas) / 2)};
 			graphene_point_t out;
@@ -3371,6 +3383,774 @@ static int drive_keys(AP_UnixApp *app, const char *scratch)
 						   "did not select the main text\n");
 				return 1;
 			}
+		}
+
+		/* ---- KEYB02: Word-parity chord battery ----
+		 * Every chord is checked twice: first that the live
+		 * EV_EditEventMapper resolves it to the audited method
+		 * (a silently dropped table row or a wrong column shows
+		 * up here), then that an XTest-injected press through the
+		 * real GtkEventControllerKey → IM prefilter →
+		 * ev_UnixKeyboard path produces the observable effect.
+		 * Dialog chords are observed through the stray sweep
+		 * answering a new toplevel; platform-backed choosers
+		 * (open/save/print) are tolerated when no in-process
+		 * toplevel appears. */
+		PD_Document *pDoc = view->getDocument();
+		EV_EditEventMapper *eem = XAP_App::getApp()->getEditEventMapper();
+		int fails = 0;
+
+		auto resolve = [&](UT_uint32 mods, UT_uint32 k) -> const char * {
+			EV_EditMethod *m = nullptr;
+			if (!eem
+				|| eem->Keystroke(EV_EKP_PRESS | mods | k, &m)
+					!= EV_EEMR_COMPLETE
+				|| !m)
+				return "(unbound)";
+			return m->getName();
+		};
+		auto expect = [&](const char *tag, UT_uint32 mods,
+						  UT_uint32 k, const char *want) {
+			const char *got = resolve(mods, k);
+			if (strcmp(got, want)) {
+				g_printerr("keys: resolve FAIL %s -> %s (want %s)\n",
+						   tag, got, want);
+				fails++;
+			}
+		};
+		auto chord = [&](bool ctrl, bool shift, bool alt, guint sym) {
+			if (ctrl)
+				hold(GDK_KEY_Control_L, true);
+			if (alt)
+				hold(GDK_KEY_Alt_L, true);
+			if (shift)
+				hold(GDK_KEY_Shift_L, true);
+			key(sym);
+			if (shift)
+				hold(GDK_KEY_Shift_L, false);
+			if (alt)
+				hold(GDK_KEY_Alt_L, false);
+			if (ctrl)
+				hold(GDK_KEY_Control_L, false);
+			tf_guard::pump_for(120);
+		};
+		auto type_text = [&](const char *s) {
+			for (const char *p = s; *p; ++p) {
+				guint sym = 0;
+				if (*p >= 'a' && *p <= 'z')
+					sym = GDK_KEY_a + (*p - 'a');
+				else if (*p >= '0' && *p <= '9')
+					sym = GDK_KEY_0 + (*p - '0');
+				else if (*p == ' ')
+					sym = GDK_KEY_space;
+				else if (*p == '.')
+					sym = GDK_KEY_period;
+				if (sym)
+					key(sym);
+			}
+			tf_guard::pump_for(80);
+		};
+		auto charprop = [&](const char *n) -> std::string {
+			PP_PropertyVector v;
+			view->getCharFormat(v);
+			return PP_getAttribute(n, v);
+		};
+		auto blockprop = [&](const char *n) -> std::string {
+			PP_PropertyVector v;
+			view->getBlockFormat(v);
+			return PP_getAttribute(n, v);
+		};
+		auto want_in = [&](const char *tag, const std::string &got,
+						   const char *needle, bool negate = false) {
+			bool hit = got.find(needle) != std::string::npos;
+			if (hit == negate) {
+				g_printerr("keys: FAIL %s = '%s' (wanted %s'%s')\n",
+						   tag, got.c_str(),
+						   negate ? "absence of " : "", needle);
+				fails++;
+			}
+		};
+		auto doc_text = [&]() -> std::string {
+			PT_DocPosition b = 0, e = 0;
+			view->getEditableBounds(false, b, true);
+			view->getEditableBounds(true, e, true);
+			UT_UCS4Char *p = view->getTextBetweenPos(b, e);
+			std::string out;
+			for (UT_UCS4Char *q = p; q && *q; ++q) {
+				if (*q >= 0x20 && *q < 0x7f)
+					out += static_cast<char>(*q);
+				else if (*q == 0x0c)
+					out += '\f';
+				else if (*q == 0x0a)
+					out += '\n';
+				else if (*q == 0x09)
+					out += '\t';
+				else
+					out += '?';
+			}
+			delete[] p;
+			return out;
+		};
+		auto count_str = [&](const char *needle) {
+			std::string t = doc_text();
+			size_t n = 0, pos = 0;
+			while ((pos = t.find(needle, pos)) != std::string::npos) {
+				n++;
+				pos++;
+			}
+			return n;
+		};
+		auto count_chr = [&](char c) {
+			std::string t = doc_text();
+			return static_cast<size_t>(
+				std::count(t.begin(), t.end(), c));
+		};
+		auto dialog_chord = [&](const char *tag, bool req, bool c,
+								bool s, bool a, guint sym) {
+			int before = ctx.straysClosed;
+			chord(c, s, a, sym);
+			tf_guard::pump_for(600);
+			if (ctx.straysClosed > before)
+				g_print("keys: ok %s opened toplevel\n", tag);
+			else if (req) {
+				g_printerr("keys: FAIL %s opened no toplevel\n", tag);
+				fails++;
+			} else
+				g_print("keys: %s — no toplevel "
+						"(platform-backed)\n", tag);
+			focus_canvas();
+		};
+
+		/* ---- resolution pass: the whole Word-parity map ---- */
+		expect("ctrl+a",       EV_EMS_CONTROL, 'a', "selectAll");
+		expect("ctrl+b",       EV_EMS_CONTROL, 'b', "toggleBold");
+		expect("ctrl+c",       EV_EMS_CONTROL, 'c', "copy");
+		expect("ctrl+d",       EV_EMS_CONTROL, 'd', "dlgFont");
+		expect("ctrl+e",       EV_EMS_CONTROL, 'e', "alignCenter");
+		expect("ctrl+f",       EV_EMS_CONTROL, 'f', "find");
+		expect("ctrl+g",       EV_EMS_CONTROL, 'g', "go");
+		expect("ctrl+h",       EV_EMS_CONTROL, 'h', "replace");
+		expect("ctrl+i",       EV_EMS_CONTROL, 'i', "toggleItalic");
+		expect("ctrl+j",       EV_EMS_CONTROL, 'j', "alignJustify");
+		expect("ctrl+k",       EV_EMS_CONTROL, 'k', "insertHyperlink");
+		expect("ctrl+l",       EV_EMS_CONTROL, 'l', "alignLeft");
+		expect("ctrl+m",       EV_EMS_CONTROL, 'm', "toggleIndent");
+		expect("ctrl+n",       EV_EMS_CONTROL, 'n', "fileNew");
+		expect("ctrl+o",       EV_EMS_CONTROL, 'o', "fileOpen");
+		expect("ctrl+p",       EV_EMS_CONTROL, 'p', "print");
+#ifdef __APPLE__
+		expect("ctrl+q",       EV_EMS_CONTROL, 'q', "querySaveAndExit");
+#else
+		expect("ctrl+q",       EV_EMS_CONTROL, 'q', "clearParaFormatting");
+#endif
+		expect("ctrl+r",       EV_EMS_CONTROL, 'r', "alignRight");
+		expect("ctrl+s",       EV_EMS_CONTROL, 's', "fileSave");
+		expect("ctrl+t",       EV_EMS_CONTROL, 't', "hangingIndent");
+		expect("ctrl+u",       EV_EMS_CONTROL, 'u', "toggleUline");
+		expect("ctrl+v",       EV_EMS_CONTROL, 'v', "paste");
+		expect("ctrl+w",       EV_EMS_CONTROL, 'w', "closeWindow");
+		expect("ctrl+x",       EV_EMS_CONTROL, 'x', "cut");
+		expect("ctrl+y",       EV_EMS_CONTROL, 'y', "redo");
+		expect("ctrl+z",       EV_EMS_CONTROL, 'z', "undo");
+
+		expect("ctrl+shift+a", EV_EMS_CONTROL, 'A', "toggleAllCaps");
+		expect("ctrl+shift+b", EV_EMS_CONTROL, 'B', "toggleBold");
+		expect("ctrl+shift+c", EV_EMS_CONTROL, 'C', "formatPainter");
+		expect("ctrl+shift+d", EV_EMS_CONTROL, 'D', "dlgFont");
+		expect("ctrl+shift+e", EV_EMS_CONTROL, 'E', "toggleMarkRevisions");
+		expect("ctrl+shift+f", EV_EMS_CONTROL, 'F', "dlgFont");
+		expect("ctrl+shift+g", EV_EMS_CONTROL, 'G', "dlgWordCount");
+		expect("ctrl+shift+h", EV_EMS_CONTROL, 'H', "toggleHidden");
+		expect("ctrl+shift+i", EV_EMS_CONTROL, 'I', "toggleItalic");
+		expect("ctrl+shift+j", EV_EMS_CONTROL, 'J', "alignJustify");
+		expect("ctrl+shift+k", EV_EMS_CONTROL, 'K', "toggleSmallCaps");
+		expect("ctrl+shift+l", EV_EMS_CONTROL, 'L', "doBullets");
+		expect("ctrl+shift+m", EV_EMS_CONTROL, 'M', "toggleUnIndent");
+		expect("ctrl+shift+n", EV_EMS_CONTROL, 'N', "setStyleNormal");
+		expect("ctrl+shift+o", EV_EMS_CONTROL, 'O', "fileOpen");
+		expect("ctrl+shift+p", EV_EMS_CONTROL, 'P', "dlgFont");
+		expect("ctrl+shift+q", EV_EMS_CONTROL, 'Q', "clearParaFormatting");
+		expect("ctrl+shift+r", EV_EMS_CONTROL, 'R', "alignRight");
+		expect("ctrl+shift+s", EV_EMS_CONTROL, 'S', "fileSaveAs");
+		expect("ctrl+shift+t", EV_EMS_CONTROL, 'T', "unHangingIndent");
+		expect("ctrl+shift+u", EV_EMS_CONTROL, 'U', "toggleUline");
+		expect("ctrl+shift+v", EV_EMS_CONTROL, 'V', "formatPainter");
+		expect("ctrl+shift+w", EV_EMS_CONTROL, 'W', "closeWindow");
+		expect("ctrl+shift+x", EV_EMS_CONTROL, 'X', "toggleStrike");
+		expect("ctrl+shift+y", EV_EMS_CONTROL, 'Y', "redo");
+#ifdef __APPLE__
+		expect("ctrl+shift+z", EV_EMS_CONTROL, 'Z', "redo");
+#else
+		expect("ctrl+shift+z", EV_EMS_CONTROL, 'Z', "clearFormatting");
+#endif
+
+		expect("ctrl+0",       EV_EMS_CONTROL, '0', "toggleParaBefore");
+		expect("ctrl+1",       EV_EMS_CONTROL, '1', "singleSpace");
+		expect("ctrl+2",       EV_EMS_CONTROL, '2', "doubleSpace");
+		expect("ctrl+5",       EV_EMS_CONTROL, '5', "middleSpace");
+		expect("ctrl+-",       EV_EMS_CONTROL, '-', "insertSoftHyphen");
+		expect("ctrl+=",       EV_EMS_CONTROL, '=', "toggleSub");
+		expect("ctrl+shift+=", EV_EMS_CONTROL, '+', "toggleSuper");
+		expect("ctrl+[",       EV_EMS_CONTROL, '[', "fontSizeDecrease");
+		expect("ctrl+]",       EV_EMS_CONTROL, ']', "fontSizeIncrease");
+		expect("ctrl+shift+<", EV_EMS_CONTROL, '<', "fontSizeDecrease");
+		expect("ctrl+shift+>", EV_EMS_CONTROL, '>', "fontSizeIncrease");
+		expect("ctrl+shift+8", EV_EMS_CONTROL, '*', "viewPara");
+		expect("alt+ctrl+1",
+			   EV_EMS_ALT | EV_EMS_CONTROL, '1', "setStyleHeading1");
+		expect("alt+ctrl+2",
+			   EV_EMS_ALT | EV_EMS_CONTROL, '2', "setStyleHeading2");
+		expect("alt+ctrl+3",
+			   EV_EMS_ALT | EV_EMS_CONTROL, '3', "setStyleHeading3");
+
+		expect("ctrl+space",   EV_EMS_CONTROL, EV_NVK_SPACE, "togglePlain");
+		expect("ctrl+shift+space",
+			   EV_EMS_CONTROL | EV_EMS_SHIFT, EV_NVK_SPACE, "insertNBSpace");
+		expect("shift+enter",  EV_EMS_SHIFT, EV_NVK_RETURN, "insertLineBreak");
+		expect("ctrl+enter",   EV_EMS_CONTROL, EV_NVK_RETURN, "insertPageBreak");
+		expect("ctrl+shift+enter",
+			   EV_EMS_CONTROL | EV_EMS_SHIFT, EV_NVK_RETURN,
+			   "insertColumnBreak");
+		expect("alt+enter",    EV_EMS_ALT, EV_NVK_RETURN, "insertSectionBreak");
+		expect("ctrl+backspace", EV_EMS_CONTROL, EV_NVK_BACKSPACE, "delBOW");
+#ifdef __APPLE__
+		expect("alt+backspace",  EV_EMS_ALT, EV_NVK_BACKSPACE, "delBOW");
+#else
+		expect("alt+backspace",  EV_EMS_ALT, EV_NVK_BACKSPACE, "undo");
+#endif
+		expect("ctrl+delete",  EV_EMS_CONTROL, EV_NVK_DELETE, "delEOW");
+		expect("shift+delete", EV_EMS_SHIFT, EV_NVK_DELETE, "cut");
+		expect("insert",       0, EV_NVK_INSERT, "toggleInsertMode");
+		expect("shift+insert", EV_EMS_SHIFT, EV_NVK_INSERT, "paste");
+		expect("ctrl+insert",  EV_EMS_CONTROL, EV_NVK_INSERT, "copy");
+		expect("tab",          0, EV_NVK_TAB, "insertTab");
+		expect("shift+tab",    EV_EMS_SHIFT, EV_NVK_TAB, "insertTabShift");
+		expect("ctrl+tab",     EV_EMS_CONTROL, EV_NVK_TAB, "insertTabCTL");
+		expect("home",         0, EV_NVK_HOME, "warpInsPtBOL");
+		expect("end",          0, EV_NVK_END, "warpInsPtEOL");
+		expect("ctrl+home",    EV_EMS_CONTROL, EV_NVK_HOME, "warpInsPtBOD");
+		expect("ctrl+end",     EV_EMS_CONTROL, EV_NVK_END, "warpInsPtEOD");
+		expect("ctrl+left",    EV_EMS_CONTROL, EV_NVK_LEFT, "warpInsPtBOW");
+		expect("ctrl+right",   EV_EMS_CONTROL, EV_NVK_RIGHT, "warpInsPtEOW");
+		expect("ctrl+up",      EV_EMS_CONTROL, EV_NVK_UP, "warpInsPtBOB");
+		expect("ctrl+down",    EV_EMS_CONTROL, EV_NVK_DOWN, "warpInsPtEOB");
+		expect("shift+left",   EV_EMS_SHIFT, EV_NVK_LEFT, "extSelLeft");
+		expect("shift+right",  EV_EMS_SHIFT, EV_NVK_RIGHT, "extSelRight");
+		expect("shift+up",     EV_EMS_SHIFT, EV_NVK_UP, "extSelPrevLine");
+		expect("shift+down",   EV_EMS_SHIFT, EV_NVK_DOWN, "extSelNextLine");
+		expect("ctrl+shift+left",
+			   EV_EMS_CONTROL | EV_EMS_SHIFT, EV_NVK_LEFT, "extSelBOW");
+		expect("ctrl+shift+right",
+			   EV_EMS_CONTROL | EV_EMS_SHIFT, EV_NVK_RIGHT, "extSelEOW");
+		expect("shift+home",   EV_EMS_SHIFT, EV_NVK_HOME, "extSelBOL");
+		expect("shift+end",    EV_EMS_SHIFT, EV_NVK_END, "extSelEOL");
+		expect("ctrl+shift+home",
+			   EV_EMS_CONTROL | EV_EMS_SHIFT, EV_NVK_HOME, "extSelBOD");
+		expect("ctrl+shift+end",
+			   EV_EMS_CONTROL | EV_EMS_SHIFT, EV_NVK_END, "extSelEOD");
+		expect("shift+pageup", EV_EMS_SHIFT, EV_NVK_PAGEUP, "extSelScreenUp");
+		expect("shift+pagedown",
+			   EV_EMS_SHIFT, EV_NVK_PAGEDOWN, "extSelScreenDown");
+		expect("ctrl+pageup",  EV_EMS_CONTROL, EV_NVK_PAGEUP,
+			   "warpInsPtPrevPage");
+		expect("ctrl+pagedown", EV_EMS_CONTROL, EV_NVK_PAGEDOWN,
+			   "warpInsPtNextPage");
+		expect("escape",       0, EV_NVK_ESCAPE, "doEscape");
+		expect("menu-key",     0, EV_NVK_MENU_SHORTCUT, "contextMenu");
+		expect("f1",           0, EV_NVK_F1, "helpContents");
+		expect("ctrl+f2",      EV_EMS_CONTROL, EV_NVK_F2, "printPreview");
+		expect("f3",           0, EV_NVK_F3, "findAgain");
+		expect("shift+f3",     EV_EMS_SHIFT, EV_NVK_F3, "rotateCase");
+		expect("f4",           0, EV_NVK_F4, "redo");
+		expect("ctrl+f4",      EV_EMS_CONTROL, EV_NVK_F4, "closeWindow");
+		expect("alt+f4",       EV_EMS_ALT, EV_NVK_F4, "querySaveAndExit");
+		expect("f5",           0, EV_NVK_F5, "go");
+		expect("ctrl+shift+f5",
+			   EV_EMS_CONTROL | EV_EMS_SHIFT, EV_NVK_F5, "insertBookmark");
+		expect("ctrl+f6",      EV_EMS_CONTROL, EV_NVK_F6, "cycleWindows");
+		expect("ctrl+shift+f6",
+			   EV_EMS_CONTROL | EV_EMS_SHIFT, EV_NVK_F6, "cycleWindowsBck");
+#ifdef ENABLE_SPELL
+		expect("f7",           0, EV_NVK_F7, "dlgSpell");
+#endif
+		expect("alt+f8",       EV_EMS_ALT, EV_NVK_F8, "executeScript");
+		expect("f9",           0, EV_NVK_F9, "updateField");
+		expect("ctrl+f9",      EV_EMS_CONTROL, EV_NVK_F9, "insField");
+		expect("shift+f10",    EV_EMS_SHIFT, EV_NVK_F10, "contextMenu");
+		expect("alt+f10",      EV_EMS_ALT, EV_NVK_F10, "selPane");
+		expect("f11",          0, EV_NVK_F11, "viewFullScreen");
+		expect("f12",          0, EV_NVK_F12, "fileSaveAs");
+		expect("shift+f12",    EV_EMS_SHIFT, EV_NVK_F12, "fileSave");
+		expect("ctrl+f12",     EV_EMS_CONTROL, EV_NVK_F12, "fileOpen");
+		expect("ctrl+shift+f12",
+			   EV_EMS_CONTROL | EV_EMS_SHIFT, EV_NVK_F12, "print");
+
+		/* ---- injection pass: append a known paragraph pair at
+		 * EOD through XTest, then exercise each observable chord.
+		 * The rich fixture is deliberately NOT select-all+delete
+		 * cleared — deleting a span covering its embedded
+		 * table/TOC currently crashes in fl_DocListener::change,
+		 * a pre-existing product bug unrelated to key delivery
+		 * (recorded in .devin/KEYB02-bindings.md).  Every text
+		 * assertion is therefore a delta against a pre-injection
+		 * baseline, so fixture content can never false-positive. */
+		const size_t nZeph = count_str("zephyr");
+		const size_t nHtx  = count_str("hotelx");
+		const size_t nEcho = count_str("echo");
+		const size_t nZz   = count_str("zz");
+		const size_t nFF   = count_chr('\f');
+		focus_canvas();
+		/* ctrl+end lands in the fixture's trailing footnote
+		 * block (an uneditable shadow) — park the caret at the
+		 * editable end directly; the audited chords below are
+		 * still all real XTest injections */
+		auto goto_eed = [&] {
+			PT_DocPosition e = 0;
+			view->getEditableBounds(true, e, true);
+			view->setPoint(e);
+		};
+		goto_eed();
+		key(GDK_KEY_Return);
+		type_text("zephyr quokka tango delta");
+		key(GDK_KEY_Return);
+		type_text("echo foxtrot hotelx");
+		tf_guard::pump_for(300);
+		if (count_str("zephyr") != nZeph + 1
+			|| count_str("hotelx") != nHtx + 1) {
+			std::string t = doc_text();
+			g_printerr("keys: FAIL — typed seed text missing; "
+					   "point=%u tail='%s'\n", view->getPoint(),
+					   t.size() > 160 ? t.c_str() + t.size() - 160
+									  : t.c_str());
+			return 1;
+		}
+
+		/* navigation + extension */
+		PT_DocPosition eod;
+		{
+			chord(true, false, false, GDK_KEY_Home);   /* ctrl+home BOD */
+			PT_DocPosition bod = view->getPoint();
+			chord(true, false, false, GDK_KEY_End);    /* ctrl+end EOD */
+			eod = view->getPoint();
+			if (eod <= bod) {
+				g_printerr("keys: FAIL ctrl+end "
+						   "(pos %u <= %u)\n", eod, bod);
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_Left);   /* ctrl+left BOW */
+			if (view->getPoint() >= eod) {
+				g_printerr("keys: FAIL ctrl+left\n");
+				fails++;
+			}
+			key(GDK_KEY_End);                          /* eol */
+			key(GDK_KEY_Home);                         /* bol */
+			chord(true, false, false, GDK_KEY_Up);     /* ctrl+up para1 */
+			chord(true, false, false, GDK_KEY_Down);   /* ctrl+down eob */
+			chord(false, true, false, GDK_KEY_Right);  /* shift+right */
+			if (view->isSelectionEmpty()) {
+				g_printerr("keys: FAIL shift+right\n");
+				fails++;
+			}
+			key(GDK_KEY_Left);
+		}
+
+		/* character formatting on a word selection */
+		{
+			goto_eed();
+			chord(true, true, false, GDK_KEY_Left);    /* sel "hotelx" */
+			if (view->isSelectionEmpty()) {
+				g_printerr("keys: FAIL ctrl+shift+left\n");
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_b);
+			want_in("ctrl+b", charprop("font-weight"), "bold");
+			chord(true, false, false, GDK_KEY_i);
+			want_in("ctrl+i", charprop("font-style"), "italic");
+			chord(true, false, false, GDK_KEY_u);
+			want_in("ctrl+u", charprop("text-decoration"),
+					"underline");
+			chord(true, true, false, GDK_KEY_a);
+			want_in("ctrl+shift+a", charprop("text-transform"),
+					"uppercase");
+			chord(true, true, false, GDK_KEY_k);
+			want_in("ctrl+shift+k", charprop("font-variant"),
+					"small-caps");
+			chord(true, false, false, GDK_KEY_equal);
+			want_in("ctrl+=", charprop("text-position"),
+					"subscript");
+			chord(true, true, false, GDK_KEY_equal);
+			want_in("ctrl+shift+=", charprop("text-position"),
+					"superscript");
+			std::string s0 = charprop("font-size");
+			/* the Euro 102nd keycode (less/greater) produces '>'
+			 * at shift level — press the US base keysyms so the
+			 * shift level yields the intended char */
+			chord(true, true, false, GDK_KEY_period);  /* > */
+			std::string s1 = charprop("font-size");
+			if (!(atof(s1.c_str()) > atof(s0.c_str()))) {
+				g_printerr("keys: FAIL ctrl+shift+> "
+						   "font-size %s -> %s\n",
+						   s0.c_str(), s1.c_str());
+				fails++;
+			}
+			chord(true, true, false, GDK_KEY_comma);   /* < */
+			std::string s2 = charprop("font-size");
+			if (!(atof(s2.c_str()) < atof(s1.c_str()))) {
+				g_printerr("keys: FAIL ctrl+shift+< "
+						   "font-size %s -> %s\n",
+						   s1.c_str(), s2.c_str());
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_bracketright);
+			std::string s3 = charprop("font-size");
+			if (!(atof(s3.c_str()) > atof(s2.c_str()))) {
+				g_printerr("keys: FAIL ctrl+] font-size "
+						   "%s -> %s\n", s2.c_str(), s3.c_str());
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_bracketleft);
+			bool sp0 = view->getShowPara();
+			chord(true, true, false, GDK_KEY_8);
+			if (sp0 == view->getShowPara()) {
+				g_printerr("keys: FAIL ctrl+shift+8 "
+						   "viewPara\n");
+				fails++;
+			}
+			chord(true, true, false, GDK_KEY_8);       /* restore */
+			chord(true, false, false, GDK_KEY_space);  /* clear char */
+			want_in("ctrl+space font-weight",
+					charprop("font-weight"), "bold", true);
+			want_in("ctrl+space display", charprop("display"),
+					"none", true);
+		}
+
+		/* paragraph formatting + indents */
+		{
+			goto_eed();                                /* last para */
+			chord(true, false, false, GDK_KEY_e);
+			want_in("ctrl+e", blockprop("text-align"), "center");
+			chord(true, false, false, GDK_KEY_r);
+			want_in("ctrl+r", blockprop("text-align"), "right");
+			chord(true, false, false, GDK_KEY_j);
+			want_in("ctrl+j", blockprop("text-align"), "justify");
+			chord(true, false, false, GDK_KEY_l);
+			want_in("ctrl+l", blockprop("text-align"), "left");
+			chord(true, false, false, GDK_KEY_1);
+			want_in("ctrl+1", blockprop("line-height"), "1.0");
+			chord(true, false, false, GDK_KEY_5);
+			want_in("ctrl+5", blockprop("line-height"), "1.5");
+			chord(true, false, false, GDK_KEY_2);
+			want_in("ctrl+2", blockprop("line-height"), "2.0");
+			chord(true, false, false, GDK_KEY_0);
+			want_in("ctrl+0 on", blockprop("margin-top"), "12pt");
+			chord(true, false, false, GDK_KEY_0);
+			want_in("ctrl+0 off", blockprop("margin-top"), "0pt");
+
+			chord(true, false, false, GDK_KEY_m);      /* indent */
+			double ml =
+				UT_convertToInches(blockprop("margin-left").c_str());
+			if (ml < 0.4 || ml > 0.6) {
+				g_printerr("keys: FAIL ctrl+m "
+						   "margin-left %.3f\n", ml);
+				fails++;
+			}
+			chord(true, true, false, GDK_KEY_m);       /* un-indent */
+			ml = UT_convertToInches(blockprop("margin-left").c_str());
+			if (ml > 0.05) {
+				g_printerr("keys: FAIL ctrl+shift+m "
+						   "margin-left %.3f\n", ml);
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_t);      /* hanging */
+			ml = UT_convertToInches(blockprop("margin-left").c_str());
+			double ti =
+				UT_convertToInches(blockprop("text-indent").c_str());
+			if (ml < 0.4 || ml > 0.6 || ti < -0.6 || ti > -0.4) {
+				g_printerr("keys: FAIL ctrl+t "
+						   "ml %.3f ti %.3f\n", ml, ti);
+				fails++;
+			}
+			chord(true, true, false, GDK_KEY_t);       /* un-hang */
+			ml = UT_convertToInches(blockprop("margin-left").c_str());
+			ti = UT_convertToInches(blockprop("text-indent").c_str());
+			if (ml > 0.05 || ti > 0.05 || ti < -0.05) {
+				g_printerr("keys: FAIL ctrl+shift+t "
+						   "ml %.3f ti %.3f\n", ml, ti);
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_m);
+			chord(true, false, false, GDK_KEY_q);      /* clear para */
+			ml = UT_convertToInches(blockprop("margin-left").c_str());
+			if (ml > 0.05) {
+				g_printerr("keys: FAIL ctrl+q margin-left "
+						   "%.3f\n", ml);
+				fails++;
+			}
+			chord(true, true, false, GDK_KEY_l);       /* bullets toggle */
+			tf_guard::pump_for(150);                 /* list apply may relayout */
+		}
+
+		/* styles via alt+ctrl+digit and ctrl+shift+n */
+		{
+			const gchar *st = nullptr;
+			chord(true, false, true, GDK_KEY_1);       /* alt+ctrl+1 */
+			view->getStyle(&st);
+			if (!st || strcmp(st, "Heading 1")) {
+				g_printerr("keys: FAIL alt+ctrl+1 style '%s'\n",
+						   st ? st : "(null)");
+				fails++;
+			}
+			chord(true, true, false, GDK_KEY_n);       /* Normal */
+			st = nullptr;
+			view->getStyle(&st);
+			if (!st || strcmp(st, "Normal")) {
+				g_printerr("keys: FAIL ctrl+shift+n style '%s'\n",
+						   st ? st : "(null)");
+				fails++;
+			}
+		}
+
+		/* clipboard: cut/copy/paste through ctrl and shift+ins */
+		{
+			goto_eed();
+			chord(true, true, false, GDK_KEY_Left);    /* sel "hotelx" */
+			chord(true, false, false, GDK_KEY_x);      /* ctrl+x cut */
+			if (count_str("hotelx") != nHtx) {
+				g_printerr("keys: FAIL ctrl+x\n");
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_v);      /* ctrl+v paste */
+			if (count_str("hotelx") != nHtx + 1) {
+				g_printerr("keys: FAIL ctrl+v\n");
+				fails++;
+			}
+			chord(true, true, false, GDK_KEY_Left);    /* re-select */
+			chord(true, false, false, GDK_KEY_Insert); /* ctrl+ins copy */
+			goto_eed();
+			key(GDK_KEY_space);
+			chord(false, true, false, GDK_KEY_Insert); /* shift+ins paste */
+			if (count_str("hotelx") != nHtx + 2) {
+				g_printerr("keys: FAIL ctrl+ins/shift+ins\n");
+				fails++;
+			}
+			/* shift+del cuts too */
+			chord(true, true, false, GDK_KEY_Left);    /* sel pasted */
+			chord(false, true, false, GDK_KEY_Delete); /* shift+del cut */
+			if (count_str("hotelx") != nHtx + 1) {
+				g_printerr("keys: FAIL shift+del\n");
+				fails++;
+			}
+		}
+
+		/* word-delete, breaks, tab, nbsp */
+		{
+			goto_eed();
+			size_t dl0 = doc_text().size();
+			chord(true, false, false, GDK_KEY_BackSpace); /* del word */
+			if (doc_text().size() > dl0 - 5) {
+				g_printerr("keys: FAIL ctrl+backspace\n");
+				fails++;
+			}
+			key(GDK_KEY_Home);                            /* para start */
+			chord(true, false, false, GDK_KEY_Delete);    /* del word fwd */
+			if (count_str("echo") != nEcho) {
+				g_printerr("keys: FAIL ctrl+delete\n");
+				fails++;
+			}
+			goto_eed();
+			chord(true, false, false, GDK_KEY_Return);    /* page break */
+			if (count_chr('\f') != nFF + 1) {
+				g_printerr("keys: FAIL ctrl+enter "
+						   "(no formfeed)\n");
+				fails++;
+			}
+			/* shift+enter: line break inside the SAME block */
+			fl_BlockLayout *blk = view->getCurrentBlock();
+			size_t nl0 = count_chr('\n');
+			chord(false, true, false, GDK_KEY_Return);
+			if (view->getCurrentBlock() != blk
+				|| count_chr('\n') != nl0 + 1) {
+				g_printerr("keys: FAIL shift+enter\n");
+				fails++;
+			}
+			size_t nt0 = count_chr('\t');
+			key(GDK_KEY_Tab);
+			if (count_chr('\t') != nt0 + 1) {
+				g_printerr("keys: FAIL tab\n");
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_Tab);       /* ctrl+tab */
+			if (count_chr('\t') != nt0 + 2) {
+				g_printerr("keys: FAIL ctrl+tab\n");
+				fails++;
+			}
+			size_t ln0 = doc_text().size();
+			chord(true, true, false, GDK_KEY_space);      /* nbsp */
+			if (doc_text().size() != ln0 + 1) {
+				g_printerr("keys: FAIL ctrl+shift+space\n");
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_minus);     /* soft hyphen */
+			if (doc_text().size() != ln0 + 2) {
+				g_printerr("keys: FAIL ctrl+-\n");
+				fails++;
+			}
+		}
+
+		/* undo/redo + F4 repeat approximation */
+		{
+			key(GDK_KEY_space);
+			type_text("zz");
+			if (count_str("zz") != nZz + 1) {
+				g_printerr("keys: FAIL typed 'zz' missing\n");
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_z);         /* undo */
+			if (count_str("zz") != nZz) {
+				g_printerr("keys: FAIL ctrl+z\n");
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_y);         /* redo */
+			if (count_str("zz") != nZz + 1) {
+				g_printerr("keys: FAIL ctrl+y\n");
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_z);
+			key(GDK_KEY_F4);                              /* f4 = redo */
+			if (count_str("zz") != nZz + 1) {
+				g_printerr("keys: FAIL f4\n");
+				fails++;
+			}
+			chord(true, false, false, GDK_KEY_z);
+			chord(true, true, false, GDK_KEY_z);          /* ResetChar — NOT redo */
+			if (count_str("zz") != nZz) {
+				g_printerr("keys: FAIL ctrl+shift+z "
+						   "acted as redo\n");
+				fails++;
+			}
+		}
+
+		/* insert-mode toggle — bound to toggleInsertMode, but the
+		 * method is intentionally inert when the InsertModeToggle
+		 * pref is 0 (the default) while already in insert mode:
+		 * a documented divergence from Word's overtype toggle.
+		 * Verify delivery where the pref permits and accept the
+		 * inert path otherwise. */
+		{
+			AP_FrameData *pFD = static_cast<AP_FrameData *>(
+				frame->getFrameData());
+			if (pFD) {
+				bool im0 = pFD->m_bInsertMode;
+				key(GDK_KEY_Insert);
+				tf_guard::pump_for(120);
+				if (pFD->m_bInsertMode == im0)
+					g_print("keys: insert — toggleInsertMode "
+							"inert (InsertModeToggle pref=0)\n");
+				else {
+					key(GDK_KEY_Insert);
+					tf_guard::pump_for(80);
+					if (pFD->m_bInsertMode != im0) {
+						g_printerr("keys: FAIL insert "
+								   "un-toggle\n");
+						fails++;
+					}
+				}
+			}
+		}
+
+		/* ctrl+s saves the (dirty) scratch copy */
+		{
+			type_text("zz");
+			tf_guard::pump_for(120);
+			bool wasDirty = pDoc && pDoc->isDirty();
+			chord(true, false, false, GDK_KEY_s);
+			tf_guard::pump_for(500);
+			if (wasDirty && pDoc->isDirty()) {
+				g_printerr("keys: FAIL ctrl+s — doc still dirty\n");
+				fails++;
+			}
+		}
+
+		/* dialog chords — the sweep answers each toplevel for
+		 * real; platform choosers are tolerated */
+		dialog_chord("ctrl+d dlgFont",        true,  true, false, false, GDK_KEY_d);
+		dialog_chord("ctrl+f find",           true,  true, false, false, GDK_KEY_f);
+		dialog_chord("ctrl+h replace",        true,  true, false, false, GDK_KEY_h);
+		dialog_chord("ctrl+k hyperlink",      true,  true, false, false, GDK_KEY_k);
+		dialog_chord("ctrl+g go",             true,  true, false, false, GDK_KEY_g);
+		dialog_chord("ctrl+shift+g wordcount",true,  true, true,  false, GDK_KEY_g);
+		dialog_chord("ctrl+shift+f fontdlg",  true,  true, true,  false, GDK_KEY_f);
+		dialog_chord("ctrl+shift+p fontdlg",  true,  true, true,  false, GDK_KEY_p);
+		dialog_chord("ctrl+f9 field",         true,  true, false, false, GDK_KEY_F9);
+		dialog_chord("f5 go",                 true,  false,false,false, GDK_KEY_F5);
+		dialog_chord("ctrl+shift+f5 bookmark",true,  true, true,  false, GDK_KEY_F5);
+#ifdef ENABLE_SPELL
+		dialog_chord("f7 spell",              true,  false,false,false, GDK_KEY_F7);
+#endif
+		dialog_chord("ctrl+n newdoc",         true,  true, false, false, GDK_KEY_n);
+		dialog_chord("ctrl+f2 printpreview",  true,  true, false, false, GDK_KEY_F2);
+		dialog_chord("alt+ctrl+v pastespec",  false, true, false, true,  GDK_KEY_v);
+		dialog_chord("alt+f10 selpane",       false, false,false,true,  GDK_KEY_F10);
+		dialog_chord("f12 saveas",            false, false,false,false, GDK_KEY_F12);
+		dialog_chord("ctrl+f12 open",         false, true, false, false, GDK_KEY_F12);
+		/* ctrl+o resolves to the same fileOpen dialog as ctrl+f12
+		 * (verified in the resolution pass); injecting it a second
+		 * time into the native file chooser can wedge the leg on
+		 * this GTK/portal stack, so it is not re-injected here */
+
+		/* shift+f10 context popover, f3 find-again, f9 update,
+		 * shift+f3 case rotate, escape — smoke through real keys */
+		{
+			chord(false, true, false, GDK_KEY_F10);
+			tf_guard::pump_for(250);
+			key(GDK_KEY_Escape);
+			key(GDK_KEY_F3);
+			tf_guard::pump_for(300);
+			key(GDK_KEY_Escape);
+			chord(true, false, false, GDK_KEY_Home);
+			chord(true, true, false, GDK_KEY_Right);
+			chord(false, true, false, GDK_KEY_F3);   /* rotateCase */
+			key(GDK_KEY_F9);                          /* updateField */
+			tf_guard::pump_for(120);
+		}
+
+		/* ctrl+p / ctrl+shift+f12 → "print" is verified by the
+		 * resolution pass only: the GTK4 print dialog cannot
+		 * construct under xvfb — GtkPrintUnixDialog's session
+		 * D-Bus/CUPS queries block inside libgio (the same root
+		 * cause as the drvwrap dialog-id-8 xfail — a modal
+		 * injection would wedge the leg for the full guard
+		 * timeout).  The print-adjacent ctrl+f2 preview is
+		 * exercised above instead. */
+		g_print("keys: ctrl+p — binding verified via EEM "
+				"resolution (print dialog unconstructible in "
+				"this environment, drvwrap id 8)\n");
+
+		/* ctrl+w — last: must either close the frame or, on a
+		 * dirty doc, ask to save (the sweep answers the prompt) */
+		{
+			type_text("zz");                            /* ensure dirty */
+			tf_guard::pump_for(100);
+			GtkWidget *wref = win;
+			g_object_add_weak_pointer(G_OBJECT(win),
+									  reinterpret_cast<gpointer *>(&wref));
+			int before = ctx.straysClosed;
+			chord(true, false, false, GDK_KEY_w);
+			tf_guard::pump_for(600);
+			bool alive = (wref != nullptr);
+			if (wref)
+				g_object_remove_weak_pointer(
+					G_OBJECT(wref), reinterpret_cast<gpointer *>(&wref));
+			if (alive && ctx.straysClosed == before) {
+				g_printerr("keys: FAIL ctrl+w — frame open, "
+						   "no save prompt\n");
+				fails++;
+			}
+		}
+
+		if (fails) {
+			g_printerr("keys: %d chord check(s) failed\n", fails);
+			return 1;
 		}
 		g_print("drive: keys — PASS\n");
 		return 0;

@@ -519,11 +519,15 @@ bool PP_AttrProp::areAlreadyPresent(const PP_PropertyVector & attributes,
 		   && szValue && *szValue) {
 			return false;
 		}
-		// the 'props' attribute has to be handled separatedly,
-		// since it is not returned using getAttribute() (it is
-		// not stored as attribute)
-		else if((iter + 1)->empty() && (*iter != "props")
-				&& hasProperties()) {
+		// an empty-valued attribute asks for removal: that is a
+		// real change whenever the AP holds properties that could
+		// still serialize it.  this also covers the literal "props"
+		// name — it is not a stored attribute (setAttribute expands
+		// it into m_properties), so getAttribute() cannot test it,
+		// but "props"="" requests clearing the whole props blob and
+		// must not be reported as already present while properties
+		// remain (cloneWithReplacements honours it via bIgnoreProps)
+		else if((iter + 1)->empty() && hasProperties()) {
 			return false;
 		} else if(!(iter + 1)->empty()) {
 			if (!getAttribute(*iter, szValue)) {

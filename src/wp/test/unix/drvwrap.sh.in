@@ -133,6 +133,31 @@ case "$ruler_rc" in
 esac
 rm -f "$ruler_log"
 
+# KEYB02: keyboard leg — resolves the full Word-parity chord map
+# through EV_EditEventMapper, then injects real XTest key events into
+# the document canvas and checks the observable results (text edits,
+# selection, character/paragraph formatting, dialogs answered by the
+# sweep, clipboard, undo/redo).  Runs on the minimal keys fixture —
+# the rich one's trailing footnote shadow swallows appends — and
+# needs the X11 backend + libXtst; the leg exits 77 on other displays.
+keys_scratch="${TMPDIR:-/tmp}/ui-drive-keys-$$.abw"
+cp "$ABINOVA_TEST_SRC_DIR/test/wp/cov07/keys_min.abw" "$keys_scratch" || {
+	echo "FAIL: cannot stage keys scratch doc" >&2
+	exit 1
+}
+keys_log="${TMPDIR:-/tmp}/ui-drive-keys-$$.log"
+UI_DRIVE_DOC="$keys_scratch" timeout -k 15 240 $LIBTOOL $BIN \
+	--keys >"$keys_log" 2>&1
+keys_rc=$?
+case "$keys_rc" in
+	0)   echo "ok: keys chord drive" ;;
+	77)  echo "skip: keys chord drive (no X11/XTest)" ;;
+	*)   echo "FAIL: keys chord drive (rc=$keys_rc)"
+	     tail -20 "$keys_log" | sed 's/^/  /' >&2
+	     fails=$((fails + 1)) ;;
+esac
+rm -f "$keys_log" "$keys_scratch"
+
 # COV14: text/fmt/gtk leg — selection handles on the document
 # GtkOverlay, the paste-options tag, and the text/image/frame drag
 # paths (temp file, content providers, gdk_drag_begin).  Wayland-

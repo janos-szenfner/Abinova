@@ -93,11 +93,13 @@ TFTEST_MAIN("ap_KeyBindings")
 #ifdef __APPLE__
 	TFPASS(expectChar('Z', EV_EMS_CONTROL, "redo"));    /* Cmd+Shift+Z */
 #else
-	TFPASS(expectChar('Z', EV_EMS_CONTROL, "undo"));    /* Ctrl+Shift+Z */
+	TFPASS(expectChar('Z', EV_EMS_CONTROL, "clearFormatting")); /* Ctrl+Shift+Z = ResetChar */
 #endif
 	TFPASS(expectChar('y', EV_EMS_CONTROL, "redo"));
+	TFPASS(expectNVK(EV_NVK_F4, 0, "redo"));                  /* F4 = redo (Word) */
 	TFPASS(expectChar('x', EV_EMS_CONTROL, "cut"));
 	TFPASS(expectChar('c', EV_EMS_CONTROL, "copy"));
+	TFPASS(expectChar('C', EV_EMS_CONTROL, "formatPainter")); /* Ctrl+Shift+C */
 	TFPASS(expectChar('v', EV_EMS_CONTROL, "paste"));
 	TFPASS(expectChar('v', EV_EMS_ALT | EV_EMS_CONTROL, "pasteSpecial"));
 	TFPASS(expectChar('V', EV_EMS_CONTROL, "formatPainter"));   /* Ctrl+Shift+V */
@@ -106,9 +108,19 @@ TFTEST_MAIN("ap_KeyBindings")
 	TFPASS(expectChar('h', EV_EMS_CONTROL, "replace"));
 	TFPASS(expectChar('g', EV_EMS_CONTROL, "go"));
 	TFPASS(expectNVK(EV_NVK_F5, 0, "go"));
+	TFPASS(expectNVK(EV_NVK_F5, EV_EMS_SHIFT | EV_EMS_CONTROL,
+				   "insertBookmark"));                        /* Ctrl+Shift+F5 */
 	TFPASS(expectNVK(EV_NVK_BACKSPACE, EV_EMS_CONTROL, "delBOW"));
+#ifdef __APPLE__
 	TFPASS(expectNVK(EV_NVK_BACKSPACE, EV_EMS_ALT, "delBOW"));  /* Option+Delete */
+#else
+	TFPASS(expectNVK(EV_NVK_BACKSPACE, EV_EMS_ALT, "undo"));    /* Alt+Backspace */
+#endif
 	TFPASS(expectNVK(EV_NVK_DELETE, EV_EMS_CONTROL, "delEOW"));
+	TFPASS(expectNVK(EV_NVK_DELETE, EV_EMS_SHIFT, "cut"));      /* Shift+Delete */
+	TFPASS(expectNVK(EV_NVK_INSERT, EV_EMS_SHIFT, "paste"));    /* Shift+Insert */
+	TFPASS(expectNVK(EV_NVK_INSERT, EV_EMS_CONTROL, "copy"));   /* Ctrl+Insert */
+	TFPASS(expectNVK(EV_NVK_INSERT, 0, "toggleInsertMode"));
 
 	/* ---- character / paragraph formatting ---- */
 	TFPASS(expectChar('b', EV_EMS_CONTROL, "toggleBold"));
@@ -121,6 +133,14 @@ TFTEST_MAIN("ap_KeyBindings")
 	TFPASS(expectNVK(EV_NVK_F3, EV_EMS_SHIFT, "rotateCase"));   /* Shift+F3 */
 	TFPASS(expectChar('>', EV_EMS_CONTROL, "fontSizeIncrease"));
 	TFPASS(expectChar('<', EV_EMS_CONTROL, "fontSizeDecrease"));
+	TFPASS(expectChar(']', EV_EMS_CONTROL, "fontSizeIncrease"));/* Ctrl+] */
+	TFPASS(expectChar('[', EV_EMS_CONTROL, "fontSizeDecrease"));/* Ctrl+[ */
+	TFPASS(expectChar('A', EV_EMS_CONTROL, "toggleAllCaps"));   /* Ctrl+Shift+A */
+	TFPASS(expectChar('K', EV_EMS_CONTROL, "toggleSmallCaps")); /* Ctrl+Shift+K */
+	TFPASS(expectChar('H', EV_EMS_CONTROL, "toggleHidden"));    /* Ctrl+Shift+H */
+	TFPASS(expectChar('D', EV_EMS_CONTROL, "dlgFont"));         /* Ctrl+Shift+D */
+	TFPASS(expectChar('F', EV_EMS_CONTROL, "dlgFont"));         /* Ctrl+Shift+F */
+	TFPASS(expectChar('P', EV_EMS_CONTROL, "dlgFont"));         /* Ctrl+Shift+P */
 	TFPASS(expectChar('l', EV_EMS_CONTROL, "alignLeft"));
 	TFPASS(expectChar('e', EV_EMS_CONTROL, "alignCenter"));
 	TFPASS(expectChar('r', EV_EMS_CONTROL, "alignRight"));
@@ -131,6 +151,10 @@ TFTEST_MAIN("ap_KeyBindings")
 	TFPASS(expectChar('0', EV_EMS_CONTROL, "toggleParaBefore"));
 	TFPASS(expectChar('m', EV_EMS_CONTROL, "toggleIndent"));
 	TFPASS(expectChar('M', EV_EMS_CONTROL, "toggleUnIndent"));
+	TFPASS(expectChar('t', EV_EMS_CONTROL, "hangingIndent"));   /* Ctrl+T */
+	TFPASS(expectChar('T', EV_EMS_CONTROL, "unHangingIndent")); /* Ctrl+Shift+T */
+	TFPASS(expectChar('L', EV_EMS_CONTROL, "doBullets"));       /* Ctrl+Shift+L */
+	TFPASS(expectChar('G', EV_EMS_CONTROL, "dlgWordCount"));    /* Ctrl+Shift+G */
 #ifdef __APPLE__
 	/* Cmd+Q quits on macOS; clearParaFormatting stays on Cmd+Shift+Q */
 	TFPASS(expectChar('q', EV_EMS_CONTROL, "querySaveAndExit"));
@@ -161,6 +185,10 @@ TFTEST_MAIN("ap_KeyBindings")
 	TFPASS(expectNVK(EV_NVK_RETURN, EV_EMS_CONTROL, "insertPageBreak"));
 	TFPASS(expectNVK(EV_NVK_RETURN, EV_EMS_SHIFT | EV_EMS_CONTROL, "insertColumnBreak"));
 	TFPASS(expectNVK(EV_NVK_RETURN, EV_EMS_SHIFT, "insertLineBreak"));
+	TFPASS(expectNVK(EV_NVK_RETURN, EV_EMS_ALT, "insertSectionBreak"));
+	TFPASS(expectNVK(EV_NVK_F9, 0, "updateField"));             /* F9 */
+	TFPASS(expectNVK(EV_NVK_F9, EV_EMS_CONTROL, "insField"));   /* Ctrl+F9 */
+	TFPASS(expectNVK(EV_NVK_F3, 0, "findAgain"));               /* F3 */
 	TFPASS(expectNVK(EV_NVK_SPACE, EV_EMS_SHIFT | EV_EMS_CONTROL, "insertNBSpace"));
 	TFPASS(expectChar('_', EV_EMS_CONTROL, "insertNBHyphen"));  /* Ctrl+Shift+- */
 	TFPASS(expectChar('-', EV_EMS_CONTROL, "insertSoftHyphen"));/* Ctrl+- */

@@ -712,6 +712,10 @@ public:
 
 	static EV_EditMethod_Fn toggleIndent;
 	static EV_EditMethod_Fn toggleUnIndent;
+	static EV_EditMethod_Fn hangingIndent;
+	static EV_EditMethod_Fn unHangingIndent;
+	static EV_EditMethod_Fn toggleAllCaps;
+	static EV_EditMethod_Fn toggleSmallCaps;
 
 	static EV_EditMethod_Fn alignLeft;
 	static EV_EditMethod_Fn alignCenter;
@@ -1200,6 +1204,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 
 	// g
 	EV_EditMethod(NF(go),					0,	""),
+	EV_EditMethod(NF(hangingIndent),		0,	""),
 
 	// h
 	EV_EditMethod(NF(helpChangelog),		_A_,		""),
@@ -1518,6 +1523,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(tocInsert),			0,		""),
 	EV_EditMethod(NF(tocRemove),			0,		""),
 	EV_EditMethod(NF(tocUpdate),			0,		""),
+	EV_EditMethod(NF(toggleAllCaps),		0,	""),
 	EV_EditMethod(NF(toggleAutoGrammar),	0,	""),
 	EV_EditMethod(NF(toggleAutoRevision),  0,  ""),
 #ifdef ENABLE_SPELL
@@ -1543,6 +1549,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(toggleShowRevisionsAfter),  0,  ""),
 	EV_EditMethod(NF(toggleShowRevisionsAfterPrevious),  0,  ""),
 	EV_EditMethod(NF(toggleShowRevisionsBefore),  0,  ""),
+	EV_EditMethod(NF(toggleSmallCaps),		0,	""),
 	EV_EditMethod(NF(toggleStrike), 		0,	""),
 	EV_EditMethod(NF(toggleSub),			0,	""),
 	EV_EditMethod(NF(toggleSuper),			0,	""),
@@ -1553,6 +1560,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(toggleUnIndent),       0,  ""),
 
 	// u
+	EV_EditMethod(NF(unHangingIndent),		0,	""),
 	EV_EditMethod(NF(undo), 				0,	""),
 	EV_EditMethod(NF(updateField),			0,	""),
 
@@ -14521,6 +14529,90 @@ Defun1(toggleUnIndent)
 }
 
 #undef TOGGLE_INDENT_AMT
+
+// MSWord hanging indent step (Ctrl+T / Ctrl+Shift+T) — the same 1/2
+// inch step the ruler's indent markers use.
+#define HANGING_INDENT_AMT 0.5
+
+// Ctrl+T (Word): deepen the hanging indent — the block's left margin
+// moves right by one step while the first line stays put, i.e.
+// margin-left += step and text-indent -= step.
+Defun1(hangingIndent)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	if (pView->getDocument()->areStylesLocked())
+		return true;
+
+	PP_PropertyVector props_in;
+	pView->getBlockFormat(props_in);
+	const double dLeft =
+		UT_convertToInches(PP_getAttribute("margin-left", props_in).c_str());
+	const double dIndent =
+		UT_convertToInches(PP_getAttribute("text-indent", props_in).c_str());
+
+	const std::string sLeft =
+		UT_convertInchesToDimensionString(DIM_IN, dLeft + HANGING_INDENT_AMT, ".4");
+	const PP_PropertyVector properties = {
+		"margin-left", sLeft,
+		"text-indent",
+		UT_convertInchesToDimensionString(DIM_IN, dIndent - HANGING_INDENT_AMT, ".4")
+	};
+	pView->setBlockFormat(properties);
+	return true;
+}
+
+// Ctrl+Shift+T (Word): reduce a hanging indent — mirror of
+// hangingIndent, clamped so the left margin cannot go negative and a
+// plain first-line indent is never flipped into a negative one.
+Defun1(unHangingIndent)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	if (pView->getDocument()->areStylesLocked())
+		return true;
+
+	PP_PropertyVector props_in;
+	pView->getBlockFormat(props_in);
+	const double dLeft =
+		UT_convertToInches(PP_getAttribute("margin-left", props_in).c_str());
+	const double dIndent =
+		UT_convertToInches(PP_getAttribute("text-indent", props_in).c_str());
+
+	const std::string sLeft =
+		UT_convertInchesToDimensionString(DIM_IN,
+										  dLeft > HANGING_INDENT_AMT ? dLeft - HANGING_INDENT_AMT : 0.0,
+										  ".4");
+	const PP_PropertyVector properties = {
+		"margin-left", sLeft,
+		"text-indent",
+		UT_convertInchesToDimensionString(DIM_IN,
+										  dIndent < -HANGING_INDENT_AMT + 0.0001 ? dIndent + HANGING_INDENT_AMT : 0.0,
+										  ".4")
+	};
+	pView->setBlockFormat(properties);
+	return true;
+}
+
+#undef HANGING_INDENT_AMT
+
+// Ctrl+Shift+A (Word): toggle all-caps
+Defun1(toggleAllCaps)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	return _toggleSpan(pView, "text-transform", "uppercase", "none");
+}
+
+// Ctrl+Shift+K (Word): toggle small caps
+Defun1(toggleSmallCaps)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	return _toggleSpan(pView, "font-variant", "small-caps", "normal");
+}
 
 Defun1(toggleSuper)
 {

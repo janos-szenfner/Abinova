@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<abinova fileformat="1.0" template="false" xid-max="5" xmlns="https://raw.githubusercontent.com/janos-szenfner/Abinova/main/abwn.dtd" version="0.99.2" xml:space="preserve" props="dom-dir:ltr; lang:en-US">
+<section>
+	<p xid="1">first plain paragraph for key-drive navigation checks.</p>
+	<p xid="2">second plain paragraph for key-drive formatting checks.</p>
+</section>
+</abinova>

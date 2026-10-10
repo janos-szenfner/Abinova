@@ -795,21 +795,32 @@ switcher.
   Ctrl+Shift+S / F12 Save As · Shift+F12 save · Ctrl+F12 open ·
   Ctrl+Shift+F12 / Ctrl+P print · Ctrl+F2 print preview ·
   Ctrl+W close document · Alt+F4 exit.
-- **Editing** — Ctrl+Z/X/C/V undo/cut/copy/paste · Ctrl+Alt+V
+- **Editing** — Ctrl+Z undo · Ctrl+Y / F4 redo · Alt+Backspace undo ·
+  Ctrl+X/C/V cut/copy/paste · Shift+Delete cut · Shift+Insert paste ·
+  Ctrl+Insert copy · Ctrl+Alt+V
   Paste Special · Ctrl+Shift+V paste clipboard formatting onto the
-  selection (format painter) · Ctrl+A select all · Ctrl+F find ·
-  Ctrl+H replace · Ctrl+G / F5 Go To · Ctrl+Backspace / Ctrl+Delete
-  delete word left/right · Shift+Insert paste · Ctrl+Insert copy.
+  selection (format painter) · Ctrl+Shift+C copy formatting ·
+  Ctrl+A select all · Ctrl+F find ·
+  Ctrl+H replace · Ctrl+G / F5 Go To · F3 find again ·
+  Ctrl+Backspace / Ctrl+Delete delete word left/right.
 - **Formatting** — Ctrl+B/I/U bold/italic/underline · Ctrl+Shift+X
   strikethrough · Ctrl+= subscript · Ctrl+Shift+= superscript ·
-  Shift+F3 rotate case · Ctrl+Shift+> / Ctrl+Shift+< grow/shrink
-  font · Ctrl+D font dialog.
+  Shift+F3 rotate case · Ctrl+Shift+> / Ctrl+Shift+< and
+  Ctrl+] / Ctrl+[ grow/shrink font · Ctrl+Shift+A all caps ·
+  Ctrl+Shift+K small caps · Ctrl+Shift+H hidden text ·
+  Ctrl+Space / Ctrl+Shift+Z remove character formatting ·
+  Ctrl+D / Ctrl+Shift+F / Ctrl+Shift+P font dialog.
 - **Paragraph** — Ctrl+L/E/R/J left/centre/right/justify ·
   Ctrl+1/5/2 single/1.5/double spacing · Ctrl+0 toggle 12 pt space
   before paragraph · Ctrl+M / Ctrl+Shift+M increase/decrease indent ·
+  Ctrl+T / Ctrl+Shift+T increase/decrease hanging indent ·
+  Ctrl+Shift+L bullets ·
   Ctrl+Q remove direct paragraph formatting (keeps the style) ·
-  Ctrl+Space remove character formatting · Ctrl+Shift+N Normal style ·
+  Ctrl+Shift+N Normal style ·
   Alt+Ctrl+1/2/3 Heading 1/2/3.
+- **Fields & marks** — F9 update field · Ctrl+F9 insert field braces ·
+  Ctrl+Shift+F5 insert bookmark · F7 spell check ·
+  Ctrl+Shift+G word count.
 - **Navigation & selection** — arrows, Ctrl+arrows (word/paragraph
   jumps), Home/End, Ctrl+Home/End (document bounds), all with Shift
   to extend the selection · PageUp/PageDown · Ctrl+Tab or
@@ -831,13 +842,18 @@ switcher.
   (draft) layout · Ctrl+Alt+S split window · Alt+Shift+C remove
   split · F11 fullscreen · Ctrl+wheel zoom.
 - **Misc** — F1 help · F10 context menu · Alt+F8 run script ·
-  F3 find again.
+  F11 fullscreen.
 
 Notable moves away from the historical AbiWord map: Ctrl+K is now
 hyperlink (strikethrough moved to Ctrl+Shift+X), Ctrl+L is align-left
-(was bullets), Ctrl+M indents (symbol dialog stays in the menus),
-Ctrl+Shift+N applies Normal (template-new moved off the key), Ctrl+Q
-clears paragraph formatting (quit remains on Alt+F4), F12 is Save As,
+(bullets moved to Ctrl+Shift+L), Ctrl+M indents (symbol dialog stays
+in the menus), Ctrl+T / Ctrl+Shift+T apply hanging indents (outline
+mode moved off the keys), Ctrl+Shift+C/V are the format painter,
+Ctrl+Shift+Z clears character formatting (redo lives on Ctrl+Y/F4),
+Ctrl+[ / Ctrl+] resize the font (header/footer editing stays in the
+Insert menu), Alt+Backspace undoes, Ctrl+Shift+N applies Normal
+(template-new moved off the key), Ctrl+Q clears paragraph formatting
+(quit remains on Alt+F4), F12 is Save As,
 and Ctrl+= / Ctrl+- mean subscript / optional hyphen — zoom lives on
 Ctrl+mouse-wheel.
 
@@ -850,9 +866,10 @@ Divergent Mac conventions are bound explicitly: Cmd+Q quits
 (querySaveAndExit — GTK4 ships no native macOS menubar, so nothing
 else would consume it; Cmd+Shift+Q keeps clearParaFormatting),
 Cmd+Shift+Z is redo
-(platform-conditional — Ctrl+Shift+Z stays undo elsewhere),
+(platform-conditional — Ctrl+Shift+Z is clearFormatting elsewhere),
 Option+←/→ and Option+Shift+←/→ move/select by word, Option+Delete
-deletes the word to the left, and Ctrl+/Cmd+; opens the spell
+deletes the word to the left (Alt+Backspace is undo elsewhere), and
+Ctrl+/Cmd+; opens the spell
 checker. ⌥ maps to Alt. Function keys may require Fn depending on
 the "Use F1, F2…" system setting. Bindings whose command does
 not exist remain unbound on all platforms.
