@@ -93,6 +93,7 @@
 #include "ev_EditMethod.h"
 #include "fv_View.h"
 #include "fl_BlockLayout.h"
+#include "fl_TableStyles.h"
 #include "fp_Run.h"
 #include "fp_TextRun.h"
 #include "ut_growbuf.h"
@@ -6837,6 +6838,448 @@ static int drive_popovers(AP_UnixApp *app, const char *src)
 	return fails ? 1 : 0;
 }
 
+/* ---------------- TBL02: Table Design style-options leg ----------------
+ *
+ * User-reported class: the six Table Style Options checkbuttons read
+ * as unclickable — TBL01's root cause was the tbl-look strux write
+ * resolving the parent container so every toggle silently dropped and
+ * the ribbon refresh snapped the tick back.  Until this leg the only
+ * coverage was fv_TableOps calling cmdTableSetStyleOption directly and
+ * fl_TableStyles recipe data — nothing exercised the widget chain
+ * checkbutton 'toggled' -> _s_tbl_opt_toggled -> _invokeEditMethod
+ * -> Defun(tableStyleOpt) -> CHECK_FRAME -> fv_enumTable -> strux
+ * write -> refresh read-back.
+ *
+ * This leg activates the real checkbuttons and asserts the two
+ * oracles TBL01 used plus the widgets themselves: gtk_widget_is_
+ * sensitive (EFFECTIVE — catches an insensitive ancestor, the (a)
+ * suspect TBL01 ruled out by hand), the stored tbl-look (a dead write
+ * is the (b) snap-back signature), the tick surviving refresh, and
+ * the rendered cell/char props recomputed from the fl_TableStyles
+ * recipe (a flag-only assert would not see a missing re-render).
+ *
+ * Negative control (task requirement: prove the asserts can go red):
+ *   UI_DRIVE_TBLNEG=deadgroup pins the options grid insensitive —
+ *   the ancestor-sensitivity class TBL01's suspect (a).
+ *   UI_DRIVE_TBLNEG=deadwire  blocks the toggled handlers — the
+ *   dead-write class that was TBL01's actual bug.
+ * Either must make the leg exit nonzero; if it stays green it tests
+ * nothing. */
+
+/* collect the six checkbuttons (keyed by their "abi-opt-idx" qdata)
+ * plus the "tabledesign" contextual notebook page */
+static void tblopt_find_widgets(GtkWidget *checks[6], GtkWidget **page)
+{
+	memset(checks, 0, sizeof(GtkWidget *) * 6);
+	if (page)
+		*page = nullptr;
+	sweep_guard([&] {
+		for (GtkWidget * w : tf_widgets::toplevels()) {
+			tf_widgets::for_each(w, [&](GtkWidget * c) {
+				if (GTK_IS_CHECK_BUTTON(c)) {
+					int idx = GPOINTER_TO_INT(g_object_get_data(
+						G_OBJECT(c), "abi-opt-idx"));
+					if (idx >= 0 && idx < 6 && !checks[idx])
+						checks[idx] = c;
+				}
+				if (page && !*page) {
+					const char *k = static_cast<const char *>(
+						g_object_get_data(G_OBJECT(c),
+										  "abi-ctx-key"));
+					if (k && !strcmp(k, "tabledesign"))
+						*page = c;
+				}
+			});
+		}
+	});
+}
+
+/* look flags as stored on the strux, normalized the same way the
+ * ribbon's refresh parses them ("" -> Word's 04A0 defaults) */
+static std::string tblopt_stored_look(FV_View *view)
+{
+	std::string s = view->getTableStyleLook();
+	return FV_TableStyleLook::fromString(
+		s.empty() ? nullptr : s.c_str()).toString();
+}
+
+/* cell strux prop by grid coordinate — the "what the render will
+ * show" oracle: recipe keys land as real cell strux props */
+static bool tblopt_cell_prop(FV_View *view, PD_Document *doc,
+							 const pf_Frag_Strux *tableSDH,
+							 int row, int col, const char *key,
+							 std::string &val)
+{
+	const pf_Frag_Strux *sdh = doc->getCellStruxFromRowCol(
+		tableSDH, view->isShowRevisions(), view->getRevisionLevel(),
+		row, col);
+	val.clear();
+	if (!sdh)
+		return false;
+	const gchar *v = nullptr;
+	if (doc->getPropertyFromStrux(
+			sdh, view->isShowRevisions(), view->getRevisionLevel(),
+			key, reinterpret_cast<const char **>(&v)) && v) {
+		val = v;
+		return true;
+	}
+	return false;
+}
+
+/* one real activation of check `idx`; every surrounding assert is a
+ * leg assert so a dead path fails loudly instead of skipping ahead */
+static void tblopt_toggle(FV_View *view, GtkWidget *cb, int idx,
+						  FV_TableStyleLook &want, int *fails)
+{
+	char step[96];
+	snprintf(step, sizeof(step), "opt%d toggle", idx);
+	bool wantActive = !gtk_check_button_get_active(
+		GTK_CHECK_BUTTON(cb));
+	bool ok = call_guard(
+		[cb] { gtk_widget_activate(cb); }, step);
+	markup_check(fails, ok, step, "activation survived");
+	/* gtk_widget_activate flips active immediately even when the
+	 * write path later proves dead — assert both the instant tick
+	 * and the tick after the refresh pump (the snap-back oracle) */
+	markup_check(fails,
+				 gtk_check_button_get_active(GTK_CHECK_BUTTON(cb))
+					 == wantActive,
+				 step, "tick landed");
+	tf_guard::pump_for(300);
+	markup_check(fails,
+				 gtk_check_button_get_active(GTK_CHECK_BUTTON(cb))
+					 == wantActive,
+				 step, "tick survives refresh (no snap-back)");
+	bool *flags[] = { &want.firstRow, &want.lastRow, &want.bandRow,
+					  &want.firstCol, &want.lastCol, &want.bandCol };
+	*flags[idx] = wantActive;
+	markup_check(fails,
+				 tblopt_stored_look(view) == want.toString(),
+				 step, "tbl-look written");
+}
+
+/* refresh must re-sync every check to the stored look — this is also
+ * what proves a half-dead toggle can't leave the boxes lying */
+static void tblopt_assert_states(GtkWidget *checks[6],
+								 const FV_TableStyleLook &want,
+								 int *fails, const char *step)
+{
+	const bool vals[6] = { want.firstRow, want.lastRow, want.bandRow,
+						   want.firstCol, want.lastCol, want.bandCol };
+	for (int i = 0; i < 6; ++i) {
+		if (!checks[i])
+			continue;
+		char what[64];
+		snprintf(what, sizeof(what), "check %d state", i);
+		markup_check(fails,
+			gtk_check_button_get_active(GTK_CHECK_BUTTON(checks[i]))
+				== vals[i],
+			step, what);
+	}
+}
+
+static int drive_tabledesign(AP_UnixApp *app, const char *)
+{
+	alarm(0);
+	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
+	sweep_guard([&ctx] { ctx.preexisting = tf_widgets::toplevels(); });
+
+	const char *top = getenv("ABINOVA_TEST_SRC_DIR");
+	std::string path = std::string(top ? top : ".") +
+		"/test/wp/BillOfRights.abw";
+	std::string staged = stage_scratch_doc(path, "tabledesign");
+	if (!staged.empty())
+		path = staged;
+
+	set_phase("tabledesign: load fixture");
+	AV_View *av = nullptr;
+	if (!load_fixture_frame(app, ctx, path, &av) || !av) {
+		g_printerr("drive: tabledesign — cannot load %s\n",
+				   path.c_str());
+		return 1;
+	}
+	FV_View *view = static_cast<FV_View *>(av);
+	PD_Document *doc = view->getDocument();
+	if (!doc) {
+		g_printerr("drive: tabledesign — no document\n");
+		return 1;
+	}
+	int fails = 0;
+	const char *neg = getenv("UI_DRIVE_TBLNEG");
+
+	/* ---- insert a 3x3 table at EOD and park the caret in a cell
+	 * — the same positions the contextual-tab predicate and the
+	 * refresh read-back look at */
+	set_phase("tabledesign: insert table");
+	PT_DocPosition eod = 0;
+	doc->getBounds(true, eod);
+	view->setPoint(eod);
+	call_guard([&] {
+		view->cmdInsertTable(3, 3, PP_NOPROPS);
+	}, "insert 3x3 table");
+	tf_guard::pump_for(500);
+
+	const pf_Frag_Strux *secSDH = nullptr;
+	const pf_Frag_Strux *tableSDH = nullptr;
+	if (doc->getStruxOfTypeFromPosition(2, PTX_Section, &secSDH) &&
+		secSDH) {
+		const pf_Frag_Strux *t = nullptr;
+		while (doc->getNextStruxOfType(secSDH, PTX_SectionTable, &t) &&
+			   t) {
+			tableSDH = t;
+			secSDH = t;
+		}
+	}
+	markup_check(&fails, tableSDH != nullptr, "setup",
+				 "table strux found");
+	if (!tableSDH)
+		return 1;
+	const PT_DocPosition posTable = doc->getStruxPosition(tableSDH);
+	view->setPoint(view->findCellPosAt(posTable + 1, 0, 0) + 1);
+	tf_guard::pump_for(400);
+	markup_check(&fails, view->isInTable(), "setup",
+				 "caret inside table");
+
+	/* one real char per probe cell so the recipe's charProps
+	 * (first/last column bold) have text runs to land on */
+	for (int r = 0; r < 3; ++r)
+		for (int c = 0; c < 3; ++c) {
+			PT_DocPosition cp =
+				view->findCellPosAt(posTable + 1, r, c);
+			if (!cp)
+				continue;
+			view->setPoint(cp + 1);
+			char cellTxt[8];
+			snprintf(cellTxt, sizeof(cellTxt), "%d%d", r, c);
+			view->cmdCharInsert(std::string(cellTxt), false);
+		}
+	tf_guard::pump_for(400);
+	view->setPoint(view->findCellPosAt(posTable + 1, 1, 1) + 1);
+
+	/* ---- widget discovery: the six checks + the contextual page */
+	set_phase("tabledesign: find widgets");
+	GtkWidget *checks[6];
+	GtkWidget *page = nullptr;
+	tblopt_find_widgets(checks, &page);
+	int found = 0;
+	for (int i = 0; i < 6; ++i)
+		found += checks[i] != nullptr;
+	markup_check(&fails, found == 6, "setup",
+				 "six style-option checks found");
+	markup_check(&fails, page != nullptr, "setup",
+				 "tabledesign contextual page found");
+	if (page) {
+		markup_check(&fails, gtk_widget_get_visible(page), "setup",
+					 "contextual page shown in-table");
+		/* the user-facing switch: the contextual tab auto-selects
+		 * on entry; if it somehow didn't, land on it like a user
+		 * clicking the tab */
+		for (GtkWidget *p = gtk_widget_get_parent(page); p;
+			 p = gtk_widget_get_parent(p)) {
+			if (!GTK_IS_NOTEBOOK(p))
+				continue;
+			int n = gtk_notebook_get_n_pages(GTK_NOTEBOOK(p));
+			for (int j = 0; j < n; ++j)
+				if (gtk_notebook_get_nth_page(GTK_NOTEBOOK(p), j)
+						== page) {
+					markup_check(&fails,
+						gtk_notebook_get_current_page(
+							GTK_NOTEBOOK(p)) == j,
+						"setup", "contextual tab auto-selected");
+					gtk_notebook_set_current_page(
+						GTK_NOTEBOOK(p), j);
+					break;
+				}
+			break;
+		}
+		tf_guard::pump_for(300);
+	}
+
+	/* negative control (a): pin the checks' shared ancestor
+	 * insensitive — TBL01's suspect (a) class.  The sensitivity
+	 * asserts below MUST go red. */
+	GtkWidget *optGrid = nullptr;
+	if (checks[0]) {
+		optGrid = gtk_widget_get_parent(checks[0]);
+		for (int i = 1; i < 6 && optGrid; ++i)
+			if (checks[i] &&
+				gtk_widget_get_parent(checks[i]) != optGrid)
+				optGrid = nullptr;
+	}
+	if (neg && !strcmp(neg, "deadgroup") && optGrid) {
+		g_print("tabledesign: NEG deadgroup — grid forced "
+				"insensitive\n");
+		gtk_widget_set_sensitive(optGrid, FALSE);
+		tf_guard::pump_for(200);
+	}
+	/* negative control (b): block every 'toggled' handler — the
+	 * dead-write class (TBL01's real bug shape).  Ticks still flip
+	 * but nothing reaches the doc — tbl-look asserts MUST go red. */
+	if (neg && !strcmp(neg, "deadwire")) {
+		g_print("tabledesign: NEG deadwire — toggled handlers "
+				"blocked\n");
+		guint sid = g_signal_lookup("toggled",
+								  GTK_TYPE_CHECK_BUTTON);
+		for (int i = 0; i < 6; ++i)
+			if (checks[i])
+				g_signal_handlers_block_matched(
+					checks[i], G_SIGNAL_MATCH_ID, sid, 0,
+					nullptr, nullptr, nullptr);
+	}
+
+	/* (b) assert: effective sensitivity on all six — own flag AND
+	 * ancestors; a dead group box is invisible to get_sensitive */
+	for (int i = 0; i < 6; ++i) {
+		char what[64];
+		snprintf(what, sizeof(what), "check %d effective-sensitive",
+				 i);
+		markup_check(&fails,
+					 checks[i] &&
+						 gtk_widget_is_sensitive(checks[i]),
+					 "setup", what);
+	}
+
+	FV_TableStyleLook want;	/* ctor = the 04A0 defaults ("FBf") */
+
+	/* ---- phase A: styleless table — TBL01's picked behaviour:
+	 * the option still ticks and the look is recorded on the
+	 * implicit Table Grid (which has no conditional parts, so no
+	 * re-render is forced).  Assert all three sides of that
+	 * contract: tick persists, tbl-look updates, and NO style
+	 * props appear on the cells */
+	g_print("tabledesign: phase A — styleless table\n");
+	for (int i = 0; i < 6 && checks[i]; ++i)
+		tblopt_toggle(view, checks[i], i, want, &fails);
+	tblopt_assert_states(checks, want, &fails, "styleless");
+	{
+		std::string bg;
+		bool has = tblopt_cell_prop(view, doc, tableSDH, 1, 1,
+									"background-color", bg);
+		markup_check(&fails, !has, "styleless",
+					 "no forced re-render (no cell bg written)");
+		markup_check(&fails,
+					 tblopt_stored_look(view) == "Llb",
+					 "styleless", "look recorded as Llb");
+	}
+
+	/* ---- phase B: styled table — apply GridTable2 through the
+	 * real edit method, then toggle every option again and prove
+	 * the toggle reaches the RENDERED table: each option gets a
+	 * probe whose expected value comes out of the recipe itself
+	 * (FV_tableStyleCellProps), never from the flags */
+	g_print("tabledesign: phase B — GridTable2 styled table\n");
+	const EV_EditMethodContainer *emc =
+		XAP_App::getApp()->getEditMethodContainer();
+	EV_EditMethod *styleEm = emc
+		? emc->findEditMethodByName("tableStyle") : nullptr;
+	markup_check(&fails, styleEm != nullptr, "styled",
+				 "tableStyle method registered");
+	if (styleEm) {
+		UT_UCS4String m("GridTable2");
+		EV_EditMethodCallData cd(m.ucs4_str(),
+							   static_cast<UT_uint32>(m.length()));
+		bool ok = call_guard([&] { styleEm->Fn(view, &cd); },
+							 "em tableStyle GridTable2");
+		markup_check(&fails, ok, "styled", "style applied");
+		tf_guard::pump_for(500);
+		markup_check(&fails,
+					 view->getTableStyleId() == "GridTable2",
+					 "styled", "tbl-style stored");
+	}
+	/* the stored look survives a style application */
+	tblopt_assert_states(checks, want, &fails, "styled");
+
+	const FV_TableStyle *st = FV_tableStyleById("GridTable2");
+	markup_check(&fails, st != nullptr, "styled",
+				 "GridTable2 recipe present");
+
+	/* probe table: per option, a (row,col,key) whose recipe value
+	 * flips with the option under the look states the sequence
+	 * below passes through.  charProps probes use getCharFormat
+	 * at a caret parked on the cell's text. */
+	struct Probe { int row, col; const char *key; };
+	static const Probe cellProbe[6] = {
+		{ 0, 1, "bot-thickness" },		/* F: FirstRow bottom border */
+		{ 2, 1, "background-color" },	/* L: LastRow fill */
+		{ 1, 1, "background-color" },	/* B: Band1H fill */
+		{ 1, 0, "font-weight" },		/* f: FirstCol bold (char) */
+		{ 1, 2, "font-weight" },		/* l: LastCol bold (char) */
+		{ 2, 0, "background-color" },	/* b: Band1V fill */
+	};
+	auto recipe_val = [&](int opt, int row, int col,
+						  const char *key) -> std::string {
+		if (!st)
+			return "";
+		FV_TableStyleCell cp = FV_tableStyleCellProps(
+			*st, want, row, col, 3, 3);
+		const std::string &src =
+			(opt == 3 || opt == 4) ? cp.charProps : cp.cellProps;
+		std::vector<std::string> kv = FV_tableStyleSplitProps(src);
+		for (size_t i = 0; i + 1 < kv.size(); i += 2)
+			if (kv[i] == key)
+				return kv[i + 1];
+		return "";
+	};
+	auto doc_val = [&](int opt, const Probe &p) -> std::string {
+		std::string v;
+		if (opt == 3 || opt == 4) {
+			PT_DocPosition cp =
+				view->findCellPosAt(posTable + 1, p.row, p.col);
+			view->setPoint(cp + 1);
+			PP_PropertyVector got;
+			view->getCharFormat(got);
+			return PP_getAttribute(p.key, got);
+		}
+		tblopt_cell_prop(view, doc, tableSDH, p.row, p.col,
+						 p.key, v);
+		return v;
+	};
+
+	/* ordered toggles; between steps the expected look is updated
+	 * BEFORE the probe so recipe_val() predicts the post-toggle
+	 * render — before/after must differ AND after must equal the
+	 * recipe (a flag-only assert would miss a stale render) */
+	static const int seq[6] = { 0, 1, 2, 5, 3, 4 };
+	for (int s = 0; s < 6; ++s) {
+		const int opt = seq[s];
+		if (!checks[opt])
+			continue;
+		char step[96];
+		snprintf(step, sizeof(step), "styled opt%d", opt);
+		std::string before = doc_val(opt, cellProbe[opt]);
+		tblopt_toggle(view, checks[opt], opt, want, &fails);
+		std::string wantVal = recipe_val(opt, cellProbe[opt].row,
+										 cellProbe[opt].col,
+										 cellProbe[opt].key);
+		std::string after = doc_val(opt, cellProbe[opt]);
+		g_print("  probe opt%d %s: '%s' -> '%s' (recipe '%s')\n",
+				opt, cellProbe[opt].key, before.c_str(),
+				after.c_str(), wantVal.c_str());
+		markup_check(&fails, before != after, step,
+					 "render changed on toggle");
+		/* when the recipe defines no value the render falls back
+		 * to the property default — getCharFormat still answers
+		 * 'normal' for font-weight; a stale applied value (the
+		 * dead-write symptom) would NOT normalize away */
+		bool recipeOk = after == wantVal ||
+			(wantVal.empty() &&
+			 (after.empty() ||
+			  (!strcmp(cellProbe[opt].key, "font-weight") &&
+			   after == "normal")));
+		markup_check(&fails, recipeOk, step,
+					 "render matches recipe");
+	}
+	tblopt_assert_states(checks, want, &fails, "styled end");
+	markup_check(&fails,
+				 tblopt_stored_look(view) == "FBf",
+				 "styled end", "look restored to FBf");
+
+	s_gcov_dump();
+	g_print("drive: tabledesign done — %d failures, %d criticals\n",
+			fails, g_criticals);
+	return fails ? 1 : 0;
+}
+
 int main(int argc, char **argv)
 {
 	g_log_set_writer_func(drive_log_writer, nullptr, nullptr);
@@ -6865,7 +7308,8 @@ int main(int argc, char **argv)
 		 wantEv = false, wantFmt = false, wantFileNew = false,
 		 wantRuler = false, wantFreeze = false, wantToc = false,
 		 wantMarkup = false, wantPopovers = false,
-		 wantRevisions = false, wantKeys = false;
+		 wantRevisions = false, wantKeys = false,
+		 wantTableDesign = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -6894,17 +7338,19 @@ int main(int argc, char **argv)
 			wantRevisions = true;
 		else if (strcmp(argv[i], "--keys") == 0)
 			wantKeys = true;
+		else if (strcmp(argv[i], "--tabledesign") == 0)
+			wantTableDesign = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
 	if (!wantList && !wantFrame && !wantAbi && !wantEv && !wantFmt &&
 		!wantFileNew && !wantRuler && !wantFreeze && !wantToc &&
 		!wantMarkup && !wantPopovers && !wantRevisions && !wantKeys &&
-		wantId < 0) {
+		!wantTableDesign && wantId < 0) {
 		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev"
 				   " | --fmt | --filenew | --ruler | --freeze"
 				   " | --toc | --markup | --popovers"
-				   " | --revisions | --keys\n", argv[0]);
+				   " | --revisions | --keys | --tabledesign\n", argv[0]);
 		return 2;
 	}
 
@@ -6988,6 +7434,8 @@ int main(int argc, char **argv)
 		return drive_popovers(app, src);
 	if (wantKeys)
 		return drive_keys(app, src);
+	if (wantTableDesign)
+		return drive_tabledesign(app, src);
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {

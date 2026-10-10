@@ -5790,6 +5790,24 @@ below are on `main` but the release has not been cut yet.
   freeze and popovers legs now each copy the shared fixture to a
   fresh scratch file — a wrapper-timeout kill mid-leg was able to
   leave `rich.abw` truncated for the next leg.
+- **Table Design style-options widget path is now regression-tested**
+  (`ui-drive --tabledesign`, wired into `make check` via `drvwrap`) —
+  the six Table Style Options checkboxes previously had zero coverage
+  on the user-facing chain (checkbutton `toggled` → `tableStyleOpt`
+  edit method → `tbl-look` strux write → ribbon refresh read-back),
+  which is how a silently-dropped write shipped as "unclickable"
+  checkboxes. The leg inserts a real table, parks the caret in a
+  cell, and activates every check for real, asserting GTK *effective*
+  sensitivity (an insensitive ancestor is invisible to
+  `get_sensitive`), the stored `tbl-look` after each toggle, tick
+  persistence across refresh (the snap-back signature), and the
+  rendered cell/char props recomputed from the `fl_TableStyles`
+  recipe — on a styleless table (tick + recorded look, deliberately
+  no re-render, matching Word's implicit Table Grid) and a
+  GridTable2-styled one. `UI_DRIVE_TBLNEG=deadgroup|deadwire`
+  negative controls force the ancestor-sensitivity and dead-write
+  classes; both, and a real revert of the strux-position fix, turn
+  the leg red.
 - **Golden-image render suite** (`fv_GoldenCovers.t.cpp`) — page 0 of
   a headless `FV_View` is painted onto a widget-less
   `DGP_SCREEN` Cairo surface (no display or xvfb needed) and the

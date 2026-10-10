@@ -289,6 +289,30 @@ case "$pop_rc" in
 esac
 rm -f "$pop_log" "$pop_scratch"
 
+# TBL02: Table Design style-options leg — inserts a real table,
+# parks the caret in a cell, and activates the six Table Style
+# Options checkbuttons through the real widget path ('toggled' ->
+# tableStyleOpt -> strux write -> ribbon refresh read-back).  Asserts
+# EFFECTIVE sensitivity (ancestor-insensitivity class), the stored
+# tbl-look after every toggle (the TBL01 dead-write / snap-back
+# signature), tick persistence across refresh, and the rendered cell/
+# char props recomputed from the fl_TableStyles recipe — on both a
+# styleless table (tick + recorded look, deliberately no re-render)
+# and a GridTable2-styled one.  A dead chain is the regression being
+# guarded, so any nonzero exit (including a timeout) is a failure.
+tbl_log="${TMPDIR:-/tmp}/ui-drive-tabledesign-$$.log"
+timeout -k 15 180 $LIBTOOL $BIN \
+	--tabledesign >"$tbl_log" 2>&1
+tbl_rc=$?
+case "$tbl_rc" in
+	0)   echo "ok: tabledesign drive" ;;
+	77)  echo "skip: tabledesign drive (no interactive context)" ;;
+	*)   echo "FAIL: tabledesign drive (rc=$tbl_rc)"
+	     tail -30 "$tbl_log" | sed 's/^/  /' >&2
+	     fails=$((fails + 1)) ;;
+esac
+rm -f "$tbl_log"
+
 rm -f "$scratch" /tmp/ui-drive-abi.abw /tmp/ui-drive-red.png \
 	"${TMPDIR:-/tmp}/ui-drive-toc-multi.abw" \
 	"${TMPDIR:-/tmp}/ui-drive-media.abwn" "${TMPDIR:-/tmp}/ui-drive-blip.abw" \
