@@ -11,9 +11,28 @@
 - Leg (b): `tools/check-san.sh asan` — the whole suite under
   `-fsanitize=address,undefined` in `san-build/tree` (unit suite with
   LSan + `supp.txt`, ~250-invocation rt corpus with `detect_leaks=0`).
-  DEFERRED to AUDIT03: the first attempt could not link `Abinova-test`
-  (`__gcov_dump` was a strong ref — fixed, see Test infrastructure
-  below); the leg has not yet re-run end-to-end.
+  DONE under AUDIT03/AUDIT04: the first attempt could not link
+  `Abinova-test` (`__gcov_dump` was a strong ref — fixed, see Test
+  infrastructure below). The completed run found one real first-party
+  leak — `AP_UnixRibbon::createWidget()` left the `frame`/`grid`/
+  `rowBox` group containers floating (never packed, never freed) for
+  empty groups and left `grid` floating for row-major groups; they are
+  now `ref_sink`+`unref`'d on those paths. The only remaining report
+  was a single 32-byte GTK-internal `g_closure_invoke` allocation in
+  libgtk's signal-dispatch machinery (pumped by `_nullUpdate` during
+  load — no first-party ownership), added to `supp.txt` as documented
+  library noise. The corpus leg then caught a real
+  heap-buffer-overflow: `s_Abinova_1_Listener::_handleDataItems()`
+  passed a raw `UT_ByteBuf` payload to `addStringUnchecked` —
+  `UT_ByteBuf` is not NUL-terminated, so a base64 blob that exactly
+  fills a 1024-byte chunk made `strlen` over-read (and an empty item
+  passed `getPointer`'s nullptr straight into `strlen`); the payload
+  is now NUL-terminated before the unchecked write.
+  AUDIT03's other sanitizer fixes (frame/IM teardown
+  ordering, ribbon weak-refs, RTF/PNG leaks, UBSan vptr+memmove) were
+  landed and verified under RELQA01's normal-suite battery.
+  Result: unit suite 13382 tests / 0 failures / 0 LSan findings,
+  rt corpus 376 legs / 0 failed — zero unresolved real findings.
 
 ## Findings fixed (~54 files)
 
@@ -179,9 +198,13 @@
 ## Verification
 
 - `cd src && make -j2` — clean build, `abinova` links.
-- `tools/check-san.sh asan` — PENDING, owned by AUDIT03 (link fix for
-  the weak `__gcov_dump` refs landed in this slice; corpus leg
-  `check-corpus.out` shows the rt corpus PASS from the first attempt).
+- `tools/check-san.sh asan` — DONE under AUDIT04 (AUDIT03 capped at
+  restarts before the instrumented re-verify finished): unit suite
+  `testwrap.sh` 13382 tests / 0 failures / 0 LSan reports under
+  `-fsanitize=address,undefined`, corpus `rtwrap.sh` 376 legs / 0
+  failed.
 - Headless converts (AUDIT02 audit-verify): Badge.docx and
   Word97Test.doc -> PDF render correctly.
-- `make check` — full suite gate owned by AUDIT03's close-out.
+- `make check` — full suite green under RELQA01/RELQA05 (testwrap
+  13382/0, rtwrap 382/382, portwrap/dlgswrap/drvwrap legs PASS or
+  documented-xfail), recorded in `.devin/RELEASE-CHECKLIST.md`.

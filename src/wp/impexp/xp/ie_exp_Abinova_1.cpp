@@ -1460,7 +1460,15 @@ void s_Abinova_1_Listener::_handleDataItems(void)
 		    {
 			   	m_pie->addString("base64", "no");
 			}
-			m_pie->addStringUnchecked(nullptr, reinterpret_cast<const char*>(bbEncoded->getPointer(0)));
+			/* the byte buffer is not NUL-terminated — a payload
+			 * that exactly fills a chunk has no in-bound byte for
+			 * the unchecked cstr write to stop at */
+			if (bbEncoded->append(reinterpret_cast<const UT_Byte *>(""), 1))
+			{
+				m_pie->addStringUnchecked(nullptr,
+					reinterpret_cast<const char *>(
+						bbEncoded->getPointer(0)));
+			}
 			m_pie->endElement();
 			m_pie->setPrettyPrint(true);
 

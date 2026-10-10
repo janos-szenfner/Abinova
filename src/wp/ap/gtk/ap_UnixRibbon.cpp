@@ -660,10 +660,20 @@ GtkWidget * AP_UnixRibbon::createWidget()
 
 			if (bEmpty)
 			{
-				gtk_widget_set_visible(frame, FALSE);
+				/* no item materialized — the group containers were
+				 * created but never packed; drop the floating
+				 * widgets so they don't leak */
+				if (rowBox)
+					g_object_unref(g_object_ref_sink(G_OBJECT(rowBox)));
+				g_object_unref(g_object_ref_sink(G_OBJECT(grid)));
+				g_object_unref(g_object_ref_sink(G_OBJECT(frame)));
 			}
 			else
 			{
+				/* a row-major group packed into rowBox leaves the
+				 * grid created above unused and floating — drop it */
+				if (rowBox)
+					g_object_unref(g_object_ref_sink(G_OBJECT(grid)));
 				gtk_box_append(GTK_BOX(frame), rowBox ? rowBox : grid);
 				GtkWidget * gtitle = gtk_label_new(
 					_ribbon_label(group->szGroupKey,

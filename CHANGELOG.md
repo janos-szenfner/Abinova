@@ -2802,6 +2802,19 @@ below are on `main` but the release has not been cut yet.
   and `AP_UnixRibbon::refresh()` bails once the frame is unregistered
   (which happens before the widget tree comes down) — previously a
   `switch-page` emitted mid-teardown walked dead widget pointers.
+- **Ribbon group-container leak fixed** — `AP_UnixRibbon::createWidget()`
+  created every group's `frame`/`grid` (and `rowBox` for row-major
+  groups) up front, but groups whose items all failed to materialize
+  were never packed and row-major groups never used their `grid`; the
+  floating widgets leaked (found by the LSan-instrumented suite). The
+  unused containers are now released on both paths.
+- **`.abwn` export heap-buffer-overflow fixed** — the data-item writer
+  passed a raw `UT_ByteBuf` payload to an unchecked C-string write,
+  but the buffer is not NUL-terminated: a base64 blob that exactly
+  fills a 1024-byte chunk (e.g. a 766-byte embedded PNG) read one byte
+  past the allocation, and an empty data item passed `nullptr` to
+  `strlen`. The payload is now terminated before the write (found by
+  the ASan-instrumented suite).
 - **Builtin-styles dangling pointer fixed** —
   `pt_PieceTable::_loadBuiltinStyles` saved the `const char*` from
   `findNearestFont()` and then called `findNearestFont()` again; the

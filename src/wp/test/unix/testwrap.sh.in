@@ -25,6 +25,11 @@ leak:FcLang
 leak:FcInit
 leak:libfontconfig
 leak:libexpat
+# GTK4 allocates small objects inside its own signal-dispatch machinery
+# when _nullUpdate() pumps the main context during document load (one
+# 32B object per run; every alloc frame inside libgtk/libgobject —
+# ownership is inside the library, unreachable from first-party code).
+leak:g_closure_invoke
 EOF
 
 LSAN_OPTIONS=suppressions=./supp.txt
