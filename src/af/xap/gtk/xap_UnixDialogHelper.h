@@ -57,17 +57,11 @@ class XAP_Dialog;
 							} while (0);
 
 
-/** load a GtkBuilder for a dialog using the standard path.
- * @param name the filename of the dialog (no path)
- * @return the GtkBuilder or nullptr. The returned object my be freed as usual.
- */
-GtkBuilder * newDialogBuilder(const char * name);
 GtkBuilder* newDialogBuilderFromResource(const char* name);
 void connectFocus(GtkWidget *widget,const XAP_Frame *frame);
 void connectFocusModeless(GtkWidget *widget,const XAP_App *pApp);
 void connectFocusModelessOther(GtkWidget *widget, const XAP_App *pApp,
                                std::function<gboolean(int)> *other_function);
-bool isTransientWindow(GtkWindow *window,GtkWindow *parent);
 
 // This is a very thin message box; only use it for startup errors
 // or places where you can't use the message box class (like when

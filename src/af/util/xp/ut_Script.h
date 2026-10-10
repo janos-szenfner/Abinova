@@ -104,7 +104,6 @@ private:
 									UT_uint32 iNumbytes);
 
 	UT_ScriptIdType	typeForSuffix(const char * szSuffix);
-	const char *          suffixesForType(UT_ScriptIdType ieft);
 
 	UT_Error	constructScript(const char * szFilename,
 								UT_ScriptIdType ieft,

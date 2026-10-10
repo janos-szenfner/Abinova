@@ -89,10 +89,6 @@ XAP_Dialog_Insert_Symbol::tAnswer XAP_Dialog_Insert_Symbol::getAnswer(void) cons
 
 /************************************************************************/
 
-void XAP_Dialog_Insert_Symbol::_updateDrawSymbol()
-{
-	m_DrawSymbol->queueDraw();
-}
 
 void XAP_Dialog_Insert_Symbol::_createSymbolFromGC(GR_Graphics * gc,
 												   UT_uint32 width, UT_uint32 height)
@@ -111,10 +107,6 @@ XAP_Draw_Symbol * XAP_Dialog_Insert_Symbol::_getCurrentSymbolMap( void)
 
 /************************************************************************/
 
-void XAP_Dialog_Insert_Symbol::_updateDrawSymbolarea(UT_UCS4Char c, UT_UCS4Char p)
-{
-	m_DrawSymbol->drawarea(c,p);
-}
 
 void XAP_Dialog_Insert_Symbol::_createSymbolareaFromGC(GR_Graphics * gc,
 													   UT_uint32 width, UT_uint32 height)

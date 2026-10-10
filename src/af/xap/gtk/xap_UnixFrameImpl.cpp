@@ -1463,22 +1463,6 @@ void XAP_UnixFrameImpl::_setCursor(GR_Graphics::Cursor c)
 		gtk_widget_set_cursor_from_name(m_wStatusBar, cursor_name);
 }
 
-UT_sint32 XAP_UnixFrameImpl::_setInputMode(const char * szName)
-{
-	UT_sint32 result = XAP_App::getApp()->setInputMode(szName);
-	if (result == 1)
-	{
-		// if it actually changed we need to update keyboard and mouse
-
-		EV_EditEventMapper * pEEM = XAP_App::getApp()->getEditEventMapper();
-		UT_ASSERT(pEEM);
-
-		m_pKeyboard->setEditEventMap(pEEM);
-		m_pMouse->setEditEventMap(pEEM);
-	}
-
-	return result;
-}
 
 GtkWidget * XAP_UnixFrameImpl::getTopLevelWindow(void) const
 {

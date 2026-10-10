@@ -243,10 +243,8 @@ public:
 	void            setDocUUID(const char * u);
 	const char *    getDocUUIDString()const;
 	const UT_UUID * getDocUUID()const {return m_pUUID;};
-	void            setOrigUUID(const char * u);
 	const char *    getOrigDocUUIDString()const;
 	const UT_UUID * getOrigDocUUID()const {return m_pOrigUUID;};
-	void            setMyUUID(const char * u);
 	std::string     getMyUUIDString()const;
 	const UT_UUID * getMyUUID()const {return m_pMyUUID;};
 
@@ -322,7 +320,6 @@ public:
 	void            _setPieceTableChanging(bool b) {m_bPieceTableChanging = b;}
 	void            _setMarkRevisions(bool bMark) {m_bMarkRevisions = bMark;}
 
-    bool            _restoreVersion(XAP_Frame * pFrame, UT_uint32 iVersion);
 
 	virtual void    _clearUndo() = 0;
 

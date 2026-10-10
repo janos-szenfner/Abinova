@@ -89,7 +89,6 @@ protected:
 		m_sLanguage = lang;
     }
 
-	static void couldNotLoadDictionary ( const char * szLang );
 
 	std::string       	m_sLanguage;
     BarbarismChecker	m_BarbarismChecker;

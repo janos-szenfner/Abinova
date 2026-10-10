@@ -53,10 +53,8 @@ public:
 	void				truncate(UT_uint32 position);
 	UT_uint32			getLength(void) const;
 	const UT_Byte *		getPointer(UT_uint32 position) const;				/* temporary use only */
-	bool				writeToFile(const char* pszFileName) const;
 	bool				writeToURI(const char* pszURI) const;
 	bool				insertFromFile(UT_uint32 iPosition, const char* pszFilename);
-	bool                            insertFromURI(UT_uint32 iPosition, const char* pszURI);
 	bool                            insertFromInput(UT_uint32 iPosition, GsfInput * fp);
 	bool                insertFromFile(UT_uint32 iPosition, FILE * fp);
 private:

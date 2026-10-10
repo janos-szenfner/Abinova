@@ -176,13 +176,6 @@ UT_LocaleInfo::UT_LocaleInfo (const char * locale)
 	return UT_LocaleInfo();
 }
 
-/**
- * True if language field is non-null/non-empty, false if not
- */
-bool UT_LocaleInfo::hasLanguage() const
-{
-	return mLanguage.size() != 0;
-}
 
 /**
  * True if territory field is non-null/non-empty, false if not

@@ -53,7 +53,6 @@ public:
 	XAP_Dialog_Print::tAnswer		getAnswer(void) const;
 	bool							getDoPrintRange(UT_sint32 * pnFirst, UT_sint32 * pnLast) const;
 	bool							getDoPrintSelection(void) const;
-	bool							getDoPrintToFile(const char *) const;
 	UT_uint32						getNrCopies(void) const;
 	bool							getCollate(void) const;
 	GR_Graphics::ColorSpace			getColorSpace(void) const;
@@ -64,8 +63,6 @@ public:
 
 	virtual void                            setPreview(bool ) {}
 protected:
-	bool							_getPrintToFilePathname(XAP_Frame * pFrame,
-															const char * szSuggestedName);
 
 	UT_uint32						m_bPersistValid;		/* persists (internal) */
 	UT_uint32						m_persistNrCopies;		/* persists (internal) */

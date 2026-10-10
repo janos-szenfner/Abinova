@@ -832,10 +832,6 @@ void XAP_Frame::setAutoSaveFilePeriod(int min)
 	}
 }
 
-void XAP_Frame::setAutoSaveFileExt(const std::string &stExt)
-{
-	m_stAutoSaveExt = stExt;
-}
 
 XAP_Dialog_MessageBox * XAP_Frame::createMessageBox(XAP_String_Id id,
 						    XAP_Dialog_MessageBox::tButtons buttons,
@@ -1103,64 +1099,10 @@ void XAP_Frame::updateZoom(void)
    }
 }
 
-/*!
- * This method rebuilds all the toolbars in the frame. Useful for when the
- * user wants to revert to default toolbars.
- */
-void XAP_Frame::rebuildAllToolbars(void)
-{
-	UT_uint32 count = m_pFrameImpl->m_vecToolbars.size();
-	UT_uint32 i =0;
-	for(i=0; i< count; i++)
-	{
-		m_pFrameImpl->_rebuildToolbar(i);
-	}
-}
 
 
-/*!
- * Record stuff for start of drag.
-\param XAP_Toolbar_Id srcId - source of Toolbar Icon.
-\param EV_Toolbar * pTBSrc pointer to toolbar class that contains the icon.
-*/
-void XAP_Frame::dragBegin(XAP_Toolbar_Id srcId, EV_Toolbar * pTBsrc)
-{
-	m_isrcId = srcId;
-	m_isrcTBNr = findToolbarNr(pTBsrc);
-	m_bisDragging = true;
-	m_bHasDropped = false;
-	m_bHasDroppedTB = false;
-	m_idestId = static_cast<XAP_Toolbar_Id>(0);
-	m_idestTBNr = 0;
-}
 
-/*
- * Record the XP stuff from drop event recorded from the toolbars onto an icon
- */
-void XAP_Frame::dragDropToIcon(XAP_Toolbar_Id srcId,XAP_Toolbar_Id destId, EV_Toolbar * pTBsrc, EV_Toolbar * pTBdest)
-{
-	UT_UNUSED(srcId);
-	UT_UNUSED(pTBsrc);
-	UT_ASSERT(m_isrcId == srcId);
-	UT_ASSERT(m_isrcTBNr == findToolbarNr(pTBsrc));
-	m_idestId = destId;
-	m_idestTBNr = findToolbarNr(pTBdest);
-	m_bHasDropped = true;
-}
 
-/*
- * Record the XP stuff from drop event recorded from the toolbars onto a bare
- * toolbar
- */
-void XAP_Frame::dragDropToTB(XAP_Toolbar_Id srcId,EV_Toolbar * pTBsrc, EV_Toolbar * pTBdest)
-{
-	UT_UNUSED(srcId);
-	UT_UNUSED(pTBsrc);
-	UT_ASSERT(m_isrcId == srcId);
-	UT_ASSERT(m_isrcTBNr == findToolbarNr(pTBsrc));
-	m_idestTBNr = findToolbarNr(pTBdest);
-	m_bHasDroppedTB = true;
-}
 
 time_t XAP_Frame::getTimeSinceSave() const
 {

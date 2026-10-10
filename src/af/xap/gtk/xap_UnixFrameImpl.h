@@ -118,7 +118,6 @@ protected:
 	void _createTopLevelWindow(void) override;
 	bool _updateTitle() override;
 	void _createIMContext(GtkWidget* w);
-	UT_sint32 _setInputMode(const char * szName);
 	virtual void _setCursor(GR_Graphics::Cursor cursor) override;
 
 	virtual XAP_DialogFactory * _getDialogFactory() override;

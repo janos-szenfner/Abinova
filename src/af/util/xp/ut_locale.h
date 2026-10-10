@@ -57,7 +57,6 @@ class ABI_EXPORT UT_LocaleInfo
 
   static const UT_LocaleInfo system();
 
-  bool hasLanguage () const;
   bool hasTerritory () const;
   bool hasEncoding () const;
 

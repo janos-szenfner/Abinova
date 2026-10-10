@@ -204,12 +204,6 @@ bool XAP_Dialog_Print::getDoPrintSelection(void) const
 	return m_bDoPrintSelection;
 }
 
-bool XAP_Dialog_Print::getDoPrintToFile(const char *) const
-{
-	UT_ASSERT(m_answer == a_OK);
-
-	return m_bDoPrintToFile;
-}
 
 UT_uint32 XAP_Dialog_Print::getNrCopies(void) const
 {
@@ -232,66 +226,3 @@ GR_Graphics::ColorSpace XAP_Dialog_Print::getColorSpace(void) const
 	return m_persistColorSpace;
 }
 
-bool XAP_Dialog_Print::_getPrintToFilePathname(XAP_Frame * pFrame,
-												 const char * szSuggestedName)
-{
-	UT_return_val_if_fail(pFrame,false);
-	UT_ASSERT(szSuggestedName && *szSuggestedName);
-
-	XAP_Dialog_Id id = XAP_DIALOG_ID_PRINTTOFILE;
-	
-	XAP_DialogFactory * pDialogFactory
-		= static_cast<XAP_DialogFactory *>((pFrame->getDialogFactory()));
-
-	XAP_Dialog_FileOpenSaveAs * pDialog
-		= static_cast<XAP_Dialog_FileOpenSaveAs *>((pDialogFactory->requestDialog(id)));
-	UT_return_val_if_fail(pDialog,false);
-
-	pDialog->setCurrentPathname(szSuggestedName);
-	pDialog->setSuggestFilename(true);
-
-	const char ** szDescList = nullptr;
-	const char ** szSuffixList = nullptr;
-	UT_sint32 * nTypeList = nullptr;
-	{
-		// TODO : FIX THIS!  Make this pull dynamic types from the export
-		// TODO : filter list (creat that while you're at it).
-
-		// TODO : Right now we can just feed the dialog some static filters
-		// TODO : that will be ignored by Windows but will be required
-		// TODO : by Unix.
-
-		UT_uint32 filterCount = 1;
-
-		szDescList = static_cast<const char **>( UT_calloc(filterCount + 1,
-														  sizeof(char *)));
-		szSuffixList = static_cast<const char **>( UT_calloc(filterCount + 1,
-															sizeof(char *)));
-		// HACK : this should be IEFileType
-		nTypeList = static_cast<UT_sint32 *>( UT_calloc(filterCount + 1,
-													 sizeof(UT_sint32)));
-
-		szDescList[0] = "PostScript 2.0";
-		szSuffixList[0] = "ps";
-		nTypeList[0] = 0;
-
-		pDialog->setFileTypeList(szDescList, szSuffixList, static_cast<const UT_sint32 *>( nTypeList));
-	}
-
-	pDialog->runModal(pFrame);
-
-	XAP_Dialog_FileOpenSaveAs::tAnswer ans = pDialog->getAnswer();
-	bool bOK = (ans == XAP_Dialog_FileOpenSaveAs::a_OK);
-
-	if (bOK) {
-		m_szPrintToFilePathname = g_strdup(pDialog->getPathname().c_str());
-	}
-
-	FREEP(szDescList);
-	FREEP(szSuffixList);
-	FREEP(nTypeList);
-
-	pDialogFactory->releaseDialog(pDialog);
-
-	return bOK;
-}

@@ -441,13 +441,6 @@ void XAP_UnixDialog_PrintPreview::_s_zoom(GtkWidget * w, gpointer data)
 								 self->m_iPage * self->_pagePitch() - keep);
 }
 
-void XAP_UnixDialog_PrintPreview::_s_zoomChoose(GtkWidget * w, GParamSpec * /*pspec*/,
-												gpointer data)
-{
-	/* reserved for future use */
-	UT_UNUSED(w);
-	UT_UNUSED(data);
-}
 
 void XAP_UnixDialog_PrintPreview::_s_fitChanged(GtkWidget * w, gpointer data)
 {

@@ -42,10 +42,6 @@ UT_Timer::~UT_Timer()
 	}
 }
 
-std::vector<UT_Timer*> & UT_Timer::_getVecTimers ()
-{ 
-	return static_vecTimers;
-}
 
 void UT_Timer::setIdentifier(UT_uint32 iIdentifier)
 {

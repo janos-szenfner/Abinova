@@ -131,7 +131,6 @@ public:
 
 	//! returns true iff the current view is the active/focused window
 	virtual bool		isActive(void) const = 0;
-        void                    setActivityMask(bool bActive);
 	virtual bool	notifyListeners(const AV_ChangeMask hint, void * pPrivateData = nullptr);
 	virtual bool    isDocumentPresent(void) const = 0;
 	virtual bool	canDo(bool bUndo) const = 0;

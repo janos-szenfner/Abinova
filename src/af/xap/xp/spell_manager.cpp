@@ -156,36 +156,6 @@ void SpellChecker::correctWord (const UT_UCS4Char * /*toCorrect*/, size_t /*toCo
 {
 }
 
-/* static */ void SpellChecker::couldNotLoadDictionary ( const char * szLang )
-{
-	XAP_App             * pApp   = XAP_App::getApp ();
-	XAP_Frame           * pFrame = pApp->getLastFocussedFrame ();
-	char				szLangName[255];
-	UT_Language			lang;
-
-	if (!szLang)
-		szLang = "?";
-	UT_uint32 id = lang.getIndxFromCode(szLang);
-	const gchar* pLang  = lang.getNthLangName(id);
-	snprintf(szLangName, sizeof(szLangName), "%s [%s]",
-			 pLang ? pLang : "?", szLang); // language name [language_code]
-
-	const char * szMsgFmt =
-		pApp->getStringSet ()->getValue (XAP_STRING_ID_SPELL_CANTLOAD_DICT);
-	/* localized format string: only substitute when it takes exactly
-	   the one %s we pass an argument for */
-	UT_String buf (UT_checkedPrintfArgCount(szMsgFmt, "s") == 1
-				   ? UT_String_sprintf(szMsgFmt, szLangName)
-				   : UT_String(szMsgFmt ? szMsgFmt : ""));
-	if (pFrame)
-		pFrame->showMessageBox (buf.c_str(),
-								XAP_Dialog_MessageBox::b_O,
-								XAP_Dialog_MessageBox::a_OK);
-	else
-	{
-		UT_DEBUGMSG(("SpellChecker::could not load dictionary for %s\n", szLang));
-	}
-}
 
 /***********************************************************************/
 /***********************************************************************/

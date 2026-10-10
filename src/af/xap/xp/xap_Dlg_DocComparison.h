@@ -72,7 +72,6 @@ class ABI_EXPORT XAP_Dialog_DocComparison : public XAP_Dialog_NonPersistent
 	std::string getPath1() const;
 	std::string getPath2() const;
 
-	UT_uint32    getResultCount() const {return iResultCount;}
 	const char * getResultLabel(UT_uint32 n) const;
 	std::string getResultValue(UT_uint32 n) const;
 

@@ -102,12 +102,6 @@ public:									/* TODO these should be protected */
 	static const char* s_szAbiSuite_Home;
 
 public:
-	static const char* getBuildId ();
-	static const char* getBuildVersion ();
-	static const char* getBuildOptions ();
-	static const char* getBuildTarget ();
-	static const char* getBuildCompileTime ();
-	static const char* getBuildCompileDate ();
 	static const char* getAbiSuiteHome ();
 
 public:
@@ -156,7 +150,6 @@ public:
 
 	// only used in ispell builds because aspell doesn't suck...
 	bool						addWordToDict(const UT_UCS4Char * pWord, UT_uint32 len);
-	bool						isWordInDict(const UT_UCS4Char * pWord, UT_uint32 len) const;
 	void						suggestWord(std::vector<UT_UCS4Char*> * pVecSuggestions, const UT_UCS4Char * pWord, UT_uint32 lenWord);
     XAP_Prefs *						getPrefs() const;
 	bool getPrefsValue(const std::string& key, std::string& value) const;
@@ -245,7 +238,6 @@ public:
 							{ return m_pImpl->localizeHelpUrl(pathBeforeLang, pathAfterLang, remoteURLbase); }
 
 	GR_GraphicsFactory *				getGraphicsFactory() const { return m_pGraphicsFactory; }
-	void						setDefaultGraphicsId(UT_uint32 i);
 	/* primary graphics allocator */
 	GR_Graphics *					newGraphics(GR_AllocInfo &ai) const;
 	/* secondary graphics allocator; use only in special cases */
@@ -260,7 +252,6 @@ public:
 	virtual bool					notifyListeners(AV_View * pView, const AV_ChangeMask hint,void * pPrivateData = nullptr);
 
 	bool					registerEmbeddable(GR_EmbedManager * pEmbed, const char *uid = nullptr);
-	bool						unRegisterEmbeddable(const char *uid);
 	GR_EmbedManager* getEmbeddableManager(GR_Graphics* pG, const char* szObjectType) const;
 
 	static const char*			findNearestFont(const char* pszFontFamily,
@@ -271,14 +262,11 @@ public:
 												const char* pszFontSize,
 												const char* pszLang);
 
-	bool                        saveState(bool bQuit);
-	bool                        retrieveState();
 	virtual void                clearStateInfo(){};
 
 	bool                        getDisableDoubleBuffering() const;
 	void                        setDisableDoubleBuffering( bool v );
 	bool                        getNoGUI() const;
-	void                        setNoGUI( bool v );
 
 	// signal wrapper
 	static void signalWrapper(int sig_num);

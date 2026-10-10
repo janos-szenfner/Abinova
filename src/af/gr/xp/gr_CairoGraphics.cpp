@@ -3470,32 +3470,8 @@ void GR_CairoGraphics::fillRect(const UT_RGBColor& c, UT_sint32 x, UT_sint32 y,
 	cairo_restore(m_cr);
 }
 
-/*!
-    Convert device units to pango units
-*/
-inline int GR_CairoGraphics::dtpu(int d) const
-{
-	return d * PANGO_SCALE;
-}
 
-/*!
-    Convert pango units to device units
-*/
-inline int GR_CairoGraphics::ptdu(int p) const
-{
-	return PANGO_PIXELS(p);
-}
 
-/*!
-    Convert pango units to layout units
-*/
-inline int GR_CairoGraphics::ptlu(int p) const
-{
-	double d = static_cast<double>(p )* static_cast<double>( getResolution() )* 100.0 /
-		(static_cast<double>(getDeviceResolution())*static_cast<double>(getZoomPercentage())*static_cast<double>( PANGO_SCALE)) + .5;
-
-	return static_cast<int>( d);
-}
 
 
 /*!
@@ -3508,17 +3484,6 @@ inline int GR_CairoGraphics::ptlunz(int p) const
 	return static_cast<int>( d);
 }
 
-/*!
-    Convert layout units to pango units
-*/
-inline int GR_CairoGraphics::ltpu(int l) const
-{
-	double d = static_cast<double>(l )*
-		static_cast<double>(getDeviceResolution() )* static_cast<double>(PANGO_SCALE )* static_cast<double>(getZoomPercentage())/
-		(100.0 * static_cast<double>( getResolution())) + .5; 
-	
-	return static_cast<int>( d);
-}
 
 
 /*!
@@ -3532,17 +3497,6 @@ inline int GR_CairoGraphics::ltpunz(int l) const
 }
 	
 
-/*!
-    Convert pango font units to layout units
-
-    (Pango font units == point size * PANGO_SCALE, hence at zoom of 100% there
-    are 20/PANGO_SCALE layout units to each pango font unit.)
-*/
-inline int GR_CairoGraphics::pftlu(int pf) const
-{
-	double d = static_cast<double>(pf )* 2000.0 / (static_cast<double>(getZoomPercentage() )* static_cast<double>(PANGO_SCALE));
-	return static_cast<int>( d);
-}
 
 void GR_CairoGraphics::fillRect(GR_Color3D c, UT_Rect &r)
 {

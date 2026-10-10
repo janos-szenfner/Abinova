@@ -224,10 +224,6 @@ int TF_Test::run_all(const char * const *prefixes)
     return run(prefixes, nullptr);
 }
 
-int TF_Test::run_suite(const char *suite)
-{
-    return run(nullptr, suite);
-}
 
 void TF_Test::start(const char *file, int line, const char *condstr)
 {

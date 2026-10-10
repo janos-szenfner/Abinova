@@ -175,17 +175,7 @@ public:
 	virtual void                rebuildMenus(void) { m_pFrameImpl->_rebuildMenus();}
 	bool                        repopulateCombos();
 
-	void                        rebuildAllToolbars(void);
 	void                        refillToolbarsInFrameData(void) { m_pFrameImpl->_refillToolbarsInFrameData(); }
-	void                        dragBegin(XAP_Toolbar_Id srcId,
-										  EV_Toolbar * pTBsrc);
-	void                        dragDropToIcon(XAP_Toolbar_Id srcId,
-											   XAP_Toolbar_Id destId,
-											   EV_Toolbar * pTBsrc,
-											   EV_Toolbar * pTBdest);
-	void                        dragDropToTB(XAP_Toolbar_Id srcId,
-											 EV_Toolbar * pTBsrc,
-											 EV_Toolbar * pTBdest);
 	void                        dragEnd(XAP_Toolbar_Id srcId);
 	bool                        isBackupRunning(void)
 	{ return m_bBackupRunning;}
@@ -193,7 +183,6 @@ public:
 	{ return m_iAutoSavePeriod;}
 	void						setAutoSaveFile(bool);
 	void						setAutoSaveFilePeriod(int);
-	void						setAutoSaveFileExt(const std::string &);
 
 	XAP_Dialog_MessageBox *      createMessageBox(XAP_String_Id id,
 												  XAP_Dialog_MessageBox::tButtons buttons,

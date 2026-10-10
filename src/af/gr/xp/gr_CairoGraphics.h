@@ -288,13 +288,8 @@ public:
 	virtual GR_Font * getDefaultFont(GR_Font::FontFamilyEnum f = GR_Font::FF_Roman,
 									 const char * pszLang = nullptr);
 
-	int dtpu(int d) const;
-	int ptdu(int p) const;
-	int ptlu(int p) const;
 	int ptlunz(int p) const;
-	int ltpu(int l) const;
 	int ltpunz(int l) const;
-	int pftlu(int pf) const;
 
 	virtual bool		queryProperties(GR_Graphics::Properties gp) const override;
 //	virtual GR_Image*	createNewImage(const char* pszName,

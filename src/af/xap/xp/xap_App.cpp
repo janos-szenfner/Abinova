@@ -189,35 +189,11 @@ XAP_App::~XAP_App()
 	m_pApp = nullptr;
 }
 
-const char* XAP_App::getBuildId ()
-{
-	return s_szBuild_ID;
-}
 
-const char* XAP_App::getBuildVersion ()
-{
-	return s_szBuild_Version;
-}
 
-const char* XAP_App::getBuildOptions ()
-{
-	return s_szBuild_Options;
-}
 
-const char* XAP_App::getBuildTarget ()
-{
-	return s_szBuild_Target;
-}
 
-const char* XAP_App::getBuildCompileTime ()
-{
-	return s_szBuild_CompileTime;
-}
 
-const char* XAP_App::getBuildCompileDate ()
-{
-	return s_szBuild_CompileDate;
-}
 
 const char* XAP_App::getAbiSuiteHome ()
 {
@@ -258,22 +234,6 @@ bool XAP_App::registerEmbeddable(GR_EmbedManager * pEmbed, const char *uid)
 }
 
 
-/*!
- * UnRegister an embeddable plugin with XAP_App. The plugin itself is 
- * responsible for actually deleting the object.
- */
-bool XAP_App::unRegisterEmbeddable(const char *uid)
-{
-  if (uid == nullptr || *uid == 0)
-    return false;
-  std::map<std::string, GR_EmbedManager *>::iterator i = m_mapEmbedManagers.find(uid);
-  if(i != m_mapEmbedManagers.end())
-    {
-      m_mapEmbedManagers.erase(i);
-      return true;
-    }
-  return false;
-}
 
 /*!
  * Return a copy of the requested embedable plugin or a default manager.
@@ -886,13 +846,6 @@ bool XAP_App::addWordToDict(const UT_UCS4Char * pWord, UT_uint32 len)
 	return m_pDict->addWord(pWord, len);
 }
 
-bool XAP_App::isWordInDict(const UT_UCS4Char * pWord, UT_uint32 len) const
-{
-	if (!m_pDict)
-		return false;
-
-	return m_pDict->isWord(pWord, len);
-}
 
 /*!
  * Look up the custom dictionary for suggested words
@@ -1324,27 +1277,6 @@ GR_Graphics * XAP_App::newGraphics(UT_uint32 iClassId, GR_AllocInfo &param) cons
 	return m_pGraphicsFactory->newGraphics(iClassId, param);
 }
 
-void XAP_App::setDefaultGraphicsId(UT_uint32 i)
-{
-	if(i == GRID_UNKNOWN)
-		return;
-	
-	m_iDefaultGraphicsId = i;
-
-	if(i < GRID_LAST_BUILT_IN && i > GRID_LAST_DEFAULT)
-	{
-		// change the preference settings
-		UT_return_if_fail(m_prefs)
-			
-		XAP_PrefsScheme *pPrefsScheme = m_prefs->getCurrentScheme();
-		UT_return_if_fail(pPrefsScheme);
-
-		UT_String s;
-		UT_String_sprintf(s, "%d", i);
-		
-		pPrefsScheme->setValue(XAP_PREF_KEY_DefaultGraphics, s.c_str());
-	}
-}
 
 /*!
     Find the nearest matching font based on the provided parameters
@@ -1374,116 +1306,6 @@ const char* XAP_App::findNearestFont(const char* pszFontFamily,
 */
 
 #define HIBERNATED_EXT ".HIBERNATED.abw"
-bool XAP_App::saveState(bool bQuit)
-{
-	// gather the state data for platform code to deal with
-	XAP_StateData sd;
-
-	bool bRet = true;
-
-	// We will store data for up to XAP_SD_MAX_FILES, making sure we save it for the last
-	// focussed frame in the first slot
-
-	XAP_Frame * pLastFrame = getLastFocussedFrame();
-
-	UT_sint32 i;
-	UT_sint32 j;
-	
-	for(i = 0, j = 0; i < static_cast<UT_sint32>(m_vecFrames.size()); ++i, ++j)
-	{
-		XAP_Frame * pFrame = nullptr;
-
-		if(i == 0)
-			pFrame = pLastFrame;
-		else
-			pFrame = m_vecFrames[i];
-
-		if(pLastFrame == pFrame && j != 0)
-		{
-			// we have done this frame, but need to do the one at pos 0 in its place
-			pFrame = m_vecFrames[0];
-		}
-		
-
-		if(!pFrame)
-		{
-			--j;
-			continue;
-		}
-		
-		AD_Document * pDoc = pFrame->getCurrentDoc();
-
-		if(!pDoc)
-		{
-			--j;
-			continue;
-		}
-
-		UT_Error e = UT_OK;
-		
-		if(pDoc->isDirty())
-		{
-			// need to decide what to do about dirty documents; perhaps we should keep a
-			// copy of the unsaved state under a different name?
-			// for now just save (otherwise the user will loose the changes when app
-			// hibernates)
-			e = pDoc->save();
-			if(e == UT_SAVE_NAMEERROR)
-			{
-				// this is an Untitled document
-				UT_UTF8String s = pFrame->getNonDecoratedTitle();
-				s += HIBERNATED_EXT;
-				e = pDoc->saveAs(s.utf8_str(), 0);
-			}
-			
-			bRet &= (UT_OK == e);
-		}
-
-		if(j >= XAP_SD_MAX_FILES || e != UT_OK)
-		{
-			// no storage space left -- nothing more we can do with this document, so move
-			// to the next one (do not break, we need to deal with anything that is not
-			// saved)
-			
-			--j;      // we want to preserve the j value 
-			continue;
-		}
-		
-			
-		const std::string & file = pDoc->getFilename();
-		if(!file.empty() && file.size() < XAP_SD_FILENAME_LENGTH)
-		{
-			strncpy(sd.filenames[j], file.c_str(), XAP_SD_FILENAME_LENGTH);
-
-			AV_View * pView = pFrame->getCurrentView();
-			if(pView)
-			{
-				sd.iDocPos[j]  = pView->getPoint();
-				sd.iXScroll[j] = pView->getXScrollOffset();
-				sd.iYScroll[j] = pView->getYScrollOffset();
-			}
-		}
-		else
-		{
-			--j;
-			continue;
-		}
-	}
-
-	sd.iFileCount = j;
-	
-	if(!_saveState(sd))
-		return false;
-
-	if(bQuit)
-	{
-		// we have dealt with unsaved docs above, so just clean up any modeless dlgs and quit
-		closeModelessDlgs();
-		reallyExit();
-	}
-
-	return bRet;
-}
 
 /*!
     Implements the actual mechanism for storing of status data; derrived classes can
@@ -1506,106 +1328,6 @@ bool XAP_App::_saveState(XAP_StateData & )
 */
 
 
-bool XAP_App::retrieveState()
-{
-	XAP_StateData sd;
-
-	bool bRet = true;
-	
-	if(!_retrieveState(sd))
-		return false;
-
-	UT_return_val_if_fail(sd.iFileCount <= XAP_SD_MAX_FILES, false);
-		
-	// now do our thing with it:
-	//  * open the files stored in the data
-	//  * move carets and scrollbars to the saved positions
-	//  * make the first saved frame to be the current frame
-
-	// we should only be restoring state with no docs already
-	// opened
-	UT_return_val_if_fail(m_vecFrames.size() <= 1, false);
-	XAP_Frame * pFrame = nullptr;
-
-	if(!m_vecFrames.empty())
-		pFrame = m_vecFrames[0];
-
-	// if there is a frame, it should be one with unmodified untitled document
-	UT_return_val_if_fail( !pFrame || (!pFrame->getFilename() && !pFrame->isDirty()), false );
-		
-	UT_Error errorCode = UT_IE_IMPORTERROR;
-	
-	for(UT_uint32 i = 0; i < sd.iFileCount; ++i)
-	{
-		if(!pFrame)
-			pFrame = newFrame();
-		
-		if (!pFrame)
-			return false;
-		
-		// Open a complete but blank frame, then load the document into it
-		errorCode = pFrame->loadDocument(static_cast<const char *>(nullptr), 0 /*IEFT_Unknown*/);
-
-		bRet &= (errorCode == UT_OK);
-		
-		if (errorCode == UT_OK)
-			pFrame->show();
-	    else
-			continue;
-
-		errorCode = pFrame->loadDocument(sd.filenames[i], 0 /*IEFT_Unknown*/);
-
-		bRet &= (errorCode == UT_OK);
-		
-		if (errorCode != UT_OK)
-			continue;
-
-		pFrame->show();
-
-		AV_View* pView = pFrame->getCurrentView();
-		if(!pView)
-		{
-			UT_ASSERT_HARMLESS( UT_SHOULD_NOT_HAPPEN );
-			bRet = false;
-			continue;
-		}
-		
-		pView->setPoint(sd.iDocPos[i]);
-		pView->setXScrollOffset(sd.iXScroll[i]);
-		pView->setYScrollOffset(sd.iYScroll[i]);
-
-		// now we check if this doc was autosaved Untitled* doc at hibernation
-		char * p = strstr(sd.filenames[i], HIBERNATED_EXT);
-		if(p)
-		{
-			// remove extension
-			p = nullptr;
-			AD_Document * pDoc = pFrame->getCurrentDoc();
-
-			if(pDoc)
-			{
-				pDoc->clearFilename();
-				pDoc->forceDirty();
-				pFrame->updateTitle();
-			}
-		}
-		
-		
-		// frame used -- next doc needs a new one
-		pFrame = nullptr;
-	}
-
-	// set focus to the first frame
-	pFrame = m_vecFrames.empty() ? nullptr : m_vecFrames[0];
-	UT_return_val_if_fail( pFrame, false );
-
-	AV_View* pView = pFrame->getCurrentView();
-	UT_return_val_if_fail( pView, false );
-
-	pView->focusChange(AV_FOCUS_HERE);
-
-	return bRet;
-}
 
 /*!
     Implements the actual mechanism for retrieving of status data; derrived classes can
@@ -1662,12 +1384,6 @@ XAP_App::getNoGUI() const
     return m_bNoGUI;
 }
 
-void
-XAP_App::setNoGUI( bool v )
-{
-    setDisableDoubleBuffering(true);
-    m_bNoGUI = v;
-}
 
 std::string
 XAP_App::createUUIDString() const

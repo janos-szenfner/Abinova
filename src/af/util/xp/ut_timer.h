@@ -59,7 +59,6 @@ public:
 
 protected:
 	UT_Timer();		// should only be called from static_constructor()
-	static std::vector<UT_Timer*> & _getVecTimers ();
 
  private:
 	UT_uint32 m_iIdentifier;

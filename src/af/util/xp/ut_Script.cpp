@@ -212,37 +212,6 @@ UT_ScriptIdType	UT_ScriptLibrary::typeForSuffix(const char * szSuffix)
 	return -1;  
 }
 
-const char * UT_ScriptLibrary::suffixesForType(UT_ScriptIdType ieft)
-{
-	const char * szSuffixes = nullptr;
-  
-	// we have to construct the loop this way because a
-	// given filter could support more than one file type,
-	// so we must query a suffix match for all file types
-	UT_uint32 nrElements = getNumScripts();
-  
-	for (UT_uint32 k=0; k < nrElements; k++)
-    {
-		const UT_ScriptSniffer * s = (*mSniffers)[k];
-		UT_nonnull_or_continue(s);
-		if (s->supportsType(ieft))
-		{
-			const char *szDummy;
-			UT_ScriptIdType ieftDummy;
-			if (s->getDlgLabels(&szDummy,&szSuffixes,&ieftDummy))
-			{
-				return szSuffixes;
-			}
-			else
-			{
-				UT_ASSERT(UT_SHOULD_NOT_HAPPEN);
-			}
-		}
-    }
-  
-	// The passed in filetype is invalid.
-	return nullptr;
-}
 	
 UT_Error UT_ScriptLibrary::constructScript(const char * szFilename,
 										   UT_ScriptIdType ieft,

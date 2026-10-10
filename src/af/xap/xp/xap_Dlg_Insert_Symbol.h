@@ -71,15 +71,11 @@ class ABI_EXPORT XAP_Dialog_Insert_Symbol : public XAP_Dialog_Modeless
 	}
 
  protected:
-	// handle the XP-job of drawing our symbols.
-	void   _updateDrawSymbol();
 
 	// handle the XP-job of laying out  our matrix of symbols
 	void   _createSymbolFromGC(GR_Graphics * gc, UT_uint32 width,
 							   UT_uint32 height);
 
-	// handle the XP-job of drawing our symbol onto the preview area.
-	void   _updateDrawSymbolarea( UT_UCS4Char c, UT_UCS4Char p);
 
 	// handle the XP-job of constructing the preview area
 	void   _createSymbolareaFromGC(GR_Graphics * gc, UT_uint32 width,

@@ -230,16 +230,6 @@ static void abiFixupBuilderDialogs(GtkBuilder * builder)
 	}
 }
 
-GtkBuilder * newDialogBuilder(const char * name)
-{
-    UT_ASSERT(name);
-	std::string ui_path = static_cast<XAP_UnixApp*>(XAP_App::getApp())->getAbiSuiteAppUIDir() + "/" + name;
-
-	// load the dialog from the UI file
-	GtkBuilder* builder = gtk_builder_new_from_file(ui_path.c_str());
-	abiFixupBuilderDialogs(builder);
-	return builder;
-}
 
 GtkBuilder* newDialogBuilderFromResource(const char* name)
 {
@@ -284,20 +274,6 @@ void connectFocusModeless(GtkWidget *widget,const XAP_App * pApp)
 }
 
 
-bool isTransientWindow(GtkWindow *window,GtkWindow *parent)
-{
-  GtkWindow *transient;
-  if(window)
-	{
-	  while((transient=gtk_window_get_transient_for(window)))
-		{
-		  window=transient;
-		  if(window==parent)
-			return true;
-		}
-	}
-  return false;
-}
 
 /****************************************************************/
 /****************************************************************/

@@ -158,10 +158,6 @@ bool AV_View::notifyListeners(const AV_ChangeMask hint, void * pPrivateData)
 	return true;
 }
 
-void AV_View:: setActivityMask(bool bActive)
-{
-        m_bCouldBeActive = bActive;
-}
 
 UT_uint32 AV_View::getTick(void) const
 {

@@ -65,8 +65,6 @@ class XAP_UnixDialog_PrintPreview : public XAP_Dialog_PrintPreview
 	static void			_s_pageNav(GtkWidget * w, gpointer data);
 	static void			_s_pageSpinChanged(GtkSpinButton * spin, gpointer data);
 	static void			_s_zoom(GtkWidget * w, gpointer data);
-	static void			_s_zoomChoose(GtkWidget * w, GParamSpec * pspec,
-										  gpointer data);
 	static void			_s_fitChanged(GtkWidget * w, gpointer data);
 	static void			_s_scrolled(GtkAdjustment * adj, gpointer data);
 	static void			_s_printClicked(GtkWidget * w, gpointer data);

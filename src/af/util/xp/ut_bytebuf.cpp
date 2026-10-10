@@ -193,17 +193,6 @@ void UT_ByteBuf::truncate(UT_uint32 position)
 	}
 }
 
-bool UT_ByteBuf::insertFromURI(UT_uint32 iPosition, const char *szURI)
-{
-  GsfInput *fp = UT_go_file_open(szURI, nullptr);
-  if(!fp)
-    return false;
-
-  bool res = insertFromInput (iPosition, fp);
-  
-  g_object_unref (fp);
-  return res;
-}
 
 bool UT_ByteBuf::insertFromInput(UT_uint32 iPosition, GsfInput * fp)
 {
@@ -270,31 +259,6 @@ bool UT_ByteBuf::insertFromFile(UT_uint32 iPosition, const char* pszFileName)
 	return b;
 }
 
-bool UT_ByteBuf::writeToFile(const char* pszFileName) const
-{
-	UT_ASSERT(pszFileName && pszFileName[0]);
-	
-	char * fn = g_filename_from_uri(pszFileName, nullptr, nullptr);
-	if (fn)
-		pszFileName = fn;
-	FILE* fp = g_fopen(pszFileName, "wb");
-	g_free(fn);
-	if (!fp)
-	{
-		return false;
-	}
-
-	UT_uint32 iBytesWritten = fwrite(m_pBuf, 1, m_iSize, fp);
-	if (iBytesWritten != m_iSize)
-	{
-		fclose(fp);
-		return false;
-	}
-
-	fclose(fp);
-
-	return true;
-}
 
 bool UT_ByteBuf::writeToURI(const char* pszURI) const
 {
