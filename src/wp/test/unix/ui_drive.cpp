@@ -72,6 +72,7 @@
 #include <execinfo.h>
 #include <unistd.h>
 #include <functional>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -91,6 +92,10 @@
 #include "ev_UnixMenu.h"
 #include "ev_EditMethod.h"
 #include "fv_View.h"
+#include "fl_BlockLayout.h"
+#include "fp_Run.h"
+#include "fp_TextRun.h"
+#include "ut_growbuf.h"
 #include "pd_Document.h"
 #include "pd_Iterator.h"
 #include "abiwidget.h"
@@ -4125,6 +4130,11 @@ static std::string stage_scratch_doc(const std::string &src,
 	return std::string();
 }
 
+/* helpers defined below with the rest of the revisions-leg
+ * machinery */
+static std::string markup_visible_text(FV_View * v);
+static int rev_mark_count(PD_Document * doc);
+
 static int drive_markup(AP_UnixApp * app, const char *)
 {
 	alarm(0);
@@ -4151,11 +4161,25 @@ static int drive_markup(AP_UnixApp * app, const char *)
 		return 1;
 	}
 
-	/* seed a tracked insertion so all four modes have markup to
-	 * present */
-	set_phase("markup: seed revision");
+	/* TST13: seed BOTH mark kinds with unique sentinels — the
+	 * pre-TST13 leg seeded a single tracked insertion under
+	 * marking OFF, a state where the TRACK03 class (marking-ON
+	 * level encoding + stale renders) is unreachable and where
+	 * "did the screen change" had no oracle at all.  Append an
+	 * unmarked sentinel, tracked-delete it, tracked-insert the
+	 * other sentinel, then leave marking OFF for pass 1. */
+	set_phase("markup: seed revisions");
+	PT_DocPosition eod = 0;
+	doc->getBounds(true, eod);
+	view->setPoint(eod);
+	view->cmdCharInsert(std::string(" QDELQ"), false);
+	doc->getBounds(true, eod);
+	view->setPoint(eod);
 	doc->setMarkRevisions(true);
-	view->cmdCharInsert(std::string(" Hello tracked"), false);
+	view->setPoint(eod > 6 ? eod - 6 : 0);
+	view->cmdCharDelete(true, 6);   /* tracked deletion of " QDELQ" */
+	view->setPoint(eod);
+	view->cmdCharInsert(std::string(" QINSQ"), false);
 	doc->setMarkRevisions(false);
 	tf_guard::pump_for(300);
 
@@ -4164,6 +4188,7 @@ static int drive_markup(AP_UnixApp * app, const char *)
 		g_printerr("drive: markup — seeded revision missing\n");
 		return 1;
 	}
+	const int marksSeeded = rev_mark_count(doc);
 
 	set_phase("markup: find selector");
 	GtkWidget * mb = markup_find_button();
@@ -4172,119 +4197,285 @@ static int drive_markup(AP_UnixApp * app, const char *)
 	if (!mb)
 		return 1;
 
-	static const struct { const char * mode, * caption;
-						  bool sR, bars; UT_uint32 lvl; } seq[] = {
-		{ "simple",   "Simple Markup", false, true,  PD_MAX_REVISION },
-		{ "all",      "All Markup",    true,  false, PD_MAX_REVISION },
-		{ "none",     "No Markup",     false, false, PD_MAX_REVISION },
-		{ "original", "Original",      false, false, 0 },
-		{ "simple",   "Simple Markup", false, true,  PD_MAX_REVISION },
-		{ "all",      "All Markup",    true,  false, PD_MAX_REVISION },
+	/* the full mode contract: flag triple + caption + rendered
+	 * content — flags and rendered text are independent oracles,
+	 * a mode is only "applied" when both agree */
+	struct Mode { const char * mode, * caption; bool sR, bars;
+				  bool seeDel, seeIns; };
+	static const Mode modes[] = {
+		{ "all",      "All Markup",    true,  false, true,  true  },
+		{ "simple",   "Simple Markup", false, true,  false, true  },
+		{ "none",     "No Markup",     false, false, false, true  },
+		{ "original", "Original",      false, false, true,  false },
 	};
-	static const char * modes[] = {"simple", "all", "none", "original"};
+	auto expect_mode = [](const char *m) -> const Mode * {
+		for (const Mode & e : modes)
+			if (!strcmp(e.mode, m))
+				return &e;
+		return nullptr;
+	};
 
-	for (size_t i = 0; i < G_N_ELEMENTS(seq); i++) {
-		char step[128];
-		snprintf(step, sizeof(step), "step %zu mode=%s", i,
-				 seq[i].mode);
-		g_print("markup: %s\n", step);
-		set_phase(step);
+	/* transitions alternate delivery: the real popover row click
+	 * (widget path — TRACK01's class) and the bare edit method
+	 * (TRACK03's class).  If the two ever disagree on the landed
+	 * state or rendered text that is a found bug, not a flake. */
+	struct Step { const char * mode; bool widget; };
+	static const Step seq[] = {
+		{ "simple",   true  }, { "all",      false },
+		{ "none",     true  }, { "original", false },
+		{ "all",      true  }, { "simple",   false },
+		{ "original", true  }, { "none",     false },
+	};
+	static const char * tickmodes[] = {"simple", "all", "none",
+									   "original"};
 
-		GtkWidget * mb2 = markup_find_button();
-		if (mb2)
-			mb = mb2;
-		markup_check(&fails, gtk_widget_get_sensitive(mb), step,
-					 "menu button sensitive");
+	const EV_EditMethodContainer * emc =
+		XAP_App::getApp()->getEditMethodContainer();
+	EV_EditMethod * modeEm = emc
+		? emc->findEditMethodByName("revisionDisplayMode") : nullptr;
+	markup_check(&fails, modeEm != nullptr, "setup",
+				 "revisionDisplayMethod registered");
 
-		GtkPopover * pop =
-			gtk_menu_button_get_popover(GTK_MENU_BUTTON(mb));
-		if (!pop) {
-			markup_check(&fails, false, step, "popover attached");
-			continue;
-		}
-		gtk_popover_popup(pop);
-		tf_guard::pump_for(80);
-		markup_check(&fails, gtk_widget_get_visible(GTK_WIDGET(pop)),
-					 step, "popover visible after popup");
-
-		GtkWidget * popChild = gtk_popover_get_child(pop);
-		GtkWidget * row = popChild
-			? markup_find_row(popChild, seq[i].mode) : nullptr;
-		if (!row) {
-			markup_check(&fails, false, step, "mode row found");
-			gtk_popover_popdown(pop);
-			continue;
-		}
-		markup_check(&fails, gtk_widget_get_sensitive(row), step,
-					 "mode row sensitive");
-
-		gchar * what = g_strdup_printf("click %s row", seq[i].mode);
-		bool ok = call_guard(
-			[row] { tf_widgets::click(row); }, what);
-		g_free(what);
-		markup_check(&fails, ok, step, "row click survived");
+	for (int marking = 0; marking <= 1; ++marking) {
+		char mstep[64];
+		snprintf(mstep, sizeof(mstep), "marking=%d pass", marking);
+		g_print("markup: %s\n", mstep);
+		doc->setMarkRevisions(marking != 0);
 		tf_guard::pump_for(250);
+		const UT_uint32 revPass = doc->getHighestRevisionId();
 
-		markup_check(&fails, view->isShowRevisions() == seq[i].sR,
-					 step, "isShowRevisions");
-		markup_check(&fails, view->isShowRevBars() == seq[i].bars,
-					 step, "isShowRevBars");
-		markup_check(&fails, view->getRevisionLevel() == seq[i].lvl,
-					 step, "revision level");
-		markup_check(&fails, doc->getHighestRevisionId() == rev0,
-					 step, "revision data preserved");
+		/* per-path landed outcomes keyed by mode — compared at the
+		 * end of the pass so a widget-vs-method divergence fails
+		 * loudly instead of passing as two green transitions */
+		std::map<std::string, std::string> seen[2];
 
-		/* the click may have rebuilt the ribbon — re-locate before
-		 * reading the caption or re-opening the popover */
-		mb2 = markup_find_button();
-		if (mb2)
-			mb = mb2;
-		GtkWidget * box =
-			gtk_menu_button_get_child(GTK_MENU_BUTTON(mb));
-		GtkWidget * first =
-			box ? gtk_widget_get_first_child(box) : nullptr;
-		GtkWidget * lbl = first
-			? gtk_widget_get_next_sibling(first) : nullptr;
-		const char * cap = (lbl && GTK_IS_LABEL(lbl))
-			? gtk_label_get_text(GTK_LABEL(lbl)) : "";
-		g_print("  caption=\"%s\" want=\"%s\" lbl=%p\n", cap,
-				seq[i].caption, (void *)lbl);
-		markup_check(&fails, !strcmp(cap, seq[i].caption), step,
-					 "button caption");
+		for (size_t i = 0; i < G_N_ELEMENTS(seq); i++) {
+			char step[128];
+			snprintf(step, sizeof(step),
+					 "mk%d step %zu mode=%s via=%s", marking, i,
+					 seq[i].mode, seq[i].widget ? "row" : "em");
+			g_print("markup: %s\n", step);
+			set_phase(step);
+			const Mode * want = expect_mode(seq[i].mode);
+			markup_check(&fails, want != nullptr, step,
+						 "known mode");
+			if (!want)
+				continue;
 
-		/* re-open: "show" re-runs _refreshCheckRows — the tick must
-		 * sit on the chosen row and only there */
-		pop = gtk_menu_button_get_popover(GTK_MENU_BUTTON(mb));
-		gtk_popover_popup(pop);
-		tf_guard::pump_for(80);
-		markup_check(&fails,
-					 gtk_widget_get_visible(GTK_WIDGET(pop)),
-					 step, "popover reopens");
-		popChild = gtk_popover_get_child(pop);
-		for (const char * mk : modes) {
-			GtkWidget * r = popChild
-				? markup_find_row(popChild, mk) : nullptr;
-			GtkWidget * stk = r ? static_cast<GtkWidget *>(
-				g_object_get_data(G_OBJECT(r), "abi-check-img"))
-								: nullptr;
-			const char * vis = (stk && GTK_IS_STACK(stk))
-				? gtk_stack_get_visible_child_name(GTK_STACK(stk))
-				: "";
-			bool want = !strcmp(mk, seq[i].mode);
-			char cwhat[64];
-			snprintf(cwhat, sizeof(cwhat), "check on %s row", mk);
+			if (seq[i].widget) {
+				GtkWidget * mb2 = markup_find_button();
+				if (mb2)
+					mb = mb2;
+				markup_check(&fails,
+							 gtk_widget_get_sensitive(mb), step,
+							 "menu button sensitive");
+				GtkPopover * pop =
+					gtk_menu_button_get_popover(
+						GTK_MENU_BUTTON(mb));
+				if (!pop) {
+					markup_check(&fails, false, step,
+								 "popover attached");
+					continue;
+				}
+				gtk_popover_popup(pop);
+				tf_guard::pump_for(80);
+				GtkWidget * popChild = gtk_popover_get_child(pop);
+				GtkWidget * row = popChild
+					? markup_find_row(popChild, seq[i].mode)
+					: nullptr;
+				if (!row) {
+					markup_check(&fails, false, step,
+								 "mode row found");
+					gtk_popover_popdown(pop);
+					continue;
+				}
+				markup_check(&fails,
+							 gtk_widget_get_sensitive(row), step,
+							 "mode row sensitive");
+				gchar * what = g_strdup_printf("click %s row",
+											 seq[i].mode);
+				bool ok = call_guard(
+					[row] { tf_widgets::click(row); }, what);
+				g_free(what);
+				markup_check(&fails, ok, step,
+							 "row click survived");
+				tf_guard::pump_for(250);
+			} else {
+				UT_UCS4String m(seq[i].mode);
+				EV_EditMethodCallData cd(
+					m.ucs4_str(),
+					static_cast<UT_uint32>(m.length()));
+				char what[64];
+				snprintf(what, sizeof(what), "em mode=%s",
+						 seq[i].mode);
+				bool ok = modeEm && call_guard(
+					[&] { modeEm->Fn(view, &cd); }, what);
+				markup_check(&fails, ok, step,
+							 "edit method landed");
+				tf_guard::pump_for(250);
+			}
+
+			/* landed state — independent of how it was driven */
+			const UT_uint32 wantLvl =
+				!strcmp(seq[i].mode, "original") ? 0 :
+				(!strcmp(seq[i].mode, "all") && marking
+				 ? 0 : PD_MAX_REVISION);
 			markup_check(&fails,
-						 r && !strcmp(vis, want ? "check" : "icon"),
-						 step, cwhat);
+						 view->isShowRevisions() == want->sR,
+						 step, "isShowRevisions");
+			markup_check(&fails,
+						 view->isShowRevBars() == want->bars,
+						 step, "isShowRevBars");
+			markup_check(&fails,
+						 view->getRevisionLevel() == wantLvl,
+						 step, "revision level");
+
+			/* rendered content — the oracle the old leg lacked */
+			const std::string vis = markup_visible_text(view);
+			g_print("  vis=\"%s\"\n",
+					vis.size() > 200
+						? (vis.substr(vis.size() - 200)).c_str()
+						: vis.c_str());
+			markup_check(&fails,
+				(vis.find("QDELQ") != std::string::npos)
+					== want->seeDel,
+				step, want->seeDel ? "deleted text rendered"
+								   : "deleted text hidden");
+			markup_check(&fails,
+				(vis.find("QINSQ") != std::string::npos)
+					== want->seeIns,
+				step, want->seeIns ? "inserted text rendered"
+								   : "inserted text hidden");
+			markup_check(&fails,
+						 rev_mark_count(doc) == marksSeeded,
+						 step, "revision marks preserved");
+			markup_check(&fails,
+						 doc->getHighestRevisionId() == revPass,
+						 step, "revision data preserved");
+
+			/* outcome signature for the widget-vs-method diff */
+			char sig[256];
+			snprintf(sig, sizeof(sig), "%d,%d,%u|%d,%d",
+					 view->isShowRevisions(),
+					 view->isShowRevBars(),
+					 view->getRevisionLevel(),
+					 (int)(vis.find("QDELQ") != std::string::npos),
+					 (int)(vis.find("QINSQ") != std::string::npos));
+			seen[seq[i].widget ? 0 : 1][seq[i].mode] = sig;
+
+			/* chrome: caption + tick only after widget clicks —
+			 * they derive from the same view state the method
+			 * also lands on, so assert them there too */
+			GtkWidget * mb2 = markup_find_button();
+			if (mb2)
+				mb = mb2;
+			GtkWidget * box =
+				gtk_menu_button_get_child(GTK_MENU_BUTTON(mb));
+			GtkWidget * first =
+				box ? gtk_widget_get_first_child(box) : nullptr;
+			GtkWidget * lbl = first
+				? gtk_widget_get_next_sibling(first) : nullptr;
+			const char * cap = (lbl && GTK_IS_LABEL(lbl))
+				? gtk_label_get_text(GTK_LABEL(lbl)) : "";
+			g_print("  caption=\"%s\" want=\"%s\" lbl=%p\n", cap,
+					want->caption, (void *)lbl);
+			markup_check(&fails, !strcmp(cap, want->caption),
+						 step, "button caption");
+
+			if (seq[i].widget) {
+				/* re-open: "show" re-runs _refreshCheckRows —
+				 * the tick must sit on the chosen row only */
+				GtkPopover * pop =
+					gtk_menu_button_get_popover(
+						GTK_MENU_BUTTON(mb));
+				gtk_popover_popup(pop);
+				tf_guard::pump_for(80);
+				markup_check(&fails,
+					gtk_widget_get_visible(GTK_WIDGET(pop)),
+					step, "popover reopens");
+				GtkWidget * popChild =
+					gtk_popover_get_child(pop);
+				for (const char * mk : tickmodes) {
+					GtkWidget * r = popChild
+						? markup_find_row(popChild, mk)
+						: nullptr;
+					GtkWidget * stk = r
+						? static_cast<GtkWidget *>(
+							g_object_get_data(G_OBJECT(r),
+											  "abi-check-img"))
+						: nullptr;
+					const char * v2 = (stk && GTK_IS_STACK(stk))
+						? gtk_stack_get_visible_child_name(
+							GTK_STACK(stk))
+						: "";
+					bool wantTick = !strcmp(mk, seq[i].mode);
+					char cwhat[64];
+					snprintf(cwhat, sizeof(cwhat),
+							 "check on %s row", mk);
+					markup_check(&fails,
+						r && !strcmp(v2,
+							wantTick ? "check" : "icon"),
+						step, cwhat);
+				}
+				gtk_popover_popdown(pop);
+				tf_guard::pump_for(60);
+			}
 		}
-		gtk_popover_popdown(pop);
-		tf_guard::pump_for(60);
+
+		/* widget path and edit method must land identically —
+		 * a divergence is a found bug, not two green steps */
+		for (const Mode & m : modes) {
+			auto w = seen[0].find(m.mode);
+			auto e = seen[1].find(m.mode);
+			if (w != seen[0].end() && e != seen[1].end()) {
+				if (w->second != e->second)
+					g_print("  DIVERGENCE mode=%s row='%s' em='%s'"
+							" [mk%d]\n", m.mode, w->second.c_str(),
+							e->second.c_str(), marking);
+				markup_check(&fails, w->second == e->second,
+							 mstep, m.mode);
+			}
+		}
 	}
+	(void)rev0;
 
 	s_gcov_dump();
 	g_print("drive: markup done — %d failures, %d criticals\n",
 			fails, g_criticals);
 	return fails ? 1 : 0;
+}
+
+/* TST13: rendered text of the real frame's layout — only runs the
+ * current revision-display mode leaves FP_VISIBLE.  The flag
+ * getters answer "what the mode is set to"; this answers "what the
+ * screen shows", and the two must agree. */
+static std::string markup_visible_text(FV_View * v)
+{
+	std::string out;
+	FL_DocLayout * layout = v ? v->getLayout() : nullptr;
+	if (!layout)
+		return out;
+	for (fl_BlockLayout * pBlock = layout->findBlockAtPosition(2);
+		 pBlock; pBlock = pBlock->getNextBlockInDocument())
+	{
+		for (fp_Run * pRun = pBlock->getFirstRun(); pRun;
+			 pRun = pRun->getNextRun())
+		{
+			if (pRun->getType() != FPRUN_TEXT ||
+				pRun->getVisibility() != FP_VISIBLE)
+				continue;
+			UT_GrowBuf buf;
+			static_cast<fp_TextRun *>(pRun)->appendTextToBuf(buf);
+			for (UT_uint32 i = 0; i < buf.getLength(); ++i)
+			{
+				UT_UCS4Char c =
+					static_cast<UT_UCS4Char>(buf.getPointer(i)[0]);
+				if (c < 0x80)
+					out += static_cast<char>(c);
+			}
+		}
+	}
+	return out;
 }
 
 /* ---------------- TRACK04: revisions surface leg ----------------
@@ -4543,8 +4734,21 @@ static int drive_revisions(AP_UnixApp * app, const char *)
 		pop_close(trackPop);
 
 	/* ---------- marks to navigate/accept/purge */
+	/* TST13: seed a tracked DELETION alongside the insertions —
+	 * accept/reject/purge only prove their content contract when
+	 * both mark kinds exist (a deletion accepted removes text; an
+	 * insertion kept becomes plain text) */
 	set_phase("revisions: seed marks");
+	PT_DocPosition revEod = 0;
+	doc->getBounds(true, revEod);
+	view->setPoint(revEod);
+	view->cmdCharInsert(std::string(" PDELP"), false);
+	doc->getBounds(true, revEod);
+	view->setPoint(revEod);
 	doc->setMarkRevisions(true);
+	view->setPoint(revEod > 6 ? revEod - 6 : 0);
+	view->cmdCharDelete(true, 6);   /* tracked deletion of " PDELP" */
+	view->setPoint(revEod);
 	view->cmdCharInsert(std::string(" TrackedOne"), false);
 	view->moveInsPtTo(FV_DOCPOS_BOD);
 	view->cmdCharInsert(std::string("TrackedTwo "), false);
@@ -4552,6 +4756,8 @@ static int drive_revisions(AP_UnixApp * app, const char *)
 	tf_guard::pump_for(300);
 	const UT_uint32 revSeeded = doc->getHighestRevisionId();
 	markup_check(&fails, revSeeded >= 1, "seed", "marks exist");
+	markup_check(&fails, rev_mark_count(doc) >= 2,
+				 "seed", "both mark kinds seeded");
 
 	/* ---------- Find Next/Prev ribbon buttons */
 	set_phase("revisions: find next/prev buttons");
@@ -4650,6 +4856,22 @@ static int drive_revisions(AP_UnixApp * app, const char *)
 							 "purge accept", "history dropped");
 				markup_check(&fails, doc->getRevisions().empty(),
 							 "purge accept", "revision table empty");
+				/* TST13 content check: purge accepts everything —
+				 * the deleted sentinel must be physically gone and
+				 * the insertions must remain as plain text */
+				tf_guard::pump_for(200);
+				const std::string afterPurge =
+					markup_visible_text(view);
+				markup_check(&fails,
+							 afterPurge.find("PDELP")
+								 == std::string::npos,
+							 "purge accept",
+							 "deleted text purged");
+				markup_check(&fails,
+							 afterPurge.find("TrackedOne")
+								 != std::string::npos,
+							 "purge accept",
+							 "inserted text kept as final");
 			}
 			pop_close(tp);
 		}

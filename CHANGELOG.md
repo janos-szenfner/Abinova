@@ -2022,6 +2022,19 @@ below are on `main` but the release has not been cut yet.
   is exercised by a new `ui-drive --revisions` leg and a 205-assert
   headless `fv_Revisions` suite against rendered content, not just
   flags.
+- **Track-changes tests now assert what is on screen** — the suites
+  that let the display-mode bug ship green only checked internal
+  flags and document data, never the rendered text, and their
+  fixtures never entered the tracking-on state where the bug lived.
+  The regression layer now drives real insertion *and* deletion
+  marks (in-app and imported `.docx`) through every
+  Display-for-Review transition — the full 4×4 matrix under both
+  tracking states plus random-order cycles — asserting the visible
+  text of each mode, the Simple Markup margin bar as actual pixels,
+  and that the real popover row clicks and the underlying edit
+  method land identically. Accept/reject/purge paths assert their
+  rendered results too, and a pinned pre-fix state plus a replayed
+  code revert prove the new checks fail when the bug is present.
 
 ### Tables (Word-style creation and context menus)
 

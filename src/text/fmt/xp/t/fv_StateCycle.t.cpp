@@ -258,6 +258,90 @@ void settleLayout(FL_DocLayout * l)
 	tf_guard::drain_pending();
 }
 
+/* TST13: the per-mode expectation table — flags are one oracle,
+ * rendered visible text is the independent one; a mode is only
+ * 'applied' when both agree.  Expected content is identical under
+ * both marking states: only the stored level encoding differs
+ * ('all' stores 0 while tracking, PD_MAX_REVISION otherwise). */
+struct ModeExpect
+{
+	const char * name;
+	bool sR, bars;
+	bool seeDeleted, seeInserted;
+};
+
+const ModeExpect * expectMode(const char *name)
+{
+	static const ModeExpect tbl[] = {
+		{ "all",      true,  false, true,  true  },
+		{ "simple",   false, true,  false, true  },
+		{ "none",     false, false, false, true  },
+		{ "original", false, false, true,  false },
+	};
+	for (const ModeExpect & e : tbl)
+		if (!strcmp(e.name, name))
+			return &e;
+	return nullptr;
+}
+
+/* seed a tracked deletion of "deleted" plus tracked insertions at
+ * two revision ids (INS1 under the first session, INS2 after a
+ * revision-id bump) — leaves marking ON so callers set the state
+ * per pass */
+bool seedTwoIdMarks(CycleView &hv)
+{
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+	doc->setMarkRevisions(true);
+	v->setPoint(12);
+	v->cmdCharDelete(true, 7);
+	v->setPoint(hv.eod());
+	v->cmdCharInsert(std::string(" INS1"), false);
+	/* a second session id: bump the working id and re-arm marking
+	 * so the new id gets a revision-table row — marks at two ids */
+	doc->setMarkRevisions(false);
+	doc->setRevisionId(doc->getHighestRevisionId() + 1);
+	doc->setMarkRevisions(true);
+	v->cmdCharInsert(std::string(" INS2"), false);
+	settleLayout(hv.layout);
+	return doc->getHighestRevisionId() >= 2;
+}
+
+/* full landed-state check for one display mode: flag triple,
+ * derived level, rendered visible text AND data preservation.
+ * Returns a string naming the first failing oracle so the repro
+ * line says WHAT diverged. */
+const char * modeApplied(CycleView &hv, const char *name, bool marking,
+						 UT_uint32 rev0)
+{
+	FV_View * v = hv.view;
+	const ModeExpect * e = expectMode(name);
+	if (!e)
+		return "unknown mode";
+	settleLayout(hv.layout);
+	if (v->isShowRevisions() != e->sR)
+		return "isShowRevisions";
+	if (v->isShowRevBars() != e->bars)
+		return "isShowRevBars";
+	const UT_uint32 wantLvl =
+		!strcmp(name, "original") ? 0 :
+		(e->sR && marking ? 0 : PD_MAX_REVISION);
+	if (v->getRevisionLevel() != wantLvl)
+		return "revision level";
+	const std::string vis = hv.visibleText();
+	if ((vis.find("deleted") != std::string::npos) != e->seeDeleted)
+		return e->seeDeleted ? "deleted text not rendered"
+							 : "deleted text still rendered";
+	if ((vis.find("INS1") != std::string::npos) != e->seeInserted)
+		return e->seeInserted ? "inserted text not rendered"
+							  : "inserted text still rendered";
+	if ((vis.find("INS2") != std::string::npos) != e->seeInserted)
+		return "second-id insertion visibility";
+	if (hv.doc->getHighestRevisionId() != rev0)
+		return "revision data dropped";
+	return nullptr;
+}
+
 } // namespace
 
 TFTEST_MAIN("markup modes cycle all->simple->none->original->all")
@@ -420,6 +504,152 @@ TFTEST_MAIN("markup modes render marked/final/original text")
 			TFPASS(doc->getHighestRevisionId() == rev0);
 		}
 	}
+}
+
+TFTEST_MAIN("markup modes: full 4x4 matrix lands every transition")
+{
+	/* TST13: every ordered mode pair incl. self-transitions, under
+	 * both marking states.  A transition whose stored triple
+	 * partially matches the target can leave the render on the old
+	 * mode when nothing rebuilds — the flag asserts alone cannot
+	 * see that, so the rendered visible text is asserted after
+	 * EVERY hop on a fixture with marks at two revision ids. */
+	CycleView hv;
+	TFPASS(hv.load("keep deleted keep"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+	TFPASS(seedTwoIdMarks(hv));
+	const UT_uint32 rev0 = doc->getHighestRevisionId();
+	TFPASS(markupMethod() != nullptr);
+	if (!markupMethod())
+		return;
+
+	static const char * modes[] = {"all", "simple", "none",
+								   "original"};
+	for (int marking = 1; marking >= 0; --marking)
+	{
+		doc->setMarkRevisions(marking != 0);
+		for (const char * from : modes)
+		{
+			TFPASS(applyMarkupMode(v, from));
+			for (const char * to : modes)
+			{
+				TFPASS(applyMarkupMode(v, to));
+				const char * bad = modeApplied(hv, to,
+											   marking != 0, rev0);
+				if (bad)
+				{
+					fprintf(stderr,
+							"mode matrix fail %s->%s marking=%d: %s\n",
+							from, to, marking, bad);
+					TFPASS(false);
+				}
+			}
+		}
+	}
+}
+
+TFTEST_MAIN("markup modes: seeded random order stays rendered-correct")
+{
+	/* TST13: multi-cycle random-order transitions — fv_Fuzz's
+	 * harness shape applied to the selector.  A deterministic
+	 * xorshift walk over the four modes asserts rendered content
+	 * after every hop so a path-dependent wedge can't hide behind
+	 * the fixed sequences above. */
+	CycleView hv;
+	TFPASS(hv.load("keep deleted keep"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+	TFPASS(seedTwoIdMarks(hv));
+	const UT_uint32 rev0 = doc->getHighestRevisionId();
+	TFPASS(markupMethod() != nullptr);
+	if (!markupMethod())
+		return;
+
+	static const char * modes[] = {"all", "simple", "none",
+								   "original"};
+	static const UT_uint64 seeds[] = {0x9E3779B9ULL, 424242ULL};
+	for (int marking = 1; marking >= 0; --marking)
+	{
+		doc->setMarkRevisions(marking != 0);
+		for (UT_uint64 seed : seeds)
+		{
+			UT_uint64 rng = seed;
+			for (int step = 0; step < 24; ++step)
+			{
+				rng ^= rng << 13;
+				rng ^= rng >> 7;
+				rng ^= rng << 17;
+				const char * to = modes[rng % 4];
+				TFPASS(applyMarkupMode(v, to));
+				const char * bad = modeApplied(hv, to,
+											   marking != 0, rev0);
+				if (bad)
+				{
+					fprintf(stderr,
+							"random seq fail seed=%llu step=%d to=%s"
+							" marking=%d: %s\n",
+							static_cast<unsigned long long>(seed),
+							step, to, marking, bad);
+					TFPASS(false);
+				}
+			}
+		}
+	}
+}
+
+TFTEST_MAIN("pinned pre-TRACK03 'all' state fails the content oracle")
+{
+	/* TST13 negative control for the TRACK03 class: under marking
+	 * ON the pre-fix 'all' branch stored PD_MAX_REVISION — a flag
+	 * triple (show, !bars, MAX) the OLD flag asserts accepted as
+	 * All Markup while the render showed No Markup text.  Pin that
+	 * exact state through the public API and prove the content
+	 * oracle disagrees where the flag table cannot. */
+	CycleView hv;
+	TFPASS(hv.load("keep deleted keep"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+	TFPASS(seedTwoIdMarks(hv));
+
+	/* the pre-fix 'all' landing, verbatim */
+	v->setShowRevBars(false);
+	v->setShowRevisions(true);
+	v->cmdSetRevisionLevel(PD_MAX_REVISION);
+	settleLayout(hv.layout);
+
+	/* flags look exactly like the old 'all' expectation… */
+	TFPASS(v->isShowRevisions());
+	TFPASS(!v->isShowRevBars());
+	TFPASS(v->getRevisionLevel() == PD_MAX_REVISION);
+	/* …but the render is No Markup: 'deleted' hidden means the
+	 * content assert FAILS on this state — an assert that can't
+	 * fail tests nothing */
+	std::string vis = hv.visibleText();
+	TFPASS(vis.find("deleted") == std::string::npos);
+	TFPASS(vis.find("INS1") != std::string::npos);
+
+	/* the SAME flag triple under marking OFF is a legitimate All
+	 * Markup — flags alone are ambiguous across marking states,
+	 * which is why only rendered content can arbitrate */
+	doc->setMarkRevisions(false);
+	settleLayout(hv.layout);
+	vis = hv.visibleText();
+	TFPASS(v->isShowRevisions());
+	TFPASS(v->getRevisionLevel() == PD_MAX_REVISION);
+	TFPASS(vis.find("deleted") != std::string::npos);
+	TFPASS(vis.find("INS1") != std::string::npos);
+
+	/* and back to a real landed mode */
+	TFPASS(applyMarkupMode(v, "none"));
+	TFPASS(modeApplied(hv, "none", false,
+					 doc->getHighestRevisionId()) == nullptr);
 }
 
 TFTEST_MAIN("view modes cycle and restore content")

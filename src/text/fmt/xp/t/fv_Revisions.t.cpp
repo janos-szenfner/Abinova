@@ -59,6 +59,8 @@
 #include "fp_Page.h"
 #include "fp_Run.h"
 #include "fp_TextRun.h"
+#include "gr_DrawArgs.h"
+#include "gr_Painter.h"
 #include "gr_UnixCairoGraphics.h"
 #include "xap_App.h"
 #include "xap_EditMethods.h"
@@ -331,6 +333,125 @@ bool seedMarks(RevView & hv)
 	doc->setMarkRevisions(false);
 	fvrSettle(hv.layout);
 	return doc->getHighestRevisionId() >= 1;
+}
+
+/* TST13: a landed-state check for one display mode on the imported
+ * fixture — flags + derived level + rendered markers.  The docx's
+ * own mark text is the oracle: DELONE (w:del), INSA/INSB (w:ins),
+ * MOVEDTEXT (moveFrom counts as a second copy only when both sides
+ * of the move are shown). */
+const char * docxModeApplied(RevView &hv, const char *name, bool marking,
+							 UT_uint32 rev0)
+{
+	FV_View * v = hv.view;
+	struct Exp { const char * name; bool sR, bars, seeDel, seeIns; };
+	static const Exp tbl[] = {
+		{ "all",      true,  false, true,  true  },
+		{ "simple",   false, true,  false, true  },
+		{ "none",     false, false, false, true  },
+		{ "original", false, false, true,  false },
+	};
+	const Exp * e = nullptr;
+	for (const Exp & t : tbl)
+		if (!strcmp(t.name, name))
+			e = &t;
+	if (!e)
+		return "unknown mode";
+	fvrSettle(hv.layout);
+	if (v->isShowRevisions() != e->sR)
+		return "isShowRevisions";
+	if (v->isShowRevBars() != e->bars)
+		return "isShowRevBars";
+	const UT_uint32 wantLvl =
+		!strcmp(name, "original") ? 0 :
+		(e->sR && marking ? 0 : PD_MAX_REVISION);
+	if (v->getRevisionLevel() != wantLvl)
+		return "revision level";
+	const std::string vis = hv.visibleText();
+	if ((vis.find("DELONE") != std::string::npos) != e->seeDel)
+		return e->seeDel ? "DELONE not rendered"
+						 : "DELONE still rendered";
+	if ((vis.find("INSA") != std::string::npos) != e->seeIns)
+		return e->seeIns ? "INSA not rendered"
+						 : "INSA still rendered";
+	size_t nMoved = 0;
+	for (size_t at = vis.find("MOVEDTEXT"); at != std::string::npos;
+		 at = vis.find("MOVEDTEXT", at + 1))
+		++nMoved;
+	if (nMoved != (e->seeDel && e->seeIns ? 2 : 1))
+		return "MOVEDTEXT copy count";
+	if (hv.doc->getHighestRevisionId() != rev0)
+		return "revision data dropped";
+	return nullptr;
+}
+
+/* TST13: the harness graphics is widget-less and reports neither
+ * screen nor paper; the Simple-Markup margin bar only paints on a
+ * DGP_SCREEN graphics, so render through one backed by an image
+ * surface (same trick as fv_RefsTOC's seal pixel test). */
+class RevScreenGfx : public GR_UnixCairoGraphics
+{
+public:
+	RevScreenGfx() : GR_UnixCairoGraphics(nullptr) {}
+	bool queryProperties(GR_Graphics::Properties gp) const override
+	{
+		if (gp == GR_Graphics::DGP_SCREEN ||
+			gp == GR_Graphics::DGP_OPAQUEOVERLAY)
+			return true;
+		return GR_UnixCairoGraphics::queryProperties(gp);
+	}
+};
+
+/* paint page 0 of the view into a fresh ARGB32 image surface */
+cairo_surface_t * revRenderPage(RevView &hv, int &w, int &h)
+{
+	fp_Page * pPage = hv.layout->getNthPage(0);
+	if (!pPage)
+		return nullptr;
+	RevScreenGfx * g = new RevScreenGfx;
+	g->setZoomPercentage(100);
+	w = g->tdu(pPage->getWidth());
+	h = g->tdu(pPage->getHeight());
+	cairo_surface_t * surf =
+		cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
+	cairo_t * cr = cairo_create(surf);
+	g->setCairo(cr);
+	g->beginPaint();
+	{
+		GR_Painter painter(g);
+		painter.clearArea(0, 0, w, h);
+	}
+	dg_DrawArgs da;
+	da.pG = g;
+	da.xoff = 0;
+	da.yoff = 0;
+	hv.layout->setQuickPrint(g);
+	hv.view->drawPage(0, &da);
+	hv.layout->setQuickPrint(nullptr);
+	g->endPaint();
+	cairo_destroy(cr);
+	delete g;
+	cairo_surface_flush(surf);
+	return surf;
+}
+
+/* any pixel of the revision bar colour (0xf0 0x40 0x40) strictly
+ * left of the text column? — text never draws there, so a hit is
+ * always the Simple-Markup bar */
+bool revMarginHasBar(cairo_surface_t * surf, int textLeftPx)
+{
+	const unsigned char * data =
+		cairo_image_surface_get_data(surf);
+	const int stride = cairo_image_surface_get_stride(surf);
+	const int h = cairo_image_surface_get_height(surf);
+	for (int y = 0; y < h; ++y)
+		for (int x = 0; x < textLeftPx - 2; ++x)
+		{
+			const unsigned char * p = data + y * stride + x * 4;
+			if (p[2] > 200 && p[1] < 110 && p[0] < 110)
+				return true;
+		}
+	return false;
 }
 
 } // namespace
@@ -644,6 +765,13 @@ TFTEST_MAIN("bulk accept/reject matrix through edit methods")
 		fvrSettle(hv.layout);
 		TFPASS(hv.text().find("deleted") == std::string::npos);
 		TFPASS(hv.text().find("INSERTED") != std::string::npos);
+		/* TST13: the RENDER must track the accept — no stale
+		 * struck-out deletion or un-finalised insertion left on
+		 * screen */
+		TFPASS(hv.visibleText().find("deleted")
+			   == std::string::npos);
+		TFPASS(hv.visibleText().find("INSERTED")
+			   != std::string::npos);
 		TFPASS(hv.markedRunCount() == 0);
 	}
 
@@ -659,6 +787,10 @@ TFTEST_MAIN("bulk accept/reject matrix through edit methods")
 		fvrSettle(hv.layout);
 		TFPASS(hv.text().find("deleted") != std::string::npos);
 		TFPASS(hv.text().find("INSERTED") == std::string::npos);
+		TFPASS(hv.visibleText().find("deleted")
+			   != std::string::npos);
+		TFPASS(hv.visibleText().find("INSERTED")
+			   == std::string::npos);
 		TFPASS(hv.markedRunCount() == 0);
 	}
 
@@ -677,6 +809,10 @@ TFTEST_MAIN("bulk accept/reject matrix through edit methods")
 		fvrSettle(hv.layout);
 		TFPASS(hv.markedRunCount() == 0);
 		TFPASS(hv.text().find("INSERTED") != std::string::npos);
+		TFPASS(hv.visibleText().find("deleted")
+			   == std::string::npos);
+		TFPASS(hv.visibleText().find("INSERTED")
+			   != std::string::npos);
 	}
 
 	/* ...and stop tracking: marks cleared AND mark flag off —
@@ -1004,4 +1140,117 @@ TFTEST_MAIN("abwn round-trip preserves marks and revision state")
 		TFPASS(!hv.doc->getRevisions().empty());
 	}
 	unlink(tmp.c_str());
+}
+
+TFTEST_MAIN("imported marks: full mode matrix under both marking states")
+{
+	/* TST13: the imported-marks counterpart of fv_StateCycle's
+	 * seeded-mark matrix — every ordered mode pair (incl.
+	 * self-transitions) under marking ON and OFF, asserting the
+	 * rendered text of real w:ins/w:del/moveFrom/moveTo marks after
+	 * every hop.  The TRACK03-class encoding bug only exists with
+	 * marking ON, so both states are driven on the same doc. */
+	std::string data_file;
+	TFPASS(TF_Test::ensure_test_data("/test/wp/tst04/o06_revisions.docx",
+								   data_file));
+	RevView hv;
+	TFPASS(hv.loadFile(data_file.c_str()));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+	fvrSettle(hv.layout);
+	const UT_uint32 rev0 = doc->getHighestRevisionId();
+	TFPASS(rev0 >= 1);
+	TFPASS(hv.markedRunCount() >= 3);
+	TFPASS(findEM("revisionDisplayMode") != nullptr);
+	if (!findEM("revisionDisplayMode"))
+		return;
+
+	static const char * modes[] = {"all", "simple", "none",
+								   "original"};
+	for (int marking = 1; marking >= 0; --marking)
+	{
+		doc->setMarkRevisions(marking != 0);
+		for (const char * from : modes)
+		{
+			TFPASS(callEMu4(v, "revisionDisplayMode", from));
+			for (const char * to : modes)
+			{
+				TFPASS(callEMu4(v, "revisionDisplayMode", to));
+				const char * bad = docxModeApplied(hv, to,
+												   marking != 0, rev0);
+				if (bad)
+				{
+					fprintf(stderr,
+							"imported matrix fail %s->%s marking=%d: %s\n",
+							from, to, marking, bad);
+					TFPASS(false);
+				}
+			}
+		}
+	}
+}
+
+TFTEST_MAIN("simple mode paints the left-margin revision bar")
+{
+	/* TST13: Word's Simple Markup shows final text plus a red bar
+	 * in the left margin on lines containing revisions
+	 * (fp_Line::draw, gated on isShowRevBars && DGP_SCREEN).  This
+	 * is the pixel half of the mode contract — flags say the bar
+	 * is enabled, pixels prove it lands.  Render page 0 through a
+	 * screen-reporting graphics in every mode and sample the
+	 * margin. */
+	RevView hv;
+	TFPASS(hv.load("keep deleted keep"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	TFPASS(seedMarks(hv));
+	TFPASS(findEM("revisionDisplayMode") != nullptr);
+	if (!findEM("revisionDisplayMode"))
+		return;
+
+	/* text column left edge in device px: the first char's
+	 * position mapped through a screen-resolution graphics — the
+	 * bar is drawn a few px LEFT of it, inside the margin */
+	fl_BlockLayout * pBL =
+		hv.layout->findBlockAtPosition(hv.nthMarkedRunPos(0));
+	TFPASS(pBL != nullptr);
+	if (!pBL)
+		return;
+	UT_sint32 x = 0, y = 0, x2 = 0, y2 = 0, hh = 0;
+	bool bEOL = false, bDir = false;
+	TFPASS(pBL->findPointCoords(pBL->getPosition() + 1, false,
+							  x, y, x2, y2, hh, bDir) != nullptr);
+	RevScreenGfx conv;
+	conv.setZoomPercentage(100);
+	const int textLeftPx = conv.tdu(x);
+	TFPASS(textLeftPx > 10);
+
+	int w = 0, h = 0;
+	struct Shot { const char * mode; bool wantBar; };
+	static const Shot shots[] = {
+		{ "simple",   true  },
+		{ "none",     false },
+		{ "all",      false },
+		{ "original", false },
+		{ "simple",   true  },
+	};
+	for (const Shot & s : shots)
+	{
+		TFPASS(callEMu4(v, "revisionDisplayMode", s.mode));
+		fvrSettle(hv.layout);
+		cairo_surface_t * surf = revRenderPage(hv, w, h);
+		TFPASS(surf != nullptr);
+		if (!surf)
+			return;
+		const bool bar = revMarginHasBar(surf, textLeftPx);
+		if (bar != s.wantBar)
+			fprintf(stderr,
+					"margin bar fail mode=%s want=%d got=%d\n",
+					s.mode, s.wantBar, bar);
+		TFPASS(bar == s.wantBar);
+		cairo_surface_destroy(surf);
+	}
 }
