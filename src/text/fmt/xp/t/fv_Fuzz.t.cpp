@@ -225,6 +225,22 @@ struct FuzzAction
 	ActionFn fn;
 };
 
+/* Guard budgets are wall-clock; instrumented runs (valgrind, ASan)
+ * slow actions ~10-40x, so a legit step can outlive the nominal
+ * budget — and a watchdog reap mid-action abandons in-flight
+ * allocations, which a leak checker then reports as definite leaks.
+ * ABINOVA_FUZZ_BUDGET_SCALE multiplies every guard budget (like
+ * TF_MAX_TEST_TIME scales the per-assert alarm); unset means 1. */
+long budgetScale()
+{
+	static const long v = [] {
+		const char * e = getenv("ABINOVA_FUZZ_BUDGET_SCALE");
+		long n = e ? strtol(e, nullptr, 10) : 0;
+		return n > 0 ? n : 1;
+	}();
+	return v;
+}
+
 /* run one action under the watchdog; the drain stays INSIDE the
  * guarded region because the deferred idle/timer work an action
  * queued is part of that action — a crash there is still its fault.
@@ -235,7 +251,7 @@ bool runStep(FuzzCtx &c, const FuzzAction &a, long budget_ms)
 	tf_guard::Outcome o = tf_guard::call([&c, &a] {
 		a.fn(c);
 		tf_guard::drain_pending();
-	}, budget_ms);
+	}, budget_ms * budgetScale());
 	if (o != tf_guard::OK)
 		return fuzzFail(c, o == tf_guard::HUNG ? "action HUNG"
 											   : "action FAULTED");
@@ -469,13 +485,13 @@ bool settle(FuzzCtx &c)
 			return;
 		(void)c.hv->text();
 		inner = true;
-	}, 3000);
+	}, 3000 * budgetScale());
 	if (o != tf_guard::OK)
 		return fuzzFail(c, o == tf_guard::HUNG ? "settle HUNG"
 											   : "settle FAULTED");
 	if (!inner)
 		return fuzzFail(c, "layout/page-bounds invariant broke");
-	if (tf_guard::idle_sentinel(600) < 0)
+	if (tf_guard::idle_sentinel(600 * budgetScale()) < 0)
 		return fuzzFail(c, "idle sentinel starved — loop wedged");
 	return true;
 }
@@ -493,7 +509,7 @@ bool undoAll(FuzzCtx &c, int cap)
 		tf_guard::Outcome o = tf_guard::call([&v] {
 			v->cmdUndo(1);
 			tf_guard::drain_pending();
-		}, 3000);
+		}, 3000 * budgetScale());
 		if (o != tf_guard::OK)
 		{
 			fprintf(stderr, "FUZZ-FAIL undo index %d outcome=%s\n",
@@ -542,7 +558,7 @@ bool runSeed(FuzzCtx &c, UT_uint64 seed, int steps)
 {
 	tf_guard::Outcome lo = tf_guard::call([&c] {
 		c.hv = new FuzzView;
-	}, 5000);
+	}, 5000 * budgetScale());
 	if (lo != tf_guard::OK)
 		return fuzzFail(c, "FuzzView allocation faulted");
 	c.seed = static_cast<UT_uint32>(seed & 0xFFFFFFFF);
@@ -557,7 +573,7 @@ bool runSeed(FuzzCtx &c, UT_uint64 seed, int steps)
 			c.hv->load("H:Alpha Chapter\nbody one alpha\n"
 					   "body two alpha\nH:Beta Chapter\n"
 					   "body beta\nlast body paragraph");
-		}, 8000) != tf_guard::OK)
+		}, 8000 * budgetScale()) != tf_guard::OK)
 		return fuzzFail(c, "seed document load hung/faulted");
 	if (!c.hv->view)
 		return fuzzFail(c, "seed document failed to load");
@@ -582,7 +598,7 @@ bool runSeed(FuzzCtx &c, UT_uint64 seed, int steps)
 	bool parsed = false;
 	if (tf_guard::call([&c, &parsed] {
 			parsed = exportReimport(c.hv->doc);
-		}, 15000) != tf_guard::OK)
+		}, 15000 * budgetScale()) != tf_guard::OK)
 		return fuzzFail(c, "abwn export/reimport hung/faulted");
 	if (!parsed)
 		return fuzzFail(c, "fuzzed document fails abwn reimport");
@@ -602,7 +618,7 @@ bool dropView(FuzzCtx &c)
 	return tf_guard::call([&c] {
 		delete c.hv;
 		c.hv = nullptr;
-	}, 8000) == tf_guard::OK;
+	}, 8000 * budgetScale()) == tf_guard::OK;
 }
 
 } // namespace
@@ -691,11 +707,13 @@ TFTEST_MAIN("the fuzz path flags a wedged action instead of hanging")
 	FuzzCtx c;
 	c.seed = 0xDEAD;
 	c.step = 7;
+	/* the wedge must oversleep the (scaled) budget and the elapsed
+	 * bound must leave room for the scaled watchdog interval */
 	FuzzAction wedge{ "wedge-sleep", 1,
-		[](FuzzCtx &) { g_usleep(3 * G_USEC_PER_SEC); } };
+		[](FuzzCtx &) { g_usleep(3 * G_USEC_PER_SEC * budgetScale()); } };
 	gint64 t0 = g_get_monotonic_time();
 	TFPASS(!runStep(c, wedge, 300));
-	TFPASS(g_get_monotonic_time() - t0 < 2500000);
+	TFPASS(g_get_monotonic_time() - t0 < 2500000 * budgetScale());
 	FuzzAction noop{ "noop", 1, [](FuzzCtx &) {} };
 	TFPASS(runStep(c, noop, 500));
 }

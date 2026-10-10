@@ -2557,7 +2557,9 @@ void fp_TabRun::_draw(dg_DrawArgs* pDA)
 		{
 				iTabTop = pDA->yoff - pG->getFontAscent(_getFont());
 		}
-		while (cumWidth < getWidth() && i < 151)
+		/* measureString(tmp, 1, 150, wid) wrote wid[0..149]; wid[150]
+		 * is never initialised so the loop must stop before it */
+		while (cumWidth < getWidth() && i < 150)
 		{
 			cumWidth += wid[i++];
 		}

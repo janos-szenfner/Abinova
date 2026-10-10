@@ -98,3 +98,85 @@
    ...
    fun:cairo_select_font_face
 }
+
+# librsvg 2.50 (Rust core) evaluates conditionals on uninitialised
+# bytes inside its own class-init while gobject constructs the first
+# RsvgHandle — all frames sit inside librsvg/libgobject, reached only
+# through rsvg_handle_new (GR_RSVGVectorImage::convertFromBuffer).
+{
+   librsvg-handle-init-cond
+   Memcheck:Cond
+   obj:*librsvg-2.so*
+   obj:*librsvg-2.so*
+   ...
+   fun:rsvg_handle_new
+}
+
+# --- forked-child snapshot leaks -------------------------------------
+# Several tests (dict_child in ap_Grammar, run_assert_in_child in
+# ut_unix, g_spawn helpers in fv_EditOps) fork() without exec().  The
+# child inherits the parent's heap snapshot and _exit()s without
+# running library teardown, so third-party allocations that are still
+# in use in the parent — worker-thread descriptors, per-thread main
+# loops — are reported as "definitely lost" in the child and can flip
+# its exit status under --error-exitcode.  Allocation site and
+# ownership are inside the libraries (glib/gio/pango/gvfs worker
+# plumbing, no release API); first-party frames appear only as callers
+# far below the keyed frames.
+
+# pango font-map's font-loading worker thread, g_thread_new'd inside
+# libpangoft2 during pango_cairo_font_map_get_default / _initPango /
+# pango_fc_font_map_cache_clear.
+{
+   pango-fc-worker-thread
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:g_malloc
+   ...
+   fun:g_thread_new
+   obj:*libpangoft2-1.0.so*
+   ...
+}
+
+# gvfs's g_task worker pool, created on first g_bus_get_sync from the
+# dlopen'd libgvfsdbus module (g_file_new_for_uri etc.).
+{
+   gvfs-gtask-worker-pool
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:g_malloc
+   ...
+   fun:g_thread_new
+   fun:g_thread_pool_new_full
+   ...
+   obj:*libgvfsdbus.so*
+   ...
+}
+
+# gio worker thread running its own g_main_loop (async d-bus/gvfs I/O).
+{
+   gio-worker-mainloop
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:calloc
+   fun:g_malloc0
+   ...
+   fun:g_main_loop_run
+   obj:*libgio-2.0.so*
+   ...
+}
+
+# per-thread default-context queue pushed by a gio worker thread.
+{
+   gio-worker-ctxqueue
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:g_malloc
+   fun:g_queue_new
+   fun:g_main_context_push_thread_default
+   obj:*libgio-2.0.so*
+   ...
+}

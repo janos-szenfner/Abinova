@@ -196,10 +196,13 @@ void GR_Caret::s_blink_timeout(UT_Worker *)
 
 UT_uint32 GR_Caret::_getCursorBlinkTime() const
 {
-	UT_uint32 blink;
+	// gtk-cursor-blink-time's default is 1200 ms; settings can be null
+	// headless, so give blink a defined value before g_object_get.
+	UT_uint32 blink = 1200;
 	GtkSettings * settings = gtk_settings_get_default ();
 
-	g_object_get (G_OBJECT(settings), "gtk-cursor-blink-time", &blink, nullptr);
+	if (settings)
+		g_object_get (G_OBJECT(settings), "gtk-cursor-blink-time", &blink, nullptr);
 
 	return (blink/2);
 }

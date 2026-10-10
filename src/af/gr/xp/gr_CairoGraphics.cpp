@@ -2693,19 +2693,20 @@ UT_uint32 GR_CairoGraphics::measureString(const UT_UCS4Char * pChars,
 		l = l->next;
 	}
 
+	if (pWidths)
+	{
+		/* This is a bit weird, possibly a Pango bug, but it is better
+		 * to set any dangling widths to 0 than leave them at randomn values.
+		 * Do it even when !bMeasureOk: callers read the full iLength
+		 * span and unwritten entries are uninitialised. */
+		while (iOffset < static_cast<UT_uint32>(iLength))
+		{
+			pWidths[iOffset++] = 0;
+		}
+	}
+
 	if (bMeasureOk)
 	{
-		if (pWidths)
-		{
-			/* This is a bit weird, possibly a Pango bug, but it is better
-			 * to set any dangling widths to 0 than leave them at randomn values
-			 */
-			while (iOffset < static_cast<UT_uint32>(iLength))
-			{
-				pWidths[iOffset++] = 0;
-			}
-		}
-
 		xxx_UT_DEBUGMSG(("Length %d, Offset %d\n", iLength, iOffset));
 	}
 

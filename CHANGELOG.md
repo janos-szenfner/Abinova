@@ -2196,6 +2196,13 @@ below are on `main` but the release has not been cut yet.
 
 ### Crash, memory-safety and correctness fixes
 
+- **Uninitialised-memory fixes from the pre-release valgrind sweep** —
+  the caret blink timer read an uninitialised duration when GTK
+  settings are unavailable (headless), text measurement left trailing
+  glyph-width entries uninitialised on its failure path, and the
+  tab-leader renderer could read one width slot past the measured
+  range. All three are fixed; the full unit suite now passes under
+  valgrind with zero memory errors and zero definite leaks.
 - **XPM image import hardened** — the XPM text loader dereferenced the
   buffer before checking its length (out-of-bounds read on malformed
   files) and leaked the parsed line strings on both failure and
