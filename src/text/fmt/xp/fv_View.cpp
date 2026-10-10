@@ -16065,8 +16065,14 @@ UT_uint32 FV_View::getRevisionLevel()const
 		UT_uint32 iRevLevel = m_pDoc->getHighestRevisionId();
 
 		if(!iRevLevel)
-			return 0;
-		
+		{
+			// no revision marks yet — any stored level renders the
+			// same text, so keep it; folding to 0 would mislabel the
+			// display mode (a tracked doc with no changes derives
+			// "Original" even in No Markup)
+			return m_iViewRevision;
+		}
+
 		--iRevLevel;
 	
 		if(m_iViewRevision < iRevLevel)
@@ -16074,6 +16080,21 @@ UT_uint32 FV_View::getRevisionLevel()const
 	}
 	
 	return m_iViewRevision;
+}
+
+/*!
+    Revision level for accept/reject-style operations.  A stored
+    level of 0 while revisions are shown and tracking is active is
+    the "reveal all" display level — every revision is on screen, so
+    revision ops may act on all of them (PD_MAX_REVISION).  In every
+    other state the display level is also the actionable level.
+*/
+UT_uint32 FV_View::getRevisionOpsLevel()const
+{
+	UT_uint32 iLevel = getRevisionLevel();
+	if(!iLevel && m_bShowRevisions && isMarkRevisions())
+		return PD_MAX_REVISION;
+	return iLevel;
 }
 
 bool FV_View::isMarkRevisions() const

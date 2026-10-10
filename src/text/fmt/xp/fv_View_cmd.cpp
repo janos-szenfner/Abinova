@@ -11222,7 +11222,7 @@ void FV_View::cmdAcceptRejectRevision(bool bReject, UT_sint32 xPos, UT_sint32 yP
 	// remove the selection, since things will get inserted, deleted, etc.
 	_clearSelection();
 	
-	m_pDoc->acceptRejectRevision(bReject,iStart,iEnd,m_iViewRevision);
+	m_pDoc->acceptRejectRevision(bReject,iStart,iEnd,getRevisionOpsLevel());
 	_restorePieceTableState();
 	_generalUpdate();
 }

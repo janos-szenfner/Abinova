@@ -17407,7 +17407,7 @@ Defun1(revisionAcceptAllShown)
 	PD_Document * pDoc = pView->getDocument();
 	UT_return_val_if_fail(pDoc,false);
 
-	return pDoc->acceptAllRevisionsUpTo(pView->getRevisionLevel());
+	return pDoc->acceptAllRevisionsUpTo(pView->getRevisionOpsLevel());
 }
 
 /*!
@@ -17422,7 +17422,7 @@ Defun1(revisionRejectAllShown)
 	PD_Document * pDoc = pView->getDocument();
 	UT_return_val_if_fail(pDoc,false);
 
-	return pDoc->rejectAllRevisionsUpTo(pView->getRevisionLevel());
+	return pDoc->rejectAllRevisionsUpTo(pView->getRevisionOpsLevel());
 }
 
 /*!
@@ -17566,7 +17566,12 @@ Defun(revisionDisplayMode)
 	{
 		pView->setShowRevBars(false);
 		pView->setShowRevisions(true);
-		pView->cmdSetRevisionLevel(PD_MAX_REVISION);
+		/* while change tracking is active, level 0 is the
+		 * "reveal all" level — PD_MAX_REVISION collapses every
+		 * revision into the final text, which is exactly what
+		 * No Markup already shows */
+		pView->cmdSetRevisionLevel(pView->isMarkRevisions()
+								 ? 0 : PD_MAX_REVISION);
 	}
 	else if (sMode == "none")
 	{

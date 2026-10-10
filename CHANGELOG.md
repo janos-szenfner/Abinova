@@ -1996,6 +1996,14 @@ below are on `main` but the release has not been cut yet.
   Markup and Original — now round-trip freely, the caption and check
   mark track the active mode, and switching modes only hides or shows
   markup; tracked changes are never dropped.
+- **Display for Review modes render correctly while Track Changes is
+  on** — with change tracking active, All Markup collapsed to the
+  same clean final text as No Markup (the revision level was set to
+  "all accepted" instead of the tracking model's "reveal all" level),
+  and Original showed a union of deleted and inserted text instead of
+  the pre-edit document. All four modes now show the right text in
+  either tracking state, and Accept/Reject still acts on every shown
+  revision in All Markup view.
 
 ### Tables (Word-style creation and context menus)
 

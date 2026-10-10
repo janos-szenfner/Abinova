@@ -4450,12 +4450,15 @@ const PP_AttrProp * PD_Document::explodeRevisions(std::unique_ptr<PP_RevisionAtt
 
 		UT_uint32 iMaxId = pRev->getId();
 
-		if(!bMark && !bShow && iId == 0)
+		if(!bShow && iId == 0)
 		{
 			// revisions are not to be shown, and the document to be
 			// shown in the state before the first revision, i.e.,
 			// additions are to be hidden, fmt changes ignored, and
-			// deletions will be visible
+			// deletions will be visible.  bMark is deliberately not
+			// part of this condition: with tracking active a level
+			// of 0 is "reveal all" only when revisions are shown —
+			// level 0 with them hidden is still Original
 
 			// see if the first revision is an addition ...
 			i = 1;

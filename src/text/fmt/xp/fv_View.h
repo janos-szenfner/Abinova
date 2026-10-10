@@ -959,6 +959,7 @@ public:
 
 	void                cmdSetRevisionLevel(UT_uint32 i);
 	UT_uint32           getRevisionLevel()const;
+	UT_uint32           getRevisionOpsLevel()const;
 	void                setRevisionLevel(UT_uint32 i);
 
 	bool                cmdFindRevision(bool bNext, UT_sint32 xPos, UT_sint32 yPos);

@@ -51,6 +51,7 @@
 #include "fv_View.h"
 #include "fp_Page.h"
 #include "fp_Run.h"
+#include "fp_TextRun.h"
 #include "gr_UnixCairoGraphics.h"
 #include "xap_App.h"
 #include "xap_EditMethods.h"
@@ -147,6 +148,35 @@ struct CycleView
 				static_cast<UT_UCS4Char>(buf.getPointer(i)[0]);
 			if (c < 0x80)
 				out += static_cast<char>(c);
+		}
+		return out;
+	}
+
+	/* text as rendered: only runs the current revision-display
+	 * mode leaves visible — unlike text(), hidden revisions are
+	 * skipped, so this is what the screen actually shows */
+	std::string visibleText() const
+	{
+		std::string out;
+		fl_BlockLayout *pBlock = layout->findBlockAtPosition(2);
+		for (; pBlock; pBlock = pBlock->getNextBlockInDocument())
+		{
+			for (fp_Run *pRun = pBlock->getFirstRun(); pRun;
+				 pRun = pRun->getNextRun())
+			{
+				if (pRun->getType() != FPRUN_TEXT ||
+					pRun->getVisibility() != FP_VISIBLE)
+					continue;
+				UT_GrowBuf buf;
+				static_cast<fp_TextRun *>(pRun)->appendTextToBuf(buf);
+				for (UT_uint32 i = 0; i < buf.getLength(); ++i)
+				{
+					UT_UCS4Char c =
+						static_cast<UT_UCS4Char>(buf.getPointer(i)[0]);
+					if (c < 0x80)
+						out += static_cast<char>(c);
+				}
+			}
 		}
 		return out;
 	}
@@ -320,6 +350,76 @@ TFTEST_MAIN("wedged selector state is caught by the flag assert")
 	TFPASS(markupStateIs(v, false, false, 0));
 	TFPASS(applyMarkupMode(v, "simple"));
 	TFPASS(markupStateIs(v, false, true, PD_MAX_REVISION));
+}
+
+TFTEST_MAIN("markup modes render marked/final/original text")
+{
+	/* TRACK03: flag combos alone did not catch that 'all' under
+	 * active tracking collapsed to the final text and 'original'
+	 * rendered a union of both.  Assert the rendered (visible)
+	 * text itself under BOTH isMarkRevisions states — the level
+	 * encoding differs (reveal-all is level 0 while tracking),
+	 * the pixels must not. */
+	CycleView hv;
+	TFPASS(hv.load("keep deleted keep"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+
+	/* seed a tracked deletion + insertion; tracking stays ON for
+	 * the first pass so the marking-mode level encoding is hit */
+	doc->setMarkRevisions(true);
+	v->setPoint(7);
+	v->cmdCharDelete(true, 7);
+	v->setPoint(hv.eod());
+	v->cmdCharInsert(std::string(" inserted"), false);
+	settleLayout(hv.layout);
+
+	const UT_uint32 rev0 = doc->getHighestRevisionId();
+	TFPASS(rev0 >= 1);
+	TFPASS(markupMethod() != nullptr);
+	if (!markupMethod())
+		return;
+
+	struct Mode { const char *name; bool sR, bars;
+				  bool seeDeleted, seeInserted; };
+	static const Mode seq[] = {
+		{ "all",      true,  false, true,  true  },
+		{ "simple",   false, true,  false, true  },
+		{ "none",     false, false, false, true  },
+		{ "original", false, false, true,  false },
+		{ "all",      true,  false, true,  true  },
+		{ "original", false, false, true,  false },
+		{ "none",     false, false, false, true  },
+		{ "simple",   false, true,  false, true  },
+	};
+
+	for (int marking = 1; marking >= 0; --marking)
+	{
+		doc->setMarkRevisions(marking != 0);
+		/* 'all' stores the reveal-all level 0 under tracking,
+		 * PD_MAX_REVISION otherwise */
+		const UT_uint32 allLvl = marking ? 0 : PD_MAX_REVISION;
+		for (size_t i = 0; i < G_N_ELEMENTS(seq); ++i)
+		{
+			TFPASS(applyMarkupMode(v, seq[i].name));
+			TFPASS(v->isShowRevisions() == seq[i].sR);
+			TFPASS(v->isShowRevBars() == seq[i].bars);
+			const UT_uint32 want =
+				!strcmp(seq[i].name, "original") ? 0 :
+				(seq[i].sR ? allLvl : PD_MAX_REVISION);
+			TFPASS(v->getRevisionLevel() == want);
+			settleLayout(hv.layout);
+			const std::string vis = hv.visibleText();
+			TFPASS((vis.find("deleted") != std::string::npos)
+				   == seq[i].seeDeleted);
+			TFPASS((vis.find("inserted") != std::string::npos)
+				   == seq[i].seeInserted);
+			/* display mode must never destroy revision data */
+			TFPASS(doc->getHighestRevisionId() == rev0);
+		}
+	}
 }
 
 TFTEST_MAIN("view modes cycle and restore content")
