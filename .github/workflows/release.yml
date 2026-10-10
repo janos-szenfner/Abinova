@@ -1,0 +1,229 @@
+name: Release
+
+# Build installers/bundles for all supported platforms on version tags.
+# Every platform's packaging already lives in tools/build-*.sh +
+# dist/*.sh — these jobs only drive them. A tag push (vX.Y.Z) also
+# publishes a GitHub Release with every artifact attached.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Optional tag/release name to attach artifacts to (e.g. v4.0.0); empty = artifacts only'
+        required: false
+        default: ''
+
+env:
+  VERSION: ${{ github.ref_type == 'tag' && github.ref_name || (inputs.tag != '' && inputs.tag || '4.0.0') }}
+
+jobs:
+  # ------------------------------------------------------------------
+  # Linux: self-contained bundle + .deb + .rpm
+  # ------------------------------------------------------------------
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependencies + build
+        run: |
+          sudo tools/build-linux.sh --distro ubuntu --jobs "$(nproc)"
+
+      - name: Self-contained bundle
+        run: |
+          dist/linux-bundle.sh
+          BUNDLE=$(ls -d dist/abinova-*-linux-x86_64 | head -1)
+          echo "bundle=$BUNDLE" >> "$GITHUB_ENV"
+          tar -cJf "abinova-${VERSION#v}-linux-x86_64.tar.xz" -C dist "$(basename "$BUNDLE")"
+
+      - name: Debian package (.deb)
+        run: |
+          BUNDLE="${{ env.bundle }}"
+          PKG="abinova-${VERSION#v}-amd64"
+          ROOT="pkg-deb"
+          mkdir -p "$ROOT/opt" "$ROOT/usr/bin" "$ROOT/usr/share" "$ROOT/DEBIAN"
+          cp -a "$BUNDLE" "$ROOT/opt/abinova"
+          ln -s ../opt/abinova/bin/abinova "$ROOT/usr/bin/abinova"
+          cp -a "$BUNDLE/share/applications" "$ROOT/usr/share/"
+          cp -a "$BUNDLE/share/icons" "$ROOT/usr/share/"
+          cp -a "$BUNDLE/share/metainfo" "$ROOT/usr/share/" || true
+          cp -a "$BUNDLE/share/mime" "$ROOT/usr/share/" || true
+          {
+            printf 'Package: abinova\n'
+            printf 'Version: %s\n' "${VERSION#v}"
+            printf 'Section: editors\nPriority: optional\nArchitecture: amd64\n'
+            printf 'Maintainer: The Abinova Authors\n'
+            printf 'Description: Abinova word processor (self-contained build)\n'
+            printf ' GTK4 AbiWord-derived document editor. Installs to /opt/abinova\n'
+            printf ' with a /usr/bin/abinova symlink; no external dependencies.\n'
+          } > "$ROOT/DEBIAN/control"
+          dpkg-deb --build "$ROOT" "${PKG}.deb"
+          rm -rf "$ROOT"
+
+      - name: RPM package (.rpm)
+        run: |
+          sudo apt-get install -y rpm
+          BUNDLE="${{ env.bundle }}"
+          mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          mkdir -p "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/opt"
+          mkdir -p "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/bin"
+          mkdir -p "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share"
+          cp -a "$BUNDLE" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/opt/abinova"
+          ln -s ../opt/abinova/bin/abinova "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/bin/abinova"
+          cp -a "$BUNDLE/share/applications" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/"
+          cp -a "$BUNDLE/share/icons" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/"
+          cp -a "$BUNDLE/share/metainfo" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/" || true
+          cp -a "$BUNDLE/share/mime" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/" || true
+          {
+            printf 'Name:       abinova\n'
+            printf 'Version:    %s\n' "${VERSION#v}"
+            printf 'Release:    1%%{?dist}\n'
+            printf 'Summary:    Abinova word processor (self-contained build)\n'
+            printf 'License:    GPL-2.0-or-later\n'
+            printf 'URL:        https://github.com/janos-szenfner/Abinova\n'
+            printf 'BuildArch:  x86_64\nAutoReqProv: no\n\n'
+            printf '%%description\n'
+            printf 'GTK4 AbiWord-derived document editor. Installs to /opt/abinova\n'
+            printf 'with a /usr/bin/abinova symlink; no external dependencies.\n\n'
+            printf '%%files\n'
+            printf '/opt/abinova\n/usr/bin/abinova\n'
+            printf '/usr/share/applications/*\n/usr/share/icons/*\n'
+            printf '/usr/share/metainfo/*\n/usr/share/mime/*\n\n'
+            printf '%%changelog\n'
+            printf '* %s The Abinova Authors - %s-1\n- Release build.\n' "$(date '+%a %b %d %Y')" "${VERSION#v}"
+          } > rpmbuild/SPECS/abinova.spec
+          rpmbuild -bb --define "_topdir $PWD/rpmbuild" rpmbuild/SPECS/abinova.spec
+          cp rpmbuild/RPMS/x86_64/abinova-*.rpm .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            abinova-*-linux-x86_64.tar.xz
+            abinova-*-amd64.deb
+            abinova-*.rpm
+
+  # ------------------------------------------------------------------
+  # Windows: MSYS2 build + NSIS installer
+  # ------------------------------------------------------------------
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+
+      - name: Build + bundle
+        run: |
+          tools/build-windows-msys2.sh --bundle --jobs "$(nproc)"
+          ls -d dist/abinova-*-windows-* | head -5
+
+      - name: NSIS installer
+        run: |
+          pacman -S --noconfirm mingw-w64-ucrt-x86_64-nsis zip
+          BUNDLE=$(ls -d dist/abinova-*-windows-* | head -1)
+          makensis -DVERSION="${VERSION#v}" -DARCH=x86_64 \
+            -DSRCDIR="$(cygpath -w "$BUNDLE")" \
+            -DOUTFILE="abinova-${VERSION#v}-windows-x86_64-setup.exe" \
+            dist/abinova-setup.nsi
+          cd "$BUNDLE/.." && zip -qr "$OLDPWD/abinova-${VERSION#v}-windows-x86_64.zip" "$(basename "$BUNDLE")"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            abinova-*-windows-x86_64-setup.exe
+            abinova-*-windows-x86_64.zip
+
+  # ------------------------------------------------------------------
+  # macOS: .app + .dmg (ad-hoc signed; real identity via secrets)
+  # ------------------------------------------------------------------
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build + .app bundle
+        env:
+          ABINOVA_CODESIGN_IDENTITY: ${{ secrets.ABINOVA_CODESIGN_IDENTITY }}
+          ABINOVA_NOTARIZE_PROFILE: ${{ secrets.ABINOVA_NOTARIZE_PROFILE }}
+        run: |
+          ARGS="--bundle --jobs $(sysctl -n hw.ncpu)"
+          [ -n "$ABINOVA_CODESIGN_IDENTITY" ] && ARGS="$ARGS --sign-identity '$ABINOVA_CODESIGN_IDENTITY'"
+          [ -n "$ABINOVA_NOTARIZE_PROFILE" ] && ARGS="$ARGS --notarize-profile '$ABINOVA_NOTARIZE_PROFILE'"
+          eval tools/build-macos.sh $ARGS
+          ls -d Abinova.app dist/Abinova.app 2>/dev/null | head -3
+
+      - name: DMG
+        run: |
+          APP=$(ls -d Abinova.app dist/Abinova.app 2>/dev/null | head -1)
+          ARCH=$(uname -m)
+          hdiutil create -volname Abinova -srcfolder "$APP" -ov -format UDZO \
+            "abinova-${VERSION#v}-macos-${ARCH}.dmg"
+          tar -cJf "abinova-${VERSION#v}-macos-${ARCH}-app.tar.xz" -C "$(dirname "$APP")" Abinova.app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: |
+            abinova-*-macos-*.dmg
+            abinova-*-macos-*-app.tar.xz
+
+  # ------------------------------------------------------------------
+  # FreeBSD: build inside a VM (no GitHub-hosted BSD runner)
+  # Produces a staged-install tarball — pkg(8) packaging is a TODO.
+  # ------------------------------------------------------------------
+  freebsd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build in FreeBSD VM
+        uses: vmaction/freebsd-vm@v1
+        with:
+          usesh: true
+          sync: rsync
+          prepare: pkg install -y rsync
+          run: |
+            set -e
+            tools/build-freebsd.sh --jobs "$(sysctl -n hw.ncpu)"
+            mkdir -p out/stage
+            make install DESTDIR="$PWD/out/stage"
+            tar -czf "out/abinova-${VERSION#v}-freebsd-amd64.tar.gz" -C out/stage .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: freebsd
+          path: out/abinova-*-freebsd-amd64.tar.gz
+
+  # ------------------------------------------------------------------
+  # Publish: attach every artifact to the tag's GitHub Release
+  # ------------------------------------------------------------------
+  release:
+    needs: [linux, windows, macos, freebsd]
+    runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' || inputs.tag != ''
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-files
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
+        run: |
+          gh release create "$TAG" release-files/* \
+            --title "Abinova ${TAG#v}" \
+            --notes "Automated release build of Abinova ${TAG#v}."
