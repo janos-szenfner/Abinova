@@ -5094,8 +5094,9 @@ below are on `main` but the release has not been cut yet.
   `valgrind --leak-check=full --errors-for-leak-kinds=definite`, so any
   memcheck error or definite leak fails the leg; `tools/valgrind.supp`
   holds the suppressions for leaks owned by third-party startup code
-  (gio module singletons, fontconfig/expat/cairo caches). Opt-in, and
-  it skips cleanly when valgrind or the built binary is absent.
+  (gio/GVFS module singletons, fontconfig/expat/cairo caches).
+  Opt-in, and it skips cleanly when valgrind or the built binary is
+  absent.
 - **Code coverage tooling (`--enable-coverage` + `make coverage`)** —
   configuring with `--enable-coverage` compiles the `src/` tree with
   gcov instrumentation (`--coverage` on the AF/TEXT/IMPEXP/WP

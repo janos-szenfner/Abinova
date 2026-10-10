@@ -22,6 +22,24 @@
    fun:g_io_module_new
 }
 
+# GVFS D-Bus module (libgvfsdbus.so) is dlopen'd by g_vfs_get_file_for_uri
+# the first time a URI GFile is created and keeps a process-lifetime hash
+# table of URI mappings — module-owned, no release API (same class as the
+# gio-module-singleton above).  Reached via UT_go_basename_from_uri and
+# other uri->GFile helpers.
+{
+   gvfs-dbus-module-table
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:g_malloc
+   fun:g_hash_table_new_full
+   ...
+   obj:*libgvfsdbus.so*
+   ...
+   fun:g_vfs_get_file_for_uri
+}
+
 # fontconfig parses its XML config through libexpat at first use and
 # keeps dropped intermediate allocations (fontconfig-owned).
 {

@@ -52,6 +52,32 @@ Failures found and fixed in this battery:
   text so live `time` fields (re-evaluated at each run) do not produce
   false mismatches.
 
+## RELQA02 — memcheck A (valgrind over importer/exporter suites)
+
+| Leg | Command | Result |
+|-----|---------|--------|
+| Importer/exporter unit suites | `valgrind --leak-check=full --errors-for-leak-kinds=definite --error-exitcode=99 --num-callers=20 --suppressions=tools/valgrind.supp src/wp/test/.libs/Abinova-test ie_ ut_abwncrypt` (G_DEBUG=gc-friendly, G_SLICE=always-malloc, LC_ALL=C) | PASS — 2579 tests, 0 failures; per-test memcheck/leak deltas all clean; exit 0; `ERROR SUMMARY: 0 errors`; `definitely lost: 0 bytes` |
+| Bounded convert corpus | `tools/check-valgrind.sh` | PASS — 16 passed, 0 failed, 0 skipped |
+
+Findings in this battery:
+
+- One new definite-leak record: a 96-byte `g_hash_table_new_full`
+  allocation inside `libgvfsdbus.so`, created when
+  `g_vfs_get_file_for_uri` first dlopens the GVFS D-Bus module
+  (reached via `UT_go_basename_from_uri` on the HTML/EPUB export
+  path). The tree code unrefs the returned `GFile` correctly; the
+  table is a process-lifetime singleton owned by the GVFS module
+  with no release API — same class as the existing
+  `gio-module-singleton` suppression. Committed as
+  `gvfs-dbus-module-table` in `tools/valgrind.supp` (definite kind
+  only); re-run exits 0 with the record suppressed.
+- The remaining `indirectly lost: 29,844 bytes in 1,220 blocks` are
+  children of the suppressed third-party roots (fontconfig config
+  parse/caches, glib `g_atomic_rc_box_alloc0`, pango language cache,
+  GVFS module table, pthread TLS). Every loss record's allocation
+  site was verified to be in third-party code — no definite or
+  indirect leak is owned by tree code, so nothing to fix this leg.
+
 ## Known-failing exceptions
 
 (none)
