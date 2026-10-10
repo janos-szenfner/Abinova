@@ -142,6 +142,7 @@ libutil_la_SOURCES += \
 	$(NULL)
 
 EXTRA_DIST = \
+	unix/t/ut_unix.t.cpp \
 	xp/t/ut_base64.t.cpp \
 	xp/t/ut_bijection.t.cpp \
 	xp/t/ut_bytebuf.t.cpp \

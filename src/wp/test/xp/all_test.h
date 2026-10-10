@@ -220,3 +220,5 @@
 #undef TFSUITE
 #include "src/wp/impexp/xp/t/ie_oxmlvalid.t.cpp"
 #undef TFSUITE
+#include "src/wp/ap/grammar/t/ap_Grammar.t.cpp"
+#undef TFSUITE

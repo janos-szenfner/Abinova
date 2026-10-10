@@ -25,3 +25,12 @@
 #include "src/af/xap/gtk/t/xap_UnixWidget.t.cpp"
 #undef TFSUITE
 
+
+#include "src/af/util/unix/t/ut_unix.t.cpp"
+#undef TFSUITE
+
+#include "src/wp/main/gtk/t/libabinova.t.cpp"
+#undef TFSUITE
+
+#include "src/text/fmt/gtk/t/fv_UnixWidgets.t.cpp"
+#undef TFSUITE

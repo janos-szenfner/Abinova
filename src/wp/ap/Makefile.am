@@ -624,6 +624,7 @@ EXTRA_DIST = \
 	xp/ToolbarIcons/tb_semitem_prev.xpm \
 	xp/ToolbarIcons/tb_semitem_edit.xpm \
 	xp/ToolbarIcons/tb_semitem_stylesheet_apply.xpm \
+	grammar/t/ap_Grammar.t.cpp \
 	xp/t/ap_KeyBindings.t.cpp \
 	xp/t/ap_TopRuler.t.cpp \
 	xp/t/ap_EditMethods.t.cpp \

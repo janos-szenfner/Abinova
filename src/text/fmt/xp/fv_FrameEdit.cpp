@@ -437,7 +437,7 @@ void FV_FrameEdit::_mouseDrag(UT_sint32 x, UT_sint32 y)
 	}
 	else 
 	{
-		if (FV_FrameEdit_RESIZE_EXISTING == m_iFrameEditMode)
+		if (FV_FrameEdit_RESIZE_EXISTING == m_iFrameEditMode && m_pFrameLayout && m_pFrameContainer)
 		{
 			UT_sint32 iW = m_recCurFrame.width;
 			UT_sint32 iH = m_recCurFrame.height;
@@ -450,7 +450,7 @@ void FV_FrameEdit::_mouseDrag(UT_sint32 x, UT_sint32 y)
 			m_pFrameLayout->getDocSectionLayout()->setNeedsSectionBreak(false,nullptr);
 		}
 
-		if (FV_FrameEdit_RESIZE_EXISTING == m_iFrameEditMode || FV_FrameEdit_DRAG_EXISTING == m_iFrameEditMode)
+		if ((FV_FrameEdit_RESIZE_EXISTING == m_iFrameEditMode || FV_FrameEdit_DRAG_EXISTING == m_iFrameEditMode) && m_pFrameContainer)
 		{
 			UT_sint32 newX = m_pFrameContainer->getFullX();
 			UT_sint32 newY = m_pFrameContainer->getFullY();

@@ -5713,6 +5713,25 @@ below are on `main` but the release has not been cut yet.
   file-scoped and erased on removal. `af/ev/xp` line coverage
   87.2% -> 95.0%, `af/gr/gtk` 83.3% -> 92.5%; overall 74.2% ->
   74.3%.
+- **Coverage wave on the Unix utility, formatter-widget, grammar
+  and embedding entry-point tails landed** — new `ut_unix.t.cpp`
+  exercises PATH lookup, directory/stat helpers, filename
+  legalisation, the GLib idle/timer wrappers and the interactive
+  assert prompt (including the abort and break answers via
+  signal-catching and a forked process group); `libabinova.t.cpp`
+  drives the embedding entry points in forked children;
+  `fv_UnixWidgets.t.cpp` covers the frameless selection-handle /
+  paste-tag / drag-mode paths plus a realized-frame overlay walk;
+  `ap_Grammar.t.cpp` covers word tokenisation, hunspell dictionary
+  discovery (DICPATH, the en_*.dic fallback scan, the no-dictionary
+  early return) and `Abi_GrammarCheck::CheckBlock`. The wave caught
+  a real crash: `FV_FrameEdit::_mouseDrag()` dereferenced the frame
+  layout/container unconditionally in resize/drag-existing mode,
+  so a drag event with no frame selected (e.g. the frame deleted
+  mid-drag) segfaulted — both blocks are now guarded.
+  `af/util/unix` line coverage 65.1% -> 97.7%, `text/fmt/gtk`
+  87.0% -> 89.2%, `wp/ap/grammar` 87.2% -> 95.5%, `wp/main`
+  11.1% -> 100%; overall 74.3% -> 74.6%.
 
 ### Resolved root causes worth noting
 

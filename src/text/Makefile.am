@@ -263,6 +263,7 @@ libtext_la_SOURCES += \
 	fmt/gtk/gtktexthandleprivate.h
 
 EXTRA_DIST = \
+	fmt/gtk/t/fv_UnixWidgets.t.cpp \
 	fmt/xp/t/fl_AutoNum.t.cpp \
 	fmt/xp/t/fl_TableStyles.t.cpp \
 	fmt/xp/t/fp_FieldTableSum.t.cpp \
