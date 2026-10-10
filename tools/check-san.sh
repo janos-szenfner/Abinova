@@ -117,6 +117,7 @@ run_tests() # $1=TESTS value $2=detect_leaks $3=label
     echo "check-san: running $3 (TESTS=$1, detect_leaks=$2)"
     if ASAN_OPTIONS="halt_on_error=1:abort_on_error=1:detect_leaks=$2" \
        UBSAN_OPTIONS="halt_on_error=1:print_stacktrace=1" \
+       TF_MAX_TEST_TIME=${SAN_MAX_TEST_TIME:-300} \
        make -C "$TREE/src/wp/test" check TESTS="$1" \
            > "$BUILDDIR/check-$3.out" 2>&1; then
         echo "check-san: $3 PASS"

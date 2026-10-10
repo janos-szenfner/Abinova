@@ -1567,6 +1567,8 @@ IE_Imp_RTF::~IE_Imp_RTF()
 		CloseTable(true);
 	}
 	FREEP (m_szFileDirName);
+	// an \atrfstart with no matching close leaves m_pAnnotation live
+	DELETEP(m_pAnnotation);
 }
 
 UT_Error IE_Imp_RTF::_loadFile(GsfInput * fp)

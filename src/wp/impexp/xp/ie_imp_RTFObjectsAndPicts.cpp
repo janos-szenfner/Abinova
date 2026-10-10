@@ -1031,7 +1031,7 @@ bool IE_Imp_ShpGroupParser::tokenCloseBrace(IE_Imp_RTF * ie)
 		if(m_lastData)
 		{
 			m_currentFrame.m_abiProps = *m_lastData;
-			m_lastData = nullptr;
+			DELETEP(m_lastData);
 		}
 		m_last_kwID = RTF_UNKNOWN_KEYWORD;
 		break;

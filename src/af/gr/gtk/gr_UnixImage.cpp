@@ -244,13 +244,10 @@ bool GR_UnixImage::saveToPNG(const char * szFile)
 
 	GError * error = nullptr;
 	gboolean res = gdk_pixbuf_save (m_image, szFile, "png", &error, nullptr);
-	if (res != FALSE) {
-		if (error) {
-			g_error_free (error);
-		}
-		return true;
+	if (error) {
+		g_error_free (error);
 	}
-	return false;
+	return res != FALSE;
 
 }
 

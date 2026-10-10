@@ -158,6 +158,7 @@ TFTEST_MAIN("find and replace walks the document in both directions")
 
 	UT_UCS4Char *cur = v->findGetFindString();
 	TFPASS(cur != nullptr && UT_UCS4_strlen(cur) == 3);
+	FREEP(cur);
 
 	v->findSetMatchCase(false);
 	v->findSetWholeWord(false);
@@ -167,6 +168,7 @@ TFTEST_MAIN("find and replace walks the document in both directions")
 	v->findSetReplaceString(repl);
 	cur = v->findGetReplaceString();
 	TFPASS(cur != nullptr && UT_UCS4_strcmp(cur, repl) == 0);
+	FREEP(cur);
 	bDone = false;
 	v->findReplace(bDone);
 

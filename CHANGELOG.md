@@ -4209,6 +4209,19 @@ below are on `main` but the release has not been cut yet.
   fragment container that could leave a multi-step glob unclosed on
   failure, and a stale-pointer style-name read in the Styles dialog.
   Full finding list in `.devin/AUDIT01-report.md`.
+- **Sanitizer-driven crash/leak fixes in window teardown and importers** —
+  closing a document window no longer risks a use-after-free from the
+  input-method context: the frame now finishes GTK teardown while its
+  view is still alive and detaches the IM context's client widget early,
+  and the ribbon weak-references the notebook and spin widgets it
+  subscribes to so late "switch-page" emissions can't reach freed
+  objects. Also fixed: an open RTF annotation leaked when the document
+  never closed it, grouped-shape frame data leaked on malformed RTF,
+  a document-layout property set leaked on frame relocation, the PNG
+  dimension reader could orphan a reference count when libpng aborted
+  mid-read, an undefined-behaviour downcast in annotation text
+  extraction, and a zero-length `memmove` on a null buffer when reading
+  an empty paragraph.
 
 ### GTK4 port (core migration)
 

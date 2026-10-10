@@ -33,7 +33,11 @@
 
 struct _bb
 {
-	UT_ConstByteBufPtr pBB;
+	/* raw pointer, not a shared_ptr copy: libpng longjmps out of
+	 * png_read_* on error, skipping this struct's destructor and
+	 * orphaning any owned reference.  The caller keeps the buffer
+	 * alive for the duration of the synchronous read. */
+	const UT_ByteBuf * pBB;
 	UT_uint32 iCurPos;
 };
 
@@ -101,9 +105,9 @@ bool UT_PNG_getDimensions(const UT_ConstByteBufPtr & pBB, UT_sint32& iImageWidth
 	}
 
 	struct _bb myBB;
-	myBB.pBB = pBB;
+	myBB.pBB = pBB.get();
 	myBB.iCurPos = 0;
-	
+
 	png_set_read_fn(png_ptr, static_cast<void *>(&myBB), _png_read);
 
 	/* The call to png_read_info() gives us all of the information from the
@@ -160,7 +164,7 @@ bool UT_PNG_validate(const UT_ConstByteBufPtr & pBB)
 	}
 
 	struct _bb myBB;
-	myBB.pBB = pBB;
+	myBB.pBB = pBB.get();
 	myBB.iCurPos = 0;
 
 	png_set_read_fn(png_ptr, static_cast<void *>(&myBB), _png_read);

@@ -120,7 +120,15 @@
 #include <dlfcn.h>
 #endif
 
-extern "C" void __gcov_dump(void); /* checkpoint coverage counters */
+extern "C" void __gcov_dump(void) __attribute__((weak)); /* checkpoint coverage counters */
+
+/* The symbol only exists under --enable-coverage; san-build trees link
+ * without libgcov, so guard every call. */
+static void s_gcov_dump(void)
+{
+	if (__gcov_dump)
+		__gcov_dump();
+}
 
 static int g_criticals = 0;
 static int g_warnings = 0;
@@ -275,7 +283,7 @@ static void drive_fatal(int sig)
 	 * modal loop, runModal itself) — the phase + stack are the only
 	 * diagnosis a wrapper timeout gets */
 	dump_diag(sig);
-	__gcov_dump();
+	s_gcov_dump();
 	_exit(sig == SIGSEGV ? 139 : sig == SIGABRT ? 134 : 124);
 }
 
@@ -309,7 +317,7 @@ static void post_rescue_check(void)
 	if (!glib_emission_alive()) {
 		g_printerr("drive: signal emission dead after rescue — "
 				   "exiting with counters\n");
-		__gcov_dump();
+		s_gcov_dump();
 		_exit(3);
 	}
 }
@@ -1126,7 +1134,7 @@ static int run_dialog(XAP_DialogFactory *factory, XAP_Frame *frame,
 		factory->releaseDialog(dlg);
 		tf_guard::drain_pending();
 	}, "dialog release");
-	__gcov_dump();
+	s_gcov_dump();
 
 	g_print("drive: id %d (type %d) — %d criticals, %d warnings, %d crashed, %d wedged\n",
 			static_cast<int>(id), static_cast<int>(type),
@@ -1205,7 +1213,7 @@ static int drive_frame(AP_UnixApp *app, const char *scratch)
 		if (!ctx.rootDead)
 			sweep_guard([&ctx] { sweep_strays(ctx); });
 	}, "tail sweep");
-	__gcov_dump();
+	s_gcov_dump();
 	g_print("drive: frame — %d interactions, %d criticals\n",
 			ctx.interactions, g_criticals);
 	return 0;
@@ -2098,7 +2106,7 @@ static int drive_abiwidget(const char *scratch_uri)
 		gtk_window_destroy(GTK_WINDOW(win));
 		tf_guard::pump_for(250);
 	}, "teardown");
-	__gcov_dump();
+	s_gcov_dump();
 	g_print("drive: abiwidget done — %d criticals, %d crashed, %d wedged\n",
 			g_criticals, g_crashed_widgets, g_wedged_widgets);
 	return 0;
@@ -3082,7 +3090,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 
 	g_source_remove(sweeper);
 	call_guard([&] { tf_guard::pump_for(300); }, "tail");
-	__gcov_dump();
+	s_gcov_dump();
 	g_print("drive: ev done — %d criticals, %d crashed, %d wedged\n",
 			g_criticals, g_crashed_widgets, g_wedged_widgets);
 	return 0;
@@ -3510,7 +3518,7 @@ static int drive_fmt(AP_UnixApp *app, const char *scratch)
 
 	g_source_remove(sweeper);
 	call_guard([&] { tf_guard::pump_for(300); }, "tail");
-	__gcov_dump();
+	s_gcov_dump();
 	g_print("drive: fmt done — %d criticals, %d crashed, %d wedged, "
 			"%d handle drags, %d finishes\n",
 			g_criticals, g_crashed_widgets, g_wedged_widgets,
@@ -3778,7 +3786,7 @@ static int drive_toc(AP_UnixApp *app, const char *)
 	if (!multi.empty() && !toc_drive_doc(app, ctx, multi))
 		rc = 1;
 
-	__gcov_dump();
+	s_gcov_dump();
 	g_print("drive: toc done — %d criticals, %d crashed, %d wedged\n",
 			g_criticals, g_crashed_widgets, g_wedged_widgets);
 	return rc;
@@ -4026,7 +4034,7 @@ static int drive_freeze(AP_UnixApp *app, const char *src)
 	/* drop the recovery copy the first tick wrote — the leg proved
 	 * the serialize happened; no need to leave it in the user dir */
 	frame->discardAutosaveFile();
-	__gcov_dump();
+	s_gcov_dump();
 	if (g_hb_worst_over > 0) {
 		g_printerr("drive: heartbeat stall %lld ms in \"%s\" "
 				   "(%lld ms over its bound)\n",
@@ -4249,7 +4257,7 @@ static int drive_markup(AP_UnixApp * app, const char *)
 		tf_guard::pump_for(60);
 	}
 
-	__gcov_dump();
+	s_gcov_dump();
 	g_print("drive: markup done — %d failures, %d criticals\n",
 			fails, g_criticals);
 	return fails ? 1 : 0;
@@ -5137,7 +5145,7 @@ static int drive_popovers(AP_UnixApp *app, const char *src)
 
 	g_source_remove(sweeper);
 	tf_guard::pump_for(200);
-	__gcov_dump();
+	s_gcov_dump();
 	g_print("drive: popovers done — %d popovers, %d rows clicked, "
 			"%d check rows cycled, %d failures, %d criticals\n",
 			popsDone, rowsClicked, checksCycled, fails, g_criticals);

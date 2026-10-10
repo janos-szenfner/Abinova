@@ -190,6 +190,12 @@ AP_UnixFrame::AP_UnixFrame(AP_UnixFrame * f)
 
 AP_UnixFrame::~AP_UnixFrame()
 {
+	/* finish GTK teardown while the view and its graphics are still
+	 * alive — deferred widget finalization (e.g. the IM context's
+	 * client-widget ref) emits focus callbacks that would otherwise
+	 * fire during the frame-impl destructor, after killFrameData() */
+	if (getFrameImpl())
+		close();
 	killFrameData();
 }
 

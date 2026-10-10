@@ -1173,6 +1173,7 @@ fl_FrameLayout * FL_DocLayout:: relocateFrame(fl_FrameLayout * pFL, fl_BlockLayo
 		delete pImpRTF;
 	}
 	delete pLocalBuf;
+	delete pUpdatedFrameAP;
 	m_pDoc->endUserAtomicGlob();
 
 	fl_ContainerLayout * pNewFL = pfFrame->getFmtHandle(m_lid);

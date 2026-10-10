@@ -315,6 +315,15 @@ TFTEST_MAIN("frame widget paths")
 	TFPASS(view != nullptr);
 	if (!view)
 	{
+		/* close() destroys the toplevel GtkWindow — delete alone
+		 * leaves it floating on the display (LSan reports the
+		 * whole widget tree as an indirect leak). Drain the
+		 * pending focus/destroy notifications while the frame is
+		 * still alive — pumping them after delete frame is a
+		 * use-after-free. */
+		frame->close();
+		while (g_main_context_iteration(nullptr, FALSE))
+			;
 		app->forgetFrame(frame);
 		delete frame;
 		return;
@@ -339,7 +348,12 @@ TFTEST_MAIN("frame widget paths")
 	TFPASS(true);
 
 	/* destroying the frame's widget tree first exercises the
-	 * weak-ref nulling path in the still-alive helpers */
+	 * weak-ref nulling path in the still-alive helpers; close()
+	 * tears down the toplevel GtkWindow so the test doesn't leak
+	 * the whole widget tree onto the display */
+	frame->close();
+	while (g_main_context_iteration(nullptr, FALSE))
+		;
 	app->forgetFrame(frame);
 	delete frame;
 }

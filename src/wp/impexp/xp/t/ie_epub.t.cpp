@@ -244,12 +244,15 @@ TFTEST_MAIN("epub export round-trips a document package")
 			TFPASS(zip != nullptr);
 			if (zip)
 			{
-				TFPASS(gsf_infile_child_by_name(zip, "mimetype")
-					   != nullptr);
-				TFPASS(gsf_infile_child_by_name(zip, "META-INF")
-					   != nullptr);
-				TFPASS(gsf_infile_child_by_name(zip, "OEBPS")
-					   != nullptr);
+				GsfInput * c1 = gsf_infile_child_by_name(zip, "mimetype");
+				GsfInput * c2 = gsf_infile_child_by_name(zip, "META-INF");
+				GsfInput * c3 = gsf_infile_child_by_name(zip, "OEBPS");
+				TFPASS(c1 != nullptr);
+				TFPASS(c2 != nullptr);
+				TFPASS(c3 != nullptr);
+				if (c1) g_object_unref(c1);
+				if (c2) g_object_unref(c2);
+				if (c3) g_object_unref(c3);
 				g_object_unref(zip);
 			}
 			g_object_unref(in);
@@ -425,6 +428,7 @@ TFTEST_MAIN("epub spine items skip unresolvable entries")
 	GsfInput * in = epub_zip(e);
 	PD_Document * doc = nullptr;
 	TFPASS(epub_load(in, &doc) == UT_OK);
+	g_object_unref(in);
 	if (doc)
 	{
 		std::string abwn;
@@ -448,6 +452,7 @@ TFTEST_MAIN("epub metadata joins repeated dc elements")
 							meta.c_str());
 	PD_Document * doc = nullptr;
 	TFPASS(epub_load(in, &doc) == UT_OK);
+	g_object_unref(in);
 	if (doc)
 	{
 		std::string v;
@@ -482,8 +487,8 @@ TFTEST_MAIN("epub chapter hrefs resolve inside the package only")
 	/* a 1x1 png */
 	static const char png_b64[] =
 		"\x89PNG\r\n\x1a\n";
-	std::string png(png_b64, 12); /* header only is enough for the
-									   provider-resolution branches */
+	std::string png(png_b64, sizeof(png_b64) - 1); /* header only is
+		enough for the provider-resolution branches */
 	std::vector<std::pair<std::string, std::string>> e = {
 		{ "mimetype", kMime },
 		{ kContainer,

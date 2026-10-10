@@ -270,12 +270,33 @@ AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 
 AP_UnixRibbon::~AP_UnixRibbon()
 {
-	// m_wNotebook is owned by the widget tree; nothing to unref here.
+	/* the notebook can outlive this object when another reference
+	 * pins the window tree (the frame's IM context holds the toplevel
+	 * until the base-class dtor): detach every handler carrying this
+	 * so teardown emits like "switch-page" can't reach a dead object.
+	 * The weak ref already nulled m_wNotebook if the notebook died
+	 * first, so a live pointer here is always safe to disconnect on. */
+	if (m_wNotebook)
+	{
+		g_signal_handlers_disconnect_by_data(m_wNotebook, this);
+		g_object_weak_unref(G_OBJECT(m_wNotebook),
+							s_widget_weak_notify, &m_wNotebook);
+		m_wNotebook = nullptr;
+	}
 	if (m_iStyleBtnIdle)
 		g_source_remove(m_iStyleBtnIdle);
 	g_clear_pointer(&m_pIconMap, g_hash_table_unref);
 	DELETEP(m_pTBLabels);
-	for (_SpinField * _utv_p : m_vecSpins) { if (_utv_p) delete(_utv_p); };
+	for (_SpinField * _utv_p : m_vecSpins)
+	{
+		if (!_utv_p)
+			continue;
+		/* drop the weak ref before freeing the field record */
+		if (_utv_p->spin)
+			g_object_weak_unref(G_OBJECT(_utv_p->spin),
+								s_widget_weak_notify, &_utv_p->spin);
+		delete(_utv_p);
+	}
 	for (UT_sint32 i = 0; i < m_vecTbCtx.size(); ++i)
 	{
 		_TbCtx * ctx = m_vecTbCtx[i];
@@ -698,6 +719,12 @@ GtkWidget * AP_UnixRibbon::createWidget()
 
 	g_signal_connect(m_wNotebook, "switch-page",
 					 G_CALLBACK(_s_switch_page), this);
+	/* the notebook may outlive this object while a widget-tree
+	 * reference is pinned elsewhere (IM context -> toplevel); the
+	 * weak ref nulls m_wNotebook on finalize so the dtor and
+	 * refresh()'s in_destruction check never touch a dead widget */
+	g_object_weak_ref(G_OBJECT(m_wNotebook),
+					  s_widget_weak_notify, &m_wNotebook);
 
 	GtkEventController * motion = gtk_event_controller_motion_new();
 	g_signal_connect(motion, "enter", G_CALLBACK(_s_motion_enter), this);
@@ -10547,6 +10574,11 @@ GtkWidget * AP_UnixRibbon::_makeSpinField(int spinId)
 				   gtk_label_new(unit == DIM_PT ? "pt" : UT_dimensionName(unit)));
 
 	_SpinField * f = new _SpinField{ spin, prop, spinId };
+	/* weak: nulls f->spin when the spin is finalized — during
+	 * widget-tree teardown a "switch-page" can still reach refresh()
+	 * after the spins died, and their "spin-ctx" data is already
+	 * gone by then */
+	g_object_weak_ref(G_OBJECT(spin), s_widget_weak_notify, &f->spin);
 	m_vecSpins.push_back(f);
 	return row;
 }
@@ -10571,8 +10603,15 @@ void AP_UnixRibbon::_refreshSpinFields()
 	for (UT_sint32 i = 0; i < m_vecSpins.size(); ++i)
 	{
 		_SpinField * f = m_vecSpins[i];
+		/* during teardown a spin can be finalized before the
+		 * "switch-page" emission that re-entered us — weak-ref nulls
+		 * f->spin and dispose clears its "spin-ctx" */
+		if (!f->spin)
+			continue;
 		_SpinCtx * c = static_cast<_SpinCtx *>(
 			g_object_get_data(G_OBJECT(f->spin), "spin-ctx"));
+		if (!c)
+			continue;
 		double v = 0.0;
 		bool bSens = ok;
 		if (!f->prop)

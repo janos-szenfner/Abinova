@@ -14394,7 +14394,9 @@ bool FV_View::getAnnotationText(UT_uint32 iAnnotation, std::string & sText) cons
 	block = m_pLayout->findBlockAtPosition(posStart+1);
 	fp_Run * pRun = nullptr;
 	bool bFirst = true;
-	while(block && (static_cast<fl_AnnotationLayout *>(block->myContainingLayout()) == pAL))
+	// equality only — a raw == against the base pointer avoids a UB
+	// downcast when the walk leaves the annotation (UBSan vptr)
+	while(block && (block->myContainingLayout() == static_cast<fl_ContainerLayout*>(pAL)))
 	{
 			if(!bFirst)
 			{

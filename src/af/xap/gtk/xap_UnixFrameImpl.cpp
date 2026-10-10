@@ -1994,8 +1994,19 @@ void XAP_UnixFrameImpl::_rebuildToolbar(UT_uint32 ibar)
 
 bool XAP_UnixFrameImpl::_close()
 {
-	gtk_window_destroy(GTK_WINDOW(m_wTopLevelWindow)); // TOPLEVEL
-	m_wTopLevelWindow = nullptr;
+	if (m_wTopLevelWindow) {
+		gtk_window_destroy(GTK_WINDOW(m_wTopLevelWindow)); // TOPLEVEL
+		m_wTopLevelWindow = nullptr;
+	}
+	/* the IM context refs the toplevel as its client widget, so the
+	 * window only finalizes when m_imContext is unref'd in
+	 * ~XAP_UnixFrameImpl — after killFrameData() has freed the view's
+	 * graphics — and its focus-controller "leave" then fires into a
+	 * dead view. Drop the ref now so teardown finishes while the
+	 * frame is still whole. */
+	if (m_imContext) {
+		gtk_im_context_set_client_widget(m_imContext, nullptr);
+	}
 	return true;
 }
 

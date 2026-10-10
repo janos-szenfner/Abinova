@@ -36,7 +36,7 @@ class ABI_EXPORT EV_Mouse
 {
 public:
 	EV_Mouse(EV_EditEventMapper * pEEM);
-	~EV_Mouse();
+	virtual ~EV_Mouse();
 
 	bool invokeMouseMethod(AV_View * pView,
 							  EV_EditMethod * pEM,

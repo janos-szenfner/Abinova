@@ -56,6 +56,21 @@
 #define MAX_TEST_TIME 40     // max seconds for a single test to run
 #define MAX_TOTAL_TIME 120*60 // max seconds for the entire suite to run
 
+/* The per-assert alarm bound is fine uninstrumented but sanitizer
+ * builds can legitimately run a single operation past it (e.g. a
+ * cover-preset insert+save+reload loop under ASan). TF_MAX_TEST_TIME
+ * overrides the bound without weakening the hang detector for normal
+ * runs. */
+static unsigned max_test_time()
+{
+    static const unsigned v = [] {
+        const char * e = getenv("TF_MAX_TEST_TIME");
+        unsigned n = e ? static_cast<unsigned>(strtoul(e, nullptr, 10)) : 0;
+        return n ? n : static_cast<unsigned>(MAX_TEST_TIME);
+    }();
+    return v;
+}
+
 static int memerrs()
 {
     return static_cast<int>((CC_EXTENSION VALGRIND_COUNT_ERRORS));
@@ -120,7 +135,7 @@ void TF_Test::alarm_handler(int)
 
 void TF_Test::pulse()
 {
-    alarm(MAX_TEST_TIME);
+    alarm(max_test_time());
 }
 
 TF_Test::TF_Test(const char *_suite, const char *_descr,
@@ -163,7 +178,7 @@ int TF_Test::run(const char * const *prefixes, const char *suite)
 
     signal(SIGALRM, alarm_handler);
     // signal(SIGALRM, SIG_IGN);
-    alarm(MAX_TEST_TIME);
+    alarm(max_test_time());
     TF_Test::start_time() = time(nullptr);
 
     fails() = 0;
@@ -239,7 +254,7 @@ void TF_Test::start(const char *file, int line, const char *condstr)
 
 void TF_Test::check(bool cond)
 {
-    alarm(MAX_TEST_TIME); // restart per-test timeout
+    alarm(max_test_time()); // restart per-test timeout
     if (!TF_Test::start_time()) {
         TF_Test::start_time() = time(nullptr);
     }

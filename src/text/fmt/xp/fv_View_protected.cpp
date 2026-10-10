@@ -3159,8 +3159,16 @@ FV_View::_findGetNextBlockBuffer(fl_BlockLayout** pBlock,
 	bufferSegment = static_cast<UT_UCS4Char*>(UT_calloc(bufferLength + 1, sizeof(UT_UCS4Char)));
 	UT_ASSERT(bufferSegment);
 
-	memmove(bufferSegment, pBuffer.getPointer(newOffset),
-			(bufferLength) * sizeof(UT_UCS4Char));
+	// bufferLength==0 means the block buffer is empty or fully
+	// consumed — getPointer() may then legitimately be null (UBSan:
+	// memmove's args are declared nonnull even when n==0).
+	if (bufferLength > 0)
+	{
+		UT_GrowBufElement* pSrc = pBuffer.getPointer(newOffset);
+		UT_ASSERT(pSrc);
+		if (pSrc)
+			memmove(bufferSegment, pSrc, bufferLength * sizeof(UT_UCS4Char));
+	}
 
 	// before we bail, hold up our block stuff for next round
 	*pBlock = newBlock;
