@@ -2206,6 +2206,19 @@ metainfo into `${XDG_DATA_HOME:-~/.local/share}` — `--system` targets
 abinova-4.0.0-linux-x86_64/install-desktop.sh
 ```
 
+`dist/make-deb.sh` wraps a staged bundle into a hand-rolled `.deb`
+(`abinova_<ver>-<rel>_<arch>.deb`): the bundle lands under
+`/opt/abinova-<ver>/`, `/usr/bin/abinova` symlinks to it, and the
+desktop launcher, icons, MIME package and AppStream metainfo install
+as tracked package files — `apt remove`/`dpkg -r` reverses it
+cleanly.  The package declares no dependencies; the bundle already
+carries its library closure:
+
+```bash
+dist/make-deb.sh                       # writes dist/abinova_4.0.0-1_amd64.deb
+sudo dpkg -i dist/abinova_4.0.0-1_amd64.deb
+```
+
 `dist/bundle-verify.sh` is the per-OS smoke matrix for packed output.
 Its Linux legs run the bundle inside real clean distro containers —
 Debian stable-slim, Ubuntu 24.04 and openSUSE Leap 15.6 — asserting

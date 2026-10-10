@@ -623,6 +623,43 @@ consistency, all green:
 
 None added by this leg.
 
+## RELQA08 — pre-release gate: release dry-run B
+
+Package install smoke + documentation currency + final gate.
+
+| Leg | Command | Result |
+|-----|---------|--------|
+| .deb packaging | new `dist/make-deb.sh` → `abinova_4.0.0-1_amd64.deb` (126 MB; bundle under `/opt/abinova-4.0.0/`, `/usr/bin` symlink, tracked desktop/icon/MIME/metainfo files, guarded postinst/postrm cache refreshes) | PASS — `dpkg-deb -I`/`-c` clean, control + maintainer scripts correct |
+| Install smoke | inside a clean Debian 13 (trixie) rootfs under `bwrap --uid 0` (cached `dist/.bundle-verify-cache/rootfs-debian`; host `/usr` invisible): `dpkg -i` → `dpkg -l` ii state → 1242 payload files → `abinova --version` → 4.0.0 → `seed_gettysburg.docx` → PDF (%PDF, renders correctly) → `.desktop` `Exec=/usr/bin/abinova` → `dpkg -r` → rc state, **zero residue** (`/opt`, `/usr/bin`, applications, mime all gone) | PASS |
+| License payload in shipped bundle | `find` over `dist/abinova-4.0.0-linux-x86_64` vs `dist/THIRD-PARTY-NOTICES.md` §8 | **FAIL → fixed** — see below |
+| SIGNING.md currency | scripts/files named in the doc vs `dist/` | PASS — sign-macos/sign-windows/NSIS/entitlements/install-desktop all present; doc now also points at make-deb.sh |
+| THIRD-PARTY-NOTICES.md currency | per-section claims vs shipped files | PASS — after the bundle rebuild below, all §8 notices verified in the artifact (vendored `licenses/<lib>/`, `COPYING`, `COPYRIGHT.TXT`, notice file, artwork/font/xsltml licenses); mac/win/flatpak packagers confirmed to stage the same `make install` datadir |
+| README currency | packaging section vs shipped scripts | PASS — README gained a `dist/make-deb.sh` paragraph |
+
+Failure found and fixed in this leg:
+
+- **The 2026-10-05 bundle shipped no license notices.** The
+  `install-data-local` rules that install `licenses/<lib>/`,
+  `COPYING`, `COPYRIGHT.TXT` and `THIRD-PARTY-NOTICES.md` into the
+  datadir only landed in `Makefile.am` on 2026-10-06 (LIC01 follow-up
+  38a3f5f) — one day after the RELQA04 bundle was built, so the
+  artifact predated them. THIRD-PARTY-NOTICES.md §8 therefore claimed
+  notices the artifact did not carry (an LGPL/MPL compliance gap for
+  the vendored libs). Fixed by re-running `dist/linux-bundle.sh` on
+  the current tree (274 libs, RUNPATH verify PASS, in-build headless
+  convert OK) and rebuilding the `.deb` from the fresh bundle; the
+  install-smoke leg above asserts the notice files land under
+  `/opt/abinova-4.0.0/`. Lesson recorded: release artifacts built
+  before a packaging-rule change are stale even when no compiled code
+  changed.
+
+Gate status: all legs (RELQA01, RELQA02, RELQA03, RELQA05, RELQA06,
+RELQA07, RELQA04, RELQA08) are green and the known-failing exceptions
+list is empty. **The 4.0.0 tag is unblocked.** Remaining optional
+work before tagging: re-run `make dist`/`tools/build-*` on the tagged
+commit if artifacts other than the verified Linux bundle will be
+published (the bundle verified here was built from this tree's HEAD).
+
 ## Known-failing exceptions
 
 (none)

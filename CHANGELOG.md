@@ -4765,6 +4765,15 @@ below are on `main` but the release has not been cut yet.
   shared-mime-info package and the AppStream metainfo per-user under
   `~/.local/share` or system-wide under `/usr/local/share`.  See
   `dist/SIGNING.md` for the certificate setup.
+- **Hand-rolled `.deb` packager** — `dist/make-deb.sh` wraps a staged
+  Linux bundle into an unsigned `abinova_<ver>-<rel>_<arch>.deb`:
+  the payload lands under `/opt/abinova-<ver>/`, `/usr/bin/abinova`
+  symlinks to the bundled binary, and the desktop launcher (with
+  `Exec=` pointed at `/usr/bin/abinova`), hicolor icons,
+  `application/x-abinova` MIME package and AppStream metainfo install
+  as tracked package files, so `dpkg -r`/`apt remove` reverses the
+  whole install.  The package declares no dependencies — the bundle
+  already carries its library closure.
 - **macOS app-integration layer** — the bundle is a well-behaved Mac
   citizen beyond mere signing.  `Info.plist` registers the document
   types and the `GApplication` is created with

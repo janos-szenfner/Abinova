@@ -171,6 +171,14 @@ abinova-4.0.0-linux-x86_64/install-desktop.sh            # ~/.local/share
 sudo abinova-4.0.0-linux-x86_64/install-desktop.sh --system  # /usr/local/share
 ```
 
+`dist/make-deb.sh` additionally wraps a staged bundle into an
+unsigned `.deb` (payload under `/opt/abinova-<ver>/`, `/usr/bin`
+symlink, tracked desktop/MIME/icon files — `dpkg -r` removes
+everything). It is a convenience packager for manual installs, not a
+distribution channel; a real Debian package would need a maintainer
+script review, `Depends:` on the system libraries (instead of the
+bundled closure) and the usual archive policy work.
+
 The installer rewrites the `.desktop` `Exec=` line to the bundle's
 absolute `bin/abinova` (the bundle is relocatable, so this is resolved
 at install time, not bundle time), installs the hicolor icons, an
