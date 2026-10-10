@@ -1,0 +1,2109 @@
+src/af/gr/xp/gr_EmbedManager.cpp:417:30: error: syntax error [syntaxError]
+  UT_nonnull_or_return(pEView, );
+                             ^
+src/af/util/xp/t/ut_xml.t.cpp:364:23: error: Null pointer dereference: parser [nullPointer]
+   if (++starts == 2) parser->stop();
+                      ^
+src/af/util/xp/t/ut_xml.t.cpp:360:21: note: Assignment 'parser=nullptr', assigned value is 0
+  UT_XML * parser = nullptr;
+                    ^
+src/af/util/xp/t/ut_xml.t.cpp:364:23: note: Null pointer dereference
+   if (++starts == 2) parser->stop();
+                      ^
+src/af/util/xp/ut_string.h:227:1: error: There is an unknown macro here somewhere. Configuration is required. If G_END_DECLS is a macro then please configure it. [unknownMacro]
+G_END_DECLS
+^
+src/af/util/xp/ut_go_file.cpp:311:1: error: There is an unknown macro here somewhere. Configuration is required. If GSF_CLASS is a macro then please configure it. [unknownMacro]
+GSF_CLASS (GsfOutputProxy, gsf_output_proxy,
+^
+src/af/util/xp/ut_xml.h:178:39: error: Non-local variable 'm_pReader' will use pointer to local variable 'wrapper'. [danglingLifetime]
+  void setReader (Reader * pReader) { m_pReader = pReader; }
+                                      ^
+src/af/util/xp/ut_html.cpp:221:13: note: Address of variable taken here.
+ setReader (&wrapper);
+            ^
+src/af/util/xp/ut_html.cpp:221:13: note: Calling function 'setReader', 1st argument '&wrapper' value is lifetime=wrapper
+ setReader (&wrapper);
+            ^
+src/af/util/xp/ut_html.cpp:220:19: note: Variable created here.
+ UT_XML_BufReader wrapper(buffer,length);
+                  ^
+src/af/util/xp/ut_xml.h:178:39: note: Non-local variable 'm_pReader' will use pointer to local variable 'wrapper'.
+  void setReader (Reader * pReader) { m_pReader = pReader; }
+                                      ^
+src/af/util/xp/ut_hyphen.cpp:386:9: error: Returning pointer to local variable 'pDict' that will be invalid when returning. [returnDanglingLifetime]
+ return pRet;
+        ^
+src/af/util/xp/ut_hyphen.cpp:384:40: note: Raw pointer to smart pointer created here.
+ const UT_HyphenDict * pRet = pDict.get();
+                                       ^
+src/af/util/xp/ut_hyphen.cpp:366:33: note: Variable created here.
+ std::unique_ptr<UT_HyphenDict> pDict;
+                                ^
+src/af/util/xp/ut_hyphen.cpp:386:9: note: Returning pointer to local variable 'pDict' that will be invalid when returning.
+ return pRet;
+        ^
+src/af/util/xp/ut_iconv.h:82:1: error: There is an unknown macro here somewhere. Configuration is required. If G_END_DECLS is a macro then please configure it. [unknownMacro]
+G_END_DECLS
+^
+src/af/util/xp/ut_strptime.c:230:25: error: syntax error [syntaxError]
+enum locale_status { not, loc, raw };
+                        ^
+src/af/xap/gtk/xap_GtkComboBoxHelpers.h:39:1: error: There is an unknown macro here somewhere. Configuration is required. If G_DECLARE_FINAL_TYPE is a macro then please configure it. [unknownMacro]
+G_DECLARE_FINAL_TYPE(XAPDropDownItem, xap_drop_down_item,
+^
+src/af/xap/gtk/xap_UnixApp.cpp:575:25: error: There is an unknown macro here somewhere. Configuration is required. If G_SEARCHPATH_SEPARATOR_S is a macro then please configure it. [unknownMacro]
+   : "/usr/local/share" G_SEARCHPATH_SEPARATOR_S
+                        ^
+src/af/xap/gtk/xap_UnixClipboard.cpp:54:1: error: There is an unknown macro here somewhere. Configuration is required. If G_DEFINE_TYPE is a macro then please configure it. [unknownMacro]
+G_DEFINE_TYPE(AbiContentProvider, abi_content_provider, GDK_TYPE_CONTENT_PROVIDER)
+^
+src/af/xap/gtk/xap_UnixDlg_ClipArt.cpp:56:1: error: There is an unknown macro here somewhere. Configuration is required. If G_DEFINE_TYPE is a macro then please configure it. [unknownMacro]
+G_DEFINE_TYPE (AbiClipartItem, abi_clipart_item, G_TYPE_OBJECT)
+^
+src/af/xap/xp/xap_Dialog.cpp:64:24: error: syntax error [syntaxError]
+ UT_nonnull_or_return(w,);
+                       ^
+src/af/xap/xp/xap_DialogFactory.cpp:238:29: error: syntax error [syntaxError]
+ UT_nonnull_or_return(dialog, );
+                            ^
+src/text/fmt/gtk/gtktexthandle.cpp:61:1: error: There is an unknown macro here somewhere. Configuration is required. If G_DEFINE_TYPE_WITH_PRIVATE is a macro then please configure it. [unknownMacro]
+G_DEFINE_TYPE_WITH_PRIVATE(FvTextHandle, _fv_text_handle, G_TYPE_OBJECT)
+^
+src/text/fmt/xp/fl_ContainerLayout.cpp:678:12: warning: Possible null pointer dereference: pOld [nullPointer]
+    pOld = pOld->myContainingLayout();
+           ^
+src/text/fmt/xp/fl_ContainerLayout.cpp:669:30: note: Assignment 'pOld=nullptr', assigned value is 0
+ fl_ContainerLayout * pOld = nullptr;
+                             ^
+src/text/fmt/xp/fl_ContainerLayout.cpp:675:36: note: Assignment 'pPrevOld=pOld', assigned value is 0
+   fl_ContainerLayout * pPrevOld = pOld;
+                                   ^
+src/text/fmt/xp/fl_ContainerLayout.cpp:675:34: note: pPrevOld is assigned 'pOld' here.
+   fl_ContainerLayout * pPrevOld = pOld;
+                                 ^
+src/text/fmt/xp/fl_ContainerLayout.cpp:678:12: note: Null pointer dereference
+    pOld = pOld->myContainingLayout();
+           ^
+src/text/fmt/xp/fl_TOCLayout.cpp:772:31: error: syntax error [syntaxError]
+   UT_nonnull_or_return(pEntry,);
+                              ^
+src/text/fmt/xp/fl_TableLayout.cpp:1982:26: error: syntax error [syntaxError]
+ UT_nonnull_or_return(pCL, );
+                         ^
+src/text/fmt/xp/fp_Column.cpp:470:27: error: syntax error [syntaxError]
+ UT_nonnull_or_return(pCon, );
+                          ^
+src/text/fmt/xp/fp_EmbedRun.cpp:266:27: error: syntax error [syntaxError]
+ UT_nonnull_or_return(view, );
+                          ^
+src/text/fmt/xp/fp_Page.cpp:3529:4: error: Iterator 'itM' from different container 'vec' are used together. [mismatchingContainerIterator]
+   vec.erase(itM);
+   ^
+src/text/fmt/xp/fp_Run.cpp:1176:31: error: syntax error [syntaxError]
+     UT_nonnull_or_return(view, );
+                              ^
+src/text/fmt/xp/fv_View.cpp:15317:29: error: syntax error [syntaxError]
+ UT_nonnull_or_return(pPview, );
+                            ^
+src/text/fmt/xp/fv_View_cmd.cpp:9853:4: error: Using object that is a temporary. [danglingTemporaryLifetime]
+   eMain.iLevel = 1;
+   ^
+src/text/fmt/xp/fv_View_cmd.cpp:9852:46: note: Pointer to container is created here.
+   eMain.sText = sKey.substr(0, iColon).c_str();
+                                             ^
+src/text/fmt/xp/fv_View_cmd.cpp:9852:29: note: Temporary created here.
+   eMain.sText = sKey.substr(0, iColon).c_str();
+                            ^
+src/text/fmt/xp/fv_View_cmd.cpp:9853:4: note: Using object that is a temporary.
+   eMain.iLevel = 1;
+   ^
+src/text/fmt/xp/fv_View_cmd.cpp:9858:4: error: Using object that is a temporary. [danglingTemporaryLifetime]
+   eSub.iLevel = 2;
+   ^
+src/text/fmt/xp/fv_View_cmd.cpp:9857:46: note: Pointer to container is created here.
+   eSub.sText = sKey.substr(iColon + 1).c_str();
+                                             ^
+src/text/fmt/xp/fv_View_cmd.cpp:9857:28: note: Temporary created here.
+   eSub.sText = sKey.substr(iColon + 1).c_str();
+                           ^
+src/text/fmt/xp/fv_View_cmd.cpp:9858:4: note: Using object that is a temporary.
+   eSub.iLevel = 2;
+   ^
+src/text/ptbl/xp/pf_Fragments.cpp:489:28: error: syntax error [syntaxError]
+  UT_nonnull_or_return(node, );
+                           ^
+src/text/ptbl/xp/pp_Property.cpp:629:27: error: syntax error [syntaxError]
+ UT_nonnull_or_return(prop, );
+                          ^
+src/text/ptbl/xp/pp_Revision.cpp:611:25: error: syntax error [syntaxError]
+ UT_nonnull_or_return(r0, );
+                        ^
+src/wp/ap/gtk/ap_DocView.cpp:309:1: error: There is an unknown macro here somewhere. Configuration is required. If GSF_CLASS_FULL is a macro then please configure it. [unknownMacro]
+GSF_CLASS_FULL(ApDocView, ap_DocView, nullptr, nullptr,
+^
+src/wp/ap/gtk/ap_RDFSemanticItemGTKInjected.cpp:298:1: error: There is an unknown macro here somewhere. Configuration is required. If G_DEFINE_TYPE is a macro then please configure it. [unknownMacro]
+G_DEFINE_TYPE (AbiRdfRefItem, abi_rdf_ref_item, G_TYPE_OBJECT)
+^
+src/wp/ap/gtk/ap_UnixDialog_ListRevisions.cpp:57:1: error: There is an unknown macro here somewhere. Configuration is required. If G_DEFINE_TYPE is a macro then please configure it. [unknownMacro]
+G_DEFINE_TYPE (AbiRevRow, abi_rev_row, G_TYPE_OBJECT)
+^
+src/wp/ap/gtk/ap_UnixDialog_RDFEditor.cpp:69:1: error: There is an unknown macro here somewhere. Configuration is required. If G_DEFINE_TYPE is a macro then please configure it. [unknownMacro]
+G_DEFINE_TYPE (AbiRdfTripleRow, abi_rdf_triple_row, G_TYPE_OBJECT)
+^
+src/wp/ap/gtk/ap_UnixDialog_RDFQuery.cpp:63:1: error: There is an unknown macro here somewhere. Configuration is required. If G_DEFINE_TYPE is a macro then please configure it. [unknownMacro]
+G_DEFINE_TYPE (AbiRdfQueryRow, abi_rdf_query_row, G_TYPE_OBJECT)
+^
+src/wp/ap/gtk/ap_UnixDialog_Stylist.cpp:61:1: error: There is an unknown macro here somewhere. Configuration is required. If G_DEFINE_TYPE is a macro then please configure it. [unknownMacro]
+G_DEFINE_TYPE (AbiStyleItem, abi_style_item, G_TYPE_OBJECT)
+^
+src/wp/ap/gtk/ap_UnixRibbon.cpp:751:1: error: There is an unknown macro here somewhere. Configuration is required. If G_GNUC_END_IGNORE_DEPRECATIONS is a macro then please configure it. [unknownMacro]
+G_GNUC_END_IGNORE_DEPRECATIONS
+^
+src/wp/ap/gtk/ap_UnixRuler.cpp:196:31: error: syntax error [syntaxError]
+    UT_nonnull_or_return(ruler,);
+                              ^
+src/wp/ap/xp/ap_LeftRuler.cpp:1450:29: error: syntax error [syntaxError]
+ UT_nonnull_or_return(pLInfo, );
+                            ^
+src/wp/ap/xp/ap_Menu_Functions.cpp:84:1: error: syntax error [syntaxError]
+Defun_EV_GetMenuItemComputedLabel_Fn(ap_GetLabel_Toolbar)
+^
+src/wp/ap/xp/ap_Toolbar_Functions.cpp:71:1: error: syntax error [syntaxError]
+Defun_EV_GetToolbarItemState_Fn(ap_ToolbarGetState_BookmarkOK)
+^
+src/wp/ap/xp/ap_TopRuler.cpp:2059:34: error: syntax error [syntaxError]
+   UT_nonnull_or_return(pCellInfo, );
+                                 ^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:1028:33: error: Returning pointer to local variable 'nc_name' that will be invalid when returning. [returnDanglingLifetime]
+            return nc_name.c_str();;
+                                ^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:1028:33: note: Pointer to container is created here.
+            return nc_name.c_str();;
+                                ^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:1017:17: note: Variable created here.
+    std::string nc_name = name.utf8_str();
+                ^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:1028:33: note: Returning pointer to local variable 'nc_name' that will be invalid when returning.
+            return nc_name.c_str();;
+                                ^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:1034:33: error: Returning pointer to local variable 'nc_name' that will be invalid when returning. [returnDanglingLifetime]
+            return nc_name.c_str();;
+                                ^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:1034:33: note: Pointer to container is created here.
+            return nc_name.c_str();;
+                                ^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:1017:17: note: Variable created here.
+    std::string nc_name = name.utf8_str();
+                ^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:1034:33: note: Returning pointer to local variable 'nc_name' that will be invalid when returning.
+            return nc_name.c_str();;
+                                ^
+src/wp/impexp/odf/exp/xp/ODe_Table_Listener.cpp:375:9: error: There is an unknown macro here somewhere. Configuration is required. If UT_continue_if_fail is a macro then please configure it. [unknownMacro]
+        UT_continue_if_fail(pCell)
+        ^
+src/wp/impexp/odf/imp/xp/ODi_StreamListener.cpp:499:38: error: syntax error [syntaxError]
+    UT_nonnull_or_return(pXMLRecorder, );
+                                     ^
+src/wp/impexp/openxml/imp/xp/OXMLi_StreamListener.cpp:180:2: error: There is an unknown macro here somewhere. Configuration is required. If UT_return_if_fail is a macro then please configure it. [unknownMacro]
+ UT_return_if_fail(!m_states.empty())
+ ^
+src/wp/impexp/wordperfect/ie_imp_WordPerfect.cpp:742:2: error: Non-local variable 'm_pendingHdrFtrs' will use object that points to local variable 'hdrFtr'. [danglingLifetime]
+ m_pendingHdrFtrs.push_back(hdrFtr.get());
+ ^
+src/wp/impexp/wordperfect/ie_imp_WordPerfect.cpp:742:39: note: Raw pointer to smart pointer created here.
+ m_pendingHdrFtrs.push_back(hdrFtr.get());
+                                      ^
+src/wp/impexp/wordperfect/ie_imp_WordPerfect.cpp:742:39: note: Added to container 'm_pendingHdrFtrs'.
+ m_pendingHdrFtrs.push_back(hdrFtr.get());
+                                      ^
+src/wp/impexp/wordperfect/ie_imp_WordPerfect.cpp:725:28: note: Variable created here.
+ std::unique_ptr<WPHdrFtr> hdrFtr(new WPHdrFtr);
+                           ^
+src/wp/impexp/wordperfect/ie_imp_WordPerfect.cpp:742:2: note: Non-local variable 'm_pendingHdrFtrs' will use object that points to local variable 'hdrFtr'.
+ m_pendingHdrFtrs.push_back(hdrFtr.get());
+ ^
+src/wp/impexp/xp/ie_Table.cpp:2310:28: error: syntax error [syntaxError]
+ UT_nonnull_or_return(pCell,);
+                           ^
+src/wp/impexp/xp/ie_exp_HTML_util.cpp:262:2: error: There is an unknown macro here somewhere. Configuration is required. If UT_return_val_if_fail is a macro then please configure it. [unknownMacro]
+ UT_return_val_if_fail(szWidth, false)
+ ^
+src/wp/impexp/xp/ie_math_convert.cpp:281:17: error: Using object that points to local variable 'temp' that is out of scope. [invalidLifetime]
+    if(strncmp((rOMML.substr(rOMML.length()-1)).c_str(),"\n",1)==0)
+                ^
+src/wp/impexp/xp/ie_math_convert.cpp:278:32: note: Pointer to container is created here.
+        rOMML.assign(temp.c_str());
+                               ^
+src/wp/impexp/xp/ie_math_convert.cpp:278:32: note: Added to container 'rOMML'.
+        rOMML.assign(temp.c_str());
+                               ^
+src/wp/impexp/xp/ie_math_convert.cpp:275:21: note: Variable created here.
+        std::string temp;
+                    ^
+src/wp/impexp/xp/ie_math_convert.cpp:281:17: note: Using object that points to local variable 'temp' that is out of scope.
+    if(strncmp((rOMML.substr(rOMML.length()-1)).c_str(),"\n",1)==0)
+                ^
+src/wp/impexp/xp/ie_math_convert.cpp:283:17: error: Using object that points to local variable 'temp' that is out of scope. [invalidLifetime]
+        rOMML = rOMML.substr(0,rOMML.length()-1);
+                ^
+src/wp/impexp/xp/ie_math_convert.cpp:278:32: note: Pointer to container is created here.
+        rOMML.assign(temp.c_str());
+                               ^
+src/wp/impexp/xp/ie_math_convert.cpp:278:32: note: Added to container 'rOMML'.
+        rOMML.assign(temp.c_str());
+                               ^
+src/wp/impexp/xp/ie_math_convert.cpp:275:21: note: Variable created here.
+        std::string temp;
+                    ^
+src/wp/impexp/xp/ie_math_convert.cpp:283:17: note: Using object that points to local variable 'temp' that is out of scope.
+        rOMML = rOMML.substr(0,rOMML.length()-1);
+                ^
+src/wp/test/unix/ui_drive.cpp:1884:1: error: Unmatched '}'. Configuration: ''. [syntaxError]
+}
+^
+src/abi-resources.c:54716:0: style: The function 'abi_get_resource' is never used. [unusedFunction]
+GResource *abi_get_resource (void)
+^
+src/af/ev/gtk/ev_UnixMenu.h:58:0: style: The function 'getActionGroup' is never used. [unusedFunction]
+ GActionGroup * getActionGroup() const { return G_ACTION_GROUP(m_actionGroup); }
+^
+src/af/ev/xp/ev_Menu.h:61:0: style: The function 'getLabelSet' is never used. [unusedFunction]
+ const EV_Menu_LabelSet * getLabelSet() const { return m_pMenuLabelSet; }
+^
+src/af/gr/gtk/gr_UnixCairoGraphics.h:41:0: style: The function 'createCairo' is never used. [unusedFunction]
+ cairo_t *createCairo() override {return nullptr;} // we need this since otherwise the class would be abstract
+^
+src/af/gr/xp/gr_CairoGraphics.cpp:1657:0: style: The function 'appendRenderedCharsToBuff' is never used. [unusedFunction]
+void GR_CairoGraphics::appendRenderedCharsToBuff(GR_RenderInfo & /*ri*/,
+^
+src/af/gr/xp/gr_CairoGraphics.cpp:3476:0: style: The function 'dtpu' is never used. [unusedFunction]
+inline int GR_CairoGraphics::dtpu(int d) const
+^
+src/af/gr/xp/gr_CairoGraphics.cpp:3484:0: style: The function 'ptdu' is never used. [unusedFunction]
+inline int GR_CairoGraphics::ptdu(int p) const
+^
+src/af/gr/xp/gr_CairoGraphics.cpp:3492:0: style: The function 'ptlu' is never used. [unusedFunction]
+inline int GR_CairoGraphics::ptlu(int p) const
+^
+src/af/gr/xp/gr_CairoGraphics.cpp:3514:0: style: The function 'ltpu' is never used. [unusedFunction]
+inline int GR_CairoGraphics::ltpu(int l) const
+^
+src/af/gr/xp/gr_CairoGraphics.cpp:3541:0: style: The function 'pftlu' is never used. [unusedFunction]
+inline int GR_CairoGraphics::pftlu(int pf) const
+^
+src/af/gr/xp/gr_CairoGraphics.cpp:2827:0: style: The function 'getDefaultFont' is never used. [unusedFunction]
+GR_Font* GR_CairoGraphics::getDefaultFont(UT_String& /*fontFamily*/,
+^
+src/af/gr/xp/gr_CairoGraphics.h:131:0: style: The function 'getPangoLanguage' is never used. [unusedFunction]
+ PangoLanguage *   getPangoLanguage() const {return m_pPLang;}
+^
+src/af/gr/xp/gr_CairoGraphics.h:239:0: style: The function 'getLayoutFontMap' is never used. [unusedFunction]
+ PangoFontMap * getLayoutFontMap() const {return m_pLayoutFontMap;}
+^
+src/af/gr/xp/gr_CairoNullGraphics.cpp:166:0: style: The function 'drawRGBImage' is never used. [unusedFunction]
+void CairoNull_Graphics::drawRGBImage(GR_Image*, UT_sint32, UT_sint32)
+^
+src/af/gr/xp/gr_CairoNullGraphics.cpp:170:0: style: The function 'drawGrayImage' is never used. [unusedFunction]
+void CairoNull_Graphics::drawGrayImage(GR_Image*, UT_sint32, UT_sint32)
+^
+src/af/gr/xp/gr_CairoNullGraphics.cpp:174:0: style: The function 'drawBWImage' is never used. [unusedFunction]
+void CairoNull_Graphics::drawBWImage(GR_Image*, UT_sint32, UT_sint32)
+^
+src/af/gr/xp/gr_Caret.cpp:225:0: style: The function 'setRemoteColor' is never used. [unusedFunction]
+void GR_Caret::setRemoteColor(UT_RGBColor clrRemote)
+^
+src/af/gr/xp/gr_Caret.cpp:644:0: style: The function 'resetBlinkTimeout' is never used. [unusedFunction]
+void GR_Caret::resetBlinkTimeout(void)
+^
+src/af/gr/xp/gr_Caret.h:64:0: style: The function 'getInsertMode' is never used. [unusedFunction]
+ bool       getInsertMode () { return m_insertMode; }
+^
+src/af/gr/xp/gr_Graphics.h:197:0: style: The function '_getCharWidths' is never used. [unusedFunction]
+ GR_CharWidths * _getCharWidths() const {return m_pCharWidths;}
+^
+src/af/gr/xp/gr_Graphics.h:789:0: style: The function 'nativeBreakInfoForRightEdge' is never used. [unusedFunction]
+ virtual bool nativeBreakInfoForRightEdge() VIRTUAL_SFX {return true;}
+^
+src/af/gr/xp/gr_MathTypesetter.h:110:0: style: The function 'errorText' is never used. [unusedFunction]
+ const char *errorText() const { return m_sErr.c_str(); }
+^
+src/af/gr/xp/gr_Transform.h:33:0: style: The function 'linearScale' is never used. [unusedFunction]
+ static GR_Transform linearScale (double p) {
+^
+src/af/gr/xp/gr_Transform.h:43:0: style: The function 'getE' is never used. [unusedFunction]
+ inline double getE() const {return m_E;}
+^
+src/af/gr/xp/gr_Transform.h:44:0: style: The function 'getF' is never used. [unusedFunction]
+ inline double getF() const {return m_F;}
+^
+src/af/tf/xp/tf_test.cpp:227:0: style: The function 'run_suite' is never used. [unusedFunction]
+int TF_Test::run_suite(const char *suite)
+^
+src/af/tf/xp/tf_test.cpp:280:0: style: The function 'start_check_eq' is never used. [unusedFunction]
+bool TF_Test::start_check_eq(const char *file, int line,
+^
+src/af/util/xp/t/ut_uuid.t.cpp:26:0: style: The function 'UT_UUIDGenerator__test' is never used. [unusedFunction]
+void UT_UUIDGenerator__test(UT_UUIDGenerator* self)
+^
+src/af/util/xp/ut_Script.cpp:215:0: style: The function 'suffixesForType' is never used. [unusedFunction]
+const char * UT_ScriptLibrary::suffixesForType(UT_ScriptIdType ieft)
+^
+src/af/util/xp/ut_bytebuf.cpp:196:0: style: The function 'insertFromURI' is never used. [unusedFunction]
+bool UT_ByteBuf::insertFromURI(UT_uint32 iPosition, const char *szURI)
+^
+src/af/util/xp/ut_bytebuf.cpp:273:0: style: The function 'writeToFile' is never used. [unusedFunction]
+bool UT_ByteBuf::writeToFile(const char* pszFileName) const
+^
+src/af/util/xp/ut_color.h:107:0: style: The function 'isPattern' is never used. [unusedFunction]
+    bool isPattern() const
+^
+src/af/util/xp/ut_color.h:111:0: style: The function 'pattern' is never used. [unusedFunction]
+    const UT_ColorPatImpl *pattern() const
+^
+src/af/util/xp/ut_color.h:116:0: style: The function 'setPattern' is never used. [unusedFunction]
+ void setPattern(const UT_ColorPatImpl *p)
+^
+src/af/util/xp/ut_crc32.h:45:0: style: The function 'UpdateByte' is never used. [unusedFunction]
+        void UpdateByte(unsigned char b) {m_crc = m_tab[CRC32_INDEX(m_crc) ^ b] ^ CRC32_SHIFTED(m_crc);}
+^
+src/af/util/xp/ut_hash.h:181:0: style: The function 'exceeds_n_delete_threshold' is never used. [unusedFunction]
+ bool exceeds_n_delete_threshold() const
+^
+src/af/util/xp/ut_locale.cpp:182:0: style: The function 'hasLanguage' is never used. [unusedFunction]
+bool UT_LocaleInfo::hasLanguage() const
+^
+src/af/util/xp/ut_screenshot.cpp:235:0: style: The function 'UT_screenshot_available' is never used. [unusedFunction]
+bool UT_screenshot_available(void)
+^
+src/af/util/xp/ut_stringbuf.h:309:0: style: The function 'utf8_data' is never used. [unusedFunction]
+const char* UT_StringImpl<char_type>::utf8_data()
+^
+src/af/util/xp/ut_timer.cpp:45:0: style: The function '_getVecTimers' is never used. [unusedFunction]
+std::vector<UT_Timer*> & UT_Timer::_getVecTimers ()
+^
+src/af/xap/gtk/xap_GtkUtils.cpp:38:0: style: The function 'xap_gtk_file_chooser_get_filename' is never used. [unusedFunction]
+gchar* xap_gtk_file_chooser_get_filename(GtkFileChooser* chooser)
+^
+src/af/xap/gtk/xap_GtkUtils.cpp:48:0: style: The function 'xap_gtk_file_chooser_get_uri' is never used. [unusedFunction]
+gchar* xap_gtk_file_chooser_get_uri(GtkFileChooser* chooser)
+^
+src/af/xap/gtk/xap_UnixApp.h:107:0: style: The function 'getTimeOfLastEvent' is never used. [unusedFunction]
+ UT_uint32         getTimeOfLastEvent() const { return m_eventTime; };
+^
+src/af/xap/gtk/xap_UnixDialogHelper.cpp:233:0: style: The function 'newDialogBuilder' is never used. [unusedFunction]
+GtkBuilder * newDialogBuilder(const char * name)
+^
+src/af/xap/gtk/xap_UnixDialogHelper.cpp:287:0: style: The function 'isTransientWindow' is never used. [unusedFunction]
+bool isTransientWindow(GtkWindow *window,GtkWindow *parent)
+^
+src/af/xap/gtk/xap_UnixDialogHelper.cpp:993:0: style: The function 'localizeMenuItem' is never used. [unusedFunction]
+void localizeMenuItem(GtkWidget * widget, const XAP_StringSet * pSS, XAP_String_Id id)
+^
+src/af/xap/gtk/xap_UnixDialogHelper.cpp:1011:0: style: The function 'setLabelMarkup' is never used. [unusedFunction]
+void setLabelMarkup(GtkWidget * widget, const gchar * str)
+^
+src/af/xap/gtk/xap_UnixDlg_PrintPreview.cpp:444:0: style: The function '_s_zoomChoose' is never used. [unusedFunction]
+void XAP_UnixDialog_PrintPreview::_s_zoomChoose(GtkWidget * w, GParamSpec * /*pspec*/,
+^
+src/af/xap/gtk/xap_UnixFrameImpl.cpp:1466:0: style: The function '_setInputMode' is never used. [unusedFunction]
+UT_sint32 XAP_UnixFrameImpl::_setInputMode(const char * szName)
+^
+src/af/xap/gtk/xap_UnixFrameImpl.h:60:0: style: The function 'getNewX' is never used. [unusedFunction]
+ gint getNewX(void)
+^
+src/af/xap/gtk/xap_UnixFrameImpl.h:62:0: style: The function 'getNewY' is never used. [unusedFunction]
+ gint getNewY(void)
+^
+src/af/xap/gtk/xap_UnixFrameImpl.h:137:0: style: The function '_getSunkenBox' is never used. [unusedFunction]
+ GtkWidget * _getSunkenBox(void) {return m_wSunkenBox;}
+^
+src/af/xap/gtk/xap_UnixWidget.cpp:140:0: style: The function 'getValueFloat' is never used. [unusedFunction]
+float XAP_UnixWidget::getValueFloat(void)
+^
+src/af/xap/xp/spell_manager.cpp:159:0: style: The function 'couldNotLoadDictionary' is never used. [unusedFunction]
+/* static */ void SpellChecker::couldNotLoadDictionary ( const char * szLang )
+^
+src/af/xap/xp/spell_manager.h:59:0: style: The function 'getMapping' is never used. [unusedFunction]
+ virtual const std::vector<DictionaryMapping> & getMapping() const {return m_vecEmpty;};
+^
+src/af/xap/xp/spell_manager.h:76:0: style: The function 'isDictionaryFound' is never used. [unusedFunction]
+ bool isDictionaryFound(void)
+^
+src/af/xap/xp/spell_manager.h:121:0: style: The function 'numLoadedDicts' is never used. [unusedFunction]
+ UT_uint32 numLoadedDicts () const { return m_nLoadedDicts; }
+^
+src/af/xap/xp/xad_Document.cpp:491:0: style: The function 'setOrigUUID' is never used. [unusedFunction]
+void AD_Document::setOrigUUID(const char * s)
+^
+src/af/xap/xp/xad_Document.cpp:513:0: style: The function 'setMyUUID' is never used. [unusedFunction]
+void AD_Document::setMyUUID(const char * s)
+^
+src/af/xap/xp/xad_Document.cpp:927:0: style: The function '_restoreVersion' is never used. [unusedFunction]
+bool AD_Document::_restoreVersion(XAP_Frame * pFrame, UT_uint32 iVersion)
+^
+src/af/xap/xp/xad_Document.h:112:0: style: The function 'setVersion' is never used. [unusedFunction]
+ void              setVersion(UT_uint32 iVer) {m_iVersion = iVer;}
+^
+src/af/xap/xp/xad_Document.h:199:0: style: The function 'getTimeSinceOpen' is never used. [unusedFunction]
+ time_t          getTimeSinceOpen () const { return (time(nullptr) - m_lastOpenedTime); }
+^
+src/af/xap/xp/xap_App.cpp:192:0: style: The function 'getBuildId' is never used. [unusedFunction]
+const char* XAP_App::getBuildId ()
+^
+src/af/xap/xp/xap_App.cpp:197:0: style: The function 'getBuildVersion' is never used. [unusedFunction]
+const char* XAP_App::getBuildVersion ()
+^
+src/af/xap/xp/xap_App.cpp:202:0: style: The function 'getBuildOptions' is never used. [unusedFunction]
+const char* XAP_App::getBuildOptions ()
+^
+src/af/xap/xp/xap_App.cpp:207:0: style: The function 'getBuildTarget' is never used. [unusedFunction]
+const char* XAP_App::getBuildTarget ()
+^
+src/af/xap/xp/xap_App.cpp:212:0: style: The function 'getBuildCompileTime' is never used. [unusedFunction]
+const char* XAP_App::getBuildCompileTime ()
+^
+src/af/xap/xp/xap_App.cpp:217:0: style: The function 'getBuildCompileDate' is never used. [unusedFunction]
+const char* XAP_App::getBuildCompileDate ()
+^
+src/af/xap/xp/xap_App.cpp:222:0: style: The function 'getAbiSuiteHome' is never used. [unusedFunction]
+const char* XAP_App::getAbiSuiteHome ()
+^
+src/af/xap/xp/xap_App.cpp:265:0: style: The function 'unRegisterEmbeddable' is never used. [unusedFunction]
+bool XAP_App::unRegisterEmbeddable(const char *uid)
+^
+src/af/xap/xp/xap_App.cpp:809:0: style: The function '_setAbiSuiteLibDir' is never used. [unusedFunction]
+void XAP_App::_setAbiSuiteLibDir(const char * sz)
+^
+src/af/xap/xp/xap_App.cpp:889:0: style: The function 'isWordInDict' is never used. [unusedFunction]
+bool XAP_App::isWordInDict(const UT_UCS4Char * pWord, UT_uint32 len) const
+^
+src/af/xap/xp/xap_App.cpp:1205:0: style: The function 'getDocuments' is never used. [unusedFunction]
+XAP_App::getDocuments( const AD_Document * pExclude ) const
+^
+src/af/xap/xp/xap_App.cpp:1327:0: style: The function 'setDefaultGraphicsId' is never used. [unusedFunction]
+void XAP_App::setDefaultGraphicsId(UT_uint32 i)
+^
+src/af/xap/xp/xap_App.cpp:1377:0: style: The function 'saveState' is never used. [unusedFunction]
+bool XAP_App::saveState(bool bQuit)
+^
+src/af/xap/xp/xap_App.cpp:1509:0: style: The function 'retrieveState' is never used. [unusedFunction]
+bool XAP_App::retrieveState()
+^
+src/af/xap/xp/xap_App.cpp:1666:0: style: The function 'setNoGUI' is never used. [unusedFunction]
+XAP_App::setNoGUI( bool v )
+^
+src/af/xap/xp/xap_App.h:117:0: style: The function 'getImpl' is never used. [unusedFunction]
+ XAP_AppImpl* getImpl()
+^
+src/af/xap/xp/xap_App.h:195:0: style: The function 'setDebugBool' is never used. [unusedFunction]
+ bool      setDebugBool(void) { m_bDebugBool = true; return m_bDebugBool; }
+^
+src/af/xap/xp/xap_App.h:196:0: style: The function 'clearDebugBool' is never used. [unusedFunction]
+ bool      clearDebugBool(void) { m_bDebugBool = false; return m_bDebugBool; }
+^
+src/af/xap/xp/xap_App.h:197:0: style: The function 'isDebug' is never used. [unusedFunction]
+ bool isDebug(void) const { return m_bDebugBool; }
+^
+src/af/xap/xp/xap_App.h:276:0: style: The function 'clearStateInfo' is never used. [unusedFunction]
+ virtual void                clearStateInfo(){};
+^
+src/af/xap/xp/xap_App.h:293:0: style: The function '_setUUIDGenerator' is never used. [unusedFunction]
+ void      _setUUIDGenerator(UT_UUIDGenerator * pG) { m_pUUIDGenerator = pG; }
+^
+src/af/xap/xp/xap_CustomWidget.cpp:35:0: style: The function 'queueDrawLU' is never used. [unusedFunction]
+void XAP_CustomWidget::queueDrawLU(const UT_Rect *clip)
+^
+src/af/xap/xp/xap_Dialog.h:242:0: style: The function 'pGetWindowHandle' is never used. [unusedFunction]
+ virtual void *    pGetWindowHandle(void) { return nullptr; }
+^
+src/af/xap/xp/xap_Dlg_DocComparison.cpp:48:0: style: The function 'calculate' is never used. [unusedFunction]
+bool XAP_Dialog_DocComparison::calculate(AD_Document * pDoc1, AD_Document * pDoc2)
+^
+src/af/xap/xp/xap_Dlg_DocComparison.cpp:96:0: style: The function 'getWindowLabel' is never used. [unusedFunction]
+const char * XAP_Dialog_DocComparison::getWindowLabel() const
+^
+src/af/xap/xp/xap_Dlg_DocComparison.cpp:102:0: style: The function 'getFrame1Label' is never used. [unusedFunction]
+const char * XAP_Dialog_DocComparison::getFrame1Label() const
+^
+src/af/xap/xp/xap_Dlg_DocComparison.cpp:108:0: style: The function 'getFrame2Label' is never used. [unusedFunction]
+const char * XAP_Dialog_DocComparison::getFrame2Label() const
+^
+src/af/xap/xp/xap_Dlg_DocComparison.cpp:127:0: style: The function 'getResultLabel' is never used. [unusedFunction]
+const char * XAP_Dialog_DocComparison::getResultLabel(UT_uint32 indx) const
+^
+src/af/xap/xp/xap_Dlg_DocComparison.cpp:251:0: style: The function 'getButtonLabel' is never used. [unusedFunction]
+const char * XAP_Dialog_DocComparison::getButtonLabel() const
+^
+src/af/xap/xp/xap_Dlg_DocComparison.h:75:0: style: The function 'getResultCount' is never used. [unusedFunction]
+ UT_uint32    getResultCount() const {return iResultCount;}
+^
+src/af/xap/xp/xap_Dlg_Encoding.h:66:0: style: The function '_getSelectionIndex' is never used. [unusedFunction]
+ UT_uint32                       _getSelectionIndex () const
+^
+src/af/xap/xp/xap_Dlg_FontChooser.cpp:135:0: style: The function 'event_previewDrawImmediate' is never used. [unusedFunction]
+void XAP_Dialog_FontChooser::event_previewDrawImmediate()
+^
+src/af/xap/xp/xap_Dlg_FontChooser.cpp:143:0: style: The function 'event_previewClear' is never used. [unusedFunction]
+void XAP_Dialog_FontChooser::event_previewClear(void)
+^
+src/af/xap/xp/xap_Dlg_HTMLOptions.h:77:0: style: The function 'get_Multipart' is never used. [unusedFunction]
+ inline bool  get_Multipart ()        const { return m_exp_opt->bMultipart; }
+^
+src/af/xap/xp/xap_Dlg_Insert_Symbol.cpp:92:0: style: The function '_updateDrawSymbol' is never used. [unusedFunction]
+void XAP_Dialog_Insert_Symbol::_updateDrawSymbol()
+^
+src/af/xap/xp/xap_Dlg_Insert_Symbol.cpp:97:0: style: The function '_createSymbolFromGC' is never used. [unusedFunction]
+void XAP_Dialog_Insert_Symbol::_createSymbolFromGC(GR_Graphics * gc,
+^
+src/af/xap/xp/xap_Dlg_Insert_Symbol.cpp:107:0: style: The function '_getCurrentSymbolMap' is never used. [unusedFunction]
+XAP_Draw_Symbol * XAP_Dialog_Insert_Symbol::_getCurrentSymbolMap( void)
+^
+src/af/xap/xp/xap_Dlg_Insert_Symbol.cpp:114:0: style: The function '_updateDrawSymbolarea' is never used. [unusedFunction]
+void XAP_Dialog_Insert_Symbol::_updateDrawSymbolarea(UT_UCS4Char c, UT_UCS4Char p)
+^
+src/af/xap/xp/xap_Dlg_Insert_Symbol.cpp:119:0: style: The function '_createSymbolareaFromGC' is never used. [unusedFunction]
+void XAP_Dialog_Insert_Symbol::_createSymbolareaFromGC(GR_Graphics * gc,
+^
+src/af/xap/xp/xap_Dlg_Insert_Symbol.cpp:129:0: style: The function '_onInsertButton' is never used. [unusedFunction]
+void XAP_Dialog_Insert_Symbol::_onInsertButton()
+^
+src/af/xap/xp/xap_Dlg_Language.cpp:145:0: style: The function '_setLanguage' is never used. [unusedFunction]
+void XAP_Dialog_Language::_setLanguage(const gchar * pLang)
+^
+src/af/xap/xp/xap_Dlg_Language.cpp:201:0: style: The function 'detectLanguage' is never used. [unusedFunction]
+const gchar * XAP_Dialog_Language::detectLanguage()
+^
+src/af/xap/xp/xap_Dlg_Language.cpp:269:0: style: The function 'getDocDefaultLangCheckboxLabel' is never used. [unusedFunction]
+void XAP_Dialog_Language::getDocDefaultLangCheckboxLabel(UT_UTF8String &s)
+^
+src/af/xap/xp/xap_Dlg_Language.cpp:290:0: style: The function 'getDocDefaultLangDescription' is never used. [unusedFunction]
+void XAP_Dialog_Language::getDocDefaultLangDescription(UT_UTF8String & s)
+^
+src/af/xap/xp/xap_Dlg_Language.h:68:0: style: The function 'setMakeDocumentDefault' is never used. [unusedFunction]
+ void                            setMakeDocumentDefault(bool b) {m_bDocDefault = b;}
+^
+src/af/xap/xp/xap_Dlg_Language.h:78:0: style: The function 'getSpellCheck' is never used. [unusedFunction]
+ inline bool getSpellCheck(void) const {return m_bSpellCheck;}
+^
+src/af/xap/xp/xap_Dlg_Language.h:82:0: style: The function 'setNoProofing' is never used. [unusedFunction]
+ void                            setNoProofing(bool b) {m_bNoProof = b;}
+^
+src/af/xap/xp/xap_Dlg_Language.h:83:0: style: The function 'getNoProofing' is never used. [unusedFunction]
+ bool                            getNoProofing() const {return m_bNoProof;}
+^
+src/af/xap/xp/xap_Dlg_Print.cpp:200:0: style: The function 'getDoPrintSelection' is never used. [unusedFunction]
+bool XAP_Dialog_Print::getDoPrintSelection(void) const
+^
+src/af/xap/xp/xap_Dlg_Print.cpp:207:0: style: The function 'getDoPrintToFile' is never used. [unusedFunction]
+bool XAP_Dialog_Print::getDoPrintToFile(const char *) const
+^
+src/af/xap/xp/xap_Dlg_Print.cpp:235:0: style: The function '_getPrintToFilePathname' is never used. [unusedFunction]
+bool XAP_Dialog_Print::_getPrintToFilePathname(XAP_Frame * pFrame,
+^
+src/af/xap/xp/xap_Draw_Symbol.cpp:215:0: style: The function 'setSelectedFont' is never used. [unusedFunction]
+void XAP_Draw_Symbol::setSelectedFont(const char *font)
+^
+src/af/xap/xp/xap_Draw_Symbol.cpp:251:0: style: The function 'getSymbolRows' is never used. [unusedFunction]
+UT_uint32 XAP_Draw_Symbol::getSymbolRows (void) const
+^
+src/af/xap/xp/xap_Draw_Symbol.h:60:0: style: The function 'getCurrent' is never used. [unusedFunction]
+ UT_UCS4Char     getCurrent() const
+^
+src/af/xap/xp/xap_EncodingManager.h:105:0: style: The function 'placeholder' is never used. [unusedFunction]
+    virtual void placeholder() {};//to be removed
+^
+src/af/xap/xp/xap_Frame.cpp:537:0: style: The function '_startViewAutoUpdater' is never used. [unusedFunction]
+void XAP_FrameImpl::_startViewAutoUpdater(void)
+^
+src/af/xap/xp/xap_Frame.cpp:835:0: style: The function 'setAutoSaveFileExt' is never used. [unusedFunction]
+void XAP_Frame::setAutoSaveFileExt(const std::string &stExt)
+^
+src/af/xap/xp/xap_Frame.cpp:1110:0: style: The function 'rebuildAllToolbars' is never used. [unusedFunction]
+void XAP_Frame::rebuildAllToolbars(void)
+^
+src/af/xap/xp/xap_Frame.cpp:1126:0: style: The function 'dragBegin' is never used. [unusedFunction]
+void XAP_Frame::dragBegin(XAP_Toolbar_Id srcId, EV_Toolbar * pTBsrc)
+^
+src/af/xap/xp/xap_Frame.cpp:1140:0: style: The function 'dragDropToIcon' is never used. [unusedFunction]
+void XAP_Frame::dragDropToIcon(XAP_Toolbar_Id srcId,XAP_Toolbar_Id destId, EV_Toolbar * pTBsrc, EV_Toolbar * pTBdest)
+^
+src/af/xap/xp/xap_Frame.cpp:1155:0: style: The function 'dragDropToTB' is never used. [unusedFunction]
+void XAP_Frame::dragDropToTB(XAP_Toolbar_Id srcId,EV_Toolbar * pTBsrc, EV_Toolbar * pTBdest)
+^
+src/af/xap/xp/xap_Frame.h:107:0: style: The function 'hideMenuScroll' is never used. [unusedFunction]
+ void hideMenuScroll(bool bHideMenuScroll) {
+^
+src/af/xap/xp/xap_Frame.h:168:0: style: The function 'getBarVisibility' is never used. [unusedFunction]
+ virtual bool    getBarVisibility(UT_uint32 /*iBarNb*/) { return true; }
+^
+src/af/xap/xp/xap_Frame.h:234:0: style: The function 'isMenuBarShown' is never used. [unusedFunction]
+ bool                        isMenuBarShown(void) const { return m_bShowMenubar;}
+^
+src/af/xap/xp/xap_Frame.h:235:0: style: The function 'setStatusBarShown' is never used. [unusedFunction]
+ virtual void                setStatusBarShown(bool /*bShowStatusbar*/) {}
+^
+src/af/xap/xp/xap_Frame.h:236:0: style: The function 'setMenuBarShown' is never used. [unusedFunction]
+ virtual void                setMenuBarShown(bool /*bShowMenubar*/) {}
+^
+src/af/xap/xp/xap_FrameImpl.h:85:0: style: The function 'isGridlinesVisible' is never used. [unusedFunction]
+ virtual bool isGridlinesVisible() const { return false; }
+^
+src/af/xap/xp/xap_FrameImpl.h:58:0: style: The function '_getToolbars' is never used. [unusedFunction]
+ const std::vector<EV_Toolbar*> & _getToolbars() const
+^
+src/af/xap/xp/xap_Preview.h:49:0: style: The function 'onLeftButtonDown' is never used. [unusedFunction]
+ virtual void   onLeftButtonDown(UT_sint32 /*x*/, UT_sint32 /*y*/) {  };
+^
+src/af/xap/xp/xap_Strings.cpp:59:0: style: The function 'getLanguageName' is never used. [unusedFunction]
+const gchar * XAP_StringSet::getLanguageName(void) const
+^
+src/af/xap/xp/xav_View.cpp:161:0: style: The function 'setActivityMask' is never used. [unusedFunction]
+void AV_View:: setActivityMask(bool bActive)
+^
+src/af/xap/xp/xav_View.h:90:0: style: The function 'getFocus' is never used. [unusedFunction]
+ AV_Focus getFocus(){ return m_focus; }
+^
+src/af/xap/xp/xav_View.h:127:0: style: The function 'couldBeActive' is never used. [unusedFunction]
+ bool                    couldBeActive(void) const
+^
+src/text/fmt/xp/fb_Alignment.cpp:51:0: style: The function 'eraseLineFromRun' is never used. [unusedFunction]
+void fb_Alignment_left::eraseLineFromRun(fp_Line *pLine, UT_uint32 runIndex)
+^
+src/text/fmt/xp/fg_GraphicRaster.h:66:0: style: The function 'getFormat' is never used. [unusedFunction]
+    Format              getFormat() const
+^
+src/text/fmt/xp/fl_AutoNum.cpp:682:0: style: The function 'setAsciiOffset' is never used. [unusedFunction]
+void fl_AutoNum::setAsciiOffset(UT_uint32 new_asciioffset)
+^
+src/text/fmt/xp/fl_AutoNum.cpp:978:0: style: The function 'doesItemHaveLabel' is never used. [unusedFunction]
+bool fl_AutoNum::doesItemHaveLabel(const fl_BlockLayout * pItem) const
+^
+src/text/fmt/xp/fl_AutoNum.cpp:1026:0: style: The function 'isIDSomeWhere' is never used. [unusedFunction]
+bool fl_AutoNum::isIDSomeWhere(UT_uint32 ID) const
+^
+src/text/fmt/xp/fl_AutoNum.cpp:1199:0: style: The function 'getPrevInList' is never used. [unusedFunction]
+pf_Frag_Strux* fl_AutoNum::getPrevInList(const pf_Frag_Strux* pItem) const
+^
+src/text/fmt/xp/fl_AutoNum.cpp:1207:0: style: The function '_getLevelValue' is never used. [unusedFunction]
+inline UT_uint32 fl_AutoNum::_getLevelValue(const fl_AutoNumConstPtr & pAutoNum) const
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:1824:0: style: The function 'getEnclosingBlock' is never used. [unusedFunction]
+fl_BlockLayout * fl_BlockLayout::getEnclosingBlock(void) const
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:1920:0: style: The function 'findLineWithFootnotePID' is never used. [unusedFunction]
+fp_Line * fl_BlockLayout::findLineWithFootnotePID(UT_uint32 pid) const
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:2032:0: style: The function '_mergeRuns' is never used. [unusedFunction]
+void fl_BlockLayout::_mergeRuns(fp_Run* pFirstRunToMerge, fp_Run* pLastRunToMerge) const
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:4770:0: style: The function 'findPrevLineInDocument' is never used. [unusedFunction]
+fp_Line* fl_BlockLayout::findPrevLineInDocument(fp_Line* pLine) const
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:4809:0: style: The function 'findNextLineInDocument' is never used. [unusedFunction]
+fp_Line* fl_BlockLayout::findNextLineInDocument(fp_Line* pLine) const
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:5760:0: style: The function '_doInsertTOCTabRun' is never used. [unusedFunction]
+bool fl_BlockLayout::_doInsertTOCTabRun(PT_BlockOffset blockOffset)
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:5772:0: style: The function '_doInsertTOCListTabRun' is never used. [unusedFunction]
+bool fl_BlockLayout::_doInsertTOCListTabRun(PT_BlockOffset blockOffset)
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:6096:0: style: The function '_doInsertFieldTOCRun' is never used. [unusedFunction]
+bool fl_BlockLayout::_doInsertFieldTOCRun(PT_BlockOffset blockOffset)
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:6107:0: style: The function '_doInsertTOCListLabelRun' is never used. [unusedFunction]
+bool fl_BlockLayout::_doInsertTOCListLabelRun(PT_BlockOffset blockOffset)
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:6123:0: style: The function '_doInsertTOCHeadingRun' is never used. [unusedFunction]
+bool fl_BlockLayout::_doInsertTOCHeadingRun(PT_BlockOffset blockOffset)
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:9830:0: style: The function 'getFormatFromListType' is never used. [unusedFunction]
+char * fl_BlockLayout::getFormatFromListType( FL_ListType iListType) const
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:9841:0: style: The function 'decodeListType' is never used. [unusedFunction]
+FL_ListType fl_BlockLayout::decodeListType(char * listformat) const
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:10650:0: style: The function 'prependList' is never used. [unusedFunction]
+void  fl_BlockLayout::prependList( fl_BlockLayout * nextList)
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:10882:0: style: The function 'deleteListLabel' is never used. [unusedFunction]
+void fl_BlockLayout::deleteListLabel(void)
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:10954:0: style: The function '_addBlockToPrevList' is never used. [unusedFunction]
+inline void fl_BlockLayout::_addBlockToPrevList( fl_BlockLayout * prevBlockInList, UT_uint32 level)
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:10984:0: style: The function '_prependBlockToPrevList' is never used. [unusedFunction]
+inline void fl_BlockLayout::_prependBlockToPrevList( fl_BlockLayout * nextBlockInList)
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:11024:0: style: The function 'getNextTableElement' is never used. [unusedFunction]
+bool fl_BlockLayout::getNextTableElement(UT_GrowBuf * buf,
+^
+src/text/fmt/xp/fl_BlockLayout.cpp:11128:0: style: The function 'setDominantDirection' is never used. [unusedFunction]
+void fl_BlockLayout::setDominantDirection(UT_BidiCharType iDirection)
+^
+src/text/fmt/xp/fl_BlockLayout.h:188:0: style: The function 'setFirstRun' is never used. [unusedFunction]
+ inline void setFirstRun(fp_Run* pRun) { m_pFirstRun = pRun; }
+^
+src/text/fmt/xp/fl_BlockLayout.h:265:0: style: The function 'getProp_KeepWithNext' is never used. [unusedFunction]
+ inline bool getProp_KeepWithNext(void) const { return m_bKeepWithNext; }
+^
+src/text/fmt/xp/fl_BlockLayout.h:277:0: style: The function 'clearHdrFtr' is never used. [unusedFunction]
+ void clearHdrFtr(void) { m_bIsHdrFtr = false;}
+^
+src/text/fmt/xp/fl_BlockLayout.h:292:0: style: The function 'getTabsCount' is never used. [unusedFunction]
+ inline UT_sint32 getTabsCount(void) const {
+^
+src/text/fmt/xp/fl_BlockLayout.h:367:0: style: The function 'setStyleInTOC' is never used. [unusedFunction]
+ void                    setStyleInTOC(bool b)
+^
+src/text/fmt/xp/fl_BlockLayout.h:375:0: style: The function 'setAccumHeight' is never used. [unusedFunction]
+ void                    setAccumHeight(UT_sint32 i)
+^
+src/text/fmt/xp/fl_BlockLayout.h:377:0: style: The function 'getAccumHeight' is never used. [unusedFunction]
+ UT_sint32               getAccumHeight(void) const
+^
+src/text/fmt/xp/fl_BlockLayout.h:388:0: style: The function 'setPrevListLabel' is never used. [unusedFunction]
+ void                    setPrevListLabel(bool b)
+^
+src/text/fmt/xp/fl_ContainerLayout.cpp:354:0: style: The function 'getFoldedID' is never used. [unusedFunction]
+UT_uint32 fl_ContainerLayout::getFoldedID(void) const
+^
+src/text/fmt/xp/fl_DocLayout.cpp:322:0: style: The function 'getQuickPrintGraphics' is never used. [unusedFunction]
+GR_Graphics * FL_DocLayout::getQuickPrintGraphics(void) const
+^
+src/text/fmt/xp/fl_DocLayout.cpp:1848:0: style: The function 'countEndnotes' is never used. [unusedFunction]
+UT_uint32 FL_DocLayout::countEndnotes(void) const
+^
+src/text/fmt/xp/fl_DocLayout.cpp:2110:0: style: The function 'addTOC' is never used. [unusedFunction]
+bool FL_DocLayout::addTOC(fl_TOCLayout * pTOC)
+^
+src/text/fmt/xp/fl_DocLayout.cpp:2116:0: style: The function 'removeTOC' is never used. [unusedFunction]
+bool FL_DocLayout::removeTOC(fl_TOCLayout * pTOC)
+^
+src/text/fmt/xp/fl_DocLayout.cpp:2875:0: style: The function 'updateOnViewModeChange' is never used. [unusedFunction]
+void FL_DocLayout::updateOnViewModeChange()
+^
+src/text/fmt/xp/fl_DocLayout.cpp:3286:0: style: The function 'setDisplayAnnotations' is never used. [unusedFunction]
+void FL_DocLayout::setDisplayAnnotations(bool bDisplayAnnotations)
+^
+src/text/fmt/xp/fl_DocLayout.cpp:3296:0: style: The function 'displayRDFAnchors' is never used. [unusedFunction]
+bool FL_DocLayout::displayRDFAnchors(void) const
+^
+src/text/fmt/xp/fl_DocLayout.cpp:3301:0: style: The function 'setDisplayRDFAnchors' is never used. [unusedFunction]
+void FL_DocLayout::setDisplayRDFAnchors(bool v)
+^
+src/text/fmt/xp/fl_DocLayout.cpp:3541:0: style: The function 'dequeueAll' is never used. [unusedFunction]
+void FL_DocLayout::dequeueAll(void)
+^
+src/text/fmt/xp/fl_DocLayout.h:189:0: style: The function 'getPercentFilled' is never used. [unusedFunction]
+ UT_sint32   getPercentFilled(void) const
+^
+src/text/fmt/xp/fl_DocLayout.h:353:0: style: The function 'getBackgroundCheckReasons' is never used. [unusedFunction]
+ inline UT_uint32 getBackgroundCheckReasons() const {return (m_uDocBackgroundCheckReasons);}
+^
+src/text/fmt/xp/fl_DocLayout.h:356:0: style: The function 'getPendingBlockForGrammar' is never used. [unusedFunction]
+ fl_BlockLayout *        getPendingBlockForGrammar(void) const
+^
+src/text/fmt/xp/fl_FrameLayout.cpp:380:0: style: The function 'doclistener_deleteEndFrame' is never used. [unusedFunction]
+bool fl_FrameLayout::doclistener_deleteEndFrame( const PX_ChangeRecord_Strux * /*pcrx*/)
+^
+src/text/fmt/xp/fl_FrameLayout.cpp:617:0: style: The function '_insertFrameContainer' is never used. [unusedFunction]
+void fl_FrameLayout::_insertFrameContainer(fp_Container * /*pNewFC*/)
+^
+src/text/fmt/xp/fl_FrameLayout.h:118:0: style: The function 'getFrameWidth' is never used. [unusedFunction]
+ UT_sint32                getFrameWidth(void) const
+^
+src/text/fmt/xp/fl_FrameLayout.h:120:0: style: The function 'getFrameHeight' is never used. [unusedFunction]
+ UT_sint32                getFrameHeight(void) const
+^
+src/text/fmt/xp/fl_FrameLayout.h:137:0: style: The function 'setFrameXpos' is never used. [unusedFunction]
+ void                setFrameXpos(UT_sint32 iX)  { m_iXpos = iX;}
+^
+src/text/fmt/xp/fl_FrameLayout.h:138:0: style: The function 'setFrameYpos' is never used. [unusedFunction]
+ void                setFrameYpos(UT_sint32 iY) { m_iYpos = iY;}
+^
+src/text/fmt/xp/fl_PartOfBlock.cpp:45:0: style: The function 'setGrammarMessage' is never used. [unusedFunction]
+void fl_PartOfBlock::setGrammarMessage(const std::string & sMsg)
+^
+src/text/fmt/xp/fl_PartOfBlock.cpp:51:0: style: The function 'getGrammarMessage' is never used. [unusedFunction]
+fl_PartOfBlock::getGrammarMessage() const
+^
+src/text/fmt/xp/fl_SectionLayout.cpp:1046:0: style: The function 'getFootnoteLayout' is never used. [unusedFunction]
+fl_FootnoteLayout * fl_DocSectionLayout::getFootnoteLayout(UT_uint32 pid)
+^
+src/text/fmt/xp/fl_SectionLayout.cpp:1420:0: style: The function 'setHdrFtrHeightChange' is never used. [unusedFunction]
+bool fl_DocSectionLayout::setHdrFtrHeightChange(bool bHdrFtr, UT_sint32 newHeight)
+^
+src/text/fmt/xp/fl_SectionLayout.cpp:3550:0: style: The function 'findShadow' is never used. [unusedFunction]
+fl_HdrFtrShadow *  fl_HdrFtrSectionLayout::findShadow(fp_Page* pPage)
+^
+src/text/fmt/xp/fl_SectionLayout.cpp:4507:0: style: The function 'bl_doclistener_deleteCellStrux' is never used. [unusedFunction]
+bool fl_HdrFtrSectionLayout::bl_doclistener_deleteCellStrux(fl_ContainerLayout* pBL, const PX_ChangeRecord_Strux * pcrx)
+^
+src/text/fmt/xp/fl_SectionLayout.cpp:4543:0: style: The function 'bl_doclistener_deleteTableStrux' is never used. [unusedFunction]
+bool fl_HdrFtrSectionLayout::bl_doclistener_deleteTableStrux(fl_ContainerLayout* pBL, const PX_ChangeRecord_Strux * pcrx)
+^
+src/text/fmt/xp/fl_SectionLayout.cpp:5176:0: style: The function 'bl_doclistener_insertFootnote' is never used. [unusedFunction]
+bool fl_DocSectionLayout::bl_doclistener_insertFootnote(fl_ContainerLayout* pFootnote,
+^
+src/text/fmt/xp/fl_SectionLayout.cpp:5215:0: style: The function 'bl_doclistener_insertAnnotation' is never used. [unusedFunction]
+bool fl_DocSectionLayout::bl_doclistener_insertAnnotation(fl_ContainerLayout* pFootnote,
+^
+src/text/fmt/xp/fl_SectionLayout.h:318:0: style: The function 'markForReformat' is never used. [unusedFunction]
+    void                markForReformat(void) { m_bNeedsFormat = true;}
+^
+src/text/fmt/xp/fl_SectionLayout.h:319:0: style: The function 'needsReFormat' is never used. [unusedFunction]
+    bool                needsReFormat(void) const { return m_bNeedsFormat;}
+^
+src/text/fmt/xp/fl_SectionLayout.h:262:0: style: The function 'getMaxSectionColumnHeight' is never used. [unusedFunction]
+ inline UT_sint32            getMaxSectionColumnHeight(void) const { return m_iMaxSectionColumnHeight;}
+^
+src/text/fmt/xp/fl_SectionLayout.h:266:0: style: The function 'getFootnoteYoff' is never used. [unusedFunction]
+ UT_uint32           getFootnoteYoff(void) const
+^
+src/text/fmt/xp/fl_TOCLayout.h:57:0: style: The function 'getDispStyle' is never used. [unusedFunction]
+ const UT_UTF8String &      getDispStyle(void) const
+^
+src/text/fmt/xp/fl_TOCLayout.h:59:0: style: The function 'hasLabel' is never used. [unusedFunction]
+ bool                 hasLabel(void) const
+^
+src/text/fmt/xp/fl_TOCLayout.h:61:0: style: The function 'doesInherit' is never used. [unusedFunction]
+ bool                 doesInherit(void) const
+^
+src/text/fmt/xp/fl_TOCLayout.h:64:0: style: The function 'getPosInList' is never used. [unusedFunction]
+ UT_sint32            getPosInList(void) const
+^
+src/text/fmt/xp/fl_TOCLayout.h:67:0: style: The function 'getNumLabel' is never used. [unusedFunction]
+    const UT_UTF8String &      getNumLabel(void) const
+^
+src/text/fmt/xp/fl_TOCLayout.h:127:0: style: The function 'isTOCEmpty' is never used. [unusedFunction]
+ bool                     isTOCEmpty() const {return m_vecEntries.empty();}
+^
+src/text/fmt/xp/fl_TableLayout.h:348:0: style: The function 'getCellHeight' is never used. [unusedFunction]
+ UT_sint32                getCellHeight(void) const
+^
+src/text/fmt/xp/fl_TableLayout.h:350:0: style: The function 'getCellWidth' is never used. [unusedFunction]
+ UT_sint32                getCellWidth(void) const
+^
+src/text/fmt/xp/fl_TestRoutines.cpp:63:0: style: The function '__dump_fmt' is never used. [unusedFunction]
+void __dump_fmt(void)
+^
+src/text/fmt/xp/fl_TestRoutines.cpp:76:0: style: The function '__dump_pt' is never used. [unusedFunction]
+void __dump_pt(void)
+^
+src/text/fmt/xp/fl_TestRoutines.cpp:85:0: style: The function '__dump_ch' is never used. [unusedFunction]
+void __dump_ch(void)
+^
+src/text/fmt/xp/fl_TestRoutines.cpp:94:0: style: The function '__dump_sq' is never used. [unusedFunction]
+void __dump_sq(void)
+^
+src/text/fmt/xp/fp_AnnotationRun.cpp:185:0: style: The function '_clearScreen' is never used. [unusedFunction]
+void fp_AnnotationRun::_clearScreen(bool /*bFullLineHeightRect*/)
+^
+src/text/fmt/xp/fp_AnnotationRun.cpp:294:0: style: The function '_letPointPass' is never used. [unusedFunction]
+bool fp_AnnotationRun::_letPointPass(void) const
+^
+src/text/fmt/xp/fp_Column.h:141:0: style: The function 'isHBreakable' is never used. [unusedFunction]
+ virtual bool        isHBreakable(void) override {return false;}
+^
+src/text/fmt/xp/fp_Column.h:143:0: style: The function 'wantHBreakAt' is never used. [unusedFunction]
+ virtual UT_sint32   wantHBreakAt(UT_sint32) override {return 0;}
+^
+src/text/fmt/xp/fp_Column.h:145:0: style: The function 'HBreakAt' is never used. [unusedFunction]
+ virtual fp_ContainerObject * HBreakAt(UT_sint32) override {return nullptr;}
+^
+src/text/fmt/xp/fp_Column.h:96:0: style: The function 'getIntentionallyEmpty' is never used. [unusedFunction]
+ bool   getIntentionallyEmpty(void) const
+^
+src/text/fmt/xp/fp_Column.h:101:0: style: The function 'setIntentionallyEmpty' is never used. [unusedFunction]
+ void   setIntentionallyEmpty(bool b)
+^
+src/text/fmt/xp/fp_Column.h:161:0: style: The function 'addWrappedLine' is never used. [unusedFunction]
+ void                addWrappedLine(fp_Line * pLine)
+^
+src/text/fmt/xp/fp_Column.h:163:0: style: The function 'clearWrappedLines' is never used. [unusedFunction]
+ void                clearWrappedLines(void)
+^
+src/text/fmt/xp/fp_Column.h:165:0: style: The function 'getNthWrappedLine' is never used. [unusedFunction]
+ fp_Line *           getNthWrappedLine(UT_sint32 i) const
+^
+src/text/fmt/xp/fp_ContainerObject.cpp:205:0: style: The function 'setMyBrokenContainer' is never used. [unusedFunction]
+void fp_Container::setMyBrokenContainer(fp_Container * pMyBroken)
+^
+src/text/fmt/xp/fp_ContainerObject.cpp:539:0: style: The function 'findConFrom' is never used. [unusedFunction]
+UT_sint32  fp_Container::findConFrom(fp_ContainerObject * pCon, UT_sint32 iStart) const
+^
+src/text/fmt/xp/fp_ContainerObject.cpp:620:0: style: The function 'justRemoveNthCon' is never used. [unusedFunction]
+void fp_Container::justRemoveNthCon(UT_sint32 i)
+^
+src/text/fmt/xp/fp_ContainerObject.cpp:857:0: style: The function 'setTransparent' is never used. [unusedFunction]
+void fg_FillType::setTransparent(void)
+^
+src/text/fmt/xp/fp_ContainerObject.h:293:0: style: The function 'getConInsertHint' is never used. [unusedFunction]
+ UT_sint32              getConInsertHint(void) const
+^
+src/text/fmt/xp/fp_ContainerObject.h:295:0: style: The function 'setConInsertHint' is never used. [unusedFunction]
+ void                   setConInsertHint(UT_sint32 i)
+^
+src/text/fmt/xp/fp_DirectionMarkerRun.cpp:127:0: style: The function '_deleteFollowingIfAtInsPoint' is never used. [unusedFunction]
+bool fp_DirectionMarkerRun::_deleteFollowingIfAtInsPoint() const
+^
+src/text/fmt/xp/fp_FieldListLabelRun.h:33:0: style: The function 'isListLabelField' is never used. [unusedFunction]
+ virtual bool            isListLabelField(void) { return true;}
+^
+src/text/fmt/xp/fp_FrameContainer.cpp:235:0: style: The function 'isTransformed' is never used. [unusedFunction]
+bool fp_FrameContainer::isTransformed(void) const
+^
+src/text/fmt/xp/fp_FrameContainer.h:77:0: style: The function 'setXpad' is never used. [unusedFunction]
+ void                setXpad(UT_sint32 xPad)
+^
+src/text/fmt/xp/fp_FrameContainer.h:79:0: style: The function 'setYpad' is never used. [unusedFunction]
+ void                setYpad(UT_sint32 yPad)
+^
+src/text/fmt/xp/fp_Line.cpp:754:0: style: The function 'containsOffset' is never used. [unusedFunction]
+bool fp_Line::containsOffset(PT_DocPosition blockOffset)
+^
+src/text/fmt/xp/fp_Line.cpp:1060:0: style: The function 'getWidthToRun' is never used. [unusedFunction]
+UT_sint32 fp_Line::getWidthToRun(fp_Run * pLastRun)
+^
+src/text/fmt/xp/fp_Line.cpp:3453:0: style: The function 'getLastTextRun' is never used. [unusedFunction]
+fp_Run* fp_Line::getLastTextRun(void) const
+^
+src/text/fmt/xp/fp_Line.cpp:4068:0: style: The function '_splitRunsAtSpaces' is never used. [unusedFunction]
+void fp_Line::_splitRunsAtSpaces(void)
+^
+src/text/fmt/xp/fp_Line.cpp:4318:0: style: The function 'getVisIndx' is never used. [unusedFunction]
+UT_uint32 fp_Line::getVisIndx(fp_Run* pRun)
+^
+src/text/fmt/xp/fp_Line.cpp:4449:0: style: The function '_updateContainsFootnoteRef' is never used. [unusedFunction]
+void fp_Line::_updateContainsFootnoteRef(void)
+^
+src/text/fmt/xp/fp_MathRun.cpp:252:0: style: The function 'updateVerticalMetric' is never used. [unusedFunction]
+void fp_MathRun::updateVerticalMetric()
+^
+src/text/fmt/xp/fp_MathRun.cpp:291:0: style: The function '_drawResizeBox' is never used. [unusedFunction]
+void fp_MathRun::_drawResizeBox(UT_Rect box)
+^
+src/text/fmt/xp/fp_Page.cpp:850:0: style: The function 'getContainingTable' is never used. [unusedFunction]
+fp_TableContainer * fp_Page::getContainingTable(PT_DocPosition pos)
+^
+src/text/fmt/xp/fp_Page.cpp:999:0: style: The function 'getAvailableHeightForColumn' is never used. [unusedFunction]
+UT_sint32 fp_Page::getAvailableHeightForColumn(const fp_Column * pColumn) const
+^
+src/text/fmt/xp/fp_Page.cpp:1806:0: style: The function 'intersectsDamagedRect' is never used. [unusedFunction]
+bool   fp_Page::intersectsDamagedRect(fp_ContainerObject * pObj) const
+^
+src/text/fmt/xp/fp_Page.cpp:2130:0: style: The function 'updateColumnX' is never used. [unusedFunction]
+void fp_Page::updateColumnX()
+^
+src/text/fmt/xp/fp_Page.cpp:2716:0: style: The function 'columnHeightChanged' is never used. [unusedFunction]
+void fp_Page::columnHeightChanged(fp_Column* pCol)
+^
+src/text/fmt/xp/fp_Page.cpp:3304:0: style: The function 'frameHeightChanged' is never used. [unusedFunction]
+void fp_Page::frameHeightChanged(void) const
+^
+src/text/fmt/xp/fp_Page.cpp:3473:0: style: The function 'restackFrameContainer' is never used. [unusedFunction]
+UT_sint32 fp_Page::restackFrameContainer(fp_FrameContainer * pFC, int iDir)
+^
+src/text/fmt/xp/fp_Page.cpp:3747:0: style: The function 'getAnnotationPos' is never used. [unusedFunction]
+UT_sint32 fp_Page::getAnnotationPos(UT_uint32 pid) const
+^
+src/text/fmt/xp/fp_Page.h:168:0: style: The function 'setLastMappedTOC' is never used. [unusedFunction]
+ void                setLastMappedTOC(fl_TOCLayout * pTOCL)
+^
+src/text/fmt/xp/fp_PageSize.cpp:527:0: style: The function 'PredefinedToName' is never used. [unusedFunction]
+const char * fp_PageSize::PredefinedToName(Predefined preDef)
+^
+src/text/fmt/xp/fp_Run.h:252:0: style: The function 'alwaysFits' is never used. [unusedFunction]
+ virtual bool  alwaysFits(void) const { return false; }
+^
+src/text/fmt/xp/fp_Run.h:322:0: style: The function 'getTmpLine' is never used. [unusedFunction]
+ fp_Line *           getTmpLine(void) const
+^
+src/text/fmt/xp/fp_Run.h:326:0: style: The function 'getTmpX' is never used. [unusedFunction]
+ UT_sint32           getTmpX(void) const
+^
+src/text/fmt/xp/fp_Run.h:330:0: style: The function 'getTmpY' is never used. [unusedFunction]
+ UT_sint32           getTmpY(void) const
+^
+src/text/fmt/xp/fp_Run.h:362:0: style: The function 'getMustClearScreen' is never used. [unusedFunction]
+ bool getMustClearScreen(void) const
+^
+src/text/fmt/xp/fp_Run.h:380:0: style: The function '_setLine' is never used. [unusedFunction]
+ void    _setLine(fp_Line* pLine) { m_pLine = pLine; }
+^
+src/text/fmt/xp/fp_Run.h:389:0: style: The function '_getWidth' is never used. [unusedFunction]
+ UT_sint32 _getWidth() const  { return m_iWidth; }
+^
+src/text/fmt/xp/fp_Run.h:390:0: style: The function '_getHeight' is never used. [unusedFunction]
+ UT_sint32 _getHeight() const { return m_iHeight; }
+^
+src/text/fmt/xp/fp_Run.h:399:0: style: The function '_getVisDirection' is never used. [unusedFunction]
+ UT_BidiCharType  _getVisDirection(void) const { return m_iVisDirection; }
+^
+src/text/fmt/xp/fp_Run.h:761:0: style: The function 'hasLayoutProperties' is never used. [unusedFunction]
+ virtual bool hasLayoutProperties(void) const override
+^
+src/text/fmt/xp/fp_Run.h:857:0: style: The function 'getPointHeight' is never used. [unusedFunction]
+ UT_sint32 getPointHeight(void) const
+^
+src/text/fmt/xp/fp_Run.h:974:0: style: The function '_getParameter' is never used. [unusedFunction]
+ const gchar *  _getParameter() const { return m_pParameter; }
+^
+src/text/fmt/xp/fp_TOCContainer.cpp:164:0: style: The function 'forceClearScreen' is never used. [unusedFunction]
+void fp_TOCContainer::forceClearScreen(void)
+^
+src/text/fmt/xp/fp_TOCContainer.cpp:329:0: style: The function 'isInBrokenTOC' is never used. [unusedFunction]
+bool fp_TOCContainer::isInBrokenTOC(const fp_Container * pCon)
+^
+src/text/fmt/xp/fp_TOCContainer.cpp:377:0: style: The function 'getBrokenNumber' is never used. [unusedFunction]
+UT_sint32 fp_TOCContainer::getBrokenNumber(void)
+^
+src/text/fmt/xp/fp_TOCContainer.h:99:0: style: The function 'setBrokenBot' is never used. [unusedFunction]
+ void                setBrokenBot(UT_sint32 iBot)
+^
+src/text/fmt/xp/fp_TableContainer.cpp:158:0: style: The function 'isRepeated' is never used. [unusedFunction]
+bool fp_CellContainer::isRepeated(void) const
+^
+src/text/fmt/xp/fp_TableContainer.cpp:1687:0: style: The function 'getCellY' is never used. [unusedFunction]
+UT_sint32 fp_CellContainer::getCellY(fp_Line * /*pLine*/) const
+^
+src/text/fmt/xp/fp_TableContainer.cpp:2511:0: style: The function 'getFirstContainerInBrokenTable' is never used. [unusedFunction]
+fp_Container * fp_CellContainer::getFirstContainerInBrokenTable(const fp_TableContainer * pBroke) const
+^
+src/text/fmt/xp/fp_TableContainer.cpp:3054:0: style: The function 'clearBrokenCellCache' is never used. [unusedFunction]
+void fp_TableContainer::clearBrokenCellCache(const fp_CellContainer * pCell)
+^
+src/text/fmt/xp/fp_TableContainer.cpp:3081:0: style: The function 'getYOfRowOrColumn' is never used. [unusedFunction]
+UT_sint32 fp_TableContainer::getYOfRowOrColumn(UT_sint32 row, bool bRow) const
+^
+src/text/fmt/xp/fp_TableContainer.cpp:4476:0: style: The function 'tableAttach' is never used. [unusedFunction]
+void fp_TableContainer::tableAttach (fp_CellContainer *child)
+^
+src/text/fmt/xp/fp_TableContainer.cpp:4543:0: style: The function 'setRowSpacing' is never used. [unusedFunction]
+void fp_TableContainer::setRowSpacing (UT_sint32 row, UT_sint32  spacing)
+^
+src/text/fmt/xp/fp_TableContainer.cpp:4552:0: style: The function 'setColSpacing' is never used. [unusedFunction]
+void fp_TableContainer::setColSpacing(UT_sint32 column,UT_sint32 spacing)
+^
+src/text/fmt/xp/fp_TableContainer.cpp:4561:0: style: The function 'setRowSpacings' is never used. [unusedFunction]
+void fp_TableContainer::setRowSpacings ( UT_sint32 spacing)
+^
+src/text/fmt/xp/fp_TableContainer.cpp:4572:0: style: The function 'setColSpacings' is never used. [unusedFunction]
+void fp_TableContainer::setColSpacings (UT_sint32  spacing)
+^
+src/text/fmt/xp/fp_TableContainer.cpp:4583:0: style: The function 'setHomogeneous' is never used. [unusedFunction]
+void fp_TableContainer::setHomogeneous (bool bIsHomogeneous)
+^
+src/text/fmt/xp/fp_TableContainer.h:180:0: style: The function 'setLeftAttach' is never used. [unusedFunction]
+    void                setLeftAttach(UT_sint32 i)
+^
+src/text/fmt/xp/fp_TableContainer.h:182:0: style: The function 'setRightAttach' is never used. [unusedFunction]
+    void                setRightAttach(UT_sint32 i)
+^
+src/text/fmt/xp/fp_TableContainer.h:184:0: style: The function 'setTopAttach' is never used. [unusedFunction]
+    void                setTopAttach(UT_sint32 i)
+^
+src/text/fmt/xp/fp_TableContainer.h:186:0: style: The function 'setBottomAttach' is never used. [unusedFunction]
+    void                setBottomAttach(UT_sint32 i)
+^
+src/text/fmt/xp/fp_TableContainer.h:197:0: style: The function 'setLeftPad' is never used. [unusedFunction]
+ void                setLeftPad(UT_sint32 i)
+^
+src/text/fmt/xp/fp_TableContainer.h:199:0: style: The function 'setRightPad' is never used. [unusedFunction]
+ void                setRightPad(UT_sint32 i)
+^
+src/text/fmt/xp/fp_TableContainer.h:201:0: style: The function 'setTopPad' is never used. [unusedFunction]
+ void                setTopPad(UT_sint32 i)
+^
+src/text/fmt/xp/fp_TableContainer.h:203:0: style: The function 'setBotPad' is never used. [unusedFunction]
+ void                setBotPad(UT_sint32 i)
+^
+src/text/fmt/xp/fp_TableContainer.h:229:0: style: The function 'setXexpand' is never used. [unusedFunction]
+ void                setXexpand(bool b)
+^
+src/text/fmt/xp/fp_TableContainer.h:231:0: style: The function 'setYexpand' is never used. [unusedFunction]
+ void                setYexpand(bool b)
+^
+src/text/fmt/xp/fp_TableContainer.h:233:0: style: The function 'setXshrink' is never used. [unusedFunction]
+ void                setXshrink(bool b)
+^
+src/text/fmt/xp/fp_TableContainer.h:235:0: style: The function 'setYshrink' is never used. [unusedFunction]
+ void                setYshrink(bool b)
+^
+src/text/fmt/xp/fp_TableContainer.h:241:0: style: The function 'setXfill' is never used. [unusedFunction]
+ void                setXfill(bool b)
+^
+src/text/fmt/xp/fp_TableContainer.h:243:0: style: The function 'setYfill' is never used. [unusedFunction]
+ void                setYfill(bool b)
+^
+src/text/fmt/xp/fp_TableContainer.h:245:0: style: The function 'getStartY' is never used. [unusedFunction]
+ UT_sint32           getStartY(void) const
+^
+src/text/fmt/xp/fp_TableContainer.h:247:0: style: The function 'getStopY' is never used. [unusedFunction]
+ UT_sint32           getStopY(void) const
+^
+src/text/fmt/xp/fp_TableContainer.h:249:0: style: The function 'getLeftPos' is never used. [unusedFunction]
+ UT_sint32           getLeftPos(void) const
+^
+src/text/fmt/xp/fp_TableContainer.h:251:0: style: The function 'getRightPos' is never used. [unusedFunction]
+ UT_sint32           getRightPos(void) const
+^
+src/text/fmt/xp/fp_TableContainer.h:260:0: style: The function 'setVertAlign' is never used. [unusedFunction]
+ void                setVertAlign(UT_sint32 i) { m_iVertAlign = i; }
+^
+src/text/fmt/xp/fp_TableContainer.h:421:0: style: The function 'setLineThickness' is never used. [unusedFunction]
+ void                setLineThickness(UT_sint32 iLineThickness)
+^
+src/text/fmt/xp/fp_TableContainer.h:478:0: style: The function 'doRedrawLines' is never used. [unusedFunction]
+ bool                doRedrawLines(void) const
+^
+src/text/fmt/xp/fp_TableContainer.h:483:0: style: The function 'setRowHeightType' is never used. [unusedFunction]
+ void setRowHeightType(FL_RowHeightType iType)
+^
+src/text/fmt/xp/fp_TextRun.cpp:2852:0: style: The function 'isFirstCharacter' is never used. [unusedFunction]
+bool fp_TextRun::isFirstCharacter(UT_UCS4Char Character) const
+^
+src/text/fmt/xp/fp_TextRun.h:110:0: style: The function 'setShapingRequired' is never used. [unusedFunction]
+ void                setShapingRequired(GRShapingResult eR)
+^
+src/text/fmt/xp/fp_TextRun.h:112:0: style: The function 'orShapingRequired' is never used. [unusedFunction]
+ void                orShapingRequired(GRShapingResult eR)
+^
+src/text/fmt/xp/fp_TextRun.h:121:0: style: The function 'getItem' is never used. [unusedFunction]
+ const GR_Item *           getItem() const {return m_pItem;}
+^
+src/text/fmt/xp/fp_TextRun.h:139:0: style: The function 'getLetterSpacing' is never used. [unusedFunction]
+ UT_sint32           getLetterSpacing() const { return m_iLetterSpacing; }
+^
+src/text/fmt/xp/fv_Base.cpp:86:0: style: The function 'getGlobCount' is never used. [unusedFunction]
+UT_sint32 FV_Base::getGlobCount() const
+^
+src/text/fmt/xp/fv_FrameEdit.cpp:732:0: style: The function 'mouseLeftPress' is never used. [unusedFunction]
+void FV_FrameEdit::mouseLeftPress(UT_sint32 x, UT_sint32 y)
+^
+src/text/fmt/xp/fv_InlineImage.cpp:95:0: style: The function 'setSelectionDrawn' is never used. [unusedFunction]
+void FV_VisualInlineImage::setSelectionDrawn(bool bSelection)
+^
+src/text/fmt/xp/fv_InlineImage.cpp:891:0: style: The function 'mouseCopy' is never used. [unusedFunction]
+void FV_VisualInlineImage::mouseCopy(UT_sint32 x, UT_sint32 y)
+^
+src/text/fmt/xp/fv_InlineImage.cpp:1203:0: style: The function 'getImageSelBoxSize' is never used. [unusedFunction]
+UT_sint32 FV_VisualInlineImage::getImageSelBoxSize() const
+^
+src/text/fmt/xp/fv_Selection.cpp:452:0: style: The function 'addSelectedRange' is never used. [unusedFunction]
+void FV_Selection::addSelectedRange(PT_DocPosition /*posLow*/, PT_DocPosition /*posHigh*/, bool /*bAddData*/)
+^
+src/text/fmt/xp/fv_Selection.h:79:0: style: The function 'getSelectedTOC' is never used. [unusedFunction]
+ fl_TOCLayout *        getSelectedTOC(void) const
+^
+src/text/fmt/xp/fv_View.h:934:0: style: The function 'getPreviewMode' is never used. [unusedFunction]
+ PreViewMode   getPreviewMode(void) const { return m_previewMode;}
+^
+src/text/fmt/xp/fv_View.h:1069:0: style: The function 'getColorImage' is never used. [unusedFunction]
+ UT_RGBColor   getColorImage(void) const { return m_colorImage; }
+^
+src/text/fmt/xp/fv_View.h:1070:0: style: The function 'getColorImageResize' is never used. [unusedFunction]
+ UT_RGBColor   getColorImageResize(void) const { return m_colorImageResize; }
+^
+src/text/fmt/xp/fv_View.h:1071:0: style: The function 'getColorHyperLink' is never used. [unusedFunction]
+ UT_RGBColor   getColorHyperLink(void) const { return m_colorHyperLink; }
+^
+src/text/fmt/xp/fv_View.h:1075:0: style: The function 'getColorRevisions' is never used. [unusedFunction]
+ UT_RGBColor   getColorRevisions(int rev) const {
+^
+src/text/fmt/xp/fv_View.h:1078:0: style: The function 'getColorHdrFtr' is never used. [unusedFunction]
+ UT_RGBColor   getColorHdrFtr(void) const { return m_colorHdrFtr; }
+^
+src/text/fmt/xp/fv_View.h:1096:0: style: The function 'getDragTableLine' is never used. [unusedFunction]
+ bool                getDragTableLine(void) const
+^
+src/text/fmt/xp/fv_View.h:1123:0: style: The function 'setBidiOrder' is never used. [unusedFunction]
+ void                setBidiOrder(FV_BIDI_Order o) {m_eBidiOrder = o;}
+^
+src/text/fmt/xp/fv_ViewDoubleBuffering.cpp:153:0: style: The function 'redrawEntireScreen' is never used. [unusedFunction]
+void FV_ViewDoubleBuffering::redrawEntireScreen()
+^
+src/text/fmt/xp/fv_View_TestRoutines.cpp:34:0: style: The function 'Test_Dump' is never used. [unusedFunction]
+void FV_View::Test_Dump(void)
+^
+src/text/fmt/xp/fv_View_cmd.cpp:4450:0: style: The function '_autoFormatTableOnEnter' is never used. [unusedFunction]
+bool FV_View::_autoFormatTableOnEnter(void)
+^
+src/text/fmt/xp/fv_View_protected.cpp:108:0: style: The function '_isSpaceBefore' is never used. [unusedFunction]
+bool FV_View::_isSpaceBefore(PT_DocPosition pos) const
+^
+src/text/fmt/xp/fv_View_protected.cpp:159:0: style: The function '_eraseSelection' is never used. [unusedFunction]
+void FV_View::_eraseSelection(void)
+^
+src/text/fmt/xp/fv_View_protected.cpp:1404:0: style: The function '_insertSectionBreak' is never used. [unusedFunction]
+void FV_View::_insertSectionBreak(void)
+^
+src/text/fmt/xp/fv_View_protected.cpp:1516:0: style: The function '_getPageXandYOffset' is never used. [unusedFunction]
+void FV_View::_getPageXandYOffset(const fp_Page* pThePage, UT_sint32& xoff, UT_sint32& yoff, bool bYOnly) const
+^
+src/text/fmt/xp/fv_View_protected.cpp:2221:0: style: The function '_moveInsPtNextPrevPage' is never used. [unusedFunction]
+void FV_View::_moveInsPtNextPrevPage(bool bNext)
+^
+src/text/fmt/xp/fv_View_protected.cpp:2253:0: style: The function '_moveInsPtNextPrevScreen' is never used. [unusedFunction]
+void FV_View::_moveInsPtNextPrevScreen(bool bMovingDown, bool bClearSelection)
+^
+src/text/fmt/xp/fv_View_protected.cpp:2426:0: style: The function '_moveInsPtNthPage' is never used. [unusedFunction]
+void FV_View::_moveInsPtNthPage(UT_sint32 n)
+^
+src/text/fmt/xp/fv_View_protected.cpp:2481:0: style: The function '_stopPendingScrollWorker' is never used. [unusedFunction]
+void FV_View::_stopPendingScrollWorker(void)
+^
+src/text/fmt/xp/fv_View_protected.cpp:2699:0: style: The function '_computeFindPrefix' is never used. [unusedFunction]
+FV_View::_computeFindPrefix(const UT_UCS4Char* pFind)
+^
+src/text/fmt/xp/fv_View_protected.cpp:3375:0: style: The function '_findReplaceReverse' is never used. [unusedFunction]
+FV_View::_findReplaceReverse(UT_uint32* pPrefix, bool& bDoneEntireDocument, bool bNoUpdate)
+^
+src/text/fmt/xp/fv_View_protected.cpp:3451:0: style: The function '_findReplace' is never used. [unusedFunction]
+FV_View::_findReplace(UT_uint32* pPrefix, bool& bDoneEntireDocument, bool bNoUpdate)
+^
+src/text/fmt/xp/fv_View_protected.cpp:3523:0: style: The function '_findBlockSearchRegexp' is never used. [unusedFunction]
+FV_View::_findBlockSearchRegexp(const UT_UCS4Char* /* haystack */,
+^
+src/text/fmt/xp/fv_View_protected.cpp:3631:0: style: The function '_extSelToPos' is never used. [unusedFunction]
+void FV_View::_extSelToPos(PT_DocPosition iNewPoint)
+^
+src/text/fmt/xp/fv_View_protected.cpp:4856:0: style: The function '_getDataCount' is never used. [unusedFunction]
+UT_uint32 FV_View::_getDataCount(UT_uint32 pt1, UT_uint32 pt2) const
+^
+src/text/fmt/xp/fv_View_protected.cpp:6089:0: style: The function '_fixInsertionPointAfterRevision' is never used. [unusedFunction]
+void FV_View::_fixInsertionPointAfterRevision()
+^
+src/text/fmt/xp/fv_View_protected.cpp:6401:0: style: The function '_updateSelectionHandles' is never used. [unusedFunction]
+void FV_View::_updateSelectionHandles(void)
+^
+src/text/fmt/xp/fv_View_tableStyle.cpp:505:0: style: The function 'getTablePen' is never used. [unusedFunction]
+bool FV_View::getTablePen(std::string & sStyle, std::string & sThickness,
+^
+src/text/fmt/xp/fv_VisualDragText.h:49:0: style: The function 'getVisualDragMode' is never used. [unusedFunction]
+ FV_VisualDragMode      getVisualDragMode(void) const
+^
+src/text/ptbl/xp/pd_Document.cpp:486:0: style: The function 'setExportAuthorAtts' is never used. [unusedFunction]
+void  PD_Document::setExportAuthorAtts(bool bAuthor)
+^
+src/text/ptbl/xp/pd_Document.cpp:5214:0: style: The function 'setDataItemToken' is never used. [unusedFunction]
+bool PD_Document::setDataItemToken(PD_DataItemHandle pHandle,
+^
+src/text/ptbl/xp/pd_Document.cpp:5233:0: style: The function 'getDataItemData' is never used. [unusedFunction]
+bool PD_Document::getDataItemData(PD_DataItemHandle pHandle,
+^
+src/text/ptbl/xp/pd_Document.cpp:5465:0: style: The function 'getPrevNumberedHeadingStyle' is never used. [unusedFunction]
+const pf_Frag_Strux* PD_Document::getPrevNumberedHeadingStyle(const pf_Frag_Strux* pfs) const
+^
+src/text/ptbl/xp/pd_Document.cpp:5794:0: style: The function 'updateAllLayoutsInDoc' is never used. [unusedFunction]
+void  PD_Document::updateAllLayoutsInDoc(const pf_Frag_Strux* pfs)
+^
+src/text/ptbl/xp/pd_Document.cpp:8382:0: style: The function 'tellPTDoNotTweakPosition' is never used. [unusedFunction]
+void PD_Document::tellPTDoNotTweakPosition(bool b)
+^
+src/text/ptbl/xp/pd_Document.h:333:0: style: The function 'getAuthors' is never used. [unusedFunction]
+ std::vector<std::unique_ptr<pp_Author>>& getAuthors()
+^
+src/text/ptbl/xp/pd_Document.h:703:0: style: The function 'setMarkRevisionsNoNotify' is never used. [unusedFunction]
+ void                    setMarkRevisionsNoNotify(bool bMark) {AD_Document::setMarkRevisions(bMark);}
+^
+src/text/ptbl/xp/pd_Document.h:858:0: style: The function 'ignoreSignals' is never used. [unusedFunction]
+ void                    ignoreSignals(void)
+^
+src/text/ptbl/xp/pd_Document.h:860:0: style: The function 'dontIgnoreSignals' is never used. [unusedFunction]
+ void                    dontIgnoreSignals(void)
+^
+src/text/ptbl/xp/pd_Document.h:865:0: style: The function 'setCoalescingMask' is never used. [unusedFunction]
+ void     setCoalescingMask(bool mask)
+^
+src/text/ptbl/xp/pd_Document.h:973:0: style: The function 'getUserName' is never used. [unusedFunction]
+ const std::string &getUserName() const { return m_sUserName; }
+^
+src/text/ptbl/xp/pd_DocumentRDF.cpp:110:0: style: The function 'setRDFDialogs' is never used. [unusedFunction]
+PD_DocumentRDF::setRDFDialogs( PD_RDFDialogs* d )
+^
+src/text/ptbl/xp/pd_DocumentRDF.cpp:1311:0: style: The function 'moveToNextSubjectHavePOCol' is never used. [unusedFunction]
+PD_RDFModelIterator::moveToNextSubjectHavePOCol()
+^
+src/text/ptbl/xp/pd_DocumentRDF.cpp:1528:0: style: The function 'requestExportFileNameByDialog' is never used. [unusedFunction]
+PD_RDFSemanticItem::requestExportFileNameByDialog()
+^
+src/text/ptbl/xp/pd_DocumentRDF.cpp:1789:0: style: The function 'createUUIDNode' is never used. [unusedFunction]
+PD_RDFSemanticItem::createUUIDNode()
+^
+src/text/ptbl/xp/pd_DocumentRDF.cpp:1797:0: style: The function 'importFromFile' is never used. [unusedFunction]
+PD_RDFSemanticItem::importFromFile( const std::string& filename_const )
+^
+src/text/ptbl/xp/pd_DocumentRDF.cpp:1995:0: style: The function 'exportToFile' is never used. [unusedFunction]
+PD_RDFContact::exportToFile( const std::string& filename_const ) const
+^
+src/text/ptbl/xp/pd_DocumentRDF.cpp:2690:0: style: The function 'stylesheetTypeUser' is never used. [unusedFunction]
+PD_RDFSemanticStylesheet::stylesheetTypeUser()
+^
+src/text/ptbl/xp/pd_DocumentRDF.cpp:2721:0: style: The function 'isMutable' is never used. [unusedFunction]
+PD_RDFSemanticStylesheet::isMutable() const
+^
+src/text/ptbl/xp/pd_DocumentRDF.cpp:3822:0: style: The function 'priv_addRelevantIDsForPosition' is never used. [unusedFunction]
+PD_DocumentRDF::priv_addRelevantIDsForPosition( std::set< std::string >& ret,
+^
+src/text/ptbl/xp/pd_DocumentRDF.cpp:4523:0: style: The function 'setSparql' is never used. [unusedFunction]
+    void setSparql( const std::string& s )
+^
+src/text/ptbl/xp/pd_RDFQuery.cpp:133:0: style: The function 'dump' is never used. [unusedFunction]
+    void dump( const std::string& s )
+^
+src/text/ptbl/xp/pd_RDFSupport.cpp:241:0: style: The function 'dumpModelToTest' is never used. [unusedFunction]
+void dumpModelToTest( RDFArguments& args )
+^
+src/text/ptbl/xp/pf_Frag.cpp:121:0: style: The function 'accLeftTreeLength' is never used. [unusedFunction]
+void  pf_Frag:: accLeftTreeLength(PT_DocPosition length)
+^
+src/text/ptbl/xp/pf_Frag.cpp:126:0: style: The function '_setNode' is never used. [unusedFunction]
+void pf_Frag::_setNode(pf_Fragments::Node * pNode)
+^
+src/text/ptbl/xp/pf_Frag.cpp:131:0: style: The function '_getNode' is never used. [unusedFunction]
+pf_Fragments::Node * pf_Frag::_getNode(void) const
+^
+src/text/ptbl/xp/pf_Frag.h:70:0: style: The function 'zero' is never used. [unusedFunction]
+ void                     zero(void)
+^
+src/text/ptbl/xp/pf_Frag.h:78:0: style: The function 'getLeftTreeLength' is never used. [unusedFunction]
+ PT_DocPosition          getLeftTreeLength(void) const
+^
+src/text/ptbl/xp/pf_Frag.h:80:0: style: The function 'setLeftTreeLength' is never used. [unusedFunction]
+ void                    setLeftTreeLength(PT_DocPosition length) const
+^
+src/text/ptbl/xp/pf_Fragments.h:131:0: style: The function 'getNode' is never used. [unusedFunction]
+  const Node* getNode() const { return m_pNode; }
+^
+src/text/ptbl/xp/pf_Fragments.h:159:0: style: The function 'sizeDocument' is never used. [unusedFunction]
+ PT_DocPosition sizeDocument() const { return m_nDocumentSize; }
+^
+src/text/ptbl/xp/pp_AttrProp.h:133:0: style: The function 'isReadOnly' is never used. [unusedFunction]
+ bool isReadOnly(void) const {return m_bIsReadOnly;}
+^
+src/text/ptbl/xp/pp_Property.h:169:0: style: The function 'canInherit' is never used. [unusedFunction]
+ inline bool    canInherit() const {return m_bInherit;}
+^
+src/text/ptbl/xp/pt_PieceTable.cpp:475:0: style: The function '_struxHasContent' is never used. [unusedFunction]
+bool pt_PieceTable::_struxHasContent(const pf_Frag_Strux * pfs) const
+^
+src/text/ptbl/xp/pt_PieceTable.h:634:0: style: The function '_getNextChangeRecordNumber' is never used. [unusedFunction]
+ UT_sint32               _getNextChangeRecordNumber(void)
+^
+src/text/ptbl/xp/pt_VarSet.cpp:86:0: style: The function 'overwriteBuf' is never used. [unusedFunction]
+bool pt_VarSet::overwriteBuf(UT_UCS4Char * pBuf, UT_uint32 length, PT_BufIndex * pbi)
+^
+src/text/ptbl/xp/px_ChangeHistory.cpp:608:0: style: The function '_printHistory' is never used. [unusedFunction]
+void px_ChangeHistory::_printHistory(UT_sint32 iPrev) const
+^
+src/text/ptbl/xp/t/pd_Revision.t.cpp:88:0: style: The function 'posBlock2' is never used. [unusedFunction]
+ PT_DocPosition posBlock2() const
+^
+src/wp/ap/gtk/abiwidget.cpp:268:0: style: The function 'abi_widget_cut' is never used. [unusedFunction]
+EM_VOID__BOOL(cut, cut)
+^
+src/wp/ap/gtk/abiwidget.cpp:270:0: style: The function 'abi_widget_paste_special' is never used. [unusedFunction]
+EM_VOID__BOOL(pasteSpecial, paste_special)
+^
+src/wp/ap/gtk/abiwidget.cpp:276:0: style: The function 'abi_widget_file_save' is never used. [unusedFunction]
+EM_VOID__BOOL(fileSave, file_save)
+^
+src/wp/ap/gtk/abiwidget.cpp:313:0: style: The function 'abi_widget_select_prev_line' is never used. [unusedFunction]
+EM_VOID__BOOL(extSelPrevLine, select_prev_line)
+^
+src/wp/ap/gtk/abiwidget.cpp:314:0: style: The function 'abi_widget_select_right' is never used. [unusedFunction]
+EM_VOID__BOOL(extSelRight, select_right)
+^
+src/wp/ap/gtk/abiwidget.cpp:315:0: style: The function 'abi_widget_select_screen_down' is never used. [unusedFunction]
+EM_VOID__BOOL(extSelScreenDown, select_screen_down)
+^
+src/wp/ap/gtk/abiwidget.cpp:316:0: style: The function 'abi_widget_select_screen_up' is never used. [unusedFunction]
+EM_VOID__BOOL(extSelScreenUp, select_screen_up)
+^
+src/wp/ap/gtk/abiwidget.cpp:317:0: style: The function 'abi_widget_select_to_xy' is never used. [unusedFunction]
+EM_INT_INT__BOOL(extSelToXY, select_to_xy)
+^
+src/wp/ap/gtk/abiwidget.cpp:1651:0: style: The function 'abi_widget_insert_image' is never used. [unusedFunction]
+abi_widget_insert_image(AbiWidget * w, char* szFile, gboolean positioned)
+^
+src/wp/ap/gtk/abiwidget.cpp:1788:0: style: The function 'abi_widget_load_file_from_gsf' is never used. [unusedFunction]
+abi_widget_load_file_from_gsf(AbiWidget * w, GsfInput * input)
+^
+src/wp/ap/gtk/abiwidget.cpp:1822:0: style: The function 'abi_widget_load_file_from_memory' is never used. [unusedFunction]
+abi_widget_load_file_from_memory(AbiWidget * w, const gchar * extension_or_mimetype, const gchar * buf, gint length)
+^
+src/wp/ap/gtk/abiwidget.cpp:2002:0: style: The function 'abi_widget_get_property' is never used. [unusedFunction]
+abi_widget_get_property(GObject  *object,
+^
+src/wp/ap/gtk/abiwidget.cpp:2078:0: style: The function 'abi_widget_set_property' is never used. [unusedFunction]
+abi_widget_set_property(GObject  *object,
+^
+src/wp/ap/gtk/abiwidget.cpp:2549:0: style: The function 'abi_widget_new_with_file' is never used. [unusedFunction]
+abi_widget_new_with_file (const gchar * file)
+^
+src/wp/ap/gtk/abiwidget.cpp:2570:0: style: The function 'abi_widget_get_frame' is never used. [unusedFunction]
+abi_widget_get_frame ( AbiWidget * w )
+^
+src/wp/ap/gtk/ap_UnixApp.cpp:363:0: style: The function 'getPrefsValueDirectory' is never used. [unusedFunction]
+bool AP_UnixApp::getPrefsValueDirectory(bool bAppSpecific,
+^
+src/wp/ap/gtk/ap_UnixApp.cpp:757:0: style: The function 'canPasteFromClipboard' is never used. [unusedFunction]
+bool AP_UnixApp::canPasteFromClipboard(void) const
+^
+src/wp/ap/gtk/ap_UnixApp.cpp:928:0: style: The function 'getCurrentSelection' is never used. [unusedFunction]
+bool AP_UnixApp::getCurrentSelection(const char** formatList,
+^
+src/wp/ap/gtk/ap_UnixApp.cpp:1032:0: style: The function 'makePngPreview' is never used. [unusedFunction]
+bool AP_UnixApp::makePngPreview(const char * pszInFile, const char * pszPNGFile, UT_sint32 iWidth, UT_sint32 iHeight)
+^
+src/wp/ap/gtk/ap_UnixApp.cpp:1075:0: style: The function 'newDefaultScreenGraphics' is never used. [unusedFunction]
+GR_Graphics * AP_UnixApp::newDefaultScreenGraphics() const
+^
+src/wp/ap/gtk/ap_UnixApp.h:109:0: style: The function 'getViewSelection' is never used. [unusedFunction]
+ inline virtual AV_View* getViewSelection(void) const override
+^
+src/wp/ap/gtk/ap_UnixClipboard.cpp:199:0: style: The function '_materializeData' is never used. [unusedFunction]
+bool AP_UnixClipboard::_materializeData(T_AllowGet tFrom, const char * szFormat)
+^
+src/wp/ap/gtk/ap_UnixClipboard.cpp:283:0: style: The function 'addRichTextData' is never used. [unusedFunction]
+bool AP_UnixClipboard::addRichTextData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes)
+^
+src/wp/ap/gtk/ap_UnixClipboard.cpp:291:0: style: The function 'addHtmlData' is never used. [unusedFunction]
+bool AP_UnixClipboard::addHtmlData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes, bool xhtml)
+^
+src/wp/ap/gtk/ap_UnixClipboard.cpp:300:0: style: The function 'addODTData' is never used. [unusedFunction]
+bool AP_UnixClipboard::addODTData(T_AllowGet tTo, const void* pData, UT_sint32 iNumBytes)
+^
+src/wp/ap/gtk/ap_UnixClipboard.cpp:355:0: style: The function 'getRichTextData' is never used. [unusedFunction]
+bool  AP_UnixClipboard::getRichTextData(T_AllowGet tFrom,
+^
+src/wp/ap/gtk/ap_UnixClipboard.cpp:365:0: style: The function 'getImageData' is never used. [unusedFunction]
+bool AP_UnixClipboard::getImageData(T_AllowGet tFrom,
+^
+src/wp/ap/gtk/ap_UnixClipboard.cpp:375:0: style: The function 'getDynamicData' is never used. [unusedFunction]
+bool AP_UnixClipboard::getDynamicData(T_AllowGet tFrom,
+^
+src/wp/ap/gtk/ap_UnixDialog_Border_Shading.cpp:376:0: style: The function 'setShadingOffsetInGUI' is never used. [unusedFunction]
+void AP_UnixDialog_Border_Shading::setShadingOffsetInGUI(const std::string & sOffset)
+^
+src/wp/ap/gtk/ap_UnixDialog_Document.cpp:287:0: style: The function 'ap_showHyphenationDialog' is never used. [unusedFunction]
+void ap_showHyphenationDialog(GtkWindow * parent, FV_View * pView)
+^
+src/wp/ap/gtk/ap_UnixDialog_Document.cpp:840:0: style: The function '_redrawPreview' is never used. [unusedFunction]
+void AP_UnixDialog_Document::_redrawPreview()
+^
+src/wp/ap/gtk/ap_UnixDialog_Latex.cpp:110:0: style: The function 'event_WindowDelete' is never used. [unusedFunction]
+void AP_UnixDialog_Latex::event_WindowDelete(void)
+^
+src/wp/ap/gtk/ap_UnixDialog_Lists.cpp:731:0: style: The function 'setAllSensitivity' is never used. [unusedFunction]
+void AP_UnixDialog_Lists::setAllSensitivity(void)
+^
+src/wp/ap/gtk/ap_UnixDialog_Lists.h:90:0: style: The function '_getMainWindow' is never used. [unusedFunction]
+ inline GtkWidget *  _getMainWindow(void) { return m_windowMain; }
+^
+src/wp/ap/gtk/ap_UnixDialog_MarkRevisions.h:49:0: style: The function 'ok_callback' is never used. [unusedFunction]
+ static void ok_callback ( GtkWidget*, AP_UnixDialog_MarkRevisions * me)
+^
+src/wp/ap/gtk/ap_UnixDialog_MarkRevisions.h:54:0: style: The function 'cancel_callback' is never used. [unusedFunction]
+ static void cancel_callback ( GtkWidget*, AP_UnixDialog_MarkRevisions * me)
+^
+src/wp/ap/gtk/ap_UnixDialog_MarkRevisions.h:59:0: style: The function 'destroy_callback' is never used. [unusedFunction]
+ static void destroy_callback ( GtkWidget*, gpointer /*unused*/, AP_UnixDialog_MarkRevisions * me)
+^
+src/wp/ap/gtk/ap_UnixDialog_Options.cpp:601:0: style: The function '_gatherViewAll' is never used. [unusedFunction]
+DEFINE_GET_SET_BOOL_DUMMY ( ViewAll )
+^
+src/wp/ap/gtk/ap_UnixDialog_Options.cpp:601:0: style: The function '_setViewAll' is never used. [unusedFunction]
+DEFINE_GET_SET_BOOL_DUMMY ( ViewAll )
+^
+src/wp/ap/gtk/ap_UnixDialog_Options.cpp:602:0: style: The function '_gatherViewHiddenText' is never used. [unusedFunction]
+DEFINE_GET_SET_BOOL_DUMMY ( ViewHiddenText )
+^
+src/wp/ap/gtk/ap_UnixDialog_Options.cpp:602:0: style: The function '_setViewHiddenText' is never used. [unusedFunction]
+DEFINE_GET_SET_BOOL_DUMMY ( ViewHiddenText )
+^
+src/wp/ap/gtk/ap_UnixDialog_Options.cpp:603:0: style: The function '_gatherViewShowRuler' is never used. [unusedFunction]
+DEFINE_GET_SET_BOOL_DUMMY ( ViewShowRuler )
+^
+src/wp/ap/gtk/ap_UnixDialog_Options.cpp:603:0: style: The function '_setViewShowRuler' is never used. [unusedFunction]
+DEFINE_GET_SET_BOOL_DUMMY ( ViewShowRuler )
+^
+src/wp/ap/gtk/ap_UnixDialog_Options.cpp:604:0: style: The function '_gatherViewShowStatusBar' is never used. [unusedFunction]
+DEFINE_GET_SET_BOOL_DUMMY ( ViewShowStatusBar )
+^
+src/wp/ap/gtk/ap_UnixDialog_Options.cpp:604:0: style: The function '_setViewShowStatusBar' is never used. [unusedFunction]
+DEFINE_GET_SET_BOOL_DUMMY ( ViewShowStatusBar )
+^
+src/wp/ap/gtk/ap_UnixDialog_PageNumbers.cpp:89:0: style: The function 'event_PreviewInvalidate' is never used. [unusedFunction]
+void AP_UnixDialog_PageNumbers::event_PreviewInvalidate(void)
+^
+src/wp/ap/gtk/ap_UnixDialog_Paragraph.cpp:200:0: style: The function 'event_MenuChanged' is never used. [unusedFunction]
+void AP_UnixDialog_Paragraph::event_MenuChanged(GtkWidget * widget)
+^
+src/wp/ap/gtk/ap_UnixDialog_Paragraph.cpp:226:0: style: The function 'event_SpinIncrement' is never used. [unusedFunction]
+void AP_UnixDialog_Paragraph::event_SpinIncrement(GtkWidget * widget)
+^
+src/wp/ap/gtk/ap_UnixDialog_Paragraph.cpp:232:0: style: The function 'event_SpinDecrement' is never used. [unusedFunction]
+void AP_UnixDialog_Paragraph::event_SpinDecrement(GtkWidget * widget)
+^
+src/wp/ap/gtk/ap_UnixDialog_Styles.cpp:404:0: style: The function 'event_charPreviewInvalidate' is never used. [unusedFunction]
+void AP_UnixDialog_Styles::event_charPreviewInvalidate(void)
+^
+src/wp/ap/gtk/ap_UnixDialog_Styles.cpp:1266:0: style: The function 'event_ModifyDelete' is never used. [unusedFunction]
+void AP_UnixDialog_Styles::event_ModifyDelete(void)
+^
+src/wp/ap/gtk/ap_UnixDialog_Styles.cpp:1342:0: style: The function 'event_ModifyPreviewInvalidate' is never used. [unusedFunction]
+void AP_UnixDialog_Styles::event_ModifyPreviewInvalidate(void)
+^
+src/wp/ap/gtk/ap_UnixDialog_Styles.h:96:0: style: The function 'getStyleType' is never used. [unusedFunction]
+ const gchar *   getStyleType(void) const {return m_styleType;}
+^
+src/wp/ap/gtk/ap_UnixFrame.cpp:417:0: style: The function 'translateDocumentToScreen' is never used. [unusedFunction]
+void AP_UnixFrame::translateDocumentToScreen(UT_sint32 & /*x*/, UT_sint32 & /*y*/)
+^
+src/wp/ap/gtk/ap_UnixFrameImpl.cpp:650:0: style: The function 'refreshStylesPane' is never used. [unusedFunction]
+void AP_UnixFrameImpl::refreshStylesPane(const char * szCurrentStyle)
+^
+src/wp/ap/gtk/ap_UnixLeftRuler.cpp:73:0: style: The function '_finishMotionEvent' is never used. [unusedFunction]
+void AP_UnixLeftRuler::_finishMotionEvent(UT_uint32, UT_uint32)
+^
+src/wp/ap/gtk/ap_UnixRuler.h:56:0: style: The function '_deleteGraphics' is never used. [unusedFunction]
+    void _deleteGraphics()
+^
+src/wp/ap/gtk/ap_UnixStockIcons.cpp:332:0: style: The function 'abi_stock_from_menu_id' is never used. [unusedFunction]
+abi_stock_from_menu_id (XAP_Menu_Id menu_id)
+^
+src/wp/ap/gtk/ap_UnixToolbar_StyleCombo.cpp:221:0: style: The function 'getPangoAttrs' is never used. [unusedFunction]
+AP_UnixToolbar_StyleCombo::getPangoAttrs (PD_Style *pStyle,
+^
+src/wp/ap/gtk/ap_UnixTopRuler.h:52:0: style: The function '_getFrame' is never used. [unusedFunction]
+ virtual XAP_Frame* _getFrame() const override
+^
+src/wp/ap/xp/ap_Args.cpp:93:0: style: The function 'addOptions' is never used. [unusedFunction]
+void AP_Args::addOptions(GOptionGroup *options)
+^
+src/wp/ap/xp/ap_Dialog_Columns.cpp:353:0: style: The function '_drawColumnButton' is never used. [unusedFunction]
+void AP_Dialog_Columns::_drawColumnButton(GR_Graphics *gc, UT_Rect rect, UT_uint32 iColumns)
+^
+src/wp/ap/xp/ap_Dialog_Columns.h:85:0: style: The function 'getColumnsPreview' is never used. [unusedFunction]
+ AP_Columns_preview* getColumnsPreview() const
+^
+src/wp/ap/xp/ap_Dialog_Document.h:85:0: style: The function 'setActivePage' is never used. [unusedFunction]
+ SET_GATHER(ActivePage,  tPage);
+^
+src/wp/ap/xp/ap_Dialog_Document.h:86:0: style: The function 'setPageSetupChanged' is never used. [unusedFunction]
+ SET_GATHER(PageSetupChanged,bool);
+^
+src/wp/ap/xp/ap_Dialog_FormatFootnotes.cpp:109:0: style: The function 'getEndnoteValString' is never used. [unusedFunction]
+void AP_Dialog_FormatFootnotes::getEndnoteValString(UT_String & sVal)
+^
+src/wp/ap/xp/ap_Dialog_FormatFootnotes.cpp:115:0: style: The function 'getFootnoteValString' is never used. [unusedFunction]
+void AP_Dialog_FormatFootnotes::getFootnoteValString(UT_String & sVal)
+^
+src/wp/ap/xp/ap_Dialog_Goto.cpp:124:0: style: The function 'performGotoNext' is never used. [unusedFunction]
+std::string AP_Dialog_Goto::performGotoNext(AP_JumpTarget target, UT_sint32 idx) const
+^
+src/wp/ap/xp/ap_Dialog_Goto.cpp:153:0: style: The function 'performGotoPrev' is never used. [unusedFunction]
+std::string AP_Dialog_Goto::performGotoPrev(AP_JumpTarget target, UT_sint32 idx) const
+^
+src/wp/ap/xp/ap_Dialog_HdrFtr.cpp:73:0: style: The function 'isChanged' is never used. [unusedFunction]
+bool AP_Dialog_HdrFtr::isChanged(AP_Dialog_HdrFtr::HdrFtr_Control which)
+^
+src/wp/ap/xp/ap_Dialog_InsertTable.cpp:187:0: style: The function '_doSpin' is never used. [unusedFunction]
+void AP_Dialog_InsertTable::_doSpin(UT_sint32 amt, double& dValue)
+^
+src/wp/ap/xp/ap_Dialog_ListRevisions.cpp:55:0: style: The function 'getLabel1' is never used. [unusedFunction]
+const char * AP_Dialog_ListRevisions::getLabel1() const
+^
+src/wp/ap/xp/ap_Dialog_ListRevisions.cpp:61:0: style: The function 'getColumn1Label' is never used. [unusedFunction]
+const char * AP_Dialog_ListRevisions::getColumn1Label() const
+^
+src/wp/ap/xp/ap_Dialog_ListRevisions.cpp:67:0: style: The function 'getColumn2Label' is never used. [unusedFunction]
+const char * AP_Dialog_ListRevisions::getColumn2Label() const
+^
+src/wp/ap/xp/ap_Dialog_ListRevisions.cpp:73:0: style: The function 'getColumn3Label' is never used. [unusedFunction]
+const char * AP_Dialog_ListRevisions::getColumn3Label() const
+^
+src/wp/ap/xp/ap_Dialog_ListRevisions.cpp:79:0: style: The function 'getColumn4Label' is never used. [unusedFunction]
+const char * AP_Dialog_ListRevisions::getColumn4Label() const
+^
+src/wp/ap/xp/ap_Dialog_ListRevisions.cpp:91:0: style: The function 'getNthItemId' is never used. [unusedFunction]
+UT_uint32 AP_Dialog_ListRevisions::getNthItemId(UT_uint32 n) const
+^
+src/wp/ap/xp/ap_Dialog_ListRevisions.cpp:118:0: style: The function 'getNthItemTime' is never used. [unusedFunction]
+const char * AP_Dialog_ListRevisions::getNthItemTime(UT_uint32 n) const
+^
+src/wp/ap/xp/ap_Dialog_ListRevisions.cpp:143:0: style: The function 'getNthItemAuthor' is never used. [unusedFunction]
+const char * AP_Dialog_ListRevisions::getNthItemAuthor(UT_uint32 n) const
+^
+src/wp/ap/xp/ap_Dialog_ListRevisions.cpp:154:0: style: The function 'getNthItemText' is never used. [unusedFunction]
+char * AP_Dialog_ListRevisions::getNthItemText(UT_uint32 n, bool utf8) const
+^
+src/wp/ap/xp/ap_Dialog_Lists.cpp:133:0: style: The function 'copyCharToWindowName' is never used. [unusedFunction]
+AP_Dialog_Lists::copyCharToWindowName(const char* pszName)
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:108:0: style: The function 'getStoredID' is never used. [unusedFunction]
+ UT_uint32     getStoredID(void) { return m_iID;}
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:134:0: style: The function 'getiLocalTick' is never used. [unusedFunction]
+ SET_GATHER(iLocalTick,  UT_uint32);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:134:0: style: The function 'setiLocalTick' is never used. [unusedFunction]
+ SET_GATHER(iLocalTick,  UT_uint32);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:136:0: style: The function 'getnewStartValue' is never used. [unusedFunction]
+ SET_GATHER(newStartValue, UT_uint32);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:136:0: style: The function 'setnewStartValue' is never used. [unusedFunction]
+ SET_GATHER(newStartValue, UT_uint32);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:139:0: style: The function 'getbStartNewList' is never used. [unusedFunction]
+ SET_GATHER(bStartNewList, bool);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:140:0: style: The function 'getbApplyToCurrent' is never used. [unusedFunction]
+ SET_GATHER(bApplyToCurrent, bool);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:141:0: style: The function 'getbResumeList' is never used. [unusedFunction]
+ SET_GATHER(bResumeList,  bool);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:142:0: style: The function 'getbisCustomized' is never used. [unusedFunction]
+ SET_GATHER(bisCustomized, bool);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:143:0: style: The function 'getisListAtPoint' is never used. [unusedFunction]
+ SET_GATHER(isListAtPoint, bool);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:143:0: style: The function 'setisListAtPoint' is never used. [unusedFunction]
+ SET_GATHER(isListAtPoint, bool);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:144:0: style: The function 'getbguiChanged' is never used. [unusedFunction]
+ SET_GATHER(bguiChanged,     bool);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:144:0: style: The function 'setbguiChanged' is never used. [unusedFunction]
+ SET_GATHER(bguiChanged,     bool);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:146:0: style: The function 'setDocListType' is never used. [unusedFunction]
+ SET_GATHER(DocListType,     FL_ListType);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:147:0: style: The function 'getiLevel' is never used. [unusedFunction]
+ SET_GATHER(iLevel,         UT_uint32);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:148:0: style: The function 'getpView' is never used. [unusedFunction]
+ SET_GATHER(pView,         FV_View *);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:148:0: style: The function 'setpView' is never used. [unusedFunction]
+ SET_GATHER(pView,         FV_View *);
+^
+src/wp/ap/xp/ap_Dialog_Lists.h:186:0: style: The function 'setFoldingLevelChanged' is never used. [unusedFunction]
+ void              setFoldingLevelChanged(bool b)
+^
+src/wp/ap/xp/ap_Dialog_MergeCells.cpp:325:0: style: The function 'getCellSource' is never used. [unusedFunction]
+PT_DocPosition AP_Dialog_MergeCells::getCellSource(void)
+^
+src/wp/ap/xp/ap_Dialog_MergeCells.cpp:330:0: style: The function 'getCellDestination' is never used. [unusedFunction]
+PT_DocPosition AP_Dialog_MergeCells::getCellDestination(void)
+^
+src/wp/ap/xp/ap_Dialog_Options.cpp:396:0: style: The function '_eventSave' is never used. [unusedFunction]
+void AP_Dialog_Options::_eventSave(void)
+^
+src/wp/ap/xp/ap_Dialog_PageNumbers.cpp:53:0: style: The function 'isHeader' is never used. [unusedFunction]
+bool AP_Dialog_PageNumbers::isHeader(void)
+^
+src/wp/ap/xp/ap_Dialog_RDFEditor.cpp:174:0: style: The function 'createStatement' is never used. [unusedFunction]
+AP_Dialog_RDFEditor::createStatement()
+^
+src/wp/ap/xp/ap_Dialog_RDFEditor.cpp:208:0: style: The function 'copyStatement' is never used. [unusedFunction]
+AP_Dialog_RDFEditor::copyStatement()
+^
+src/wp/ap/xp/ap_Dialog_RDFEditor.cpp:252:0: style: The function 'setRestrictedXMLID' is never used. [unusedFunction]
+AP_Dialog_RDFEditor::setRestrictedXMLID( const std::string& xmlid )
+^
+src/wp/ap/xp/ap_Dialog_RDFEditor.cpp:289:0: style: The function 'removeStatement' is never used. [unusedFunction]
+AP_Dialog_RDFEditor::removeStatement( const PD_RDFStatement& /*st*/ )
+^
+src/wp/ap/xp/ap_Dialog_Replace.cpp:247:0: style: The function 'getReverseFind' is never used. [unusedFunction]
+bool AP_Dialog_Replace::getReverseFind(void)
+^
+src/wp/ap/xp/ap_Dialog_SignatureLine.cpp:55:0: style: The function 'setSignatureSetup' is never used. [unusedFunction]
+void AP_Dialog_SignatureLine::setSignatureSetup(const FV_SignatureSetup & sig)
+^
+src/wp/ap/xp/ap_Dialog_Stylist.cpp:488:0: style: The function 'getStyleAtRowCol' is never used. [unusedFunction]
+bool  Stylist_tree::getStyleAtRowCol(std::string & sStyle,UT_sint32 row, UT_sint32 col)
+^
+src/wp/ap/xp/ap_Dialog_Stylist.cpp:524:0: style: The function 'getNameOfRow' is never used. [unusedFunction]
+bool Stylist_tree::getNameOfRow(std::string &sName, UT_sint32 row) const
+^
+src/wp/ap/xp/ap_Dialog_Stylist.h:95:0: style: The function 'getStyleTree' is never used. [unusedFunction]
+ Stylist_tree *  getStyleTree(void) const
+^
+src/wp/ap/xp/ap_Dialog_Stylist.h:107:0: style: The function 'isStyleChanged' is never used. [unusedFunction]
+ bool              isStyleChanged(void) const
+^
+src/wp/ap/xp/ap_Dialog_Stylist.h:109:0: style: The function 'isStyleTreeChanged' is never used. [unusedFunction]
+ bool              isStyleTreeChanged(void) const
+^
+src/wp/ap/xp/ap_Dialog_Stylist.h:112:0: style: The function 'setStyleTreeChanged' is never used. [unusedFunction]
+ void              setStyleTreeChanged(bool b)
+^
+src/wp/ap/xp/ap_Dialog_Stylist.h:114:0: style: The function 'setStyleChanged' is never used. [unusedFunction]
+ void              setStyleChanged(bool b)
+^
+src/wp/ap/xp/ap_Dialog_Stylist.h:116:0: style: The function 'setStyleValid' is never used. [unusedFunction]
+ void              setStyleValid(bool bValid)
+^
+src/wp/ap/xp/ap_Frame.h:55:0: style: The function 'isShowMargin' is never used. [unusedFunction]
+ bool                        isShowMargin(void) const
+^
+src/wp/ap/xp/ap_LoadBindings.cpp:212:0: style: The function 'createMap' is never used. [unusedFunction]
+EV_EditBindingMap * AP_BindingSet::createMap(const char * szName)
+^
+src/wp/ap/xp/ap_Preview_Annotation.cpp:76:0: style: The function 'setAnnotationID' is never used. [unusedFunction]
+void AP_Preview_Annotation::setAnnotationID(UT_uint32 aID)
+^
+src/wp/ap/xp/ap_Preview_Annotation.h:59:0: style: The function 'getAnnotationID' is never used. [unusedFunction]
+ UT_uint32 getAnnotationID() const
+^
+src/wp/ap/xp/ap_Ruler.cpp:125:0: style: The function 'snapPixelToGrid' is never used. [unusedFunction]
+UT_sint32 ap_RulerTicks::snapPixelToGrid(UT_sint32 dist)
+^
+src/wp/ap/xp/ap_Ruler.cpp:142:0: style: The function 'scalePixelDistanceToUnits' is never used. [unusedFunction]
+double ap_RulerTicks::scalePixelDistanceToUnits(UT_sint32 dist)
+^
+src/wp/ap/xp/ap_StatusBar.h:148:0: style: The function 'getApStatusBar' is never used. [unusedFunction]
+ AP_StatusBar * getApStatusBar(){return m_pSB;}
+^
+src/wp/ap/xp/ap_TopRuler.h:297:0: style: The function 'getFixedWidth' is never used. [unusedFunction]
+ static UT_uint32 getFixedWidth(){return s_iFixedWidth;}
+^
+src/wp/ap/xp/ap_TopRuler.h:292:0: style: The function 'getDimension' is never used. [unusedFunction]
+ UT_Dimension getDimension() const { return m_dim; }
+^
+src/wp/impexp/mht/ie_imp_MHT.h:86:0: style: The function 'contentEncoding' is never used. [unusedFunction]
+ const char *  contentEncoding () const { return m_encoding; }
+^
+src/wp/impexp/odf/common/xp/crypto/blowfish/bf_enc.c:109:0: style: The function 'BF_cbc_encrypt' is never used. [unusedFunction]
+void BF_cbc_encrypt(const unsigned char *in, unsigned char *out, long length,
+^
+src/wp/impexp/odf/exp/xp/ODe_AutomaticStyles.cpp:92:0: style: The function 'addTableStyle' is never used. [unusedFunction]
+ODe_Style_Style* ODe_AutomaticStyles::addTableStyle(
+^
+src/wp/impexp/odf/exp/xp/ODe_AutomaticStyles.cpp:110:0: style: The function 'addTableColumnStyle' is never used. [unusedFunction]
+ODe_Style_Style* ODe_AutomaticStyles::addTableColumnStyle(
+^
+src/wp/impexp/odf/exp/xp/ODe_AutomaticStyles.cpp:128:0: style: The function 'addTableRowStyle' is never used. [unusedFunction]
+ODe_Style_Style* ODe_AutomaticStyles::addTableRowStyle(
+^
+src/wp/impexp/odf/exp/xp/ODe_AutomaticStyles.cpp:146:0: style: The function 'addTableCellStyle' is never used. [unusedFunction]
+ODe_Style_Style* ODe_AutomaticStyles::addTableCellStyle(
+^
+src/wp/impexp/odf/exp/xp/ODe_AutomaticStyles.h:70:0: style: The function 'getMasterPage' is never used. [unusedFunction]
+    ODe_Style_PageLayout* getMasterPage(const gchar* pName) {
+^
+src/wp/impexp/odf/exp/xp/ODe_Common.cpp:150:0: style: The function 'ODe_writeToFile' is never used. [unusedFunction]
+void ODe_writeToFile(GsfOutput* pDestinationFile, GsfInput* pSourceFile) {
+^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:720:0: style: The function 'fetchAttributesFromAbiTable' is never used. [unusedFunction]
+void ODe_Style_Style::fetchAttributesFromAbiTable(const PP_AttrProp* pAP) {
+^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:731:0: style: The function 'fetchAttributesFromAbiCell' is never used. [unusedFunction]
+void ODe_Style_Style::fetchAttributesFromAbiCell(const PP_AttrProp* pAP) {
+^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:782:0: style: The function 'setRelColumnWidth' is never used. [unusedFunction]
+void ODe_Style_Style::setRelColumnWidth(const gchar* pRelColumnWidth) {
+^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:804:0: style: The function 'setMinRowHeight' is never used. [unusedFunction]
+void ODe_Style_Style::setMinRowHeight(const gchar* pMinRowHeight) {
+^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:815:0: style: The function 'hasTableStyleProps' is never used. [unusedFunction]
+bool ODe_Style_Style::hasTableStyleProps(const PP_AttrProp* pAP) {
+^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.cpp:894:0: style: The function 'inheritTableCellProperties' is never used. [unusedFunction]
+void ODe_Style_Style::inheritTableCellProperties(const ODe_Style_Style& tableStyle) {
+^
+src/wp/impexp/odf/exp/xp/ODe_Style_Style.h:113:0: style: The function 'setListStyleName' is never used. [unusedFunction]
+  void setListStyleName(const UT_UTF8String& rListStyleName) {
+^
+src/wp/impexp/odf/exp/xp/ODe_Styles.h:78:0: style: The function 'getGraphicStylesEnumeration' is never used. [unusedFunction]
+    std::unique_ptr<std::vector<ODe_Style_Style*>> getGraphicStylesEnumeration() const {
+^
+src/wp/impexp/odf/exp/xp/ODe_Text_Listener.cpp:1299:0: style: The function '_blockIsPlainParagraph' is never used. [unusedFunction]
+bool ODe_Text_Listener::_blockIsPlainParagraph(const PP_AttrProp* pAP) const {
+^
+src/wp/impexp/odf/exp/xp/ODe_Text_Listener.h:127:0: style: The function 'setOpenedODNote' is never used. [unusedFunction]
+    void setOpenedODNote(bool b)
+^
+src/wp/impexp/odf/imp/xp/ODi_ContentStreamAnnotationMatcher_ListenerState.cpp:103:0: style: The function 'getRangedAnnotationNames' is never used. [unusedFunction]
+ODi_ContentStreamAnnotationMatcher_ListenerState::getRangedAnnotationNames() const
+^
+src/wp/impexp/odf/imp/xp/ODi_ListLevelStyle.h:86:0: style: The function 'getMinLabelDistance' is never used. [unusedFunction]
+    const std::string* getMinLabelDistance() const {return &m_minLabelDistance;}
+^
+src/wp/impexp/odf/imp/xp/ODi_ListenerState.h:55:0: style: The function 'getStateName' is never used. [unusedFunction]
+    const UT_String& getStateName() const {return m_stateName;}
+^
+src/wp/impexp/odf/imp/xp/ODi_ListenerStateAction.h:133:0: style: The function 'getDeleteWhenPop' is never used. [unusedFunction]
+    bool getDeleteWhenPop() const {return m_deleteWhenPop;}
+^
+src/wp/impexp/odf/imp/xp/ODi_ListenerStateAction.h:135:0: style: The function 'getComeBackAfter' is never used. [unusedFunction]
+    bool getComeBackAfter() const {return m_comeBackAfter;}
+^
+src/wp/impexp/odf/imp/xp/ODi_ListenerStateAction.h:136:0: style: The function 'getElementLevel' is never used. [unusedFunction]
+    UT_sint32 getElementLevel() const {return m_elementLevel;}
+^
+src/wp/impexp/odf/imp/xp/ODi_Office_Styles.h:128:0: style: The function 'getPageLayoutStyle' is never used. [unusedFunction]
+    const ODi_Style_PageLayout* getPageLayoutStyle(
+^
+src/wp/impexp/odf/imp/xp/ODi_Postpone_ListenerState.h:54:0: style: The function 'getParserState' is never used. [unusedFunction]
+    ODi_ListenerState* getParserState()  const { return m_pParserState; }
+^
+src/wp/impexp/odf/imp/xp/ODi_Postpone_ListenerState.h:55:0: style: The function 'getDeleteParserStateWhenPop' is never used. [unusedFunction]
+    bool getDeleteParserStateWhenPop() const { return m_bDeleteParserStateWhenPop; }
+^
+src/wp/impexp/odf/imp/xp/ODi_Postpone_ListenerState.h:56:0: style: The function 'getXMLRecorder' is never used. [unusedFunction]
+    const ODi_XMLRecorder* getXMLRecorder() const { return &m_xmlRecorder; }
+^
+src/wp/impexp/odf/imp/xp/ODi_StreamListener.h:85:0: style: The function 'clearFontFaceDecls' is never used. [unusedFunction]
+    void clearFontFaceDecls() {m_fontFaceDecls.clear();}
+^
+src/wp/impexp/odf/imp/xp/ODi_StreamListener.h:88:0: style: The function 'getCurrentState' is never used. [unusedFunction]
+    ODi_ListenerState* getCurrentState() const { return m_pCurrentState; }
+^
+src/wp/impexp/odf/imp/xp/ODi_Style_MasterPage.h:77:0: style: The function 'getPageLayoutName' is never used. [unusedFunction]
+    inline const std::string& getPageLayoutName() const {return m_layoutName;}
+^
+src/wp/impexp/odf/imp/xp/ODi_Style_Style.h:80:0: style: The function 'getAbiData' is never used. [unusedFunction]
+    ODi_Abi_Data & getAbiData(void)
+^
+src/wp/impexp/odf/imp/xp/ODi_Style_Style.h:242:0: style: The function 'getTableMarginRight' is never used. [unusedFunction]
+    const std::string* getTableMarginRight() const {return &m_TableMarginRight;}
+^
+src/wp/impexp/odf/imp/xp/ie_imp_OpenDocument.cpp:419:0: style: The function '_handleSettingsStream' is never used. [unusedFunction]
+UT_Error IE_Imp_OpenDocument::_handleSettingsStream ()
+^
+src/wp/impexp/openxml/common/xp/OXML_Document.cpp:69:0: style: The function 'getCurrentSection' is never used. [unusedFunction]
+OXML_SharedSection OXML_Document::getCurrentSection()
+^
+src/wp/impexp/openxml/common/xp/OXML_Document.cpp:353:0: style: The function 'getSection' is never used. [unusedFunction]
+OXML_SharedSection OXML_Document::getSection(const std::string & id) const
+^
+src/wp/impexp/openxml/common/xp/OXML_Element.cpp:61:0: style: The function 'getElement' is never used. [unusedFunction]
+OXML_SharedElement OXML_Element::getElement(const std::string & id) const
+^
+src/wp/impexp/openxml/common/xp/OXML_Element_Cell.cpp:517:0: style: The function 'setLeft' is never used. [unusedFunction]
+void OXML_Element_Cell::setLeft(UT_sint32 left)
+^
+src/wp/impexp/openxml/common/xp/OXML_Element_Row.h:52:0: style: The function 'getCurrentColumnNumber' is never used. [unusedFunction]
+ int getCurrentColumnNumber() const
+^
+src/wp/impexp/openxml/common/xp/OXML_Element_Text.cpp:70:0: style: The function 'getText' is never used. [unusedFunction]
+const char * OXML_Element_Text::getText()
+^
+src/wp/impexp/openxml/common/xp/OXML_Element_Text.h:43:0: style: The function 'setCharRange' is never used. [unusedFunction]
+ inline void setCharRange(OXML_CharRange range) { m_range = range; }
+^
+src/wp/impexp/openxml/common/xp/OXML_Element_Text.h:44:0: style: The function 'getCharRange' is never used. [unusedFunction]
+ inline OXML_CharRange getCharRange() { return m_range; }
+^
+src/wp/impexp/openxml/common/xp/OXML_Section.h:67:0: style: The function 'getHeaderId' is never used. [unusedFunction]
+ const char * getHeaderId(OXML_HeaderFooterType type) const
+^
+src/wp/impexp/openxml/common/xp/OXML_Section.h:69:0: style: The function 'getFooterId' is never used. [unusedFunction]
+ const char * getFooterId(OXML_HeaderFooterType type) const
+^
+src/wp/impexp/openxml/common/xp/OXML_Section.h:131:0: style: The function 'getTitlePg' is never used. [unusedFunction]
+ bool getTitlePg() const
+^
+src/wp/impexp/openxml/exp/xp/ie_exp_OpenXML.cpp:1927:0: style: The function 'setNumberingFormat' is never used. [unusedFunction]
+UT_Error IE_Exp_OpenXML::setNumberingFormat(int target, const char* format)
+^
+src/wp/impexp/xp/ie_FileInfo.cpp:30:0: style: The function 'setFileInfo' is never used. [unusedFunction]
+void IE_FileInfo::setFileInfo (const char * psz_MIME_TypeOrPseudo,
+^
+src/wp/impexp/xp/ie_FileInfo.cpp:59:0: style: The function 'mapAlias' is never used. [unusedFunction]
+const char * IE_FileInfo::mapAlias (const char * alias) // may return alias itself
+^
+src/wp/impexp/xp/ie_FileInfo.h:39:0: style: The function 'PreferredImporter' is never used. [unusedFunction]
+ const UT_UTF8String & PreferredImporter () const { return m_PreferredImporter; }
+^
+src/wp/impexp/xp/ie_FileInfo.h:40:0: style: The function 'PreferredExporter' is never used. [unusedFunction]
+ const UT_UTF8String & PreferredExporter () const { return m_PreferredExporter; }
+^
+src/wp/impexp/xp/ie_FileInfo.h:41:0: style: The function 'MIME_TypeOrPseudo' is never used. [unusedFunction]
+ const UT_UTF8String & MIME_TypeOrPseudo () const { return m_MIME_TypeOrPseudo; }
+^
+src/wp/impexp/xp/ie_TOC.cpp:234:0: style: The function 'docHasTOC' is never used. [unusedFunction]
+bool IE_TOCHelper::docHasTOC() const
+^
+src/wp/impexp/xp/ie_Table.h:49:0: style: The function 'getPrevRight' is never used. [unusedFunction]
+ UT_sint32        getPrevRight(void) const {return m_iPrevRight;}
+^
+src/wp/impexp/xp/ie_Table.h:120:0: style: The function 'getLastTable' is never used. [unusedFunction]
+ const std::stack<ie_PartTable*>& getLastTable() const {
+^
+src/wp/impexp/xp/ie_Table.h:164:0: style: The function 'setMergeRight' is never used. [unusedFunction]
+ void             setMergeRight(bool bRight) {m_bMergeRight = bRight;}
+^
+src/wp/impexp/xp/ie_Table.h:169:0: style: The function 'isMergedRight' is never used. [unusedFunction]
+ bool             isMergedRight(void) const {return m_bMergeRight;}
+^
+src/wp/impexp/xp/ie_Table.h:171:0: style: The function 'isFirstVerticalMerged' is never used. [unusedFunction]
+ bool             isFirstVerticalMerged(void) const {return m_bFirstVertical;}
+^
+src/wp/impexp/xp/ie_Table.h:172:0: style: The function 'isFirstHorizontalMerged' is never used. [unusedFunction]
+ bool             isFirstHorizontalMerged(void) const {return m_bFirstHori;}
+^
+src/wp/impexp/xp/ie_Table.h:174:0: style: The function 'setImpTable' is never used. [unusedFunction]
+ void             setImpTable(ie_imp_table * pTable) { m_pImpTable = pTable;}
+^
+src/wp/impexp/xp/ie_Table.h:222:0: style: The function 'isAutoFit' is never used. [unusedFunction]
+ bool                isAutoFit(void) const { return m_bAutoFit;}
+^
+src/wp/impexp/xp/ie_Table.h:237:0: style: The function 'setCellXOnRow' is never used. [unusedFunction]
+ void                setCellXOnRow(UT_sint32 cellxOnRow) { m_iCellXOnRow = cellxOnRow;}
+^
+src/wp/impexp/xp/ie_Table.h:317:0: style: The function 'isVirtual' is never used. [unusedFunction]
+ bool isVirtual() const { return (m_next != nullptr); }
+^
+src/wp/impexp/xp/ie_Table.h:351:0: style: The function 'getInsertionPoint' is never used. [unusedFunction]
+ pf_Frag_Strux *     getInsertionPoint () const { return m_pfsInsertionPoint; }
+^
+src/wp/impexp/xp/ie_exp.cpp:156:0: style: The function 'unregisterExporter' is never used. [unusedFunction]
+void IE_Exp::unregisterExporter (IE_ExpSniffer * s)
+^
+src/wp/impexp/xp/ie_exp.cpp:439:0: style: The function 'rewindChar' is never used. [unusedFunction]
+char IE_Exp::rewindChar(void)
+^
+src/wp/impexp/xp/ie_exp.cpp:610:0: style: The function 'fileTypeForDescription' is never used. [unusedFunction]
+IEFileType IE_Exp::fileTypeForDescription(const char * szDescription)
+^
+src/wp/impexp/xp/ie_exp.cpp:722:0: style: The function 'descriptionForFileType' is never used. [unusedFunction]
+const char * IE_Exp::descriptionForFileType(IEFileType ieft)
+^
+src/wp/impexp/xp/ie_exp.h:77:0: style: The function 'getCanCopy' is never used. [unusedFunction]
+ bool getCanCopy () const {
+^
+src/wp/impexp/xp/ie_exp.h:151:0: style: The function 'getFidelity' is never used. [unusedFunction]
+ UT_Confidence_t getFidelity () const {
+^
+src/wp/impexp/xp/ie_exp.h:185:0: style: The function '_cancelExport' is never used. [unusedFunction]
+ void    _cancelExport () { m_bCancelled = true; }
+^
+src/wp/impexp/xp/ie_exp_HTML.cpp:908:0: style: The function 'printStyleTree' is never used. [unusedFunction]
+void IE_Exp_HTML::printStyleTree(PD_Document* pDocument, UT_ByteBuf& sink)
+^
+src/wp/impexp/xp/ie_exp_HTML.h:102:0: style: The function 'set_AddIdentifiers' is never used. [unusedFunction]
+ inline void   set_AddIdentifiers(bool enable = true) { m_exp_opt.bAddIdentifiers = enable; }
+^
+src/wp/impexp/xp/ie_exp_HTML.h:106:0: style: The function 'getSuffix' is never used. [unusedFunction]
+ inline const UT_UTF8String & getSuffix() const { return m_suffix; }
+^
+src/wp/impexp/xp/ie_exp_HTML_DocumentWriter.h:130:0: style: The function 'insertJavaScript' is never used. [unusedFunction]
+    virtual void insertJavaScript(const gchar * /*src*/,
+^
+src/wp/impexp/xp/ie_exp_HTML_NavigationHelper.h:54:0: style: The function 'getMinTOCIndex' is never used. [unusedFunction]
+    inline int getMinTOCIndex() const { return m_minTOCIndex; }
+^
+src/wp/impexp/xp/ie_exp_HTML_StyleTree.h:105:0: style: The function 'style_name' is never used. [unusedFunction]
+    const std::string& style_name() const {
+^
+src/wp/impexp/xp/ie_exp_HTML_StyleTree.h:260:0: style: The function 'styleText' is never used. [unusedFunction]
+    void styleText(const std::string& content) {
+^
+src/wp/impexp/xp/ie_exp_RTF.cpp:455:0: style: The function '_rtf_keyword_hex2' is never used. [unusedFunction]
+void IE_Exp_RTF::_rtf_keyword_hex2(const char * szKey, UT_sint32 d)
+^
+src/wp/impexp/xp/ie_exp_RTF.cpp:2587:0: style: The function 'getMultiLevelCount' is never used. [unusedFunction]
+UT_uint32  IE_Exp_RTF::getMultiLevelCount(void) const
+^
+src/wp/impexp/xp/ie_exp_RTF.cpp:2595:0: style: The function 'getSimpleListCount' is never used. [unusedFunction]
+UT_uint32  IE_Exp_RTF::getSimpleListCount(void) const
+^
+src/wp/impexp/xp/ie_exp_RTF.cpp:3421:0: style: The function 'getMatchingID' is never used. [unusedFunction]
+UT_uint32 ie_exp_RTF_MsWord97ListMulti::getMatchingID(UT_uint32 listID) const
+^
+src/wp/impexp/xp/ie_exp_RTF.h:276:0: style: The function 'isSimple' is never used. [unusedFunction]
+ bool isSimple(void) const { return true;}
+^
+src/wp/impexp/xp/ie_exp_RTF.h:277:0: style: The function 'isMulti' is never used. [unusedFunction]
+ bool isMulti(void) const { return false;}
+^
+src/wp/impexp/xp/ie_exp_RTF_listenerWriteDoc.cpp:3846:0: style: The function '_outputCellBorders' is never used. [unusedFunction]
+void s_RTF_ListenerWriteDoc::_outputCellBorders(UT_sint32 iThick)
+^
+src/wp/impexp/xp/ie_exp_XML.cpp:121:0: style: The function 'addLuint' is never used. [unusedFunction]
+void IE_Exp_XML::addLuint(char const *id, unsigned long value)
+^
+src/wp/impexp/xp/ie_imp.cpp:326:0: style: The function 'unregisterImporter' is never used. [unusedFunction]
+void IE_Imp::unregisterImporter (IE_ImpSniffer * s)
+^
+src/wp/impexp/xp/ie_imp.cpp:391:0: style: The function 'getSupportedMimeClasses' is never used. [unusedFunction]
+const std::vector<std::string> & IE_Imp::getSupportedMimeClasses ()
+^
+src/wp/impexp/xp/ie_imp.cpp:417:0: style: The function 'getSupportedSuffixes' is never used. [unusedFunction]
+const std::vector<std::string> & IE_Imp::getSupportedSuffixes()
+^
+src/wp/impexp/xp/ie_imp.h:98:0: style: The function 'getCanPaste' is never used. [unusedFunction]
+ bool getCanPaste () const {
+^
+src/wp/impexp/xp/ie_impGraphic.cpp:374:0: style: The function 'constructImporterWithDescription' is never used. [unusedFunction]
+UT_Error IE_ImpGraphic::constructImporterWithDescription(const char * szDesc, IE_ImpGraphic ** ppieg)
+^
+src/wp/impexp/xp/ie_imp_LaTeX.h:49:0: style: The function 'appendStruxPublic' is never used. [unusedFunction]
+ bool appendStruxPublic(PTStruxType pts, const PP_PropertyVector & attribs)
+^
+src/wp/impexp/xp/ie_imp_RTF.cpp:613:0: style: The function 'isDeletedChanged' is never used. [unusedFunction]
+bool RTF_msword97_listOverride::isDeletedChanged(UT_uint32 iLevel)
+^
+src/wp/impexp/xp/ie_imp_RTF.cpp:621:0: style: The function 'getDeleted' is never used. [unusedFunction]
+bool RTF_msword97_listOverride::getDeleted(UT_uint32 iLevel)
+^
+src/wp/impexp/xp/ie_imp_RTF.cpp:716:0: style: The function 'isSuperscriptPosChanged' is never used. [unusedFunction]
+bool RTF_msword97_listOverride::isSuperscriptPosChanged(UT_uint32 iLevel)
+^
+src/wp/impexp/xp/ie_imp_RTF.cpp:749:0: style: The function 'isSubscriptPosChanged' is never used. [unusedFunction]
+bool RTF_msword97_listOverride::isSubscriptPosChanged(UT_uint32 iLevel)
+^
+src/wp/impexp/xp/ie_imp_RTF.cpp:799:0: style: The function 'isColourNumberChanged' is never used. [unusedFunction]
+bool RTF_msword97_listOverride::isColourNumberChanged(UT_uint32 iLevel)
+^
+src/wp/impexp/xp/ie_imp_RTF.cpp:833:0: style: The function 'isBgColourNumberChanged' is never used. [unusedFunction]
+bool RTF_msword97_listOverride::isBgColourNumberChanged(UT_uint32 iLevel)
+^
+src/wp/impexp/xp/ie_imp_RTF.cpp:1744:0: style: The function 'SaveRowInfo' is never used. [unusedFunction]
+void IE_Imp_RTF::SaveRowInfo(void)
+^
+src/wp/impexp/xp/ie_imp_RTF.cpp:1751:0: style: The function 'RemoveRowInfo' is never used. [unusedFunction]
+void IE_Imp_RTF::RemoveRowInfo(void)
+^
+src/wp/impexp/xp/ie_imp_RTF.cpp:2145:0: style: The function 'FlushTableProps' is never used. [unusedFunction]
+void IE_Imp_RTF::FlushTableProps(void)
+^
+src/wp/impexp/xp/ie_imp_RTF.cpp:2647:0: style: The function '_isBidiDocument' is never used. [unusedFunction]
+UT_Error IE_Imp_RTF::_isBidiDocument()
+^
+src/wp/impexp/xp/ie_imp_RTF.cpp:10828:0: style: The function 'HandleDeleted' is never used. [unusedFunction]
+bool IE_Imp_RTF::HandleDeleted(bool state)
+^
+src/wp/impexp/xp/ie_imp_RTFObjectsAndPicts.cpp:904:0: style: The function 'frame' is never used. [unusedFunction]
+ RTFProps_FrameProps & frame(void)
+^
+src/wp/impexp/xp/ie_imp_Text.h:45:0: style: The function '_get_eof' is never used. [unusedFunction]
+ bool _get_eof () const { return m_bEOF; }
+^
+src/wp/impexp/xp/ie_imp_Text.h:46:0: style: The function '_set_eof' is never used. [unusedFunction]
+ void _set_eof (bool b) { m_bEOF = b; }
+^
+src/wp/impexp/xp/ie_imp_Text.h:47:0: style: The function '_lookAhead' is never used. [unusedFunction]
+ UT_UCS4Char _lookAhead () const { return m_ucsLookAhead; }
+^
+src/wp/impexp/xp/ie_imp_XML.cpp:448:0: style: The function '_getXMLPropValue' is never used. [unusedFunction]
+const gchar * IE_Imp_XML::_getXMLPropValue(const gchar *name,
+^
+src/wp/impexp/xp/ie_imp_XML.h:102:0: style: The function 'incOperationCount' is never used. [unusedFunction]
+    void      incOperationCount(void) { m_iOperationCount++; }
+^
+nofile:0:0: information: Too many #ifdef configurations - cppcheck only checks 12 configurations. Use --force to check all configurations. For more details, use --enable=information. [toomanyconfigs]
+
+CPP_EXIT:0

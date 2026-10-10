@@ -5786,6 +5786,18 @@ below are on `main` but the release has not been cut yet.
   error-recovery branches, and Redland-gated RDF code. The
   `make check-coverage` ratchet floor moves to 72% so the level
   the drive reached cannot silently regress.
+- **Pre-release dead-code gate ran clean (report only)** — a
+  cppcheck `--enable=unusedFunction` sweep (614 hits, each
+  verdict-classified against the whole tree), a `-Wunused` rebuild
+  of all 643 production objects (8 minor warnings), a 0%-coverage
+  cross-check (all 42 files verified live-but-untested), an orphan
+  file / `Makefile.am` audit, and a `#if 0`/FIXME inventory are
+  recorded with per-item verdicts in
+  `.devin/RELEASE-CHECKLIST.md`. Findings feed the removal pass:
+  ~180 unreferenced functions to verify, two `make dist` integrity
+  gaps (a stale `EXTRA_DIST` path and eight test files missing from
+  the dist list), and five dead locals/stores. No code was removed
+  in this pass.
 
 ### Resolved root causes worth noting
 
