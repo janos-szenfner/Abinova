@@ -11276,12 +11276,7 @@ bool FV_View::cmdFindRevision(bool bNext, UT_sint32 xPos, UT_sint32 yPos)
 
 	if(!pBL)
 		return false;
-	
-	fl_DocSectionLayout * pSL = pBL->getDocSectionLayout();
 
-	if(!pSL)
-		return false;
-	
 	fp_Run * pRun;
 	UT_sint32 xPoint,yPoint,xPoint2,yPoint2,iPointHeight;
 	bool bDirection;
@@ -11293,65 +11288,70 @@ bool FV_View::cmdFindRevision(bool bNext, UT_sint32 xPos, UT_sint32 yPos)
 	if(!pRun)
 		return false;
 
+	// skip the run containing the point — "next" means strictly
+	// after/before the caret
+	pRun = bNext ? pRun->getNextRun() : pRun->getPrevRun();
+
 	bool bFound = false;
 
-	if(bNext)
+	// the run chain is per-block: restart it on every block
+	// advance, at the last run when scanning backwards
+	auto lastRunOf = [](fl_BlockLayout * pB) -> fp_Run *
 	{
-		pRun = pRun->getNextRun();
+		fp_Run * pR = pB ? pB->getFirstRun() : nullptr;
+		while(pR && pR->getNextRun())
+			pR = pR->getNextRun();
+		return pR;
+	};
 
-		while(pSL && !bFound)
+	// two passes: from the caret in the requested direction, then
+	// wrapped once from the document boundary — Find Next at the
+	// end of the document continues from the top (and vice versa),
+	// the same way find-again does
+	const PT_DocPosition startPos = getPoint();
+	for(int pass = 0; pass < 2 && !bFound; ++pass)
+	{
+		if(pass == 1)
 		{
-			while(pBL && !bFound)
-			{
-				while(pRun)
-				{
-					if(pRun->containsRevisions() && !pRun->isHidden())
-					{
-						bFound = true;
-						break;
-					}
-
-					pRun = pRun->getNextRun();
-				}
-
-				if(!bFound)
-					pBL = pBL->getNextBlockInDocument();
-			}
-
-			if(!bFound)
-				pSL = pSL->getNextDocSection();
+			moveInsPtTo(bNext ? FV_DOCPOS_BOD : FV_DOCPOS_EOD);
+			pBL = getCurrentBlock();
+			pRun = bNext ? (pBL ? pBL->getFirstRun() : nullptr)
+						 : lastRunOf(pBL);
 		}
-	}
-	else
-	{
-		pRun = pRun->getPrevRun();
 
-		while(pSL && !bFound)
+		// getNext/PrevBlockInDocument already walks the whole
+		// document tree (sections, tables, cells, frames)
+		while(pBL && !bFound)
 		{
-			while(pBL && !bFound)
+			while(pRun)
 			{
-				while(pRun)
+				if(pRun->containsRevisions() && !pRun->isHidden())
 				{
-					if(pRun->containsRevisions() && !pRun->isHidden())
-					{
-						bFound = true;
-						break;
-					}
-
-					pRun = pRun->getPrevRun();
+					bFound = true;
+					break;
 				}
 
-				if(!bFound)
-					pBL = pBL->getPrevBlockInDocument();
+				pRun = bNext ? pRun->getNextRun()
+							 : pRun->getPrevRun();
 			}
 
 			if(!bFound)
-				pSL = pSL->getPrevDocSection();
+			{
+				pBL = bNext ? pBL->getNextBlockInDocument()
+							: pBL->getPrevBlockInDocument();
+				pRun = bNext ? (pBL ? pBL->getFirstRun() : nullptr)
+							 : lastRunOf(pBL);
+			}
 		}
 	}
 
 	if(!bFound)
+	{
+		// nothing found even after the wrap — leave the caret
+		// where the search started rather than at the boundary
+		moveInsPtTo(startPos);
 		return false;
+	}
 
 	UT_return_val_if_fail(pRun && pBL, false);
 

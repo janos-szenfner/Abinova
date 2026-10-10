@@ -871,6 +871,7 @@ public:
 	static EV_EditMethod_Fn revisionFindNext;
 	static EV_EditMethod_Fn revisionFindPrev;
 	static EV_EditMethod_Fn revisionSetViewLevel;
+	static EV_EditMethod_Fn revisionPurge;
 	static EV_EditMethod_Fn revisionCombineDocuments;
 	static EV_EditMethod_Fn toggleShowRevisions;
 	static EV_EditMethod_Fn toggleShowRevisionsBefore;
@@ -1420,6 +1421,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(revisionFindNext),		0,  ""),
 	EV_EditMethod(NF(revisionFindPrev),		0,  ""),
 	EV_EditMethod(NF(revisionNew),   		0,	""),
+	EV_EditMethod(NF(revisionPurge),		0,  ""),
 	EV_EditMethod(NF(revisionReject),		0,  ""),
 	EV_EditMethod(NF(revisionRejectAll),	0,  ""),
 	EV_EditMethod(NF(revisionRejectAllShown),	0,  ""),
@@ -17408,6 +17410,24 @@ Defun1(revisionAcceptAllShown)
 	UT_return_val_if_fail(pDoc,false);
 
 	return pDoc->acceptAllRevisionsUpTo(pView->getRevisionOpsLevel());
+}
+
+/*!
+    Remove all revision information from the document
+    ("Purge Revisions").  Unlike revisionAcceptAll this also drops
+    the recorded revision history and the undo stack; the doc-level
+    call itself prompts for confirmation before destroying anything.
+*/
+Defun(revisionPurge)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	pDoc->purgeAllRevisions(pView);
+	return true;
 }
 
 /*!

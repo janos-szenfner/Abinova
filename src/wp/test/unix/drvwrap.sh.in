@@ -216,6 +216,27 @@ case "$markup_rc" in
 esac
 rm -f "$markup_log"
 
+# TRACK04: track-changes surface leg — the rows --markup does not
+# reach: Track Changes/Auto Revision check rows (real MarkRevisions
+# dialog + auto-off warning answered for real), Find Next/Prev ribbon
+# buttons, Show Revisions + Compare Revisions rows, Purge Revisions
+# (cancel then accept on the destructive confirm), accept/reject
+# popover rows and the Reviewing Pane toggle.  A dead row or an
+# unapplied command is the regression being guarded, so any nonzero
+# exit (including a timeout) is a failure.
+rev_log="${TMPDIR:-/tmp}/ui-drive-revisions-$$.log"
+timeout -k 15 180 $LIBTOOL $BIN \
+	--revisions >"$rev_log" 2>&1
+rev_rc=$?
+case "$rev_rc" in
+	0)   echo "ok: revisions drive" ;;
+	77)  echo "skip: revisions drive (no interactive context)" ;;
+	*)   echo "FAIL: revisions drive (rc=$rev_rc)"
+	     tail -30 "$rev_log" | sed 's/^/  /' >&2
+	     fails=$((fails + 1)) ;;
+esac
+rm -f "$rev_log"
+
 # TST03: popover/menu lifecycle leg — opens every ribbon popover on
 # the rich fixture, activates each row, asserts it stays sensitive
 # and the popover re-opens; check popovers (markup/zoom/toggles/window

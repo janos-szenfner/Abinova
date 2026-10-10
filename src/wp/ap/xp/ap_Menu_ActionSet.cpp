@@ -306,6 +306,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE, 1,0,0,0, nullptr, nullptr, nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS, 0,1,0,0, "revisionCombineDocuments", nullptr, nullptr);
 	_s(AP_MENU_ID_TOOLS_REVISIONS_PANE, 0,0,1,0, "commentsPane", ap_GetState_ReviewingPane, nullptr);
+	_s(AP_MENU_ID_TOOLS_REVISIONS_PURGE, 0,1,0,0, "revisionPurge", ap_GetState_HasRevisions, nullptr);
 
 	// RIVERA
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS,				1,0,0,0,	nullptr,						nullptr,								nullptr);

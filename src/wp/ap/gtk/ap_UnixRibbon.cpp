@@ -8052,6 +8052,16 @@ GtkWidget * AP_UnixRibbon::_makeTrackChangesPopover()
 							 _layout_icon(
 								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_AUTO),
 								 16, 16)));
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(
+								   GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Purge Revisions\xE2\x80\xA6",
+							  "Remove all revision information from "
+							  "the document",
+							  _layout_icon(
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_PURGE),
+								  16, 16),
+							  "revisionPurge", nullptr));
 	g_signal_connect(popover, "show",
 					 G_CALLBACK(_s_popover_check_show), this);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);

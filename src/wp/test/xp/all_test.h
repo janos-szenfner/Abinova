@@ -157,6 +157,8 @@
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fv_RefsTOC.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fv_Revisions.t.cpp"
+#undef TFSUITE
 #include "src/text/fmt/xp/t/fv_StateCycle.t.cpp"
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fv_StructContent.t.cpp"

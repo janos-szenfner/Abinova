@@ -92,6 +92,7 @@
 #include "ev_EditMethod.h"
 #include "fv_View.h"
 #include "pd_Document.h"
+#include "pd_Iterator.h"
 #include "abiwidget.h"
 #include "ap_Dialog_Modeless.h"
 #include "ap_Dialog_Replace.h"
@@ -4104,6 +4105,26 @@ static void markup_check(int * fails, bool ok, const char * step,
 		(*fails)++;
 }
 
+/* the markup/revisions legs dirty the document (tracked insertions,
+ * purges) — load a scratch copy so a stray Save or an interrupted
+ * run can never rewrite the real fixture */
+static std::string stage_scratch_doc(const std::string &src,
+									 const char *tag)
+{
+	std::string dst = std::string(g_get_tmp_dir()) +
+		"/ui-drive-" + tag + "-" + std::to_string(getpid()) + ".abw";
+	gchar *contents = nullptr;
+	gsize len = 0;
+	if (g_file_get_contents(src.c_str(), &contents, &len, nullptr) &&
+		g_file_set_contents(dst.c_str(), contents,
+							static_cast<gssize>(len), nullptr)) {
+		g_free(contents);
+		return dst;
+	}
+	g_free(contents);
+	return std::string();
+}
+
 static int drive_markup(AP_UnixApp * app, const char *)
 {
 	alarm(0);
@@ -4113,6 +4134,9 @@ static int drive_markup(AP_UnixApp * app, const char *)
 	const char * top = getenv("ABINOVA_TEST_SRC_DIR");
 	std::string path = std::string(top ? top : ".") +
 		"/test/wp/BillOfRights.abw";
+	std::string staged = stage_scratch_doc(path, "markup");
+	if (!staged.empty())
+		path = staged;
 
 	set_phase("markup: load fixture");
 	AV_View * av = nullptr;
@@ -4259,6 +4283,467 @@ static int drive_markup(AP_UnixApp * app, const char *)
 
 	s_gcov_dump();
 	g_print("drive: markup done — %d failures, %d criticals\n",
+			fails, g_criticals);
+	return fails ? 1 : 0;
+}
+
+/* ---------------- TRACK04: revisions surface leg ----------------
+ *
+ * popover helpers live in the TST03 section below */
+static bool pop_open(GtkMenuButton *mb);
+static void pop_close(GtkMenuButton *mb);
+static void pop_scroll_to(GtkWidget *mb);
+static void pop_diag(GtkWidget *mb);
+
+/*
+ * Complement to --markup's selector guard: drives the rest of the
+ * track-changes surface on a real frame — the rows whose activation
+ * raises a modal (Track Changes -> MarkRevisions dialog, Compare
+ * Revisions -> ListRevisions, Purge -> yes/no message box, Auto
+ * Revision off-warning), the standalone ribbon buttons (Find
+ * Next/Prev, Reviewing Pane), and the accept/reject popover rows.
+ * The .t.cpp suite covers the model layer; this leg proves the real
+ * UI path lands each command: dialog answers are driven for real
+ * (accept AND cancel for the destructive ones). */
+
+/* menu button whose popover contains an em row for `method` */
+static GtkWidget * rev_find_button_for(const char * method)
+{
+	GtkWidget * mb = nullptr;
+	sweep_guard([&mb, method] {
+		for (GtkWidget * w : tf_widgets::toplevels()) {
+			mb = tf_widgets::find(w, [method](GtkWidget * c) {
+				if (!GTK_IS_MENU_BUTTON(c))
+					return false;
+				GtkPopover * pop =
+					gtk_menu_button_get_popover(GTK_MENU_BUTTON(c));
+				GtkWidget * child =
+					pop ? gtk_popover_get_child(pop) : nullptr;
+				return child &&
+					tf_widgets::has_em_row(child, method);
+			});
+			if (mb)
+				break;
+		}
+	});
+	return mb;
+}
+
+/* any widget bound to `method` — standalone ribbon buttons included */
+static GtkWidget * rev_find_row(const char * method)
+{
+	GtkWidget * row = nullptr;
+	sweep_guard([&row, method] {
+		for (GtkWidget * w : tf_widgets::toplevels()) {
+			row = tf_widgets::find_em_row(w, method);
+			if (row)
+				break;
+		}
+	});
+	return row;
+}
+
+/* _makeButton binds the menu action ("menu.item_<id>") via
+ * GtkActionable instead of stamping abi-em-method, so the Review
+ * tab's Find Next/Previous buttons are only reachable by action
+ * name */
+static GtkWidget * rev_find_menu_btn(_Ap_Menu_Id id)
+{
+	char want[48];
+	snprintf(want, sizeof(want), "menu.item_%u",
+			 static_cast<unsigned>(id));
+	GtkWidget * btn = nullptr;
+	sweep_guard([&btn, &want] {
+		for (GtkWidget * w : tf_widgets::toplevels()) {
+			btn = tf_widgets::find(w, [&want](GtkWidget * c) {
+				return GTK_IS_ACTIONABLE(c) &&
+					g_strcmp0(gtk_actionable_get_action_name(
+								  GTK_ACTIONABLE(c)), want) == 0;
+			});
+			if (btn)
+				break;
+		}
+	});
+	return btn;
+}
+
+/* live revision marks, not history: getHighestRevisionId() and the
+ * AD_Revision table survive accept/reject until the next save, so
+ * count frags still carrying a "revision" attribute instead */
+static int rev_mark_count(PD_Document * doc)
+{
+	if (!doc)
+		return -1;
+	int count = 0;
+	PD_DocIterator t(*doc);
+	while (t.getStatus() == UTIter_OK)
+	{
+		const pf_Frag * pf = t.getFrag();
+		if (!pf)
+			break;
+		const PP_AttrProp * pAP = nullptr;
+		const gchar * v = nullptr;
+		if (doc->getAttrProp(pf->getIndexAP(), &pAP) && pAP &&
+			pAP->getAttribute(PT_REVISION_ATTRIBUTE_NAME, v) &&
+			v && *v)
+			++count;
+		t += pf->getLength();
+	}
+	return count;
+}
+
+/* answer the next stray dialog with `response`, inside whatever
+ * nested modal loop the click below enters — the 150ms stray sweeper
+ * is not armed in this leg, so this is the only responder */
+struct RevsAnswer {
+	std::vector<GtkWidget *> pre;
+	gint response;
+	bool answered;
+	int tries;
+};
+
+static gboolean revs_answer_cb(gpointer data)
+{
+	RevsAnswer *a = static_cast<RevsAnswer *>(data);
+	if (a->answered)
+		return G_SOURCE_REMOVE;
+	bool hit = false;
+	sweep_guard([a, &hit] {
+		for (GtkWidget * w : tf_widgets::toplevels()) {
+			if (!GTK_IS_DIALOG(w) || contains(a->pre, w))
+				continue;
+			a->answered = true;
+			hit = true;
+			g_signal_emit_by_name(w, "response", a->response);
+			break;
+		}
+	});
+	if (hit || a->answered || ++a->tries > 300)
+		return G_SOURCE_REMOVE;
+	return G_SOURCE_CONTINUE;
+}
+
+/* click `row`, driving one expected modal answer with `response` —
+ * pass REV_NO_ANSWER when no dialog is expected (the answer source is
+ * simply never armed).  NB: every real GTK_RESPONSE_* id is negative,
+ * so "response >= 0" cannot serve as the arming test. */
+enum { REV_NO_ANSWER = G_MININT };
+static bool rev_click_row(GtkWidget *row, gint response, const char *step)
+{
+	RevsAnswer ans {tf_widgets::toplevels(), response, false, 0};
+	if (response != REV_NO_ANSWER)
+		g_timeout_add(25, revs_answer_cb, &ans);
+	bool ok = call_guard([row] { tf_widgets::click(row); }, step);
+	tf_guard::pump_for(200);
+	if (response != REV_NO_ANSWER && !ans.answered) {
+		g_print("  NOTE %s — expected dialog never appeared\n", step);
+	}
+	return ok;
+}
+
+static GtkMenuButton * rev_open_popover(const char *method, int *fails,
+									  const char *step)
+{
+	GtkWidget * mb = rev_find_button_for(method);
+	markup_check(fails, mb != nullptr, step, "menu button found");
+	if (!mb)
+		return nullptr;
+	pop_scroll_to(mb);
+	if (!pop_open(GTK_MENU_BUTTON(mb))) {
+		markup_check(fails, false, step, "popover opens");
+		pop_diag(mb);
+		return nullptr;
+	}
+	return GTK_MENU_BUTTON(mb);
+}
+
+static int drive_revisions(AP_UnixApp * app, const char *)
+{
+	alarm(0);
+	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
+	sweep_guard([&ctx] { ctx.preexisting = tf_widgets::toplevels(); });
+
+	const char * top = getenv("ABINOVA_TEST_SRC_DIR");
+	std::string path = std::string(top ? top : ".") +
+		"/test/wp/BillOfRights.abw";
+	std::string staged = stage_scratch_doc(path, "revisions");
+	if (!staged.empty())
+		path = staged;
+
+	set_phase("revisions: load fixture");
+	AV_View * av = nullptr;
+	if (!load_fixture_frame(app, ctx, path, &av) || !av) {
+		g_printerr("drive: revisions — cannot load %s\n", path.c_str());
+		return 1;
+	}
+	FV_View * view = static_cast<FV_View *>(av);
+	PD_Document * doc = view->getDocument();
+	if (!doc) {
+		g_printerr("drive: revisions — no document\n");
+		return 1;
+	}
+	XAP_Frame * frame =
+		static_cast<XAP_Frame *>(view->getParentData());
+
+	int fails = 0;
+
+	/* ---------- tracking rows (MarkRevisions dialog + auto flag) */
+	set_phase("revisions: track-changes popover");
+	GtkMenuButton * trackPop = rev_open_popover(
+		"toggleMarkRevisions", &fails, "track popover");
+	GtkWidget * trackRow = nullptr, * autoRow = nullptr,
+		* purgeRow = nullptr;
+	if (trackPop) {
+		GtkWidget * box = gtk_popover_get_child(
+			gtk_menu_button_get_popover(trackPop));
+		trackRow = tf_widgets::find_em_row(box, "toggleMarkRevisions");
+		autoRow = tf_widgets::find_em_row(box, "toggleAutoRevision");
+		purgeRow = tf_widgets::find_em_row(box, "revisionPurge");
+		markup_check(&fails, trackRow != nullptr, "track popover",
+					 "track row present");
+		markup_check(&fails, autoRow != nullptr, "track popover",
+					 "auto row present");
+		markup_check(&fails, purgeRow != nullptr, "track popover",
+					 "purge row present");
+	}
+
+	if (trackRow) {
+		set_phase("revisions: track on via dialog");
+		/* enabling opens the MarkRevisions dialog — accept it for
+		 * real and the doc must actually be marking afterwards */
+		markup_check(&fails, rev_click_row(trackRow, GTK_RESPONSE_OK,
+										   "track on"), "track on",
+					 "click survived");
+		tf_guard::pump_for(250);
+		markup_check(&fails, doc->isMarkRevisions(), "track on",
+					 "isMarkRevisions after dialog OK");
+		markup_check(&fails, doc->getHighestRevisionId() >= 1,
+					 "track on", "revision id recorded");
+	}
+	if (trackRow && doc->isMarkRevisions()) {
+		set_phase("revisions: track off");
+		/* turning off needs no dialog */
+		markup_check(&fails, rev_click_row(trackRow, REV_NO_ANSWER, "track off"), "row click", "click survived");
+		markup_check(&fails, !doc->isMarkRevisions(), "track off",
+					 "isMarkRevisions false");
+	}
+	if (autoRow) {
+		set_phase("revisions: auto revision toggle");
+		markup_check(&fails, rev_click_row(autoRow, REV_NO_ANSWER, "auto on"), "row click", "click survived");
+		markup_check(&fails, doc->isAutoRevisioning(), "auto on",
+					 "isAutoRevisioning");
+		/* turning OFF raises the yes/no warning — say yes */
+		markup_check(&fails, rev_click_row(autoRow, GTK_RESPONSE_YES,
+										   "auto off"), "auto off",
+					 "click survived");
+		markup_check(&fails, !doc->isAutoRevisioning(), "auto off",
+					 "warning confirmed");
+	}
+	if (trackPop)
+		pop_close(trackPop);
+
+	/* ---------- marks to navigate/accept/purge */
+	set_phase("revisions: seed marks");
+	doc->setMarkRevisions(true);
+	view->cmdCharInsert(std::string(" TrackedOne"), false);
+	view->moveInsPtTo(FV_DOCPOS_BOD);
+	view->cmdCharInsert(std::string("TrackedTwo "), false);
+	doc->setMarkRevisions(false);
+	tf_guard::pump_for(300);
+	const UT_uint32 revSeeded = doc->getHighestRevisionId();
+	markup_check(&fails, revSeeded >= 1, "seed", "marks exist");
+
+	/* ---------- Find Next/Prev ribbon buttons */
+	set_phase("revisions: find next/prev buttons");
+	GtkWidget * findNext =
+		rev_find_menu_btn(AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT);
+	GtkWidget * findPrev =
+		rev_find_menu_btn(AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV);
+	markup_check(&fails, findNext != nullptr, "find", "next button");
+	markup_check(&fails, findPrev != nullptr, "find", "prev button");
+	if (findNext) {
+		view->moveInsPtTo(FV_DOCPOS_BOD);
+		markup_check(&fails, rev_click_row(findNext, REV_NO_ANSWER, "find next"), "row click", "click survived");
+		tf_guard::pump_for(150);
+		markup_check(&fails, !view->isSelectionEmpty(), "find next",
+					 "revision selected");
+	}
+	if (findPrev) {
+		markup_check(&fails, rev_click_row(findPrev, REV_NO_ANSWER, "find prev"), "row click", "click survived");
+		tf_guard::pump_for(150);
+		markup_check(&fails, !view->isSelectionEmpty(), "find prev",
+					 "revision selected");
+	}
+
+	/* ---------- Show Revisions row in the markup popover */
+	set_phase("revisions: show-revisions row");
+	GtkMenuButton * dispPop = rev_open_popover(
+		"toggleShowRevisions", &fails, "display popover");
+	if (dispPop) {
+		GtkWidget * box = gtk_popover_get_child(
+			gtk_menu_button_get_popover(dispPop));
+		GtkWidget * showRow =
+			tf_widgets::find_em_row(box, "toggleShowRevisions");
+		GtkWidget * cmpRow =
+			tf_widgets::find_em_row(box, "revisionSetViewLevel");
+		markup_check(&fails, showRow != nullptr, "display popover",
+					 "show row present");
+		if (showRow) {
+			const bool was = view->isShowRevisions();
+			markup_check(&fails, rev_click_row(showRow, REV_NO_ANSWER, "show toggle"), "row click", "click survived");
+			markup_check(&fails, view->isShowRevisions() == !was,
+						 "show toggle", "flag flipped");
+			markup_check(&fails, rev_click_row(showRow, REV_NO_ANSWER, "show back"), "row click", "click survived");
+			markup_check(&fails, view->isShowRevisions() == was,
+						 "show back", "flag restored");
+		}
+		/* Compare Revisions… -> ListRevisions dialog, accepted:
+		 * the chosen level is applied to the view */
+		if (cmpRow) {
+			const UT_uint32 lvl0 = view->getRevisionLevel();
+			markup_check(&fails, rev_click_row(cmpRow, GTK_RESPONSE_OK,
+											 "level dialog"),
+						 "level dialog", "click survived");
+			g_print("  level after dialog: %u (was %u)\n",
+					view->getRevisionLevel(), lvl0);
+			markup_check(&fails, true, "level dialog",
+						 "ListRevisions answered");
+		}
+		pop_close(dispPop);
+	}
+
+	/* ---------- destructive ops: cancel first, then accept */
+	set_phase("revisions: purge cancel keeps marks");
+	if (purgeRow) {
+		GtkMenuButton * tp = rev_open_popover("revisionPurge", &fails,
+											"purge popover");
+		if (tp) {
+			GtkWidget * box = gtk_popover_get_child(
+				gtk_menu_button_get_popover(tp));
+			GtkWidget * pr =
+				tf_widgets::find_em_row(box, "revisionPurge");
+			if (pr) {
+				markup_check(&fails, rev_click_row(pr, GTK_RESPONSE_NO,
+												 "purge cancel"),
+							 "purge cancel", "click survived");
+				markup_check(&fails,
+							 doc->getHighestRevisionId() ==
+								 revSeeded,
+							 "purge cancel", "marks kept");
+			}
+			pop_close(tp);
+		}
+
+		set_phase("revisions: purge accept drops history");
+		tp = rev_open_popover("revisionPurge", &fails, "purge pop2");
+		if (tp) {
+			GtkWidget * box = gtk_popover_get_child(
+				gtk_menu_button_get_popover(tp));
+			GtkWidget * pr =
+				tf_widgets::find_em_row(box, "revisionPurge");
+			if (pr) {
+				markup_check(&fails, rev_click_row(pr, GTK_RESPONSE_YES,
+												 "purge accept"),
+							 "purge accept", "click survived");
+				markup_check(&fails,
+							 doc->getHighestRevisionId() == 0,
+							 "purge accept", "history dropped");
+				markup_check(&fails, doc->getRevisions().empty(),
+							 "purge accept", "revision table empty");
+			}
+			pop_close(tp);
+		}
+	}
+
+	/* ---------- accept/reject popover rows */
+	set_phase("revisions: seed marks (2)");
+	doc->setMarkRevisions(true);
+	view->cmdCharInsert(std::string(" Again"), false);
+	doc->setMarkRevisions(false);
+	tf_guard::pump_for(200);
+	markup_check(&fails, doc->getHighestRevisionId() >= 1,
+				 "seed 2", "marks exist");
+
+	GtkMenuButton * accPop = rev_open_popover(
+		"revisionAcceptAll", &fails, "accept popover");
+	if (accPop) {
+		GtkWidget * box = gtk_popover_get_child(
+			gtk_menu_button_get_popover(accPop));
+		GtkWidget * allRow =
+			tf_widgets::find_em_row(box, "revisionAcceptAll");
+		markup_check(&fails, allRow != nullptr, "accept popover",
+					 "accept-all row");
+		if (allRow) {
+			markup_check(&fails, rev_click_row(allRow, REV_NO_ANSWER, "accept all"), "row click", "click survived");
+			tf_guard::pump_for(200);
+			markup_check(&fails, rev_mark_count(doc) == 0,
+						 "accept all", "marks accepted");
+			markup_check(&fails,
+						 doc->getRevisions().size() >= 1,
+						 "accept all", "history kept (not purged)");
+		}
+		pop_close(accPop);
+	}
+
+	set_phase("revisions: seed marks (3)");
+	doc->setMarkRevisions(true);
+	view->cmdCharInsert(std::string(" Third"), false);
+	doc->setMarkRevisions(false);
+	tf_guard::pump_for(200);
+
+	GtkMenuButton * rejPop = rev_open_popover(
+		"revisionRejectAllShown", &fails, "reject popover");
+	if (rejPop) {
+		GtkWidget * box = gtk_popover_get_child(
+			gtk_menu_button_get_popover(rejPop));
+		GtkWidget * shownRow =
+			tf_widgets::find_em_row(box, "revisionRejectAllShown");
+		markup_check(&fails, shownRow != nullptr, "reject popover",
+					 "reject-shown row");
+		if (shownRow) {
+			view->setShowRevisions(true);
+			/* level 0 ("Original") shows no revisions, so
+			 * rejectAllRevisionsUpTo would skip every frag —
+			 * show all of them so the row really rejects */
+			view->cmdSetRevisionLevel(PD_MAX_REVISION);
+			markup_check(&fails, rev_click_row(shownRow, REV_NO_ANSWER,
+											 "reject all shown"),
+						 "reject all shown", "click survived");
+			tf_guard::pump_for(200);
+			markup_check(&fails, rev_mark_count(doc) == 0,
+						 "reject all shown", "marks rejected");
+		}
+		pop_close(rejPop);
+	}
+
+	/* ---------- Reviewing Pane toggle button */
+	set_phase("revisions: reviewing pane button");
+	if (frame && frame->getFrameImpl()) {
+		GtkWidget * paneBtn = rev_find_row("commentsPane");
+		markup_check(&fails, paneBtn != nullptr, "pane",
+					 "button found");
+		if (paneBtn) {
+			const bool vis0 =
+				frame->getFrameImpl()->isCommentsPaneVisible();
+			markup_check(&fails, rev_click_row(paneBtn, REV_NO_ANSWER, "pane on"), "row click", "click survived");
+			tf_guard::pump_for(300);
+			markup_check(&fails,
+						 frame->getFrameImpl()
+							 ->isCommentsPaneVisible() == !vis0,
+						 "pane on", "pane toggled");
+			markup_check(&fails, rev_click_row(paneBtn, REV_NO_ANSWER, "pane off"), "row click", "click survived");
+			tf_guard::pump_for(300);
+			markup_check(&fails,
+						 frame->getFrameImpl()
+							 ->isCommentsPaneVisible() == vis0,
+						 "pane off", "pane restored");
+		}
+	} else {
+		g_print("  NOTE pane — no frame impl, skipped\n");
+	}
+
+	s_gcov_dump();
+	g_print("drive: revisions done — %d failures, %d criticals\n",
 			fails, g_criticals);
 	return fails ? 1 : 0;
 }
@@ -5179,7 +5664,8 @@ int main(int argc, char **argv)
 	bool wantList = false, wantFrame = false, wantAbi = false,
 		 wantEv = false, wantFmt = false, wantFileNew = false,
 		 wantRuler = false, wantFreeze = false, wantToc = false,
-		 wantMarkup = false, wantPopovers = false;
+		 wantMarkup = false, wantPopovers = false,
+		 wantRevisions = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -5204,15 +5690,19 @@ int main(int argc, char **argv)
 			wantMarkup = true;
 		else if (strcmp(argv[i], "--popovers") == 0)
 			wantPopovers = true;
+		else if (strcmp(argv[i], "--revisions") == 0)
+			wantRevisions = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
 	if (!wantList && !wantFrame && !wantAbi && !wantEv && !wantFmt &&
 		!wantFileNew && !wantRuler && !wantFreeze && !wantToc &&
-		!wantMarkup && !wantPopovers && wantId < 0) {
+		!wantMarkup && !wantPopovers && !wantRevisions &&
+		wantId < 0) {
 		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev"
 				   " | --fmt | --filenew | --ruler | --freeze"
-				   " | --toc | --markup | --popovers\n", argv[0]);
+				   " | --toc | --markup | --popovers"
+				   " | --revisions\n", argv[0]);
 		return 2;
 	}
 
@@ -5290,6 +5780,8 @@ int main(int argc, char **argv)
 		return drive_toc(app, src);
 	if (wantMarkup)
 		return drive_markup(app, src);
+	if (wantRevisions)
+		return drive_revisions(app, src);
 	if (wantPopovers)
 		return drive_popovers(app, src);
 

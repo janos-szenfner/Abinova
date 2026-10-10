@@ -2004,6 +2004,24 @@ below are on `main` but the release has not been cut yet.
   the pre-edit document. All four modes now show the right text in
   either tracking state, and Accept/Reject still acts on every shown
   revision in All Markup view.
+- **Track-changes surface audited end to end; Purge Revisions wired
+  and Find Next/Prev fixed** — the Review tab's Track Changes popover
+  gains a working **Purge Revisions…** row: the action existed only
+  as orphaned strings with no menu id, action registration or edit
+  method behind it. It now prompts once, then accepts every mark and
+  drops the recorded revision history and undo stack. **Find
+  Next/Previous Revision** no longer stalls inside the paragraph the
+  caret sits in — the block walk never restarted the run chain per
+  block, so only the starting block was ever searched — and now
+  wraps once at the document boundary like Find Again. Accepting or
+  rejecting a revision while Track Changes is on no longer records
+  the mark's removal as yet another revision, which could make
+  Accept All appear to do nothing. Every other entry point —
+  tracking toggles, the four display modes, Show Revisions, Compare
+  Revisions, the full accept/reject matrix and the Reviewing Pane —
+  is exercised by a new `ui-drive --revisions` leg and a 205-assert
+  headless `fv_Revisions` suite against rendered content, not just
+  flags.
 
 ### Tables (Word-style creation and context menus)
 

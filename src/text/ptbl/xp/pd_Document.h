@@ -877,6 +877,10 @@ protected:
 												  const PP_Revision * pRev,
 												  PP_RevisionAttr &RevAttr, pf_Frag * pf,
 												  bool & bDeleted);
+	bool                    _acceptRejectRevisionInner(bool bReject, UT_uint32 iStart, UT_uint32 iEnd,
+												  const PP_Revision * pRev,
+												  PP_RevisionAttr &RevAttr, pf_Frag * pf,
+												  bool & bDeleted);
 
 	virtual void            _clearUndo() override;
 

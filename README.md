@@ -495,7 +495,7 @@ are separated by a visible 1 px rule.
 Classic-menu features that had no ribbon home were pruned by
 design: Web Preview, Mail Merge, the Tabs dialog, the Format
 Frame/Image menu entries, the Direction submenu, the Stylist menu
-entry, document History, Revisions → New/Purge, Scripts and
+entry, document History, Revisions → New, Scripts and
 Text → Table conversion were removed.
 
 #### Home tab
@@ -690,12 +690,15 @@ labels, like Word's ribbon.
   nesting produced unloadable XML), while commenting over
   existing anchors is allowed.
 - **Tracking group**: **Track Changes** toggles revision marking;
+  **Auto Revision** starts a new revision on every save;
   **Display for Review** switches between **Simple Markup**
   (final text + a red change bar in the left margin on lines
   with revisions), **All Markup** (insertions/deletions shown
   inline), **No Markup** and **Original**; the button caption
   tracks the active mode. **Reviewing Pane** docks the
-  revision/comment list.
+  revision/comment list, and **Purge Revisions…** removes all
+  revision information — marks, recorded history and the undo
+  stack — after a confirmation.
 - **Changes group**: **Accept** and **Reject** are large
   Word-style dropdown buttons offering Accept/Reject and Move to
   Next, This Change, All Changes Shown (only the revisions

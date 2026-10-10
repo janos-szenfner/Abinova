@@ -6929,7 +6929,32 @@ bool PD_Document::areDocumentStylesheetsEqual(const AD_Document &D) const
     this method operates on a fragment at a time, but if it
     results in deletion from PT, more fragments might be deleted
 */
+/*!
+    Accept/reject is not a user edit: none of the span deletes or fmt
+    changes it performs may be recorded as fresh revisions.  While
+    tracking is active pt_PieceTable::changeSpanFmt() wraps every fmt
+    change -- including the removal of the "revision" attribute itself
+    -- into a new tracked revision, so the mark would survive the
+    accept.  Step out of marking mode for the whole operation (the
+    deleteSpan branches used to do this ad-hoc, which left the
+    changeSpan/changeStrux paths broken whenever tracking was on).
+*/
 bool PD_Document::_acceptRejectRevision(bool bReject, UT_uint32 iStart, UT_uint32 iEnd,
+										const PP_Revision * pRev,
+										PP_RevisionAttr &RevAttr, pf_Frag * pf,
+										bool & bDeleted)
+{
+	const bool bMark = isMarkRevisions();
+	if(bMark)
+		_setMarkRevisions(false);
+	bool bRet = _acceptRejectRevisionInner(bReject, iStart, iEnd, pRev,
+										   RevAttr, pf, bDeleted);
+	if(bMark)
+		_setMarkRevisions(true);
+	return bRet;
+}
+
+bool PD_Document::_acceptRejectRevisionInner(bool bReject, UT_uint32 iStart, UT_uint32 iEnd,
 										const PP_Revision * pRev,
 										PP_RevisionAttr &RevAttr, pf_Frag * pf,
 										bool & bDeleted)

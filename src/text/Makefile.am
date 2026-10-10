@@ -281,6 +281,7 @@ EXTRA_DIST = \
 	fmt/xp/t/fv_PasteTag.t.cpp \
 	fmt/xp/t/fv_PosObjectContext.t.cpp \
 	fmt/xp/t/fv_RefsTOC.t.cpp \
+	fmt/xp/t/fv_Revisions.t.cpp \
 	fmt/xp/t/fv_SignatureLine.t.cpp \
 	fmt/xp/t/fv_StateCycle.t.cpp \
 	fmt/xp/t/fv_StructContent.t.cpp \
