@@ -626,6 +626,11 @@ public:
 
 	void endDragSelection(UT_sint32 xPos, UT_sint32 yPos);
 
+	/* true while the autoscroll worker armed by _autoScroll is still
+	 * alive — read-only, for tests verifying drag-release teardown */
+	bool            hasPendingScrollWorker(void) const
+	  { return m_pScrollWorker != nullptr; }
+
 	PT_DocPosition  getDocPositionFromXY(UT_sint32 xpos, UT_sint32 ypos, bool bNotFrames = false);
 	PT_DocPosition  getDocPositionFromLastXY(void);
 
@@ -1313,6 +1318,8 @@ private:
 
 	// autoscroll stuff
 	UT_Timer *			m_pAutoScrollTimer;
+	UT_Worker *			m_pScrollWorker;
+	bool				m_bScrollWorkerRunning;
 	UT_sint32			m_xLastMouse;
 	UT_sint32			m_yLastMouse;
 

@@ -2472,20 +2472,17 @@ void FV_View::_moveInsPtToPage(fp_Page *page)
 	}
 }
 
-static bool bScrollRunning = false;
-static UT_Worker * s_pScroll = nullptr;
-
-/* the file-static autoscroll worker carries this view as instance
- * data and can outlive _autoScroll's timer by a main-loop turn; the
- * destructor calls this so it can never fire on a dead view */
+/* the autoscroll worker is per-view state (m_pScrollWorker); it can
+ * outlive _autoScroll's timer by a main-loop turn, so the destructor
+ * calls this to make sure it never fires on a dead view */
 void FV_View::_stopPendingScrollWorker(void)
 {
-	if (s_pScroll && s_pScroll->getInstanceData() == this)
+	if (m_pScrollWorker)
 	{
-		s_pScroll->stop();
-		delete s_pScroll;
-		s_pScroll = nullptr;
-		bScrollRunning = false;
+		m_pScrollWorker->stop();
+		delete m_pScrollWorker;
+		m_pScrollWorker = nullptr;
+		m_bScrollWorkerRunning = false;
 	}
 }
 
@@ -2496,6 +2493,11 @@ void FV_View::_actuallyScroll(UT_Worker * pWorker)
 	UT_return_if_fail(pView);
 	if(pView->getLayout()->getDocument()->isPieceTableChanging())
 	{
+		/* bail without leaving the worker armed: the autoscroll
+		 * timer will arm a fresh one on its next tick.  Previously
+		 * this early return leaked the worker and left the running
+		 * flag set, which wedged autoscroll for the session. */
+		pView->_stopPendingScrollWorker();
 		return;
 	}
 
@@ -2528,13 +2530,11 @@ void FV_View::_actuallyScroll(UT_Worker * pWorker)
 
 		if (!bOnScreen)
 		{
-			// yep, do it manually
-
-			// TODO currently we blindly send these auto scroll events without regard
-			// TODO to whether the window can scroll any further in that direction.
-			// TODO we could optimize this a bit and check the scroll range before we
-			// TODO fire them, but that knowledge is only stored in the frame and we
-			// TODO don't have a backpointer to it.
+			// yep, do it manually — but only while the view can
+			// actually move that way.  cmdScroll() clamps at the
+			// document ends too; these guards just keep the
+			// autoscroll from emitting scroll events that can never
+			// take effect.
 			// UT_DEBUGMSG(("_auto: [xp %ld][yp %ld] [w %ld][h %ld]\n",
 			//			 xPos,yPos,pView->getWindowWidth(),pView->getWindowHeight()));
 			//
@@ -2546,11 +2546,16 @@ void FV_View::_actuallyScroll(UT_Worker * pWorker)
 
 			if (yPos < 0)
 			{
-				pView->cmdScroll(AV_SCROLLCMD_LINEUP, static_cast<UT_sint32>(-yPos));
+				if (pView->getYScrollOffset() > 0)
+					pView->cmdScroll(AV_SCROLLCMD_LINEUP, static_cast<UT_sint32>(-yPos));
 			}
 			else if ((static_cast<UT_uint32>(yPos)) >= (static_cast<UT_uint32>(pView->getWindowHeight())))
 			{
-				pView->cmdScroll(AV_SCROLLCMD_LINEDOWN, static_cast<UT_sint32>(yPos - pView->getWindowHeight()));
+				if (pView->getYScrollOffset() + pView->getWindowHeight() <
+					pView->getLayout()->getHeight())
+				{
+					pView->cmdScroll(AV_SCROLLCMD_LINEDOWN, static_cast<UT_sint32>(yPos - pView->getWindowHeight()));
+				}
 			}
 
 			if (xPos < 0)
@@ -2563,24 +2568,21 @@ void FV_View::_actuallyScroll(UT_Worker * pWorker)
 			}
 		}
 	}
-	s_pScroll->stop();
-	delete s_pScroll;
-	s_pScroll = nullptr;
-	bScrollRunning = false;
+	pView->_stopPendingScrollWorker();
 }
 
 void FV_View::_autoScroll(UT_Worker * pWorker)
 {
 	UT_return_if_fail(pWorker);
-	if(bScrollRunning)
-		{
-			UT_DEBUGMSG(("Dropping autoscroll !!!!!!! \n"));
-			return;
-		}
 	// this is a static callback method and does not have a 'this' pointer.
 
 	FV_View * pView = static_cast<FV_View *>(pWorker->getInstanceData());
 	UT_return_if_fail(pView);
+	if(pView->m_bScrollWorkerRunning)
+		{
+			UT_DEBUGMSG(("Dropping autoscroll !!!!!!! \n"));
+			return;
+		}
 	if(pView->getLayout()->getDocument()->isPieceTableChanging())
 	{
 		return;
@@ -2588,17 +2590,17 @@ void FV_View::_autoScroll(UT_Worker * pWorker)
 
 	int inMode = UT_WorkerFactory::IDLE | UT_WorkerFactory::TIMER;
 	UT_WorkerFactory::ConstructMode outMode = UT_WorkerFactory::NONE;
-	s_pScroll = UT_WorkerFactory::static_constructor (_actuallyScroll,pView, inMode, outMode);
+	pView->m_pScrollWorker = UT_WorkerFactory::static_constructor (_actuallyScroll,pView, inMode, outMode);
 
 	// If the worker is working on a timer instead of in the idle
 	// time, set the frequency of the checks.
 	if ( UT_WorkerFactory::TIMER == outMode )
 	{
 		// this is really a timer, so it's safe to static_cast it
-		static_cast<UT_Timer*>(s_pScroll)->set(1);
+		static_cast<UT_Timer*>(pView->m_pScrollWorker)->set(1);
 	}
-	bScrollRunning = true;
-	s_pScroll->start();
+	pView->m_bScrollWorkerRunning = true;
+	pView->m_pScrollWorker->start();
 }
 
 /*! Returns the page the user's mouse pointer is in.

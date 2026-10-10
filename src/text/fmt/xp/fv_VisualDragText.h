@@ -65,6 +65,13 @@ public:
 	  { return m_bNotDraggingImage;}
 	bool                  isDoingCopy(void) const
 	  { return m_bDoingCopy;}
+	/* autoscroll state, exposed read-only so tests (and sanity checks)
+	 * can verify the arming timer, the repeating worker and the
+	 * per-drag acceleration are all torn down when a drag ends */
+	bool                  isAutoScrollActive(void) const
+	  { return (m_pAutoScrollTimer != nullptr) || (m_pScrollWorker != nullptr); }
+	UT_sint32             getScrollAccelExtra(void) const
+	  { return m_iScrollExtra;}
 	const UT_Rect *             getCurFrame(void) const
 	  { return &m_recCurFrame;}
  protected:
@@ -88,8 +95,13 @@ private:
 
 	// autoscroll stuff
 	UT_Timer *			  m_pAutoScrollTimer;
+	UT_Worker *			  m_pScrollWorker;
+	bool				  m_bScrollWorkerRunning;
+	UT_sint32			  m_iScrollExtra;
 	UT_sint32			  m_xLastMouse;
 	UT_sint32			  m_yLastMouse;
+
+	void				  _stopScrollWorkers(void);
 
 	bool                  m_bDoingCopy;
 	bool                  m_bNotDraggingImage;

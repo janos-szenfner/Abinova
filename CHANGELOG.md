@@ -4350,6 +4350,16 @@ below are on `main` but the release has not been cut yet.
   mid-read, an undefined-behaviour downcast in annotation text
   extraction, and a zero-length `memmove` on a null buffer when reading
   an empty paragraph.
+- **Drag-to-edge autoscroll no longer jumps back to the top** —
+  dragging a text selection (or a dragged block/image/frame) past the
+  bottom edge of the window could make the view snap back up instead
+  of stopping at the end of the document. Scroll requests are now
+  clamped to the document bounds before they reach the scrollbar, the
+  autoscroll "missed ticks" accelerator is per-drag state instead of
+  file-global (and resets between drags), and the repeating scroll
+  worker is actually torn down on mouse-release, abort and view
+  destruction — previously it kept scrolling from stale mouse
+  coordinates after the drag had ended.
 
 ### GTK4 port (core migration)
 

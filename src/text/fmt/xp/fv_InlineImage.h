@@ -73,6 +73,13 @@ public:
 	const char *          getPNGImage(UT_ConstByteBufPtr & pBuf) const;
 	UT_sint32             getImageSelBoxSize() const; // in device units!
 	void                  setSelectionDrawn(bool bSelectionDrawn);
+	/* autoscroll state, exposed read-only so tests (and sanity checks)
+	 * can verify the arming timer, the repeating worker and the
+	 * per-drag acceleration are all torn down when a drag ends */
+	bool                  isAutoScrollActive(void) const
+	  { return (m_pAutoScrollTimer != nullptr) || (m_pScrollWorker != nullptr); }
+	UT_sint32             getScrollAccelExtra(void) const
+	  { return m_iScrollExtra;}
 protected:
 	virtual void          _mouseDrag(UT_sint32 x, UT_sint32 y) override;
 private:
@@ -89,6 +96,11 @@ private:
 
 	// autoscroll stuff
 	UT_Timer *			  m_pAutoScrollTimer;
+	UT_Worker *			  m_pScrollWorker;
+	bool				  m_bScrollWorkerRunning;
+	UT_sint32			  m_iScrollExtra;
+
+	void				  _stopScrollWorkers(void);
 
 	bool                  m_bDoingCopy;
 	PP_AttrProp *         m_pImageAP;

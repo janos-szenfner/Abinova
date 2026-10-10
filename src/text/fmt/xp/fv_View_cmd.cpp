@@ -5326,6 +5326,21 @@ void FV_View::cmdScroll(AV_ScrollCmd cmd, UT_uint32 iPos)
 	if (yoff < 0)
 		yoff = 0;
 
+	/* also clamp at the document bottom — a scroll request must stop
+	 * at the last page, never overshoot and never wrap back toward
+	 * the top.  The GTK scrollbar clamp in AP_UnixFrame::_scrollFuncY
+	 * only sees the requested offset and snaps it to 0 whenever the
+	 * adjustment range is momentarily empty, which is how an
+	 * out-of-range request rewinds the view. */
+	if (bVertical && m_pLayout && !isLayoutFilling())
+	{
+		UT_sint32 iMaxVScroll = m_pLayout->getHeight() - getWindowHeight();
+		if (iMaxVScroll < 0)
+			iMaxVScroll = 0;
+		if (yoff > iMaxVScroll)
+			yoff = iMaxVScroll;
+	}
+
 	bool bRedrawPoint = true;
 
 	if (bVertical && (yoff != m_yScrollOffset))

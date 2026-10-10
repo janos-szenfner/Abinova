@@ -131,6 +131,8 @@
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fv_AlignReflow.t.cpp"
 #undef TFSUITE
+#include "src/text/fmt/xp/t/fv_DragAutoScroll.t.cpp"
+#undef TFSUITE
 #include "src/text/fmt/xp/t/fv_ViewModes.t.cpp"
 #undef TFSUITE
 #include "src/text/fmt/xp/t/fv_ViewOps.t.cpp"
