@@ -5965,6 +5965,18 @@ below are on `main` but the release has not been cut yet.
   sweep found every string consistent (`configure.ac` 4.0.0,
   `--version`, bundle names, man page, NSIS, Flatpak); the AppStream
   metainfo now also declares a `<releases>` entry for 4.0.0.
+- **Post-queue code-quality sweep landed** — a four-leg audit of the
+  drained task queue (dead code, duplication, performance, security)
+  removed the leftover debugging instrumentation the fix series left
+  behind: 23 `RULER_TRACE` trace sites across both rulers and the GTK
+  ruler glue, an unconditional `NAVDBG` print on every nav-pane
+  toggle, six `DBG` prints in the edit-method layer, and two uncalled
+  drag-autoscroll test accessors. Ctrl+T/Ctrl+Shift+T hanging-indents
+  now share one implementation instead of two near-copies. A
+  performance review found no regressions in the recent fixes, and a
+  security re-verification confirmed the importer/parser hardening is
+  untouched and intact. Findings and verdicts are recorded in
+  `.devin/AUDIT06-report.md`.
 
 ### Resolved root causes worth noting
 
