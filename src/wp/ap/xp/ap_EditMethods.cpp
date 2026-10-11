@@ -7251,8 +7251,6 @@ Defun1(insertBlankPage)
 	PT_DocPosition posEnd = 0;
 	pView->getEditableBounds(true, posEnd);
 	const bool bAtEnd = (pView->getPoint() + 1 >= posEnd);
-	fprintf(stderr, "DBG blankpage point=%d posEnd=%d bAtEnd=%d\n",
-			static_cast<int>(pView->getPoint()), static_cast<int>(posEnd), bAtEnd ? 1 : 0);
 	UT_UCS4Char c = UCS_FF;
 	pView->getDocument()->beginUserAtomicGlob();
 	pView->cmdCharInsert(&c, 1);
@@ -12185,10 +12183,8 @@ static bool s_doInsertPageNumbers(FV_View * pView)
 
 	AP_Dialog_PageNumbers * pDialog
 		= static_cast<AP_Dialog_PageNumbers *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_PAGE_NUMBERS)));
-	fprintf(stderr, "DBG pageno dialog=%p\n", static_cast<void*>(pDialog));
 	UT_return_val_if_fail(pDialog, false);
 	pDialog->runModal(pFrame);
-	fprintf(stderr, "DBG pageno answer=%d\n", static_cast<int>(pDialog->getAnswer()));
 
 	if (pDialog->getAnswer() != AP_Dialog_PageNumbers::a_OK)
 	{
@@ -13157,7 +13153,6 @@ static bool s_doBullets(FV_View *pView)
 		= static_cast<XAP_DialogFactory *>(XAP_App::getApp()->getDialogFactory());
 	AP_Dialog_Lists * pDialog
 		= static_cast<AP_Dialog_Lists *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_LISTS)));
-	fprintf(stderr, "DBG bullets dialog=%p\n", static_cast<void *>(pDialog));
 UT_return_val_if_fail(pDialog, false);
 	if(pDialog->isRunning() == true)
 	{
@@ -14724,13 +14719,11 @@ Defun(doListType)
 	else if (sType == "ARABICNUM")   lType = ARABICNUMBERED_LIST;
 	else if (sType == "NONE")
 	{
-		fprintf(stderr, "DBG doListType NONE -> remove\n");
 		return pView->cmdRemoveListFormat();
 	}
 	else
 		return false;
 
-	fprintf(stderr, "DBG doListType %s\n", arg.c_str());
 	return pView->cmdApplyListType(
 		lType,
 		sDecimal.empty() ? nullptr : sDecimal.c_str(),

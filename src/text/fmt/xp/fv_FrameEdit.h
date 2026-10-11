@@ -88,13 +88,6 @@ public:
 	/* Word's "Draw Vertical Text Box": the next interactive insert
 	 * creates the frame rotated 90 degrees */
 	void                  setVerticalTextBox(bool b) { m_bVerticalTextBox = b; }
-	/* autoscroll state, exposed read-only so tests (and sanity checks)
-	 * can verify the arming timer, the repeating worker and the
-	 * per-drag acceleration are all torn down when a drag ends */
-	bool                  isAutoScrollActive(void) const
-	  { return (m_pAutoScrollTimer != nullptr) || (m_pScrollWorker != nullptr); }
-	UT_sint32             getScrollAccelExtra(void) const
-	  { return m_iScrollExtra;}
 
 protected:
 	virtual void          _mouseDrag(UT_sint32 x, UT_sint32 y) override;

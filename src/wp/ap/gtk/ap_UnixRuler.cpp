@@ -195,11 +195,6 @@ void AP_UnixRuler::_fe::button_pressed(GtkGestureClick* g, gint n_press,
     AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(pRuler);
     UT_nonnull_or_return(ruler,);
 
-    if (getenv("RULER_TRACE"))
-        fprintf(stderr, "fe press w=%p n=%d (%.0f,%.0f)\n",
-                static_cast<void*>(gtk_event_controller_get_widget(
-                    GTK_EVENT_CONTROLLER(g))), n_press, ev_x, ev_y);
-
     /* only the claim is reset here: "drag-begin" can arrive BEFORE this
      * press for the same sequence (GTK4 emits it the moment the drag
      * gesture claims the button-press, ahead of the click controller's
@@ -256,12 +251,6 @@ void AP_UnixRuler::_fe::button_released(GtkGestureClick* g, gint /*n_press*/,
     AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(pRuler);
     UT_nonnull_or_return(ruler,);
 
-    if (getenv("RULER_TRACE"))
-        fprintf(stderr, "fe release w=%p (%.0f,%.0f) claimed=%d\n",
-                static_cast<void*>(gtk_event_controller_get_widget(
-                    GTK_EVENT_CONTROLLER(g))), ev_x, ev_y,
-                static_cast<int>(pRuler->m_bDragClaimed));
-
     if (pRuler->m_bDragClaimed) {
         return;
     }
@@ -283,7 +272,7 @@ void AP_UnixRuler::_fe::button_released(GtkGestureClick* g, gint /*n_press*/,
                          pG->tlu(static_cast<UT_sint32>(ev_y)));
 }
 
-void AP_UnixRuler::_fe::drag_begin(GtkGestureDrag* g,
+void AP_UnixRuler::_fe::drag_begin(GtkGestureDrag* /*g*/,
                                    gdouble start_x, gdouble start_y,
                                    gpointer data)
 {
@@ -292,10 +281,6 @@ void AP_UnixRuler::_fe::drag_begin(GtkGestureDrag* g,
      * sequence, so keep button_released from re-applying it. */
     AP_UnixRuler* pRuler = static_cast<AP_UnixRuler *>(data);
     UT_nonnull_or_return(pRuler,);
-    if (getenv("RULER_TRACE"))
-        fprintf(stderr, "fe drag-begin w=%p (%.0f,%.0f)\n",
-                static_cast<void*>(gtk_event_controller_get_widget(
-                    GTK_EVENT_CONTROLLER(g))), start_x, start_y);
     pRuler->m_bDragClaimed = true;
     pRuler->m_bDragBegun = true;
     pRuler->m_dragStartX = pRuler->m_dragLastX = start_x;
@@ -314,11 +299,6 @@ void AP_UnixRuler::_fe::drag_update(GtkGestureDrag* g,
     if (!pView || pView->getPoint() == 0 || !ruler->getGraphics()) {
         return;
     }
-
-    if (getenv("RULER_TRACE"))
-        fprintf(stderr, "fe drag-update w=%p off(%.0f,%.0f)\n",
-                static_cast<void*>(gtk_event_controller_get_widget(
-                    GTK_EVENT_CONTROLLER(g))), offset_x, offset_y);
 
     /* drag-update reports an offset from the press point; recovering the
      * absolute widget position keeps working when the pointer is outside
@@ -351,27 +331,10 @@ void AP_UnixRuler::_fe::drag_update(GtkGestureDrag* g,
     pRuler->_finishMotionEvent(x, y);
 }
 
-void AP_UnixRuler::_fe::drag_cancel(GtkGesture* g,
-                                    GdkEventSequence* sequence,
+void AP_UnixRuler::_fe::drag_cancel(GtkGesture* /*g*/,
+                                    GdkEventSequence* /*sequence*/,
                                     gpointer /*data*/)
 {
-    if (getenv("RULER_TRACE")) {
-        GdkEvent *ev = gtk_event_controller_get_current_event(
-            GTK_EVENT_CONTROLLER(g));
-        gdouble ex = -1, ey = -1;
-        if (ev)
-            gdk_event_get_position(ev, &ex, &ey);
-        fprintf(stderr, "fe drag-CANCEL w=%p seq=%p evtype=%d "
-                "evpos(%.0f,%.0f) evstate=%08x evtime=%u\n",
-                static_cast<void*>(gtk_event_controller_get_widget(
-                    GTK_EVENT_CONTROLLER(g))),
-                static_cast<void*>(sequence),
-                ev ? static_cast<int>(gdk_event_get_event_type(ev)) : -1,
-                ex, ey,
-                ev ? static_cast<unsigned>(
-                    gdk_event_get_modifier_state(ev)) : 0u,
-                ev ? gdk_event_get_time(ev) : 0u);
-    }
 }
 
 void AP_UnixRuler::_fe::drag_end(GtkGestureDrag* g,
@@ -382,31 +345,8 @@ void AP_UnixRuler::_fe::drag_end(GtkGestureDrag* g,
     AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(pRuler);
     UT_nonnull_or_return(ruler,);
 
-    if (getenv("RULER_TRACE")) {
-        GdkEventSequence *seq =
-            gtk_gesture_single_get_current_sequence(GTK_GESTURE_SINGLE(g));
-        GdkEvent *ev = gtk_event_controller_get_current_event(
-            GTK_EVENT_CONTROLLER(g));
-        fprintf(stderr, "fe drag-end w=%p off(%.0f,%.0f) seq=%p "
-                "handles=%d seqstate=%d evtype=%d evtime=%u\n",
-                static_cast<void*>(gtk_event_controller_get_widget(
-                    GTK_EVENT_CONTROLLER(g))), offset_x, offset_y,
-                static_cast<void*>(seq),
-                static_cast<int>(gtk_gesture_handles_sequence(
-                    GTK_GESTURE(g), seq)),
-                static_cast<int>(gtk_gesture_get_sequence_state(
-                    GTK_GESTURE(g), seq)),
-                ev ? static_cast<int>(gdk_event_get_event_type(ev)) : -1,
-                ev ? gdk_event_get_time(ev) : 0u);
-    }
-
     FV_View* pView = static_cast<FV_View*>(ruler->getFrame()->getCurrentView());
     if (!pView || pView->getPoint() == 0 || !ruler->getGraphics()) {
-        if (getenv("RULER_TRACE"))
-            fprintf(stderr, "fe drag-end early-out view=%p pt=%s g=%p\n",
-                    static_cast<void*>(pView),
-                    (pView && pView->getPoint()) ? "set" : "0",
-                    static_cast<void*>(ruler->getGraphics()));
         return;
     }
 
@@ -433,8 +373,6 @@ void AP_UnixRuler::_fe::drag_end(GtkGestureDrag* g,
     } else {
         gdouble start_x = 0.0, start_y = 0.0;
         if (!gtk_gesture_drag_get_start_point(g, &start_x, &start_y)) {
-            if (getenv("RULER_TRACE"))
-                fprintf(stderr, "fe drag-end no start point\n");
             return;
         }
         ev_x = start_x + offset_x;
@@ -447,10 +385,6 @@ void AP_UnixRuler::_fe::drag_end(GtkGestureDrag* g,
     EV_EditMouseButton emb = s_buttonToEmb(gtk_gesture_single_get_current_button(
         GTK_GESTURE_SINGLE(g)));
 
-    if (getenv("RULER_TRACE"))
-        fprintf(stderr, "drag_end w(%g,%g) ems=%08x emb=%d\n",
-                ev_x, ev_y, static_cast<unsigned>(ems),
-                static_cast<int>(emb));
     auto pG = ruler->getGraphics();
     ruler->mouseRelease(ems, emb,
                          pG->tlu(static_cast<UT_sint32>(ev_x)),

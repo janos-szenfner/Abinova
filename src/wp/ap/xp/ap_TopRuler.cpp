@@ -1153,12 +1153,6 @@ UT_sint32 AP_TopRuler::_findTabStop(AP_TopRulerInfo * pInfo,
 		_getTabStopXAnchor(pInfo, i, &anchor, iType, iLeader);
 		_getTabStopRect(pInfo, anchor, &rect);
 
-		if (getenv("RULER_TRACE"))
-			fprintf(stderr, "  findTab i=%d anchor=%d rect=(%d,%d %dx%d) q=(%u,%u)\n",
-					static_cast<int>(i), static_cast<int>(anchor),
-					rect.left, rect.top, rect.width, rect.height,
-					x, y);
-
 		if (rect.containsPoint(x,y))
 			return i;
 	}
@@ -2255,9 +2249,6 @@ void AP_TopRuler::mousePress(EV_EditModifierState /* ems */,
 	FV_View * pView = (static_cast<FV_View *>(m_pView));
     if(pView->getDocument()->isPieceTableChanging())
 	{
-		if (getenv("RULER_TRACE"))
-			fprintf(stderr, "topRuler press (%u,%u) PT-CHANGING bail\n",
-					x, y);
 		return;
 	}
 	pView->getTopRulerInfo(&m_infoCache);
@@ -2326,10 +2317,6 @@ void AP_TopRuler::mousePress(EV_EditModifierState /* ems */,
  	eTabType iType;
 	eTabLeader iLeader;
 	UT_sint32 iTab = _findTabStop(&m_infoCache, x, m_pG->tlu(s_iFixedHeight/2 + s_iFixedHeight/4 - 3), anchor, iType, iLeader);
-	if (getenv("RULER_TRACE"))
-		fprintf(stderr, "topRuler press (%u,%u) iTab=%d stops=%d\n",
-				x, y, static_cast<int>(iTab),
-				static_cast<int>(m_infoCache.m_iTabStops));
 	if (iTab >= 0)
 	{
 		if(emb == EV_EMB_BUTTON1)
@@ -2619,11 +2606,6 @@ void AP_TopRuler::mouseRelease(EV_EditModifierState ems, EV_EditMouseButton /* e
 	// applies at the last tracked x (Word parity): the drag kept
 	// tracking horizontally while the pointer strayed vertically.
 
-	if (getenv("RULER_TRACE"))
-		fprintf(stderr, "topRuler release (%d,%d) what=%d h=%d ctr=%d "
-				"ignored=%d\n", x, y,
-				static_cast<int>(m_draggingWhat), getHeight(),
-				m_draggingCenter, static_cast<int>(m_bEventIgnored));
 	if ((getHeight() > 0) && ((y < 0) || (y > static_cast<UT_sint32>(getHeight ()))) &&
 	    m_draggingWhat == DW_TABSTOP)
 	{
@@ -3519,11 +3501,6 @@ void AP_TopRuler::_setTabStops(ap_RulerTicks tick, UT_sint32 iTab, eTabLeader iL
 		"tabstops", buf.c_str()
 	};
 	UT_DEBUGMSG(("TopRuler: Tab Stop [%s]\n",properties[1].c_str()));
-	if (getenv("RULER_TRACE"))
-		fprintf(stderr, "topRuler setTabStops bDelete=%d dragTab=%d "
-				"stops=%d buf=\"%s\"\n",
-				static_cast<int>(bDelete), m_draggingTab,
-				m_infoCache.m_iTabStops, buf.c_str());
 
 	m_draggingWhat = DW_NOTHING;
 	(static_cast<FV_View *>(m_pView))->setBlockFormat(properties);
@@ -3927,11 +3904,6 @@ void AP_TopRuler::mouseMotion(EV_EditModifierState /*ems*/, UT_sint32 x, UT_sint
 			double dgrid = tick.scalePixelDistanceToUnits(xrel);
 			UT_DEBUGMSG(("SettingLeftIndent: %s\n",pView->getGraphics()->invertDimension(tick.dimType,dgrid)));
 #endif
-			if (getenv("RULER_TRACE"))
-				fprintf(stderr, "topRuler motion LEFTINDENT x=%d "
-						"xAbsLeft=%d xrel=%d xgrid=%d scrl=%d wppr=%d\n",
-						x, xAbsLeft, xrel, xgrid,
-						m_xScrollOffset, widthPrevPagesInRow);
 
 			UT_sint32 iRightPos;
 
