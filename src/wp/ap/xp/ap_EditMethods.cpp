@@ -14529,6 +14529,41 @@ Defun1(toggleUnIndent)
 // inch step the ruler's indent markers use.
 #define HANGING_INDENT_AMT 0.5
 
+// shared body of hangingIndent/unHangingIndent: bUnhang=false deepens
+// the hanging indent (margin-left += step, text-indent -= step);
+// bUnhang=true shrinks it, clamped so the left margin cannot go
+// negative and a plain first-line indent is never flipped into a
+// negative one.
+static void s_hangingIndentStep(FV_View * pView, bool bUnhang)
+{
+	PP_PropertyVector props_in;
+	pView->getBlockFormat(props_in);
+	const double dLeft =
+		UT_convertToInches(PP_getAttribute("margin-left", props_in).c_str());
+	const double dIndent =
+		UT_convertToInches(PP_getAttribute("text-indent", props_in).c_str());
+
+	double dNewLeft, dNewIndent;
+	if (bUnhang)
+	{
+		dNewLeft = dLeft > HANGING_INDENT_AMT ? dLeft - HANGING_INDENT_AMT : 0.0;
+		dNewIndent = dIndent < -HANGING_INDENT_AMT + 0.0001 ? dIndent + HANGING_INDENT_AMT : 0.0;
+	}
+	else
+	{
+		dNewLeft = dLeft + HANGING_INDENT_AMT;
+		dNewIndent = dIndent - HANGING_INDENT_AMT;
+	}
+
+	const PP_PropertyVector properties = {
+		"margin-left",
+		UT_convertInchesToDimensionString(DIM_IN, dNewLeft, ".4"),
+		"text-indent",
+		UT_convertInchesToDimensionString(DIM_IN, dNewIndent, ".4")
+	};
+	pView->setBlockFormat(properties);
+}
+
 // Ctrl+T (Word): deepen the hanging indent — the block's left margin
 // moves right by one step while the first line stays put, i.e.
 // margin-left += step and text-indent -= step.
@@ -14540,27 +14575,12 @@ Defun1(hangingIndent)
 	if (pView->getDocument()->areStylesLocked())
 		return true;
 
-	PP_PropertyVector props_in;
-	pView->getBlockFormat(props_in);
-	const double dLeft =
-		UT_convertToInches(PP_getAttribute("margin-left", props_in).c_str());
-	const double dIndent =
-		UT_convertToInches(PP_getAttribute("text-indent", props_in).c_str());
-
-	const std::string sLeft =
-		UT_convertInchesToDimensionString(DIM_IN, dLeft + HANGING_INDENT_AMT, ".4");
-	const PP_PropertyVector properties = {
-		"margin-left", sLeft,
-		"text-indent",
-		UT_convertInchesToDimensionString(DIM_IN, dIndent - HANGING_INDENT_AMT, ".4")
-	};
-	pView->setBlockFormat(properties);
+	s_hangingIndentStep(pView, false);
 	return true;
 }
 
 // Ctrl+Shift+T (Word): reduce a hanging indent — mirror of
-// hangingIndent, clamped so the left margin cannot go negative and a
-// plain first-line indent is never flipped into a negative one.
+// hangingIndent.
 Defun1(unHangingIndent)
 {
 	CHECK_FRAME;
@@ -14569,25 +14589,7 @@ Defun1(unHangingIndent)
 	if (pView->getDocument()->areStylesLocked())
 		return true;
 
-	PP_PropertyVector props_in;
-	pView->getBlockFormat(props_in);
-	const double dLeft =
-		UT_convertToInches(PP_getAttribute("margin-left", props_in).c_str());
-	const double dIndent =
-		UT_convertToInches(PP_getAttribute("text-indent", props_in).c_str());
-
-	const std::string sLeft =
-		UT_convertInchesToDimensionString(DIM_IN,
-										  dLeft > HANGING_INDENT_AMT ? dLeft - HANGING_INDENT_AMT : 0.0,
-										  ".4");
-	const PP_PropertyVector properties = {
-		"margin-left", sLeft,
-		"text-indent",
-		UT_convertInchesToDimensionString(DIM_IN,
-										  dIndent < -HANGING_INDENT_AMT + 0.0001 ? dIndent + HANGING_INDENT_AMT : 0.0,
-										  ".4")
-	};
-	pView->setBlockFormat(properties);
+	s_hangingIndentStep(pView, true);
 	return true;
 }
 
