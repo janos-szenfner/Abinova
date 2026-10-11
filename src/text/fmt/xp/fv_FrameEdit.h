@@ -22,6 +22,7 @@
 
 #include "pt_Types.h"
 #include "fl_FrameLayout.h"
+#include "fv_AutoScroll.h"
 #include "fv_Base.h"
 
 enum FV_FrameEditMode: uint8_t
@@ -104,12 +105,7 @@ private:
 	GR_Image *            m_pFrameImage;
 
 	// autoscroll stuff
-	UT_Timer *			  m_pAutoScrollTimer;
-	UT_Worker *			  m_pScrollWorker;
-	bool				  m_bScrollWorkerRunning;
-	UT_sint32			  m_iScrollExtra;
-
-	void				  _stopScrollWorkers(void);
+	FV_AutoScroll		  m_autoScroll;
 
 	//
 	UT_sint32             m_iInitialFrameX;

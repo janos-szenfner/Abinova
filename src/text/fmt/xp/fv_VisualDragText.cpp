@@ -51,10 +51,6 @@ FV_VisualDragText::FV_VisualDragText (FV_View * pView)
 	  m_pDocUnderCursor(nullptr),
 	  m_bCursorDrawn(false),
 	  m_recCursor(0,0,0,0),
-	  m_pAutoScrollTimer(nullptr),
-	  m_pScrollWorker(nullptr),
-	  m_bScrollWorkerRunning(false),
-	  m_iScrollExtra(0),
 	  m_xLastMouse(1),
 	  m_yLastMouse(1),
 	  m_bDoingCopy(false),
@@ -67,29 +63,7 @@ FV_VisualDragText::FV_VisualDragText (FV_View * pView)
 FV_VisualDragText::~FV_VisualDragText()
 {
 	DELETEP(m_pDragImage);
-	_stopScrollWorkers();
-}
-
-/* kill every autoscroll source this object owns: the arming timer and
- * the repeating scroll worker, which carries 'this' as instance data
- * and must never fire on a dead drag object or after the drag ends.
- * The acceleration counter resets here so a later drag can never
- * inherit it. */
-void FV_VisualDragText::_stopScrollWorkers(void)
-{
-	if(m_pAutoScrollTimer != nullptr)
-	{
-		m_pAutoScrollTimer->stop();
-		DELETEP(m_pAutoScrollTimer);
-	}
-	if(m_pScrollWorker != nullptr)
-	{
-		m_pScrollWorker->stop();
-		delete m_pScrollWorker;
-		m_pScrollWorker = nullptr;
-	}
-	m_bScrollWorkerRunning = false;
-	m_iScrollExtra = 0;
+	m_autoScroll.stopAll();
 }
 
 bool FV_VisualDragText::isActive(void) const
@@ -128,7 +102,7 @@ void FV_VisualDragText::_actuallyScroll(UT_Worker * pWorker)
 	{
 		// the drag ended while a worker tick was still queued —
 		// shut the whole autoscroll machinery down
-		pVis->_stopScrollWorkers();
+		pVis->m_autoScroll.stopAll();
 		return;
 	}
 	FV_View * pView = pVis->m_pView;
@@ -167,14 +141,14 @@ void FV_VisualDragText::_actuallyScroll(UT_Worker * pWorker)
 		        UT_sint32 yscroll = abs(y);
 			if(yscroll < minScroll)
 			    yscroll = minScroll;
-			pView->cmdScroll(AV_SCROLLCMD_LINEUP, static_cast<UT_uint32>( yscroll + pVis->m_iScrollExtra));
+			pView->cmdScroll(AV_SCROLLCMD_LINEUP, static_cast<UT_uint32>( yscroll + pVis->m_autoScroll.accel()));
 		}
 		else if(bScrollDown)
 		{
 		        UT_sint32 yscroll = y - pView->getWindowHeight();
 			if(yscroll < minScroll)
 			    yscroll = minScroll;
-			pView->cmdScroll(AV_SCROLLCMD_LINEDOWN, static_cast<UT_uint32>(yscroll + pVis->m_iScrollExtra));
+			pView->cmdScroll(AV_SCROLLCMD_LINEDOWN, static_cast<UT_uint32>(yscroll + pVis->m_autoScroll.accel()));
 		}
 		if(bScrollLeft)
 		{
@@ -185,10 +159,10 @@ void FV_VisualDragText::_actuallyScroll(UT_Worker * pWorker)
 			pView->cmdScroll(AV_SCROLLCMD_LINERIGHT, static_cast<UT_uint32>(x -pView->getWindowWidth()));
 		}
 		pVis->drawImage();
-		pVis->m_iScrollExtra = 0;
+		pVis->m_autoScroll.resetAccel();
 		return;
 	}
-	pVis->_stopScrollWorkers();
+	pVis->m_autoScroll.stopAll();
 }
 
 void FV_VisualDragText::_autoScroll(UT_Worker * pWorker)
@@ -199,28 +173,15 @@ void FV_VisualDragText::_autoScroll(UT_Worker * pWorker)
 	UT_return_if_fail(pWorker);
 	FV_VisualDragText * pVis = static_cast<FV_VisualDragText *>(pWorker->getInstanceData());
 	UT_return_if_fail(pVis);
-	if(pVis->m_bScrollWorkerRunning)
+	if(pVis->m_autoScroll.workerRunning())
 	{
 	    UT_DEBUGMSG(("Dropping VisualDragText autoscroll !!!!!!! \n"));
-	    if(pVis->m_iScrollExtra < pVis->getGraphics()->tlu(600))
-	      pVis->m_iScrollExtra += pVis->getGraphics()->tlu(20);
+	    pVis->m_autoScroll.bumpAccel(pVis->getGraphics()->tlu(20),
+									 pVis->getGraphics()->tlu(600));
 	    return;
 	}
 
-	int inMode = UT_WorkerFactory::IDLE | UT_WorkerFactory::TIMER;
-	UT_WorkerFactory::ConstructMode outMode = UT_WorkerFactory::NONE;
-	pVis->m_pScrollWorker = UT_WorkerFactory::static_constructor (_actuallyScroll,pVis, inMode, outMode);
-
-	// If the worker is working on a timer instead of in the idle
-	// time, set the frequency of the checks.
-	if ( UT_WorkerFactory::TIMER == outMode )
-	{
-		// this is really a timer, so it's safe to static_cast it
-		static_cast<UT_Timer*>(pVis->m_pScrollWorker)->set(100);
-	}
-	pVis->m_bScrollWorkerRunning = true;
-	pVis->m_iScrollExtra = 0;
-	pVis->m_pScrollWorker->start();
+	pVis->m_autoScroll.spawnWorker(&FV_VisualDragText::_actuallyScroll, pVis, 100);
 }
 
 void FV_VisualDragText::mouseDrag(UT_sint32 x, UT_sint32 y)
@@ -315,13 +276,7 @@ void FV_VisualDragText::_mouseDrag(UT_sint32 x, UT_sint32 y)
 	}
 	if(bScrollDown || bScrollUp || bScrollLeft || bScrollRight)
 	{
-		if(m_pAutoScrollTimer != nullptr)
-		{
-			return;
-		}
-		m_pAutoScrollTimer = UT_Timer::static_constructor(_autoScroll, this);
-		m_pAutoScrollTimer->set(AUTO_SCROLL_MSECS);
-		m_pAutoScrollTimer->start();
+		m_autoScroll.arm(&FV_VisualDragText::_autoScroll, this, AUTO_SCROLL_MSECS);
 		return;
 	}
 	UT_sint32 dx = 0;
@@ -1081,7 +1036,7 @@ PT_DocPosition FV_VisualDragText::getPosFromXY(UT_sint32 x, UT_sint32 y)
  */
 void   FV_VisualDragText::abortDrag(void)
 {
-	_stopScrollWorkers();
+	m_autoScroll.stopAll();
 	m_bSelectedRow = false;
 	bool bDidCopy = m_bDoingCopy;
 	m_bDoingCopy = false;
@@ -1112,7 +1067,7 @@ void   FV_VisualDragText::abortDrag(void)
  */
 void FV_VisualDragText::mouseRelease(UT_sint32 x, UT_sint32 y)
 {
-	_stopScrollWorkers();
+	m_autoScroll.stopAll();
 	m_bDoingCopy = false;
 	m_bNotDraggingImage = false;
 	m_bSelectedRow = false;

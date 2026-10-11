@@ -21,6 +21,7 @@
 
 #include "pt_Types.h"
 #include "fl_FrameLayout.h"
+#include "fv_AutoScroll.h"
 
 enum FV_VisualDragMode: uint8_t
 {
@@ -69,9 +70,9 @@ public:
 	 * can verify the arming timer, the repeating worker and the
 	 * per-drag acceleration are all torn down when a drag ends */
 	bool                  isAutoScrollActive(void) const
-	  { return (m_pAutoScrollTimer != nullptr) || (m_pScrollWorker != nullptr); }
+	  { return m_autoScroll.active(); }
 	UT_sint32             getScrollAccelExtra(void) const
-	  { return m_iScrollExtra;}
+	  { return m_autoScroll.accel();}
 	const UT_Rect *             getCurFrame(void) const
 	  { return &m_recCurFrame;}
  protected:
@@ -94,14 +95,9 @@ private:
 	UT_Rect               m_recDoc;
 
 	// autoscroll stuff
-	UT_Timer *			  m_pAutoScrollTimer;
-	UT_Worker *			  m_pScrollWorker;
-	bool				  m_bScrollWorkerRunning;
-	UT_sint32			  m_iScrollExtra;
+	FV_AutoScroll		  m_autoScroll;
 	UT_sint32			  m_xLastMouse;
 	UT_sint32			  m_yLastMouse;
-
-	void				  _stopScrollWorkers(void);
 
 	bool                  m_bDoingCopy;
 	bool                  m_bNotDraggingImage;

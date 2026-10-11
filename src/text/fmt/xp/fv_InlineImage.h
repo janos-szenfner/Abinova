@@ -23,6 +23,7 @@
 
 #include "pt_Types.h"
 #include "fl_FrameLayout.h"
+#include "fv_AutoScroll.h"
 #include "fv_FrameEdit.h" // for FV_Base
 
 
@@ -88,12 +89,7 @@ private:
 	UT_Rect               m_recCursor;
 
 	// autoscroll stuff
-	UT_Timer *			  m_pAutoScrollTimer;
-	UT_Worker *			  m_pScrollWorker;
-	bool				  m_bScrollWorkerRunning;
-	UT_sint32			  m_iScrollExtra;
-
-	void				  _stopScrollWorkers(void);
+	FV_AutoScroll		  m_autoScroll;
 
 	bool                  m_bDoingCopy;
 	PP_AttrProp *         m_pImageAP;

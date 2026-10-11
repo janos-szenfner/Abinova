@@ -245,9 +245,6 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 		m_pLayout(pLayout),
 		m_pDoc(pLayout->getDocument()),
 		m_pG(m_pLayout->getGraphics()),
-		m_pAutoScrollTimer(nullptr),
-		m_pScrollWorker(nullptr),
-		m_bScrollWorkerRunning(false),
 		m_xLastMouse(0),
 		m_yLastMouse(0),
 		m_bCursorIsOn(false),
@@ -685,8 +682,7 @@ FV_View::~FV_View()
 	// remove prefs listener
 	m_pApp->getPrefs()->removeListener( _prefsListener, this );
 
-	DELETEP(m_pAutoScrollTimer);
-	_stopPendingScrollWorker();
+	m_autoScroll.stopAll();
 	if(m_caretListener != nullptr)
 	{
 		DELETEP(m_caretListener);
@@ -8358,11 +8354,8 @@ void FV_View::extSelToXY(UT_sint32 xPos, UT_sint32 yPos, bool bDrag)
 		// is autoscroll timer set properly?
 		if (bOnScreen)
 		{
-			if (m_pAutoScrollTimer)
-			{
-				// timer not needed any more, so stop it
-				m_pAutoScrollTimer->stop();
-			}
+			// timer not needed any more, so stop it
+			m_autoScroll.pauseTimer();
 		}
 		else
 		{
@@ -8370,17 +8363,13 @@ void FV_View::extSelToXY(UT_sint32 xPos, UT_sint32 yPos, bool bDrag)
 			m_xLastMouse = xPos;
 			m_yLastMouse = yPos;
 			// offscreen ==> make sure it's set
-			if (!m_pAutoScrollTimer)
+			if (!m_autoScroll.armed())
 			{
-				m_pAutoScrollTimer = UT_Timer::static_constructor(_autoScroll, this);
-				if (m_pAutoScrollTimer)
-					{
-						m_pAutoScrollTimer->set(AUTO_SCROLL_MSECS);
-					}
+				m_autoScroll.arm(&FV_View::_autoScroll, this, AUTO_SCROLL_MSECS);
 			}
 			else
 			{
-				m_pAutoScrollTimer->start();
+				m_autoScroll.rearmTimer();
 			}
 
 			// postpone selection until timer fires
@@ -8588,11 +8577,8 @@ endif
 		// is autoscroll timer set properly?
 		if (bOnScreen)
 		{
-			if (m_pAutoScrollTimer)
-			{
-				// timer not needed any more, so stop it
-				m_pAutoScrollTimer->stop();
-			}
+			// timer not needed any more, so stop it
+			m_autoScroll.pauseTimer();
 		}
 		else
 		{
@@ -8601,17 +8587,13 @@ endif
 			m_yLastMouse = yPos;
 
 			// offscreen ==> make sure it's set
-			if (!m_pAutoScrollTimer)
+			if (!m_autoScroll.armed())
 			{
-				m_pAutoScrollTimer = UT_Timer::static_constructor(_autoScroll, this);
-				if (m_pAutoScrollTimer)
-					{
-						m_pAutoScrollTimer->set(AUTO_SCROLL_MSECS);
-					}
+				m_autoScroll.arm(&FV_View::_autoScroll, this, AUTO_SCROLL_MSECS);
 			}
 			else
 			{
-				m_pAutoScrollTimer->start();
+				m_autoScroll.rearmTimer();
 			}
 
 			// postpone selection until timer fires
@@ -8639,7 +8621,7 @@ endif
 
 void FV_View::endDrag(UT_sint32 xPos, UT_sint32 yPos)
 {
-	if (!m_pAutoScrollTimer)
+	if (!m_autoScroll.armed())
 		return;
 
 	// figure out whether we're still on screen
@@ -8656,11 +8638,11 @@ void FV_View::endDrag(UT_sint32 xPos, UT_sint32 yPos)
 		m_yLastMouse = yPos;
 
 		// finish pending autoscroll
-		m_pAutoScrollTimer->fire();
+		m_autoScroll.fireTimer();
 	}
 
 	// timer not needed any more, so stop it
-	m_pAutoScrollTimer->stop();
+	m_autoScroll.pauseTimer();
 }
 
 // ---------------- start goto ---------------

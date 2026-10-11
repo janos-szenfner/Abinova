@@ -52,10 +52,6 @@ FV_VisualInlineImage::FV_VisualInlineImage (FV_View * pView)
 	  m_pDocUnderCursor(nullptr),
 	  m_bCursorDrawn(false),
 	  m_recCursor(0,0,0,0),
-	  m_pAutoScrollTimer(nullptr),
-	  m_pScrollWorker(nullptr),
-	  m_bScrollWorkerRunning(false),
-	  m_iScrollExtra(0),
 	  m_bDoingCopy(false),
 	  m_pImageAP(nullptr),
 	  m_screenCache(nullptr),
@@ -68,31 +64,9 @@ FV_VisualInlineImage::FV_VisualInlineImage (FV_View * pView)
 FV_VisualInlineImage::~FV_VisualInlineImage()
 {
 	DELETEP(m_pDragImage);
-	_stopScrollWorkers();
+	m_autoScroll.stopAll();
 	DELETEP(m_screenCache);
 	DELETEP(m_pDocUnderCursor);
-}
-
-/* kill every autoscroll source this object owns: the arming timer and
- * the repeating scroll worker, which carries 'this' as instance data
- * and must never fire on a dead drag object or after the drag ends.
- * The acceleration counter resets here so a later drag can never
- * inherit it. */
-void FV_VisualInlineImage::_stopScrollWorkers(void)
-{
-	if(m_pAutoScrollTimer != nullptr)
-	{
-		m_pAutoScrollTimer->stop();
-		DELETEP(m_pAutoScrollTimer);
-	}
-	if(m_pScrollWorker != nullptr)
-	{
-		m_pScrollWorker->stop();
-		delete m_pScrollWorker;
-		m_pScrollWorker = nullptr;
-	}
-	m_bScrollWorkerRunning = false;
-	m_iScrollExtra = 0;
 }
 
 bool FV_VisualInlineImage::isActive(void) const
@@ -132,7 +106,7 @@ void FV_VisualInlineImage::_actuallyScroll(UT_Worker * pWorker)
 	{
 		// the drag ended while a worker tick was still queued —
 		// shut the whole autoscroll machinery down
-		pVis->_stopScrollWorkers();
+		pVis->m_autoScroll.stopAll();
 		return;
 	}
 	FV_View * pView = pVis->m_pView;
@@ -166,11 +140,11 @@ void FV_VisualInlineImage::_actuallyScroll(UT_Worker * pWorker)
 	{
 		if(bScrollUp)
 		{
-			pView->cmdScroll(AV_SCROLLCMD_LINEUP, static_cast<UT_uint32>( -y + pVis->m_iScrollExtra));
+			pView->cmdScroll(AV_SCROLLCMD_LINEUP, static_cast<UT_uint32>( -y + pVis->m_autoScroll.accel()));
 		}
 		else if(bScrollDown)
 		{
-			pView->cmdScroll(AV_SCROLLCMD_LINEDOWN, static_cast<UT_uint32>(y - pView->getWindowHeight() + pVis->m_iScrollExtra));
+			pView->cmdScroll(AV_SCROLLCMD_LINEDOWN, static_cast<UT_uint32>(y - pView->getWindowHeight() + pVis->m_autoScroll.accel()));
 		}
 		if(bScrollLeft)
 		{
@@ -182,10 +156,10 @@ void FV_VisualInlineImage::_actuallyScroll(UT_Worker * pWorker)
 		}
 
 		pVis->drawImage();
-		pVis->m_iScrollExtra = 0;
+		pVis->m_autoScroll.resetAccel();
 		return;
 	}
-	pVis->_stopScrollWorkers();
+	pVis->m_autoScroll.stopAll();
 }
 
 void FV_VisualInlineImage::_autoScroll(UT_Worker * pWorker)
@@ -196,29 +170,15 @@ void FV_VisualInlineImage::_autoScroll(UT_Worker * pWorker)
 
 	FV_VisualInlineImage * pVis = static_cast<FV_VisualInlineImage *>(pWorker->getInstanceData());
 	UT_return_if_fail(pVis);
-	if(pVis->m_bScrollWorkerRunning)
+	if(pVis->m_autoScroll.workerRunning())
 	{
 	    UT_DEBUGMSG(("Dropping InlineImage autoscroll !!!!!!! \n"));
-	    if(pVis->m_iScrollExtra < pVis->getGraphics()->tlu(600))
-	      pVis->m_iScrollExtra += pVis->getGraphics()->tlu(20);
+	    pVis->m_autoScroll.bumpAccel(pVis->getGraphics()->tlu(20),
+									 pVis->getGraphics()->tlu(600));
 	    return;
 	}
 
-	int inMode = UT_WorkerFactory::IDLE | UT_WorkerFactory::TIMER;
-	UT_WorkerFactory::ConstructMode outMode = UT_WorkerFactory::NONE;
-	pVis->m_pScrollWorker = UT_WorkerFactory::static_constructor (_actuallyScroll,pVis, inMode, outMode);
-
-	// If the worker is working on a timer instead of in the idle
-	// time, set the frequency of the checks.
-	if ( UT_WorkerFactory::TIMER == outMode )
-	{
-		// this is really a timer, so it's safe to static_cast it
-		static_cast<UT_Timer*>(pVis->m_pScrollWorker)->set(100);
-	}
-	pVis->m_bScrollWorkerRunning = true;
-	pVis->m_pScrollWorker->start();
-	pVis->m_iScrollExtra = 0;
-
+	pVis->m_autoScroll.spawnWorker(&FV_VisualInlineImage::_actuallyScroll, pVis, 100);
 }
 
 void FV_VisualInlineImage::_mouseDrag(UT_sint32 x, UT_sint32 y)
@@ -297,13 +257,7 @@ void FV_VisualInlineImage::_mouseDrag(UT_sint32 x, UT_sint32 y)
 		}
 		if(bScrollDown || bScrollUp || bScrollLeft || bScrollRight)
 		{
-			if(m_pAutoScrollTimer != nullptr)
-			{
-				return;
-			}
-			m_pAutoScrollTimer = UT_Timer::static_constructor(_autoScroll, this);
-			m_pAutoScrollTimer->set(AUTO_SCROLL_MSECS);
-			m_pAutoScrollTimer->start();
+			m_autoScroll.arm(&FV_VisualInlineImage::_autoScroll, this, AUTO_SCROLL_MSECS);
 			return;
 		}
 		UT_sint32 dx = 0;
@@ -726,7 +680,7 @@ void FV_VisualInlineImage::abortDrag(void)
 void FV_VisualInlineImage::cleanUP(void)
 {
   m_iInlineDragMode = FV_InlineDrag_NOT_ACTIVE;
-  _stopScrollWorkers();
+  m_autoScroll.stopAll();
   setDragWhat( FV_DragNothing );
   DELETEP(m_pDragImage);
   DELETEP(m_pDocUnderCursor);
@@ -1001,7 +955,7 @@ PT_DocPosition FV_VisualInlineImage::getPosFromXY(UT_sint32 x, UT_sint32 y) cons
  */
 void FV_VisualInlineImage::mouseRelease(UT_sint32 x, UT_sint32 y)
 {
-	_stopScrollWorkers();
+	m_autoScroll.stopAll();
 	clearCursor();
 	if(((m_iInlineDragMode != FV_InlineDrag_DRAGGING) && (m_iInlineDragMode != FV_InlineDrag_RESIZE) ) || !m_bFirstDragDone)
 	{

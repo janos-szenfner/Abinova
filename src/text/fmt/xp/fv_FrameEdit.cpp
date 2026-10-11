@@ -52,10 +52,6 @@ FV_FrameEdit::FV_FrameEdit (FV_View * pView)
 	  m_iInitialDragY(0),
 	  m_bInitialClick(false),
 	  m_pFrameImage(nullptr),
-	  m_pAutoScrollTimer(nullptr),
-	  m_pScrollWorker(nullptr),
-	  m_bScrollWorkerRunning(false),
-	  m_iScrollExtra(0),
 	  m_iInitialFrameX(0),
 	  m_iInitialFrameY(0),
 	  m_sRelWidth(""),
@@ -68,29 +64,7 @@ FV_FrameEdit::FV_FrameEdit (FV_View * pView)
 FV_FrameEdit::~FV_FrameEdit()
 {
 	DELETEP(m_pFrameImage);
-	_stopScrollWorkers();
-}
-
-/* kill every autoscroll source this object owns: the arming timer and
- * the repeating scroll worker, which carries 'this' as instance data
- * and must never fire on a dead drag object or after the drag ends.
- * The acceleration counter resets here so a later drag can never
- * inherit it. */
-void FV_FrameEdit::_stopScrollWorkers(void)
-{
-	if(m_pAutoScrollTimer)
-	{
-		m_pAutoScrollTimer->stop();
-		DELETEP(m_pAutoScrollTimer);
-	}
-	if(m_pScrollWorker)
-	{
-		m_pScrollWorker->stop();
-		delete m_pScrollWorker;
-		m_pScrollWorker = nullptr;
-	}
-	m_bScrollWorkerRunning = false;
-	m_iScrollExtra = 0;
+	m_autoScroll.stopAll();
 }
 
 void FV_FrameEdit::setPointInside(void)
@@ -115,7 +89,7 @@ void FV_FrameEdit::setMode(FV_FrameEditMode iEditMode)
     UT_DEBUGMSG(("Frame Edit mode set to %d \n",iEditMode));
 	if(iEditMode == FV_FrameEdit_NOT_ACTIVE)
 	{
-		_stopScrollWorkers();
+		m_autoScroll.stopAll();
 		m_pFrameLayout = nullptr;
 		m_pFrameContainer = nullptr;
 		DELETEP(m_pFrameImage);
@@ -166,7 +140,7 @@ void FV_FrameEdit::_actuallyScroll(UT_Worker * pWorker)
 	UT_return_if_fail(pFE);
 	if(pFE->getFrameEditMode() != FV_FrameEdit_DRAG_EXISTING)
 	{
-		pFE->_stopScrollWorkers();
+		pFE->m_autoScroll.stopAll();
 		return;
 	}
 	FV_View * pView = pFE->m_pView;
@@ -230,14 +204,14 @@ void FV_FrameEdit::_actuallyScroll(UT_Worker * pWorker)
 		        UT_sint32 yscroll = abs(y);
 			if(yscroll < minScroll)
 			    yscroll = minScroll;
-			pView->cmdScroll(AV_SCROLLCMD_LINEUP, static_cast<UT_uint32>( yscroll + pFE->m_iScrollExtra));
+			pView->cmdScroll(AV_SCROLLCMD_LINEUP, static_cast<UT_uint32>( yscroll + pFE->m_autoScroll.accel()));
 		}
 		else if(bScrollDown)
 		{
 		        UT_sint32 yscroll = y - pView->getWindowHeight();
 			if(yscroll < minScroll)
 			    yscroll = minScroll;
-			pView->cmdScroll(AV_SCROLLCMD_LINEDOWN, static_cast<UT_uint32>(yscroll + pFE->m_iScrollExtra));
+			pView->cmdScroll(AV_SCROLLCMD_LINEDOWN, static_cast<UT_uint32>(yscroll + pFE->m_autoScroll.accel()));
 		}
 		if(bScrollLeft)
 		{
@@ -248,10 +222,10 @@ void FV_FrameEdit::_actuallyScroll(UT_Worker * pWorker)
 			pView->cmdScroll(AV_SCROLLCMD_LINERIGHT, static_cast<UT_uint32>(x -pView->getWindowWidth()));
 		}
 		pFE->drawFrame(true);
-		pFE->m_iScrollExtra = 0;
+		pFE->m_autoScroll.resetAccel();
 		return;
 	}
-	pFE->_stopScrollWorkers();
+	pFE->m_autoScroll.stopAll();
 }
 
 void FV_FrameEdit::_autoScroll(UT_Worker * pWorker)
@@ -261,30 +235,16 @@ void FV_FrameEdit::_autoScroll(UT_Worker * pWorker)
 
 	FV_FrameEdit * pFE = static_cast<FV_FrameEdit *>(pWorker->getInstanceData());
 	UT_return_if_fail(pFE);
-	if(pFE->m_bScrollWorkerRunning)
+	if(pFE->m_autoScroll.workerRunning())
 	{
-	    if(pFE->m_iScrollExtra < pFE->getGraphics()->tlu(600))
-	      pFE->m_iScrollExtra += pFE->getGraphics()->tlu(20);
+	    pFE->m_autoScroll.bumpAccel(pFE->getGraphics()->tlu(20),
+									pFE->getGraphics()->tlu(600));
 	    UT_DEBUGMSG(("Dropping FrameEditautoscroll !!!!!!! \n"));
 	    return;
 	}
 
 	UT_DEBUGMSG(("_autoscroll started!! \n"));
-	int inMode = UT_WorkerFactory::IDLE | UT_WorkerFactory::TIMER;
-	//	int inMode = UT_WorkerFactory::TIMER;
-	UT_WorkerFactory::ConstructMode outMode = UT_WorkerFactory::NONE;
-	pFE->m_pScrollWorker = UT_WorkerFactory::static_constructor (_actuallyScroll,pFE, inMode, outMode);
-
-	// If the worker is working on a timer instead of in the idle
-	// time, set the frequency of the checks.
-	if ( UT_WorkerFactory::TIMER == outMode )
-	{
-		// this is really a timer, so it's safe to static_cast it
-		static_cast<UT_Timer*>(pFE->m_pScrollWorker)->set(100);
-	}
-	pFE->m_bScrollWorkerRunning = true;
-	pFE->m_iScrollExtra = 0;
-	pFE->m_pScrollWorker->start();
+	pFE->m_autoScroll.spawnWorker(&FV_FrameEdit::_actuallyScroll, pFE, 100);
 }
 
 /*!
@@ -334,9 +294,7 @@ void FV_FrameEdit::_mouseDrag(UT_sint32 x, UT_sint32 y)
 		    {
 		      m_pView->setYScrollOffset(0);
 		      m_pView->updateScreen(false);
-		      if(m_pAutoScrollTimer)
-			m_pAutoScrollTimer->stop();
-		      DELETEP(m_pAutoScrollTimer);
+		      m_autoScroll.killTimer();
 		    }
 		  else
 		    {
@@ -349,9 +307,7 @@ void FV_FrameEdit::_mouseDrag(UT_sint32 x, UT_sint32 y)
 		  {
 		      m_pView->setYScrollOffset(m_pView->getLayout()->getHeight());
 		      m_pView->updateScreen(false);
-		      if(m_pAutoScrollTimer)
-			m_pAutoScrollTimer->stop();
-		      DELETEP(m_pAutoScrollTimer);
+		      m_autoScroll.killTimer();
 		  }
 		  else
 		  {
@@ -368,13 +324,7 @@ void FV_FrameEdit::_mouseDrag(UT_sint32 x, UT_sint32 y)
 		}
 		if(bScrollDown || bScrollUp || bScrollLeft || bScrollRight)
 		{
-			if(m_pAutoScrollTimer != nullptr)
-			{
-				return;
-			}
-			m_pAutoScrollTimer = UT_Timer::static_constructor(_autoScroll, this);
-			m_pAutoScrollTimer->set(AUTO_SCROLL_MSECS);
-			m_pAutoScrollTimer->start();
+			m_autoScroll.arm(&FV_FrameEdit::_autoScroll, this, AUTO_SCROLL_MSECS);
 			return;
 		}
 		diffx = m_iLastX - x;
@@ -1076,7 +1026,7 @@ void FV_FrameEdit::mouseRelease(UT_sint32 x, UT_sint32 y)
 		UT_DEBUGMSG(("Existing Frame selected now released button isActive() %d \n",isActive()));
 		return;
 	}
-	_stopScrollWorkers();
+	m_autoScroll.stopAll();
 
 	PT_DocPosition posAtXY = 0;
 

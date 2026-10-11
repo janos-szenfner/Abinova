@@ -58,6 +58,7 @@
 #include "fv_UnixSelectionHandles.h"
 #include "fv_UnixPasteTag.h"
 #include "fv_SelectionHandles.h"
+#include "fv_AutoScroll.h"
 
 #define AUTO_SCROLL_MSECS	100
 #define STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION FV_ViewDoubleBuffering dblBuffObj(this, true, true); dblBuffObj.beginDoubleBuffering();
@@ -629,7 +630,7 @@ public:
 	/* true while the autoscroll worker armed by _autoScroll is still
 	 * alive — read-only, for tests verifying drag-release teardown */
 	bool            hasPendingScrollWorker(void) const
-	  { return m_pScrollWorker != nullptr; }
+	  { return m_autoScroll.workerRunning(); }
 
 	PT_DocPosition  getDocPositionFromXY(UT_sint32 xpos, UT_sint32 ypos, bool bNotFrames = false);
 	PT_DocPosition  getDocPositionFromLastXY(void);
@@ -1317,9 +1318,7 @@ private:
 	GR_Graphics*		m_pG;
 
 	// autoscroll stuff
-	UT_Timer *			m_pAutoScrollTimer;
-	UT_Worker *			m_pScrollWorker;
-	bool				m_bScrollWorkerRunning;
+	FV_AutoScroll		m_autoScroll;
 	UT_sint32			m_xLastMouse;
 	UT_sint32			m_yLastMouse;
 

@@ -5977,6 +5977,16 @@ below are on `main` but the release has not been cut yet.
   security re-verification confirmed the importer/parser hardening is
   untouched and intact. Findings and verdicts are recorded in
   `.devin/AUDIT06-report.md`.
+- **Drag autoscroll machinery consolidated** — the four private
+  copies of the two-stage scroll-on-window-edge machinery
+  (`FV_VisualDragText`, `FV_VisualInlineImage`, `FV_FrameEdit`,
+  `FV_View`) now share one `FV_AutoScroll` helper that owns the
+  arming timer, the repeating scroll worker and the acceleration
+  counter. Per-class scroll math and teardown gates stay in the
+  owning classes, but the lifetime rules — stop-before-delete
+  inside the worker's own callback, worker-must-never-fire-on-a-
+  dead-owner, accel reset between drags — now live in exactly one
+  place instead of four, so the next autoscroll fix lands once.
 
 ### Resolved root causes worth noting
 

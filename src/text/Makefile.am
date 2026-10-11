@@ -106,6 +106,7 @@ libtext_la_SOURCES = \
 	fmt/xp/fp_TOCContainer.cpp \
 	fmt/xp/fp_TOCContainer.h \
 	fmt/xp/fp_types.h \
+	fmt/xp/fv_AutoScroll.h \
 	fmt/xp/fv_Base.cpp \
 	fmt/xp/fv_Base.h \
 	fmt/xp/fv_CoverAssets.cpp \
