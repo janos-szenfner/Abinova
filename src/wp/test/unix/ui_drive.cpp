@@ -51,6 +51,11 @@
  *                            then drive contextText/contextTOC/
  *                            contextImage through the nested-loop
  *                            context menu path
+ *   ui-drive --ribbon-audit  RBN12: flip every ribbon tab at idle,
+ *                            snapshot each page to PNG and dump every
+ *                            control's pressed-relevant state
+ *                            (checked/active flags, toggle active,
+ *                            menubutton frame, css classes)
  *
  * Exit codes: 0 ok, 1 failure, 77 no display / interactive prerequisite.
  * drvwrap.sh runs one process per dialog under `timeout` so a hang or
@@ -7280,6 +7285,225 @@ static int drive_tabledesign(AP_UnixApp *app, const char *)
 	return fails ? 1 : 0;
 }
 
+/* ---------------- RBN12: ribbon idle pressed-state audit ----------------
+ *
+ * User report: several ribbon buttons look pressed/active while idle.
+ * A persistent pressed look can only come from a concrete property —
+ * :checked/:active state flags, a toggle left active, a menubutton
+ * frame/relief that differs from its neighbours — so this leg flips
+ * through every ribbon notebook page at idle, writes a PNG snapshot
+ * per tab and dumps every button-like control's exact state: widget
+ * type, css classes, state flags, toggle active, menubutton frame,
+ * effective sensitivity/visibility.  The dump names the culprit
+ * instead of relying on eyeballs, and the PNGs let a human confirm
+ * the visual outcome after a fix.
+ *
+ *   ui-drive --ribbon-audit            PNGs under $TMPDIR/ribbon-audit
+ *   UI_DRIVE_AUDIT_DIR=<dir>           override the PNG output dir
+ */
+
+static void audit_snapshot(GtkWidget * parent, GtkWidget * child,
+						   const std::string & path)
+{
+	GtkSnapshot * snap = gtk_snapshot_new();
+	gtk_widget_snapshot_child(parent, child, snap);
+	GskRenderNode * node = gtk_snapshot_free_to_node(snap);
+	if (!node)
+	{
+		g_printerr("audit: %s — no render node\n", path.c_str());
+		return;
+	}
+	GskRenderer * renderer = gsk_cairo_renderer_new();
+	gsk_renderer_realize(renderer, nullptr, nullptr);
+	graphene_rect_t bounds;
+	gsk_render_node_get_bounds(node, &bounds);
+	GdkTexture * tex = gsk_renderer_render_texture(renderer, node,
+												   &bounds);
+	if (tex)
+	{
+		if (!gdk_texture_save_to_png(tex, path.c_str()))
+			g_printerr("audit: %s — png write failed\n",
+					   path.c_str());
+		g_object_unref(tex);
+	}
+	gsk_renderer_unrealize(renderer);
+	g_object_unref(renderer);
+	gsk_render_node_unref(node);
+}
+
+static std::string audit_state_str(GtkWidget * w)
+{
+	const GtkStateFlags f = gtk_widget_get_state_flags(w);
+	std::string s;
+	if (f & GTK_STATE_FLAG_ACTIVE)        s += "active ";
+	if (f & GTK_STATE_FLAG_PRELIGHT)      s += "prelight ";
+	if (f & GTK_STATE_FLAG_SELECTED)      s += "selected ";
+	if (f & GTK_STATE_FLAG_CHECKED)       s += "checked ";
+	if (f & GTK_STATE_FLAG_FOCUSED)       s += "focused ";
+	if (f & GTK_STATE_FLAG_FOCUS_VISIBLE) s += "focus-vis ";
+	if (f & GTK_STATE_FLAG_INSENSITIVE)   s += "insensitive ";
+	if (f & GTK_STATE_FLAG_BACKDROP)      s += "backdrop ";
+	if (s.empty())
+		s = "normal";
+	while (!s.empty() && s.back() == ' ')
+		s.pop_back();
+	return s;
+}
+
+static std::string audit_classes(GtkWidget * w)
+{
+	std::string s;
+	char ** cls = gtk_widget_get_css_classes(w);
+	for (char ** c = cls; c && *c; ++c)
+	{
+		s += *c;
+		s += ' ';
+	}
+	g_strfreev(cls);
+	while (!s.empty() && s.back() == ' ')
+		s.pop_back();
+	return s;
+}
+
+static std::string audit_caption(GtkWidget * w)
+{
+	GtkWidget * l = tf_widgets::find_type(w, GTK_TYPE_LABEL);
+	return l ? gtk_label_get_text(GTK_LABEL(l)) : "";
+}
+
+static bool audit_is_control(GtkWidget * c)
+{
+	return GTK_IS_BUTTON(c) || GTK_IS_MENU_BUTTON(c) ||
+		GTK_IS_TOGGLE_BUTTON(c) || GTK_IS_CHECK_BUTTON(c) ||
+		GTK_IS_SWITCH(c) || GTK_IS_DROP_DOWN(c) ||
+		GTK_IS_SPIN_BUTTON(c) || GTK_IS_SCALE_BUTTON(c);
+}
+
+/* one line per control; SUSPECT entries are what an idle ribbon
+ * must never show (checked/active state or a live toggle) */
+static void audit_dump_control(const char * tab, GtkWidget * c,
+							   int * total, int * suspects)
+{
+	++*total;
+	const char * type = G_OBJECT_TYPE_NAME(c);
+	std::string caption = audit_caption(c);
+	std::string state = audit_state_str(c);
+	std::string cls = audit_classes(c);
+
+	std::string extra;
+	if (GTK_IS_TOGGLE_BUTTON(c))
+		extra += gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c))
+			? " tog=ON" : " tog=off";
+	if (GTK_IS_CHECK_BUTTON(c))
+		extra += gtk_check_button_get_active(GTK_CHECK_BUTTON(c))
+			? " chk=ON" : " chk=off";
+	if (GTK_IS_SWITCH(c))
+		extra += gtk_switch_get_active(GTK_SWITCH(c))
+			? " sw=ON" : " sw=off";
+	if (GTK_IS_MENU_BUTTON(c) && g_object_class_find_property(
+			G_OBJECT_GET_CLASS(c), "has-frame"))
+	{
+		gboolean hf = TRUE;
+		g_object_get(c, "has-frame", &hf, nullptr);
+		extra += hf ? " frame" : " no-frame";
+	}
+	const char * tip = gtk_widget_get_tooltip_text(c);
+
+	bool suspect = (gtk_widget_get_state_flags(c) &
+					(GTK_STATE_FLAG_CHECKED | GTK_STATE_FLAG_ACTIVE)) ||
+		(GTK_IS_TOGGLE_BUTTON(c) &&
+		 gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(c))) ||
+		(GTK_IS_CHECK_BUTTON(c) &&
+		 gtk_check_button_get_active(GTK_CHECK_BUTTON(c))) ||
+		(GTK_IS_SWITCH(c) && gtk_switch_get_active(GTK_SWITCH(c)));
+	if (suspect)
+		++*suspects;
+	g_print("AUDIT %-12s | %-24s | %-28.28s | state=%-30s |"
+			" cls=%-22s |%s | sens=%d vis=%d%s | %s\n",
+			tab, type, caption.c_str(), state.c_str(),
+			cls.c_str(), extra.c_str(),
+			gtk_widget_is_sensitive(c) ? 1 : 0,
+			gtk_widget_get_visible(c) ? 1 : 0,
+			suspect ? " SUSPECT" : "",
+			tip ? tip : "");
+}
+
+static int drive_ribbon_audit(AP_UnixApp * app, const char * scratch)
+{
+	alarm(0);
+	DriveCtx ctx {nullptr, {}, 0, false, false, 0, 0};
+	sweep_guard([&ctx] { ctx.preexisting = tf_widgets::toplevels(); });
+
+	set_phase("ribbon-audit: load fixture");
+	AV_View * av = nullptr;
+	if (!load_fixture_frame(app, ctx, scratch, &av) || !av)
+	{
+		g_printerr("drive: ribbon-audit — cannot load %s\n", scratch);
+		return 1;
+	}
+	GtkWidget * win = ctx.preexisting.empty()
+		? nullptr : ctx.preexisting.back();
+
+	const char * dir = getenv("UI_DRIVE_AUDIT_DIR");
+	std::string outdir = (dir && *dir)
+		? dir : std::string(g_get_tmp_dir()) + "/ribbon-audit";
+	g_mkdir_with_parents(outdir.c_str(), 0755);
+
+	GtkWidget * ribbon = win
+		? tf_widgets::find(win, [](GtkWidget * c) {
+			  return gtk_widget_has_css_class(c, "abinova-ribbon");
+		  })
+		: nullptr;
+	if (!ribbon || !GTK_IS_NOTEBOOK(ribbon))
+	{
+		g_printerr("drive: ribbon-audit — no .abinova-ribbon "
+				   "notebook found\n");
+		return 1;
+	}
+
+	GtkNotebook * nb = GTK_NOTEBOOK(ribbon);
+	const int n = gtk_notebook_get_n_pages(nb);
+	int total = 0, suspects = 0;
+	for (int i = 0; i < n; ++i)
+	{
+		GtkWidget * page = gtk_notebook_get_nth_page(nb, i);
+		const char * key = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(page), "abi-tab-key"));
+		char tab[32];
+		snprintf(tab, sizeof(tab), "%s", key ? key : "tab");
+		/* hidden contextual pages still get dumped (invisible
+		 * controls are marked vis=0); only the PNG is skipped */
+		gtk_notebook_set_current_page(nb, i);
+		tf_guard::pump_for(250);
+		/* snapshot the ribbon strip (tabs + page) via the
+		 * notebook's parent — gtk_widget_snapshot() is gone in
+		 * GTK 4.10+ so the child goes through its parent's
+		 * snapshot_child, which applies the real clip/transform */
+		GtkWidget * nbParent = gtk_widget_get_parent(ribbon);
+		if (nbParent && gtk_widget_get_visible(page))
+			audit_snapshot(nbParent, ribbon,
+						   outdir + "/" + tab + ".png");
+		tf_widgets::for_each(page, [&](GtkWidget * c) {
+			if (audit_is_control(c))
+				audit_dump_control(tab, c, &total, &suspects);
+		});
+	}
+	GtkWidget * focus = GTK_IS_ROOT(win)
+		? gtk_root_get_focus(GTK_ROOT(win)) : nullptr;
+	if (focus)
+	{
+		std::string cap = audit_caption(focus);
+		g_print("AUDIT focus        | %-24s | %-28.28s | state=%s\n",
+				G_OBJECT_TYPE_NAME(focus), cap.c_str(),
+				audit_state_str(focus).c_str());
+	}
+	s_gcov_dump();
+	g_print("drive: ribbon-audit done — %d pages, %d controls, "
+			"%d suspects, %d criticals (PNGs in %s)\n",
+			n, total, suspects, g_criticals, outdir.c_str());
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	g_log_set_writer_func(drive_log_writer, nullptr, nullptr);
@@ -7309,7 +7533,7 @@ int main(int argc, char **argv)
 		 wantRuler = false, wantFreeze = false, wantToc = false,
 		 wantMarkup = false, wantPopovers = false,
 		 wantRevisions = false, wantKeys = false,
-		 wantTableDesign = false;
+		 wantTableDesign = false, wantRibbonAudit = false;
 	long wantId = -1;
 	for (int i = 1; i < argc; i++) {
 		if (strcmp(argv[i], "--list") == 0)
@@ -7340,17 +7564,20 @@ int main(int argc, char **argv)
 			wantKeys = true;
 		else if (strcmp(argv[i], "--tabledesign") == 0)
 			wantTableDesign = true;
+		else if (strcmp(argv[i], "--ribbon-audit") == 0)
+			wantRibbonAudit = true;
 		else if (strcmp(argv[i], "--id") == 0 && i + 1 < argc)
 			wantId = strtol(argv[++i], nullptr, 10);
 	}
 	if (!wantList && !wantFrame && !wantAbi && !wantEv && !wantFmt &&
 		!wantFileNew && !wantRuler && !wantFreeze && !wantToc &&
 		!wantMarkup && !wantPopovers && !wantRevisions && !wantKeys &&
-		!wantTableDesign && wantId < 0) {
+		!wantTableDesign && !wantRibbonAudit && wantId < 0) {
 		g_printerr("usage: %s --list | --id N | --frame | --abi | --ev"
 				   " | --fmt | --filenew | --ruler | --freeze"
 				   " | --toc | --markup | --popovers"
-				   " | --revisions | --keys | --tabledesign\n", argv[0]);
+				   " | --revisions | --keys | --tabledesign"
+				   " | --ribbon-audit\n", argv[0]);
 		return 2;
 	}
 
@@ -7436,6 +7663,8 @@ int main(int argc, char **argv)
 		return drive_keys(app, src);
 	if (wantTableDesign)
 		return drive_tabledesign(app, src);
+	if (wantRibbonAudit)
+		return drive_ribbon_audit(app, src);
 
 	XAP_Frame *frame = app->newFrame();
 	if (!frame) {

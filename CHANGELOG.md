@@ -2072,6 +2072,19 @@ below are on `main` but the release has not been cut yet.
   rendered results too, and a pinned pre-fix state plus a replayed
   code revert prove the new checks fail when the bug is present.
 
+- **Ribbon buttons no longer look pressed while idle** — plain
+  `GtkButton` ribbon controls (Hyperlink, Bookmark, Word Count,
+  Set Language, style tiles, and friends) used to keep the toolkit's
+  raised frame while the `GtkMenuButton`s beside them were
+  deliberately frameless, so the raised tiles read as pressed
+  against their flat neighbours on every tab. All ribbon-surface
+  buttons now share one flat idle face — menu buttons, toolbar
+  push/toggle buttons, dead buttons, the Styles-pane button, style
+  gallery tiles, and the Table Design pen combos included — while
+  genuine toggles (bold, alignment, rulers, print layout, zoom mode)
+  still draw their checked state only when the underlying document
+  or view state is really on.
+
 ### Tables (Word-style creation and context menus)
 
 - **Word-style table grid picker** — the ribbon's Table button now

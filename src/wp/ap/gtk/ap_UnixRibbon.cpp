@@ -817,6 +817,10 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		btn = gtk_toggle_button_new();
 	else
 		btn = gtk_button_new();
+	/* flat idle face like the menubuttons' has_frame=FALSE — a
+	 * framed button beside flat neighbours reads as pressed;
+	 * genuine toggles still show :checked when their state is on */
+	gtk_widget_add_css_class(btn, "flat");
 
 
 
@@ -5239,6 +5243,7 @@ GtkWidget * AP_UnixRibbon::_makeDeadButton(uint16_t id)
 	GtkWidget * wLabel = gtk_button_get_child(GTK_BUTTON(btn));
 	gtk_label_set_ellipsize(GTK_LABEL(wLabel), PANGO_ELLIPSIZE_END);
 	gtk_label_set_max_width_chars(GTK_LABEL(wLabel), 18);
+	gtk_widget_add_css_class(btn, "flat");
 	gtk_widget_set_sensitive(btn, FALSE);
 	gtk_widget_set_tooltip_text(btn,
 							  "Not supported by this build");
@@ -10922,6 +10927,7 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopTbButton(XAP_Toolbar_Id id,
 	if (flags & AP_RIBBON_FLAG_SLIM)
 		_slim_widget_tree(mb);
 	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb), GTK_ARROW_NONE);
+	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(mb), FALSE);
 	gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb), popover);
 
 	const char * szTip = pLabel ? pLabel->getToolTip() : nullptr;
@@ -11096,6 +11102,8 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 	{
 		bool bToggle = (pAction->getItemType() != EV_TBIT_PushButton);
 		w = bToggle ? gtk_toggle_button_new() : gtk_button_new();
+		/* flat idle face — see _makeButton */
+		gtk_widget_add_css_class(w, "flat");
 		const char * szTip = pLabel->getToolTip();
 		if (szThemeIcon && (flags & AP_RIBBON_FLAG_LARGE) &&
 			szTip && *szTip)
@@ -11299,6 +11307,7 @@ GtkWidget * AP_UnixRibbon::_makeStyleGallery()
 	gtk_label_set_justify(GTK_LABEL(plbl), GTK_JUSTIFY_CENTER);
 	gtk_box_append(GTK_BOX(pbox), plbl);
 	gtk_button_set_child(GTK_BUTTON(paneBtn), pbox);
+	gtk_widget_add_css_class(paneBtn, "flat");
 	gtk_widget_set_tooltip_text(paneBtn,
 								"Show the Styles deck");
 	g_signal_connect(paneBtn, "clicked",
@@ -11466,6 +11475,7 @@ void AP_UnixRibbon::_populateStyleTiles()
 			gtk_box_append(GTK_BOX(vbox), name);
 
 			gtk_button_set_child(GTK_BUTTON(tile), vbox);
+			gtk_widget_add_css_class(tile, "flat");
 			gtk_widget_add_css_class(tile, "abinova-style-tile");
 			gtk_widget_set_tooltip_text(tile, szDisp);
 			gtk_widget_set_valign(tile, GTK_ALIGN_FILL);
@@ -13291,6 +13301,7 @@ GtkWidget * AP_UnixRibbon::_makeTblPopButton(int popId)
 		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), box);
 		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
 									  GTK_ARROW_DOWN);
+		gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(mb), FALSE);
 		gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb),
 									_makeTblLineStylePopover());
 		gtk_widget_set_tooltip_text(mb, szTip);
@@ -13309,6 +13320,7 @@ GtkWidget * AP_UnixRibbon::_makeTblPopButton(int popId)
 		gtk_menu_button_set_child(GTK_MENU_BUTTON(mb), box);
 		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
 									  GTK_ARROW_DOWN);
+		gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(mb), FALSE);
 		gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb),
 									_makeTblPenThickPopover());
 		gtk_widget_set_tooltip_text(mb, szTip);
@@ -13351,6 +13363,7 @@ GtkWidget * AP_UnixRibbon::_makeTblPopButton(int popId)
 		/* toggle button, not a menu - activates the border-painter
 		 * pen mode on the view */
 		btn = gtk_toggle_button_new();
+		gtk_widget_add_css_class(btn, "flat");
 	}
 	else
 	{
@@ -13360,6 +13373,7 @@ GtkWidget * AP_UnixRibbon::_makeTblPopButton(int popId)
 		btn = gtk_menu_button_new();
 		gtk_menu_button_set_always_show_arrow(
 			GTK_MENU_BUTTON(btn), FALSE);
+		gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(btn), FALSE);
 	}
 	if (szTip && *szTip)
 		gtk_widget_set_tooltip_text(btn, szTip);
