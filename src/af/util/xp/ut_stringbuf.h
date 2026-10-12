@@ -28,6 +28,7 @@
 
 #include <string>
 #include <algorithm>
+#include <type_traits>
 
 #include "ut_types.h"
 #include "ut_assert.h"
@@ -45,7 +46,20 @@ public:
 	UT_StringImpl();
 	UT_StringImpl(const UT_StringImpl<char_type>& rhs);
 	UT_StringImpl(const char_type* sz, size_t n);
-	UT_StringImpl(const std::basic_string<char_type> &s);
+	// only sensible for char buffers — declaring this for e.g.
+	// UT_UCS4Char requires std::char_traits<unsigned int>, which
+	// libc++ leaves undefined
+	template <typename T = char_type,
+			  typename std::enable_if<std::is_same<T, char>::value, int>::type = 0>
+	UT_StringImpl(const std::basic_string<T> &s)
+	:	m_psz(new char_type[s.size()+1]),
+		m_pEnd(m_psz + s.size()),
+		m_size(s.size()+1),
+		m_utf8string(nullptr)
+	{
+		// string is terminated here, so we know
+		strcpy(m_psz, s.c_str());
+	}
 	~UT_StringImpl();
 
 	void		operator=(const UT_StringImpl<char_type>& rhs);
@@ -199,18 +213,6 @@ UT_StringImpl<char_type>::UT_StringImpl(const char_type* sz, size_t n)
 	copy(m_psz, sz, n);
 	m_psz[n] = 0;
 }
-
-template <typename char_type>
-UT_StringImpl<char_type>::UT_StringImpl(const std::basic_string<char_type> &s)
-:	m_psz(new char_type[s.size()+1]),
-	m_pEnd(m_psz + s.size()),
-	m_size(s.size()+1),
-	m_utf8string(nullptr)
-{
-	// string is terminated here, so we know
-	strcpy(m_psz, s.c_str());
-}
-
 
 template <typename char_type>
 UT_StringImpl<char_type>::~UT_StringImpl()

@@ -236,7 +236,7 @@ jobs:
       - name: Build flatpak
         run: |
           flatpak-builder --user --repo=repo --force-clean build-dir io.github.janos_szenfner.Abinova.yaml
-          flatpak --user build-bundle repo "abinova-${VERSION#v}-x86_64.flatpak" io.github.janos_szenfner.Abinova
+          flatpak build-bundle repo "abinova-${VERSION#v}-x86_64.flatpak" io.github.janos_szenfner.Abinova
 
       - uses: actions/upload-artifact@v4
         with:
