@@ -29,6 +29,7 @@
 
 #include "ut_types.h"
 #include "ut_bytebuf.h"
+#include "ut_string_class.h"
 #include "ut_uuid.h"
 #include "time.h"
 
@@ -92,12 +93,12 @@ class ABI_EXPORT AD_Revision
   public:
 	AD_Revision(UT_uint32 iId, const UT_UCS4Char * pDesc, time_t start, UT_uint32 iVer = 0,
 				const char * author = nullptr)
-		:m_iId(iId), m_pDescription(pDesc ? pDesc : std::basic_string<UT_UCS4Char>()), m_tStart(start),
+		:m_iId(iId), m_pDescription(pDesc ? UT_UCS4String(pDesc) : UT_UCS4String()), m_tStart(start),
 		 m_iVersion(iVer), m_sAuthor(author ? author : ""){};
 
 	UT_uint32         getId()const{return m_iId;}
 	const UT_UCS4Char * getDescription() const {
-		return m_pDescription.c_str();
+		return m_pDescription.ucs4_str();
 	}
 
 	// UTF-8 name of the user who authored this revision; "" = unknown
@@ -113,7 +114,7 @@ class ABI_EXPORT AD_Revision
 
   private:
 	UT_uint32     m_iId;
-	std::basic_string<UT_UCS4Char> m_pDescription;
+	UT_UCS4String m_pDescription;
 	time_t        m_tStart;
 	UT_uint32     m_iVersion;
 	std::string   m_sAuthor;
