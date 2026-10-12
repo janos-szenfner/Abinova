@@ -24,6 +24,9 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <signal.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include "ut_assert.h"
 #include "ut_unixAssert.h"
 #include "ut_types.h"
@@ -39,6 +42,15 @@ static void trap_handler(int signal)
 /* returns false if no debugger handled the signal */
 static bool break_into_debugger()
 {
+#ifdef _WIN32
+	/* no sigaction/SIGTRAP on mingw — trap via the Win32 API */
+	if (IsDebuggerPresent())
+	{
+		DebugBreak();
+		return true;
+	}
+	return false;
+#else
 	/* some SIGTRAP magic for convenient debugging */
 
 	trap_reached = 0;
@@ -55,6 +67,7 @@ static bool break_into_debugger()
 	sigaction(SIGTRAP, &oldact, nullptr);
 
 	return !trap_reached;
+#endif
 }
 
 int UT_UnixAssertMsg(const char * szMsg, const char * szFile, int iLine)
