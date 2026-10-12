@@ -599,7 +599,7 @@ dep_list() { # dep refs of $1, one per line, own install name excluded
 find_brew_lib() { # basename -> first match under a brew prefix
 	find "$brew_prefix/lib" "$brew_prefix/opt" \
 		${otherbrew:+"$otherbrew/lib" "$otherbrew/opt"} \
-		-name "$1" -type f 2>/dev/null | head -n1
+		-name "$1" \( -type f -o -type l \) 2>/dev/null | head -n1
 }
 
 copy_dep() { # $1 = dep ref (abs path or @rpath/@loader_path name)
