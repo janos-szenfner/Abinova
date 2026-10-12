@@ -222,6 +222,14 @@ void AV_View::removeScrollListener(AV_ScrollObj* pObj)
 	}
 }
 
+/*! Default wheel-notch distance: ~4 generic 20px text lines.
+ * FV_View overrides this with the real caret-line height.
+ */
+UT_sint32 AV_View::getWheelScrollStep(void) const
+{
+	return getGraphics()->tlu(4 * 20);
+}
+
 /*! the input is in layout units
  */
 void AV_View::sendVerticalScrollEvent(UT_sint32 yoff, UT_sint32 ylimit)

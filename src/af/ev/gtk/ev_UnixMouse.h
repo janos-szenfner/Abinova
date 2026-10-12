@@ -42,6 +42,10 @@ public:
 	void mouseUp(AV_View* pView, GdkEvent* e, gdouble x, gdouble y);
 	void mouseMotion(AV_View* pView, GdkEvent *event, gdouble x, gdouble y);
 	void mouseScroll(AV_View* pView, GdkEvent *e, gdouble x, gdouble y);
+	// GDK_SCROLL_SMOOTH deltas (in wheel-notch units); split out of
+	// mouseScroll so the delta path is directly drivable — GDK smooth
+	// scroll events cannot be synthesized by the test harness.
+	void smoothScrollDeltas(AV_View* pView, gdouble delta_x, gdouble delta_y);
 
 protected:
 	// accumulators for GDK_SCROLL_SMOOTH deltas (in wheel-notch units)

@@ -2655,6 +2655,16 @@ below are on `main` but the release has not been cut yet.
   target (~18 %/frame ease-out) and retargets a running animation on
   each new notch, with an instant fallback when the canvas is not
   realized — no more visible jumps at page transitions.
+- **Quicker mouse-wheel scrolling** — one wheel notch now scrolls
+  ~4 text lines (Word's default is ~3), roughly double the old fixed
+  36 px. The step is derived from the height of the line at the
+  caret, so it tracks the current font size and zoom, and the
+  smooth-scroll delta path and the discrete wheel-button path share
+  it so a notch means the same distance on wheel, touchpad and
+  Shift-modified scrolling. Fractional touchpad deltas still
+  accumulate sub-notch and page boundaries still clamp; the eased
+  glide quickened from 18 % to 30 % of the remaining distance per
+  frame so the longer jumps settle without lag or overshoot.
 - **Project URLs and About** — "Check for Updates" and "Report a
   Bug" point at `github.com/janos-szenfner/Abinova` instead of the
   old GNOME GitLab project; the About dialog lists Janos Szenfner

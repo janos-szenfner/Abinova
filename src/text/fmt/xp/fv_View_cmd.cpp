@@ -5366,6 +5366,28 @@ void FV_View::cmdScroll(AV_ScrollCmd cmd, UT_uint32 iPos)
 
 }
 
+/*! One mouse-wheel notch scrolls ~4 text lines — Word's default is
+ * 3, tuned toward the quicker end of the scroll-speed report.  The
+ * step is derived from the line at the caret so it tracks the
+ * current font size and zoom; it falls back to the generic
+ * line-height guess when the caret block has no formatted line yet.
+ * Result is in layout units and is shared by the discrete
+ * wheel-button edit methods and the smooth-scroll delta path. */
+UT_sint32 FV_View::getWheelScrollStep(void) const
+{
+	UT_sint32 iLine = 0;
+	fl_BlockLayout * pBL = getCurrentBlock();
+	if (pBL)
+	{
+		fp_Line * pLine = static_cast<fp_Line *>(pBL->getFirstContainer());
+		if (pLine)
+			iLine = pLine->getHeight();
+	}
+	if (iLine <= 0)
+		iLine = m_pG->tlu(HACK_LINE_HEIGHT);
+	return 4 * iLine;
+}
+
 bool FV_View::cmdSelectNoNotify(PT_DocPosition dpBeg, PT_DocPosition dpEnd)
 {
 	if (!isSelectionEmpty())

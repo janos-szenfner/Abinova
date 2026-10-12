@@ -118,6 +118,12 @@ public:
 	virtual void          fontMetricsChange() = 0;
 
 	virtual void	cmdScroll(AV_ScrollCmd cmd, UT_uint32 iPos = 0) = 0;
+	/*! One mouse-wheel notch of scrolling, in layout units.  Word
+	 * scrolls ~3 text lines per notch; FV_View derives the step
+	 * from the line at the caret so it tracks font size and zoom.
+	 * The discrete wheel-button path and the smooth-scroll delta
+	 * path share this so a notch means the same distance on both. */
+	virtual UT_sint32	getWheelScrollStep(void) const;
 	void			addScrollListener(AV_ScrollObj*);
 	void			removeScrollListener(AV_ScrollObj*);
 	/*! input parameters of these functions are in logical units !!! */

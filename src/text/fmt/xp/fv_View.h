@@ -315,6 +315,7 @@ public:
 	virtual void	setXScrollOffset(UT_sint32) override;
 	virtual void	setYScrollOffset(UT_sint32) override;
 	virtual void	cmdScroll(AV_ScrollCmd cmd, UT_uint32 iPos = 0) override;
+	virtual UT_sint32	getWheelScrollStep(void) const override;
 
 	virtual void	cmdHyperlinkJump(UT_sint32 xPos, UT_sint32 yPos);
 	void	        cmdHyperlinkJump(PT_DocPosition pos);

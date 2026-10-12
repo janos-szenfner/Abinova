@@ -283,7 +283,10 @@ gboolean AP_UnixFrame::_scrollAnimTick(GtkWidget * /*w*/, GdkFrameClock * /*cloc
 		bDone = true;
 	}
 	else
-		next = cur + diff * 0.18;	/* ease-out */
+		/* ease-out: covers ~30% of the remaining distance per tick so
+		 * the longer wheel-notch jump settles quickly; the approach
+		 * is asymptotic so it can never overshoot the target */
+		next = cur + diff * 0.30;
 
 	g_signal_handler_block(static_cast<gpointer>(pFrameImpl->m_pVadj),
 						   pFrameImpl->m_iVScrollSignal);

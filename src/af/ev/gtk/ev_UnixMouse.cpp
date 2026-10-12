@@ -318,29 +318,7 @@ void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEvent *e, gdouble ev_x, gdoubl
 	if (dir == GDK_SCROLL_SMOOTH && state == 0) {
 		gdouble delta_x = 0.0, delta_y = 0.0;
 		gdk_scroll_event_get_deltas(e, &delta_x, &delta_y);
-		/* Smooth deltas are in wheel-notch units. Accumulate the
-		 * fractional remainders and scroll proportionally instead of
-		 * collapsing every event into a full fixed step, so touchpad
-		 * scrolling stays fine-grained and page boundaries do not
-		 * cause visible jumps. */
-		m_dSmoothScrollX += delta_x;
-		m_dSmoothScrollY += delta_y;
-		GR_Graphics * pG = pView->getGraphics();
-		// one notch scrolls the same 36px as the discrete wheel path
-		UT_sint32 luY = pG->tlu(m_dSmoothScrollY * 36.0);
-		UT_sint32 luX = pG->tlu(m_dSmoothScrollX * 36.0);
-		if (luY != 0)
-		{
-			pView->cmdScroll(luY > 0 ? AV_SCROLLCMD_LINEDOWN : AV_SCROLLCMD_LINEUP,
-							 luY > 0 ? luY : -luY);
-			m_dSmoothScrollY = 0.0;
-		}
-		if (luX != 0)
-		{
-			pView->cmdScroll(luX > 0 ? AV_SCROLLCMD_LINERIGHT : AV_SCROLLCMD_LINELEFT,
-							 luX > 0 ? luX : -luX);
-			m_dSmoothScrollX = 0.0;
-		}
+		smoothScrollDeltas(pView, delta_x, delta_y);
 		return;
 	}
 	if (dir == GDK_SCROLL_SMOOTH) {
@@ -404,5 +382,34 @@ void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEvent *e, gdouble ev_x, gdoubl
 	default:
 		UT_ASSERT(0);
 		return;
+	}
+}
+
+/*! Smooth-scroll deltas arrive in wheel-notch units. Accumulate the
+ * fractional remainders and scroll proportionally instead of
+ * collapsing every event into a full fixed step, so touchpad
+ * scrolling stays fine-grained and page boundaries do not cause
+ * visible jumps. One notch maps to the view's wheel-scroll step —
+ * the same distance the discrete wheel-button edit methods use. */
+void EV_UnixMouse::smoothScrollDeltas(AV_View* pView, gdouble delta_x, gdouble delta_y)
+{
+	m_dSmoothScrollX += delta_x;
+	m_dSmoothScrollY += delta_y;
+	GR_Graphics * pG = pView->getGraphics();
+	// one notch scrolls the same distance as the discrete wheel path
+	const gdouble fPixPerNotch = pG->tdu(pView->getWheelScrollStep());
+	UT_sint32 luY = pG->tlu(static_cast<UT_sint32>(m_dSmoothScrollY * fPixPerNotch));
+	UT_sint32 luX = pG->tlu(static_cast<UT_sint32>(m_dSmoothScrollX * fPixPerNotch));
+	if (luY != 0)
+	{
+		pView->cmdScroll(luY > 0 ? AV_SCROLLCMD_LINEDOWN : AV_SCROLLCMD_LINEUP,
+						 luY > 0 ? luY : -luY);
+		m_dSmoothScrollY = 0.0;
+	}
+	if (luX != 0)
+	{
+		pView->cmdScroll(luX > 0 ? AV_SCROLLCMD_LINERIGHT : AV_SCROLLCMD_LINELEFT,
+						 luX > 0 ? luX : -luX);
+		m_dSmoothScrollX = 0.0;
 	}
 }
