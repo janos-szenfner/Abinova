@@ -124,7 +124,7 @@ UT_untgz(const char *szFName, const char *szWantedFile, const char *szDestPath, 
 
 	// gzopen() does not handle UTF-8 pathnames on Windows; open the
 	// descriptor through g_open() (which does) and hand it to zlib.
-	int fd = g_open(szFName, O_RDONLY | O_BINARY);
+	int fd = g_open(szFName, O_RDONLY | O_BINARY, 0);
 	tarball = (fd >= 0) ? gzdopen(fd, "rb") : nullptr;
 	if (tarball == nullptr)
 	{
