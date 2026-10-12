@@ -491,6 +491,7 @@ dnl makes the macro treat it as user-supplied and skip pkg-config.
 case "$host_os" in
   mingw*|msys*|cygwin*|windows*)
     DEPS_CFLAGS="$DEPS_CFLAGS -D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00"
+    DEPS_LIBS="$DEPS_LIBS -lbcrypt"
     ;;
 esac
 
