@@ -229,7 +229,7 @@ libwpg_la_SOURCES = \
 	libwpg-0.3.4/src/lib/WPGraphics.cpp \
 	libwpg-0.3.4/src/lib/libwpg_utils.cpp
 
-libwpg_la_CPPFLAGS = -I$(srcdir)/libwpg-0.3.4/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwpd-0.10.3/inc -I$(srcdir)/libwpg-0.3.4/src/lib -DLIBWPG_BUILD -DLIBREVENGE_BUILD -DLIBREVENGE_GENERATORS_BUILD -DLIBREVENGE_STREAM_BUILD
+libwpg_la_CPPFLAGS = -I$(srcdir)/libwpg-0.3.4/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwpd-0.10.3/inc -I$(srcdir)/libwpg-0.3.4/src/lib -DLIBWPG_BUILD -DLIBWPD_BUILD -DLIBREVENGE_BUILD -DLIBREVENGE_GENERATORS_BUILD -DLIBREVENGE_STREAM_BUILD
 
 libwps_la_SOURCES = \
 	libwps-0.4.14/src/lib/libwps_internal.cpp \
