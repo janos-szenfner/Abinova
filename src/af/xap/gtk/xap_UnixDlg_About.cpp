@@ -61,9 +61,6 @@ void XAP_UnixDialog_About::runModal(XAP_Frame * pFrame)
 									 "https://github.com/janos-szenfner/Abinova",
 									 nullptr};
 
-	static const gchar *documenters[] = {"David Chart <linux@dchart.demon.co.uk>",
-										 nullptr};
-
 	static const gchar *copyright = "(c) 1998-2012 Dom Lachowicz and other contributors";
 
 	static const gchar *comments = "Experimental GTK4 fork of AbiWord";
@@ -77,7 +74,6 @@ void XAP_UnixDialog_About::runModal(XAP_Frame * pFrame)
 	g_signal_connect(dlg, "activate-link", G_CALLBACK(onAboutDialogActivate), nullptr);
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(dlg), "Abinova");
 	gtk_about_dialog_set_authors(GTK_ABOUT_DIALOG(dlg), authors);
-	gtk_about_dialog_set_documenters(GTK_ABOUT_DIALOG(dlg), documenters);
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(dlg), copyright);
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(dlg), comments);
 	gtk_about_dialog_set_license_type(GTK_ABOUT_DIALOG(dlg), GTK_LICENSE_GPL_2_0);

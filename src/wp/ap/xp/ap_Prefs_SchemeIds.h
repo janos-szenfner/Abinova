@@ -78,7 +78,7 @@
 #define AP_PREF_DEFAULT_OptionsTabNumber			"0"							/* options dialog */
 
 #define AP_PREF_KEY_RulerUnits						"RulerUnits"				/* value in UT_dimensionName() */
-#define AP_PREF_DEFAULT_RulerUnits					"in"
+#define AP_PREF_DEFAULT_RulerUnits					"cm"
 
 
 #define AP_PREF_KEY_RulerVisible					"RulerVisible"				/* are the rulers visible? {0,1} */
