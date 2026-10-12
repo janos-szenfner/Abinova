@@ -333,8 +333,8 @@ is_system_dll() { # $1 = dll basename; system set ships with Windows
 	bcryptprimitives.dll|cabinet.dll|cfgmgr32.dll|combase.dll|\
 	comctl32.dll|comdlg32.dll|crypt32.dll|cryptbase.dll|cryptsp.dll|\
 	d2d1.dll|d3d*.dll|dbghelp.dll|dhcpcsvc*.dll|dnsapi.dll|\
-	dwmapi.dll|dwrite.dll|dxgi.dll|dxva2.dll|gdi32.dll|\
-	gdi32full.dll|glu32.dll|hid.dll|iertutil.dll|imm32.dll|\
+	dsound.dll|dwmapi.dll|dwrite.dll|dxgi.dll|dxva2.dll|gdi32.dll|\
+	gdi32full.dll|gdiplus.dll|glu32.dll|hid.dll|iertutil.dll|imm32.dll|\
 	iphlpapi.dll|kernel32.dll|kernel.appcore.dll|kernelbase.dll|\
 	mf*.dll|msasn1.dll|msctf.dll|msimg32.dll|msvcp_win.dll|\
 	msvcrt.dll|ncrypt.dll|netapi32.dll|netutils.dll|normaliz.dll|\
