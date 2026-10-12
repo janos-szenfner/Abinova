@@ -199,6 +199,15 @@ if [ $skip_build -eq 0 ]; then
 	# shellcheck disable=SC2086
 	"$cfg" $args "$@"
 
+	# dependency-flags diagnostic: shows which pkg-config answered and
+	# what include paths actually reached the generated Makefiles
+	{
+		echo "build-windows: PKG_CONFIG=$(command -v pkgconf pkg-config 2>/dev/null | head -1)"
+		pkgconf --cflags glib-2.0 libgsf-1 2>&1 | sed 's/^/build-windows:   pkgconf cflags: /'
+		grep -h '^DEPS_CFLAGS' "$bdir/Makefile" "$bdir/thirdparty/Makefile" 2>/dev/null \
+			| cut -c1-400 | sed 's/^/build-windows:   /'
+	} >&2
+
 	# ------------------------------------------------------------ build
 	make -j"$jobs"
 fi
