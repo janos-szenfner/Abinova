@@ -116,6 +116,7 @@ deb_deps="build-essential autoconf automake libtool pkg-config
 	libglib2.0-dev libx11-dev
 	libenchant-2-dev hunspell
 	libboost-dev
+	patchelf
 	perl"
 # en_US dictionary — separate so a missing name can't sink the
 # whole install; other languages are hunspell-<lang>
@@ -128,6 +129,7 @@ suse_deps="gcc gcc-c++ make autoconf automake libtool pkg-config
 	glib2-devel libX11-devel
 	enchant-devel hunspell
 	boost-devel
+	patchelf
 	perl"
 suse_dict_pkg=myspell-en_US
 

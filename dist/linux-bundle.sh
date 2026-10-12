@@ -144,9 +144,21 @@ fi
 
 # ----------------------------------------------------- staged install
 if [ $skip_install -eq 0 ]; then
+	# tools/build-linux.sh configures out-of-tree in build-linux/ while
+	# local dev builds are usually in-tree — run 'make install' wherever
+	# the configured Makefile lives.
+	if [ -f "$top/Makefile" ]; then
+		builddir="$top"
+	elif [ -f "$top/build-linux/Makefile" ]; then
+		builddir="$top/build-linux"
+	else
+		echo "linux-bundle: no configured build found (looked for" >&2
+		echo "  $top/Makefile and $top/build-linux/Makefile)" >&2
+		exit 1
+	fi
 	rm -rf "$stage"
-	echo "linux-bundle: staging 'make install' into $stage"
-	if ! make -C "$top" -j"$(nproc 2>/dev/null || echo 2)" install \
+	echo "linux-bundle: staging 'make install' into $stage (builddir: $builddir)"
+	if ! make -C "$builddir" -j"$(nproc 2>/dev/null || echo 2)" install \
 		DESTDIR="$stage" > "$stage.install.log" 2>&1; then
 		tail -n 20 "$stage.install.log" >&2
 		echo "linux-bundle: make install failed (log: $stage.install.log)" >&2
