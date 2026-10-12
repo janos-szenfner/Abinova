@@ -27,6 +27,8 @@ libabinova_@ABINOVA_SERIES@_la_CPPFLAGS = \
 libabinova_@ABINOVA_SERIES@_la_LDFLAGS = \
 	$(DEPS_LIBS) \
 	$(COVERAGE_LDFLAGS) \
+	$(WMF_LIBS) \
+	$(TIDY_LIBS) \
 	-no-undefined \
 	-avoid-version \
 	-export-dynamic
@@ -45,8 +47,6 @@ libabinova_@ABINOVA_SERIES@_la_LIBADD = \
 	$(top_builddir)/thirdparty/libwpd.la \
 	$(top_builddir)/thirdparty/librevenge.la \
 	$(top_builddir)/thirdparty/libhunspell.la \
-	$(WMF_LIBS) \
-	$(TIDY_LIBS) \
 	-lz
 
 ## Resources compilation

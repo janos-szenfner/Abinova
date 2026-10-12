@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <locale.h>
 
 #include "ut_string.h"
 #include "ut_locale.h"
@@ -57,7 +58,7 @@
  * SEE ALSO: man setlocale, man uselocale
  */
 
-#if !defined(G_OS_WIN32) && !defined(UT_NO_USELOCALE)
+#if !defined(_WIN32) && !defined(G_OS_WIN32) && !defined(UT_NO_USELOCALE)
 // Map a setlocale() category to the newlocale() bitmask for it.
 // Returns 0 for categories without a mask (nonstandard LC_* values) so the
 // caller falls back to the setlocale() path.
@@ -85,7 +86,7 @@ UT_LocaleTransactor::UT_LocaleTransactor (int category, const char * locale)
 	, mNewLocale(nullptr)
 	, mUseSetlocale(false)
 {
-#if defined(G_OS_WIN32)
+#if defined(_WIN32) || defined(G_OS_WIN32)
 	// Make setlocale() operate per-thread on this thread. If it fails we
 	// still take the (process-wide) setlocale path below, which is no worse
 	// than the historical behavior.
@@ -129,12 +130,15 @@ UT_LocaleTransactor::UT_LocaleTransactor (int category, const char * locale)
 
 UT_LocaleTransactor::~UT_LocaleTransactor ()
 {
+#if !defined(_WIN32) && !defined(G_OS_WIN32) && !defined(UT_NO_USELOCALE)
 	if (mNewLocale != nullptr)
 	{
 		uselocale(static_cast<locale_t>(mPrevLocale));
 		freelocale(static_cast<locale_t>(mNewLocale));
 	}
-	else if (mUseSetlocale)
+	else
+#endif
+	if (mUseSetlocale)
 	{
 		setlocale(mCategory, mOldLocale.c_str());
 	}
