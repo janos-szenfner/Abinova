@@ -78,6 +78,11 @@
 #include "fl_DocLayout.h"
 #include "ap_UnixDialog_Document.h"
 #include "pf_Frag_Strux.h"
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 #include "fv_View.h"
 #include "fl_TableStyles.h"
 #include "ie_impGraphic.h"

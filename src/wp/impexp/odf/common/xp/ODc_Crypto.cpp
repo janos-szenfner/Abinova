@@ -103,7 +103,7 @@ UT_Error ODc_Crypto::performDecrypt(GsfInput* pStream,
     UT_DEBUGMSG(("ODc_Crypto::performDecrypt() using gcrypt\n" ));
 
     gcry_cipher_hd_t h = nullptr;
-    gcry_err_code_t gerr = gcry_cipher_open( &h,
+    gcry_error_t gerr = gcry_cipher_open( &h,
                                              GCRY_CIPHER_BLOWFISH,
                                              GCRY_CIPHER_MODE_CFB,
                                              0 );
@@ -374,7 +374,7 @@ UT_Error ODc_Crypto::encrypt(const guint8* plaintext, gsize plaintextSize,
 
 #ifdef HAVE_GCRYPT
     gcry_cipher_hd_t h = nullptr;
-    gcry_err_code_t gerr = gcry_cipher_open(&h, GCRY_CIPHER_BLOWFISH,
+    gcry_error_t gerr = gcry_cipher_open(&h, GCRY_CIPHER_BLOWFISH,
                                             GCRY_CIPHER_MODE_CFB, 0);
     if (gerr == GPG_ERR_NO_ERROR)
     {

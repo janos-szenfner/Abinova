@@ -78,6 +78,11 @@
 #include "gr_Graphics.h"
 #include "gr_DrawArgs.h"
 #include "ie_types.h"
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 #include "xap_App.h"
 #include "xap_Frame.h"
 #include "xap_Clipboard.h"

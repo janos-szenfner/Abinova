@@ -28,6 +28,11 @@
 #include <gtk/gtk.h>
 #include <math.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+
 enum: uint8_t {
   HANDLE_DRAGGED,
   DRAG_FINISHED,
