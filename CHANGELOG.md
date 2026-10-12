@@ -6,10 +6,7 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
-## [4.0.0] — Upcoming (not yet released)
-
-The next release of this fork will be versioned **4.0.0**. The items
-below are on `main` but the release has not been cut yet.
+## [4.0.0] — 2026-10-12
 
 ### Built-in file-format support (formerly plugins)
 
@@ -2216,6 +2213,14 @@ below are on `main` but the release has not been cut yet.
   and Table Layout tabs. The `ribbon-xslim` style now trims button
   padding on all sides and also matches `GtkMenuButton`, which the
   plain `button` selector never reached.
+- **About dialog credits trimmed** — the generated "Documented by"
+  section is gone; the dialog keeps authors, translators and the
+  license tabs only.
+- **Default measurement unit is centimetres** — new installs and
+  fresh profiles now open with cm rulers and dialog fields instead
+  of inches, matching the metric default most word processors ship.
+  Users can still switch units per-document or globally in
+  Preferences.
 
 ### Ubuntu Launchpad bug fixes
 
@@ -4952,6 +4957,13 @@ below are on `main` but the release has not been cut yet.
   Platform/Sdk from flathub, builds, smoke-tests `abinova --version`
   inside the build sandbox, `--install` installs user-level, and
   `--bundle` writes `dist/abinova-<ver>-<arch>.flatpak`.
+- **Release workflow also ships a repack Flatpak** — a second
+  manifest, `io.github.janos_szenfner.Abinova.yaml`, lets the
+  tag-triggered GitHub release job wrap the self-contained Linux
+  bundle into `abinova-<ver>-x86_64.flatpak` on
+  `org.freedesktop.Platform`//24.08 and attach it to the GitHub
+  Release alongside the tar.xz, .deb and .rpm — no separate local
+  flatpak-builder run needed for published artifacts.
 - **Update-check platform caveats documented** — `dist/SIGNING.md`
   now records that a sandboxed `.app` MUST request
   `com.apple.security.network.client` or Check for Updates always
