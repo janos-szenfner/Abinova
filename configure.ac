@@ -652,11 +652,11 @@ AM_CONDITIONAL(DEBUG, test "$abi_cv_debug" = "yes")
 #
 AM_PATH_LIBGCRYPT( 1.4.5,
 		   [
-		   abi_cv_gcrypt=no
+		   abi_cv_gcrypt=yes
  		   AC_DEFINE([HAVE_GCRYPT], [1], [Use gcrypt for the cryptos])
 		   ],
 		   [
-		   abi_cv_gcrypt=yes
+		   abi_cv_gcrypt=no
 		   ] )
 AM_CONDITIONAL(HAVE_GCRYPT, test "$abi_cv_gcrypt" = "yes")
 

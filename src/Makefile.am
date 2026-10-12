@@ -29,6 +29,7 @@ libabinova_@ABINOVA_SERIES@_la_LDFLAGS = \
 	$(COVERAGE_LDFLAGS) \
 	$(WMF_LIBS) \
 	$(TIDY_LIBS) \
+	$(LIBGCRYPT_LIBS) \
 	-no-undefined \
 	-avoid-version \
 	-export-dynamic

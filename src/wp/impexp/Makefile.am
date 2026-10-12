@@ -43,6 +43,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/thirdparty/librevenge-0.0.6/inc \
 	$(IMPEXP_OPT_CFLAGS) \
 	$(WMF_CFLAGS) \
+	$(LIBGCRYPT_CFLAGS) \
 	$(WP_CPPFLAGS)
 
 libimpexp_la_SOURCES = \
