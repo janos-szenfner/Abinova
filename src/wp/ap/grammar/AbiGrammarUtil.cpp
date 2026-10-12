@@ -37,7 +37,9 @@
 #include <sys/types.h>  
 #include <sys/stat.h>
 #include <unistd.h>
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
 #include <signal.h>
 #include "ut_files.h"
 #include "AbiGrammarUtil.h"
