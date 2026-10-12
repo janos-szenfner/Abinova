@@ -42,6 +42,7 @@ AM_CPPFLAGS = \
 	-I$(top_srcdir)/thirdparty/libwpg-0.3.4/inc \
 	-I$(top_srcdir)/thirdparty/librevenge-0.0.6/inc \
 	-DLIBREVENGE_BUILD -DLIBREVENGE_GENERATORS_BUILD -DLIBREVENGE_STREAM_BUILD \
+	-DLIBWPD_BUILD -DLIBWPG_BUILD -DBUILD_WPS \
 	$(IMPEXP_OPT_CFLAGS) \
 	$(WMF_CFLAGS) \
 	$(LIBGCRYPT_CFLAGS) \
