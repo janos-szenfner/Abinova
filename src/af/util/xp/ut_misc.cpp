@@ -608,6 +608,9 @@ int UT_clock_gettime_realtime(struct timespec *tp)
 	tp->tv_sec = mts.tv_sec;
 	tp->tv_nsec = mts.tv_nsec;
 	return 0;
+#elif defined(_WIN32)
+	// no clock_gettime/CLOCK_REALTIME under strict-ansi mingw
+	return timespec_get(tp, TIME_UTC) ? 0 : -1;
 #else
 	return clock_gettime(CLOCK_REALTIME, tp);
 #endif

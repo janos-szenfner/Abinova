@@ -55,6 +55,10 @@
 #ifndef M_PI_2
 #define M_PI_2 1.57079632679489661923
 #endif
+#ifdef _WIN32
+/* no strtok_r on mingw; strtok_s is signature-identical */
+#define strtok_r strtok_s
+#endif
 
 
 /*!

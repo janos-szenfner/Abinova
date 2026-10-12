@@ -302,7 +302,12 @@ static void _writeChangeInfo(GsfOutput* pStream, PD_Document* pDoc,
             if (tStart > 0) {
                 struct tm tmv;
                 char buf[32];
+#ifdef _WIN32
+                // no gmtime_r on mingw; gmtime_s has swapped args
+                if (gmtime_s(&tmv, &tStart) == 0 &&
+#else
                 if (gmtime_r(&tStart, &tmv) &&
+#endif
                     strftime(buf, sizeof buf, "%Y-%m-%dT%H:%M:%S", &tmv)) {
                     output += "<dc:date>";
                     output += buf;

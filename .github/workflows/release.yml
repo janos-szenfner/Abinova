@@ -197,7 +197,8 @@ jobs:
             tools/build-freebsd.sh --jobs "$(sysctl -n hw.ncpu)"
             mkdir -p out/stage
             gmake -C build-freebsd install DESTDIR="$PWD/out/stage"
-            tar -czf "out/abinova-${VERSION#v}-freebsd-amd64.tar.gz" -C out/stage .
+            PKGVER="${{ env.VERSION }}"; PKGVER="${PKGVER#v}"
+            tar -czf "out/abinova-${PKGVER}-freebsd-amd64.tar.gz" -C out/stage .
 
       - uses: actions/upload-artifact@v4
         with:
