@@ -28,7 +28,7 @@
 
 #include <algorithm>
 
-#include <gdk/gdkkeysyms.h>
+#include <gdk/gdk.h>
 #include <gdk/gdk.h>
 #include <gtk/gtk.h>
 

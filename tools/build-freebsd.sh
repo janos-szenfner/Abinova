@@ -71,7 +71,7 @@ if [ $skip_deps -eq 0 ]; then
 		fi
 	fi
 	$SU pkg install -y \
-		autoconf automake libtool pkgconf gmake perl5 \
+		autoconf automake libtool pkgconf gmake perl5 python3 \
 		gtk4 cairo pango fribidi \
 		libgsf libxslt libxml2 \
 		glib png jpeg-turbo \

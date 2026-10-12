@@ -52,6 +52,18 @@ const IE_MimeConfidence * IE_Imp_Tidy_Sniffer::getMimeConfidence ()
 
 #endif /* XHTML_NAMED_CONSTRUCTORS */
 
+// supported suffixes
+static IE_SuffixConfidence IE_Imp_Tidy_Sniffer__SuffixConfidence[] = {
+	{ "html", 	UT_CONFIDENCE_GOOD 	},
+	{ "htm", 	UT_CONFIDENCE_GOOD	},
+	{ "", 	UT_CONFIDENCE_ZILCH 	}
+};
+
+const IE_SuffixConfidence * IE_Imp_Tidy_Sniffer::getSuffixConfidence ()
+{
+	return IE_Imp_Tidy_Sniffer__SuffixConfidence;
+}
+
 UT_Confidence_t IE_Imp_Tidy_Sniffer::recognizeContents (const char * /*szBuf*/, UT_uint32 /*iNumbytes*/)
 {
 	return UT_CONFIDENCE_ZILCH;

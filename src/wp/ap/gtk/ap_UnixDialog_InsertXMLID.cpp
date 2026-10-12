@@ -48,7 +48,7 @@
 /*****************************************************************/
 
 #define BUTTON_INSERT 1
-#include <gdk/gdkkeysyms.h>
+#include <gdk/gdk.h>
 static gboolean __onKeyPressed(G_GNUC_UNUSED GtkEventControllerKey* controller,
                                guint ev_keyval,
                                G_GNUC_UNUSED guint keycode,

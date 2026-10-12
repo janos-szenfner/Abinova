@@ -32,6 +32,7 @@ public:
 
 	virtual ~IE_Imp_Tidy_Sniffer() {}
 
+	virtual const IE_SuffixConfidence * getSuffixConfidence ();
 	virtual const IE_MimeConfidence * getMimeConfidence ();
 
 	using IE_ImpSniffer::recognizeContents;

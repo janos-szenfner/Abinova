@@ -45,7 +45,7 @@
 #include <X11/Xlib.h>
 #endif
 
-#include <gdk/gdkkeysyms.h>
+#include <gdk/gdk.h>
 
 #include "ut_debugmsg.h"
 #include "ut_assert.h"

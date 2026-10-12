@@ -38,7 +38,7 @@
 #include <string>
 #include <vector>
 
-#include <gdk/gdkkeysyms.h>
+#include <gdk/gdk.h>
 #include <gtk/gtk.h>
 
 #include "ap_Features.h"
