@@ -177,7 +177,7 @@ if [ $skip_deps -eq 0 ]; then
 		"${pkgpfx}-gst-plugins-base" \
 		"${pkgpfx}-gst-plugins-good" \
 		"${pkgpfx}-boost" \
-		"${pkgpfx}-glib2-devel" \
+		"${pkgpfx}-glib2" \
 		perl make
 fi
 
