@@ -30,6 +30,7 @@ libabinova_@ABINOVA_SERIES@_la_LDFLAGS = \
 	$(WMF_LIBS) \
 	$(TIDY_LIBS) \
 	$(LIBGCRYPT_LIBS) \
+	-lz \
 	-no-undefined \
 	-avoid-version \
 	-export-dynamic
@@ -47,8 +48,7 @@ libabinova_@ABINOVA_SERIES@_la_LIBADD = \
 	$(top_builddir)/thirdparty/libwpg.la \
 	$(top_builddir)/thirdparty/libwpd.la \
 	$(top_builddir)/thirdparty/librevenge.la \
-	$(top_builddir)/thirdparty/libhunspell.la \
-	-lz
+	$(top_builddir)/thirdparty/libhunspell.la
 
 ## Resources compilation
 resource_files = $(shell glib-compile-resources --sourcedir=$(srcdir) \

@@ -142,6 +142,8 @@ AC_CHECK_FUNCS([localeconv strcspn strncasecmp strtoul],
 AC_CHECK_HEADERS([sys/time.h], [], [$header_err])
 dnl execinfo.h and sigaction() are POSIX/glibc; absent on MinGW
 AC_CHECK_HEADERS([execinfo.h], [], [])
+dnl FreeBSD needs libexecinfo for backtrace(); glibc has it in libc
+AC_SEARCH_LIBS([backtrace], [execinfo])
 AC_CHECK_FUNCS([sigaction], [], [])
 AC_FUNC_STRTOD
 AC_TYPE_UINT32_T
