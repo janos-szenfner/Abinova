@@ -51,9 +51,10 @@ typedef struct {
     unsigned char digest[16];	/* actual digest after MD5Final call */
 } wvMD5_CTX;
 
-void wvMD5Init ();
-void wvMD5Update ();
-void wvMD5Final ();
+void wvMD5Init (wvMD5_CTX *mdContext);
+void wvMD5Update (wvMD5_CTX *mdContext, unsigned char *inBuf,
+		  unsigned int inLen);
+void wvMD5Final (wvMD5_CTX *mdContext);
 
 /*
  **********************************************************************
