@@ -155,30 +155,45 @@ pkgpfx="${MINGW_PACKAGE_PREFIX}"
 
 # ------------------------------------------------------------ deps
 if [ $skip_deps -eq 0 ]; then
-	pacman -Sy --needed --noconfirm \
-		base-devel \
-		"${pkgpfx}-toolchain" \
-		"${pkgpfx}-autotools" \
-		autoconf automake-wrapper libtool pkgconf \
-		"${pkgpfx}-gtk4" \
-		"${pkgpfx}-cairo" \
-		"${pkgpfx}-pango" \
-		"${pkgpfx}-librsvg" \
-		"${pkgpfx}-fribidi" \
-		"${pkgpfx}-libgsf" \
-		"${pkgpfx}-libxslt" \
-		"${pkgpfx}-zlib" \
-		"${pkgpfx}-libpng" \
-		"${pkgpfx}-libjpeg-turbo" \
-		"${pkgpfx}-enchant" \
-		"${pkgpfx}-hunspell" \
-		"${pkgpfx}-glib-networking" \
-		"${pkgpfx}-ca-certificates" \
-		"${pkgpfx}-gst-plugins-base" \
-		"${pkgpfx}-gst-plugins-good" \
-		"${pkgpfx}-boost" \
-		"${pkgpfx}-glib2" \
-		perl make
+	# pacman mirrors occasionally stall mid-transaction ("Operation too
+	# slow") — retry with the download timeout disabled rather than
+	# failing the whole build on a flaky mirror.
+	try=1
+	while :; do
+		if pacman -Sy --needed --noconfirm --disable-download-timeout \
+			base-devel \
+			"${pkgpfx}-toolchain" \
+			"${pkgpfx}-autotools" \
+			autoconf automake-wrapper libtool pkgconf \
+			"${pkgpfx}-gtk4" \
+			"${pkgpfx}-cairo" \
+			"${pkgpfx}-pango" \
+			"${pkgpfx}-librsvg" \
+			"${pkgpfx}-fribidi" \
+			"${pkgpfx}-libgsf" \
+			"${pkgpfx}-libxslt" \
+			"${pkgpfx}-zlib" \
+			"${pkgpfx}-libpng" \
+			"${pkgpfx}-libjpeg-turbo" \
+			"${pkgpfx}-enchant" \
+			"${pkgpfx}-hunspell" \
+			"${pkgpfx}-glib-networking" \
+			"${pkgpfx}-ca-certificates" \
+			"${pkgpfx}-gst-plugins-base" \
+			"${pkgpfx}-gst-plugins-good" \
+			"${pkgpfx}-boost" \
+			"${pkgpfx}-glib2" \
+			perl make; then
+			break
+		fi
+		if [ $try -ge 5 ]; then
+			echo "pacman deps install failed after $try attempts" >&2
+			exit 1
+		fi
+		echo "pacman deps install failed (attempt $try/5) — retrying" >&2
+		try=$((try+1))
+		sleep 20
+	done
 fi
 
 # -------------------------------------------------------- configure

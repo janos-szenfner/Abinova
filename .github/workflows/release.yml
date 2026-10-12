@@ -128,7 +128,11 @@ jobs:
 
       - name: NSIS installer
         run: |
-          pacman -S --noconfirm mingw-w64-ucrt-x86_64-nsis zip
+          try=1
+          until pacman -S --noconfirm --disable-download-timeout mingw-w64-ucrt-x86_64-nsis zip; do
+            [ $try -ge 5 ] && exit 1
+            try=$((try+1)); sleep 20
+          done
           BUNDLE=$(ls -d dist/abinova-*-windows-* | head -1)
           makensis -DVERSION="${VERSION#v}" -DARCH=x86_64 \
             -DSRCDIR="$(cygpath -w "$BUNDLE")" \
