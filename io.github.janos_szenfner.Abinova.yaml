@@ -32,3 +32,4 @@ modules:
       # prepared by CI: the release bundle extracted to ./bundle
       - type: dir
         path: bundle
+        dest: bundle
