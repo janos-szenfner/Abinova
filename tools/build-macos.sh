@@ -199,7 +199,7 @@ args="--disable-maintainer-mode"
 # scope that owns the environment (universal builds juggle two).
 env_for() {
 	export PATH="$1/bin:$1/opt/gettext/bin:$1/opt/libtool/libexec/gnubin:$PATH"
-	export PKG_CONFIG_PATH="$1/lib/pkgconfig:$1/share/pkgconfig:$1/opt/jpeg-turbo/lib/pkgconfig:$1/opt/libxslt/lib/pkgconfig"
+	export PKG_CONFIG_PATH="$1/lib/pkgconfig:$1/share/pkgconfig:$1/opt/jpeg-turbo/lib/pkgconfig:$1/opt/libxslt/lib/pkgconfig:$1/opt/zlib/lib/pkgconfig"
 	export CPPFLAGS="-I$1/include ${CPPFLAGS:-}"
 	export LDFLAGS="-L$1/lib ${LDFLAGS:-}"
 }
