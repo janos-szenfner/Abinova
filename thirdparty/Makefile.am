@@ -41,7 +41,7 @@ librevenge_la_SOURCES = \
 	librevenge-0.0.6/src/lib/RVNGTextTextGenerator.cpp \
 	librevenge-0.0.6/src/lib/RVNGZipStream.cpp
 
-librevenge_la_CPPFLAGS = -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/librevenge-0.0.6/src/lib -DLIBREVENGE_BUILD
+librevenge_la_CPPFLAGS = -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/librevenge-0.0.6/src/lib -DLIBREVENGE_BUILD -DLIBREVENGE_GENERATORS_BUILD
 
 libwpd_la_SOURCES = \
 	libwpd-0.10.3/src/lib/WP1BottomMarginGroup.cpp \
@@ -296,7 +296,7 @@ libwps_la_SOURCES = \
 	libwps-0.4.14/src/lib/WPSTextSubDocument.cpp \
 	libwps-0.4.14/src/lib/XYWrite.cpp
 
-libwps_la_CPPFLAGS = -I$(srcdir)/libwps-0.4.14/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwps-0.4.14/src/lib -DLIBWPS_BUILD
+libwps_la_CPPFLAGS = -I$(srcdir)/libwps-0.4.14/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwps-0.4.14/src/lib -DBUILD_WPS
 
 
 

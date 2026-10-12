@@ -29,9 +29,14 @@
 typedef std::intptr_t ssize_t;
 #endif
 #include <enchant.h>
-#if !defined(_WIN32)
-/* PACK06: bundled-provider fallback drives the provider ABI directly */
+#if !defined(_WIN32) && defined(__has_include)
+/* PACK06: bundled-provider fallback drives the provider ABI directly.
+   enchant-provider.h is a private header — some ports (e.g. FreeBSD
+   enchant2) don't install it, so the fallback is disabled there. */
+#if __has_include(<enchant-provider.h>)
+#define ABINOVA_ENCHANT_PROVIDER_ABI 1
 #include <enchant-provider.h>
+#endif
 #endif
 
 class ABI_EXPORT EnchantChecker : public SpellChecker
@@ -62,7 +67,7 @@ private:
 	virtual std::vector<UT_UCS4Char*> _suggestWord (const UT_UCS4Char * word, size_t len) override;
 
 	EnchantDict *m_dict;
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 	EnchantProvider *m_bundledProvider;	// non-null when m_dict came
 										// from a self-loaded backend
 #endif

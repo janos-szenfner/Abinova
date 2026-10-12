@@ -25,7 +25,6 @@
 
 #if !defined(_WIN32)
 #include <dlfcn.h>
-#include <enchant-provider.h>
 #endif
 
 #include "xap_App.h"
@@ -54,7 +53,7 @@ utf8_to_utf32(const char *word8)
 static size_t s_enchant_broker_count = 0;
 static EnchantBroker * s_enchant_broker = nullptr;
 
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 /* PACK06: bundled-provider fallback.
  *
  * Enchant dlopen()s its provider modules (enchant_hunspell.so etc.)
@@ -164,18 +163,18 @@ abi_enchant_count_provider(const char *, const char *,
 {
 	(*static_cast<size_t *>(user_data))++;
 }
-#endif /* !_WIN32 */
+#endif /* ABINOVA_ENCHANT_PROVIDER_ABI */
 
 EnchantChecker::EnchantChecker()
 	: m_dict(nullptr)
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 	, m_bundledProvider(nullptr)
 #endif
 {
 	if (s_enchant_broker_count == 0)
 	{
 		s_enchant_broker = enchant_broker_init ();
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 		/* if the broker found no provider modules at all (relocatable
 		 * bundle: enchant's compiled-in provider dir is absent), load
 		 * the bundled backends ourselves */
@@ -200,7 +199,7 @@ EnchantChecker::~EnchantChecker()
 
 	if (m_dict)
 	{
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 		if (m_bundledProvider)
 			m_bundledProvider->dispose_dict(m_bundledProvider, m_dict);
 		else
@@ -211,7 +210,7 @@ EnchantChecker::~EnchantChecker()
 
 	s_enchant_broker_count--;
 	if (s_enchant_broker_count == 0) {
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 		abi_enchant_release_bundled_providers();
 #endif
 		enchant_broker_free (s_enchant_broker);
@@ -229,7 +228,7 @@ EnchantChecker::_checkWord (const UT_UCS4Char * ucszWord, size_t len)
 	UT_UTF8String utf8 (ucszWord, len);
 
 	int rc;
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 	if (m_bundledProvider)
 		rc = m_dict->check ? m_dict->check(m_dict, utf8.utf8_str(),
 										  utf8.byteLength()) : -1;
@@ -261,7 +260,7 @@ EnchantChecker::_suggestWord (const UT_UCS4Char *ucszWord, size_t len)
 	char ** suggestions;
 	size_t n_suggestions;
 
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 	if (m_bundledProvider)
 	{
 		/* provider dicts carry no broker session — drive the vtable
@@ -284,7 +283,7 @@ EnchantChecker::_suggestWord (const UT_UCS4Char *ucszWord, size_t len)
 				pvSugg.push_back(ucszSugg);
 		}
 
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 		if (m_bundledProvider)
 			g_strfreev(suggestions);
 		else
@@ -301,7 +300,7 @@ bool EnchantChecker::addToCustomDict (const UT_UCS4Char *word, size_t len)
 
 	if (word && len) {
 		UT_UTF8String utf8 (word, len);
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 		if (m_bundledProvider)
 		{
 			/* most providers leave add_to_personal unset — the broker
@@ -326,7 +325,7 @@ bool EnchantChecker::isIgnored (const UT_UCS4Char *toCorrect, size_t toCorrectLe
 {
 	UT_return_val_if_fail (m_dict, false);
 
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 	if (m_bundledProvider)
 		return false;	// session wordlist lives in the broker
 #endif
@@ -342,7 +341,7 @@ void EnchantChecker::ignoreWord (const UT_UCS4Char *toCorrect, size_t toCorrectL
 
 	UT_UTF8String ignore (toCorrect, toCorrectLen);
 
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 	if (m_bundledProvider)
 	{
 		if (m_dict->add_to_session)
@@ -365,7 +364,7 @@ void EnchantChecker::correctWord (const UT_UCS4Char *toCorrect, size_t toCorrect
 	UT_UTF8String bad (toCorrect, toCorrectLen);
 	UT_UTF8String good (correct, correctLen);
 
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 	if (m_bundledProvider)
 	{
 		if (m_dict->store_replacement)
@@ -393,7 +392,7 @@ EnchantChecker::doesDictionaryExist (const char * szLang)
 		*hyphen = '_';
 
 	bool exists = enchant_broker_dict_exists (s_enchant_broker, lang);
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 	if (!exists)
 	{
 		abi_enchant_scan_bundled_providers();
@@ -425,14 +424,14 @@ EnchantChecker::_requestDictionary (const char * szLang)
 	 * would free a broker dict through provider->dispose_dict */
 	if (m_dict)
 	{
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 		if (m_bundledProvider)
 			m_bundledProvider->dispose_dict(m_bundledProvider, m_dict);
 		else
 #endif
 			enchant_broker_free_dict (s_enchant_broker, m_dict);
 		m_dict = nullptr;
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 		m_bundledProvider = nullptr;
 #endif
 	}
@@ -444,7 +443,7 @@ EnchantChecker::_requestDictionary (const char * szLang)
 		*hyphen = '_';
 
 	m_dict = enchant_broker_request_dict(s_enchant_broker, lang);
-#if !defined(_WIN32)
+#ifdef ABINOVA_ENCHANT_PROVIDER_ABI
 	if (!m_dict)
 	{
 		abi_enchant_scan_bundled_providers();
