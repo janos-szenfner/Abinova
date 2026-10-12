@@ -1,0 +1,34 @@
+# Flatpak manifest for Abinova — repacks the self-contained Linux bundle
+# produced by dist/linux-bundle.sh (the CI `linux` job). The bundle ships
+# its own GTK4 + every dependency, so no source modules are needed; the
+# manifest just installs the tree under /app/opt/abinova and exports the
+# desktop file, icons, metainfo and mime info it already contains.
+#
+# Runtime choice: org.freedesktop.Platform is enough because every library
+# is bundled. Switch to org.gnome.Platform if tighter portal/GTK-theming
+# integration is wanted later.
+app-id: io.github.janos_szenfner.Abinova
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: abinova
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  # word processor: document access + printing via the CUPS socket
+  - --filesystem=xdg-documents
+  - --filesystem=xdg-download
+  - --filesystem=/run/cups
+modules:
+  - name: abinova
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/opt /app/bin /app/share
+      - cp -a bundle /app/opt/abinova
+      - ln -s /app/opt/abinova/bin/abinova /app/bin/abinova
+      - cp -a bundle/share/. /app/share/
+    sources:
+      # prepared by CI: the release bundle extracted to ./bundle
+      - type: dir
+        path: bundle

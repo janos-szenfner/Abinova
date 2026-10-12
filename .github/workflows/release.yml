@@ -205,10 +205,49 @@ jobs:
           path: out/abinova-*-freebsd-amd64.tar.gz
 
   # ------------------------------------------------------------------
+  # Flatpak: repack the linux job's self-contained bundle via
+  # flatpak-builder (manifest at repo root). Produces a .flatpak single
+  # file users can `flatpak install`.
+  # ------------------------------------------------------------------
+  flatpak:
+    needs: linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux
+          path: artifacts
+
+      - name: Extract bundle
+        run: |
+          mkdir -p bundle
+          tar -xJf artifacts/abinova-*-linux-x86_64.tar.xz -C bundle --strip-components=1
+          test -x bundle/bin/abinova
+
+      - name: Flatpak toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
+
+      - name: Build flatpak
+        run: |
+          flatpak-builder --user --repo=repo --force-clean build-dir io.github.janos_szenfner.Abinova.yaml
+          flatpak --user build-bundle repo "abinova-${VERSION#v}-x86_64.flatpak" io.github.janos_szenfner.Abinova
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak
+          path: abinova-*-x86_64.flatpak
+
+  # ------------------------------------------------------------------
   # Publish: attach every artifact to the tag's GitHub Release
   # ------------------------------------------------------------------
   release:
-    needs: [linux, windows, macos, freebsd]
+    needs: [linux, windows, macos, freebsd, flatpak]
     runs-on: ubuntu-latest
     if: github.ref_type == 'tag' || inputs.tag != ''
     permissions:
