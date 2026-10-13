@@ -23,9 +23,9 @@ jobs:
   # Linux: self-contained bundle + .deb + .rpm
   # ------------------------------------------------------------------
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Dependencies + build
         run: |
@@ -97,7 +97,7 @@ jobs:
           rpmbuild -bb --define "_topdir $PWD/rpmbuild" rpmbuild/SPECS/abinova.spec
           cp rpmbuild/RPMS/x86_64/abinova-*.rpm .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: linux
           path: |
@@ -114,7 +114,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: msys2/setup-msys2@v2
         with:
@@ -140,7 +140,7 @@ jobs:
             dist/abinova-setup.nsi
           cd "$BUNDLE/.." && zip -qr "$OLDPWD/abinova-${VERSION#v}-windows-x86_64.zip" "$(basename "$BUNDLE")"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: windows
           path: |
@@ -153,7 +153,7 @@ jobs:
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Build + .app bundle
         env:
@@ -174,7 +174,7 @@ jobs:
             "abinova-${VERSION#v}-macos-${ARCH}.dmg"
           tar -cJf "abinova-${VERSION#v}-macos-${ARCH}-app.tar.xz" -C "$(dirname "$APP")" Abinova.app
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: macos
           path: |
@@ -186,9 +186,9 @@ jobs:
   # Produces a staged-install tarball — pkg(8) packaging is a TODO.
   # ------------------------------------------------------------------
   freebsd:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Build in FreeBSD VM
         uses: vmactions/freebsd-vm@v1
@@ -204,7 +204,7 @@ jobs:
             PKGVER="${{ env.VERSION }}"; PKGVER="${PKGVER#v}"
             tar -czf "out/abinova-${PKGVER}-freebsd-amd64.tar.gz" -C out/stage .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: freebsd
           path: out/abinova-*-freebsd-amd64.tar.gz
@@ -216,11 +216,11 @@ jobs:
   # ------------------------------------------------------------------
   flatpak:
     needs: linux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           name: linux
           path: artifacts
@@ -243,7 +243,7 @@ jobs:
           flatpak-builder --user --repo=repo --force-clean build-dir io.github.janos_szenfner.Abinova.yaml
           flatpak build-bundle repo "abinova-${VERSION#v}-x86_64.flatpak" io.github.janos_szenfner.Abinova
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: flatpak
           path: abinova-*-x86_64.flatpak
@@ -253,12 +253,12 @@ jobs:
   # ------------------------------------------------------------------
   release:
     needs: [linux, windows, macos, freebsd, flatpak]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.ref_type == 'tag' || inputs.tag != ''
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           path: release-files
           merge-multiple: true
