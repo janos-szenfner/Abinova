@@ -429,7 +429,10 @@ fi
 schema_count=0
 for d in $schema_dirs; do
 	if [ -d "$d" ]; then
-		cp -a "$d"/*.xml "$schema_dir/" 2>/dev/null || true
+		# -L: Homebrew schema files are often symlinks into Cellar;
+		# copying them as links leaves dangling entries that
+		# glib-compile-schemas then fails to open
+		cp -fL "$d"/*.xml "$schema_dir/" 2>/dev/null || true
 	fi
 done
 schema_count=$(find "$schema_dir" -name '*.gschema.xml' | wc -l)
