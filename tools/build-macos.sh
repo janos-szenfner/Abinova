@@ -412,19 +412,43 @@ fi
 # ------------------------------------------------ gschemas.compiled
 schema_dir="$res/glib-2.0/schemas"
 mkdir -p "$schema_dir"
-schema_src=""
-for d in "$brew_prefix/share/glib-2.0/schemas" \
-	"$brew_prefix"/opt/*/share/glib-2.0/schemas; do
-	[ -d "$d" ] && cp -a "$d"/*.xml "$schema_dir/" 2>/dev/null && schema_src=1
+schema_dirs="$brew_prefix/share/glib-2.0/schemas"
+for d in "$brew_prefix"/opt/*/share/glib-2.0/schemas; do
+	[ -d "$d" ] && schema_dirs="$schema_dirs $d"
 done
-if [ -n "$schema_src" ] && \
+# gtk4 ships org.gtk.gtk4.gschema.xml in its own keg; make sure it is
+# pulled even if the wildcard above misses it
+gtk4_prefix=$(brew --prefix gtk4 2>/dev/null || true)
+if [ -n "$gtk4_prefix" ] && \
+	[ -d "$gtk4_prefix/share/glib-2.0/schemas" ]; then
+	case " $schema_dirs " in
+	*"$gtk4_prefix/share/glib-2.0/schemas"*) ;;
+	*) schema_dirs="$schema_dirs $gtk4_prefix/share/glib-2.0/schemas" ;;
+	esac
+fi
+schema_count=0
+for d in $schema_dirs; do
+	if [ -d "$d" ]; then
+		cp -a "$d"/*.xml "$schema_dir/" 2>/dev/null || true
+	fi
+done
+schema_count=$(find "$schema_dir" -name '*.gschema.xml' | wc -l)
+echo "build-macos: staging $schema_count gschema file(s) from: $schema_dirs"
+if [ "$schema_count" -gt 0 ] && \
 	command -v glib-compile-schemas >/dev/null 2>&1; then
 	glib-compile-schemas --strict --targetdir="$schema_dir" \
-		"$schema_dir" 2>/dev/null || \
+		"$schema_dir" || \
 		glib-compile-schemas --targetdir="$schema_dir" "$schema_dir"
 	rm -f "$schema_dir"/*.xml
 else
-	echo "build-macos: WARNING glib schemas/compiler missing" >&2
+	echo "build-macos: FATAL no glib schemas found or compiler missing" >&2
+	exit 1
+fi
+# an empty gschemas.compiled is a launch-time crash waiting to happen
+# (GtkColorChooser -> g_settings_new -> missing schema -> abort)
+if ! grep -aq "org.gtk.gtk4" "$schema_dir/gschemas.compiled"; then
+	echo "build-macos: FATAL org.gtk.gtk4 schema absent from bundle" >&2
+	exit 1
 fi
 
 # ---------------------------------------- PACK06 runtime modules
