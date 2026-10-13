@@ -136,7 +136,7 @@ jobs:
           BUNDLE=$(ls -d dist/abinova-*-windows-* | head -1)
           makensis -DVERSION="${VERSION#v}" -DARCH=x86_64 \
             -DSRCDIR="$(cygpath -w "$(cd "$BUNDLE" && pwd)")" \
-            -DOUTFILE="abinova-${VERSION#v}-windows-x86_64-setup.exe" \
+            -DOUTFILE="$(cygpath -w "$(pwd)/abinova-${VERSION#v}-windows-x86_64-setup.exe")" \
             dist/abinova-setup.nsi
           cd "$BUNDLE/.." && zip -qr "$OLDPWD/abinova-${VERSION#v}-windows-x86_64.zip" "$(basename "$BUNDLE")"
 
@@ -268,7 +268,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
         run: |
-          gh release create "$TAG" release-files/* \
-            --repo "${{ github.repository }}" \
-            --title "Abinova ${TAG#v}" \
-            --notes "Automated release build of Abinova ${TAG#v}."
+          REPO="${{ github.repository }}"
+          if ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$REPO" \
+              --title "Abinova ${TAG#v}" \
+              --notes "Automated release build of Abinova ${TAG#v}."
+          fi
+          gh release upload "$TAG" release-files/* --repo "$REPO" --clobber
