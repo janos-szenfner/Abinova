@@ -269,5 +269,6 @@ jobs:
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
         run: |
           gh release create "$TAG" release-files/* \
+            --repo "${{ github.repository }}" \
             --title "Abinova ${TAG#v}" \
             --notes "Automated release build of Abinova ${TAG#v}."
