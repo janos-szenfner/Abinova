@@ -28,6 +28,10 @@ modules:
       - cp -a bundle /app/opt/abinova
       - ln -s /app/opt/abinova/bin/abinova /app/bin/abinova
       - cp -a bundle/share/. /app/share/
+      # Flatpak only exports icons named after the app-id — rename the
+      # bundle's abinova.* icons and retarget the desktop file's Icon=.
+      - find /app/share/icons/hicolor -name 'abinova.*' -exec sh -c 'for f; do mv "$f" "${f%abinova.*}io.github.janos_szenfner.Abinova.${f##*.}"; done' _ {} +
+      - sed -i 's/^Icon=abinova$/Icon=io.github.janos_szenfner.Abinova/' /app/share/applications/io.github.janos_szenfner.Abinova.desktop
     sources:
       # prepared by CI: the release bundle extracted to ./bundle
       - type: dir
