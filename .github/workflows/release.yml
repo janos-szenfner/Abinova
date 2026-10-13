@@ -170,7 +170,11 @@ jobs:
         run: |
           APP=$(ls -d Abinova.app dist/Abinova.app 2>/dev/null | head -1)
           ARCH=$(uname -m)
-          hdiutil create -volname Abinova -srcfolder "$APP" -ov -format UDZO \
+          # stage app + /Applications symlink so drag-install works
+          STAGE=$(mktemp -d)
+          cp -a "$APP" "$STAGE/"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname Abinova -srcfolder "$STAGE" -ov -format UDZO \
             "abinova-${VERSION#v}-macos-${ARCH}.dmg"
           tar -cJf "abinova-${VERSION#v}-macos-${ARCH}-app.tar.xz" -C "$(dirname "$APP")" Abinova.app
 
