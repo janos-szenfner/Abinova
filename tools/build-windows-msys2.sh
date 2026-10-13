@@ -624,8 +624,14 @@ cat > "$bbin/abinova.exe.manifest" <<EOF
 </assembly>
 EOF
 
-# bundle icon for a future installer / shortcut (PACK09)
-[ -f "$top/icons/abinova.ico" ] && cp "$top/icons/abinova.ico" "$outdir/abinova.ico"
+# bundle icon for a future installer / shortcut (PACK09) — required by
+# dist/abinova-setup.nsi, fail loudly if it is not in the tree
+if [ -f "$top/icons/abinova.ico" ]; then
+	cp "$top/icons/abinova.ico" "$outdir/abinova.ico"
+else
+	echo "build-windows: ERROR icons/abinova.ico missing — NSIS step needs it" >&2
+	exit 1
+fi
 
 # ------------------------------------------------------- BUNDLE-INFO
 {

@@ -135,7 +135,7 @@ jobs:
           done
           BUNDLE=$(ls -d dist/abinova-*-windows-* | head -1)
           makensis -DVERSION="${VERSION#v}" -DARCH=x86_64 \
-            -DSRCDIR="$(cygpath -w "$BUNDLE")" \
+            -DSRCDIR="$(cygpath -w "$(cd "$BUNDLE" && pwd)")" \
             -DOUTFILE="abinova-${VERSION#v}-windows-x86_64-setup.exe" \
             dist/abinova-setup.nsi
           cd "$BUNDLE/.." && zip -qr "$OLDPWD/abinova-${VERSION#v}-windows-x86_64.zip" "$(basename "$BUNDLE")"
