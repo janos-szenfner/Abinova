@@ -56,7 +56,7 @@
 #   declared macOS system set (/usr/lib, /System).  GTK4's Quartz
 #   backend is compiled into libgtk-4 itself (brew builds
 #   -Dmacos-backend=true), so bundling the lib covers it — the
-#   launcher pins GDK_BACKEND=quartz as a belt-and-braces default.
+#   launcher pins GDK_BACKEND=macos as a belt-and-braces default.
 #   The dlopen'd runtime modules (enchant backends, GIO modules incl.
 #   the libgiognutls TLS backend + CA bundle, GTK4 module dirs,
 #   GStreamer plugins) are staged by the PACK06 section below.
@@ -717,7 +717,7 @@ res="$contents/Resources"
 fw="$contents/Frameworks"
 
 export ABINOVA_DATADIR="$res"
-export GDK_BACKEND="${GDK_BACKEND:-quartz}"
+export GDK_BACKEND="${GDK_BACKEND:-macos}"
 # PACK06: tell the app's runtime-module setup where the Frameworks
 # module dirs live — it exports GIO_EXTRA_MODULES / GTK_PATH /
 # GST_PLUGIN_SYSTEM_PATH_1_0 and fixes GDK_PIXBUF_MODULE_FILE itself.
