@@ -178,6 +178,8 @@ if [ $skip_deps -eq 0 ]; then
 			"${pkgpfx}-enchant" \
 			"${pkgpfx}-hunspell" \
 			"${pkgpfx}-glib-networking" \
+			"${pkgpfx}-adwaita-icon-theme" \
+			"${pkgpfx}-hicolor-icon-theme" \
 			"${pkgpfx}-ca-certificates" \
 			"${pkgpfx}-gst-plugins-base" \
 			"${pkgpfx}-gst-plugins-good" \
@@ -429,6 +431,22 @@ if [ -d "$gsrc" ]; then
 else
 	echo "build-windows: WARNING no glib schemas dir found" >&2
 fi
+
+# ----------------------------------------------------- icon theme
+# Without an icon theme GtkFileChooser renders identical fallback
+# glyphs for folders and files.  GTK locates share/icons relative to
+# the bundled libgtk DLL's prefix, so plain copies suffice.
+icondir="$outdir/share/icons"
+icon_staged=""
+for theme in Adwaita hicolor; do
+	tsrc="${MINGW_PREFIX:-/nonexistent}/share/icons/$theme"
+	if [ -d "$tsrc" ]; then
+		mkdir -p "$icondir"
+		cp -a "$tsrc" "$icondir/" && icon_staged=1
+	fi
+done
+[ -n "$icon_staged" ] || \
+	echo "build-windows: WARNING no icon theme staged" >&2
 
 # ------------------------------------------------- enchant backends
 # spellcheck providers live in lib/enchant-2 beside the prefix — the

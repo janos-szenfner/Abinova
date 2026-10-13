@@ -169,6 +169,7 @@ if [ $skip_deps -eq 0 ]; then
 		gtk4 cairo pango librsvg fribidi \
 		libgsf libxslt zlib libpng jpeg-turbo \
 		enchant hunspell \
+		adwaita-icon-theme \
 		glib-networking ca-certificates gstreamer \
 		boost \
 		perl make
@@ -178,6 +179,7 @@ if [ $skip_deps -eq 0 ]; then
 			gtk4 cairo pango librsvg fribidi \
 			libgsf libxslt zlib libpng jpeg-turbo \
 			enchant hunspell \
+			adwaita-icon-theme \
 			glib-networking ca-certificates gstreamer \
 			boost \
 			perl make
@@ -452,6 +454,35 @@ fi
 if ! grep -aq "org.gtk.gtk4" "$schema_dir/gschemas.compiled"; then
 	echo "build-macos: FATAL org.gtk.gtk4 schema absent from bundle" >&2
 	exit 1
+fi
+
+# ----------------------------------------------------- icon theme
+# Without an icon theme GtkFileChooser renders identical fallback
+# glyphs for folders and files.  Stage Adwaita + hicolor under
+# Resources/share/icons; the launcher prepends that share dir to
+# XDG_DATA_DIRS.
+icon_dir="$res/share/icons"
+mkdir -p "$icon_dir"
+icon_staged=""
+for theme in Adwaita hicolor; do
+	for d in "$brew_prefix/share/icons/$theme" \
+		"$brew_prefix"/opt/*/share/icons/"$theme"; do
+		if [ -d "$d" ]; then
+			cp -RL "$d" "$icon_dir/" && icon_staged=1
+			break
+		fi
+	done
+done
+if [ -z "$icon_staged" ]; then
+	echo "build-macos: WARNING no icon theme staged" >&2
+else
+	# refresh caches if available so lookups are O(1)
+	if command -v gtk4-update-icon-cache >/dev/null 2>&1; then
+		for t in "$icon_dir"/*/; do
+			[ -f "$t/index.theme" ] && \
+				gtk4-update-icon-cache -f -t "$t" 2>/dev/null || true
+		done
+	fi
 fi
 
 # ---------------------------------------- PACK06 runtime modules
@@ -753,6 +784,8 @@ export GDK_BACKEND="${GDK_BACKEND:-macos}"
 export ABINOVA_MODULE_ROOT="$fw"
 export GDK_PIXBUF_MODULE_FILE="$fw/gdk-pixbuf-2.0/loaders.cache"
 export GSETTINGS_SCHEMA_DIR="$res/glib-2.0/schemas"
+# bundled icon theme lives at $res/share/icons
+export XDG_DATA_DIRS="$res/share${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
 # PACK07: private fontconfig (macOS has none system-wide) — the app
 # probes $res/fontconfig/fonts.conf itself, the export just makes
 # the intent explicit and lets a user override win.
