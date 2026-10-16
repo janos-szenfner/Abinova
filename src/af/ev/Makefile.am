@@ -50,6 +50,8 @@ libev_la_SOURCES += \
 	gtk/ev_UnixMenuPopup.h \
 	gtk/ev_UnixMouse.cpp \
 	gtk/ev_UnixMouse.h \
+	gtk/ev_UnixSizeCombo.cpp \
+	gtk/ev_UnixSizeCombo.h \
 	gtk/ev_UnixToolbar.cpp \
 	gtk/ev_UnixToolbar.h \
 	gtk/ev_UnixToolbar_ViewListener.cpp \

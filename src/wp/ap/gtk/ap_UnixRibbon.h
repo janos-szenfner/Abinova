@@ -307,16 +307,6 @@ private:
 	static void			_s_tb_combo_changed(GtkWidget * combo, gpointer data);
 	static void			_s_tb_dropdown_changed(GtkWidget * dd, GParamSpec * pspec,
 											   gpointer data);
-	static gboolean		_s_tb_size_key(GtkEventControllerKey * ctrl,
-									   guint keyval, guint keycode,
-									   GdkModifierType state, gpointer data);
-	static void			_s_tb_size_focus_out(GtkEventControllerFocus * ctrl,
-											 gpointer data);
-	static void			_s_tb_size_insert_text(GtkEditable * editable,
-											   gchar * new_text,
-											   gint new_text_length,
-											   gint * position,
-											   gpointer data);
 	static void			_s_tb_color_activated(GtkColorChooser * cc,
 											  GdkRGBA * color, gpointer data);
 	static void			_s_tb_color_automatic(GtkWidget * w, gpointer data);

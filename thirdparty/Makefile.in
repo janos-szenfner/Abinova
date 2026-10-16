@@ -1155,7 +1155,7 @@ librevenge_la_SOURCES = \
 	librevenge-0.0.6/src/lib/RVNGTextTextGenerator.cpp \
 	librevenge-0.0.6/src/lib/RVNGZipStream.cpp
 
-librevenge_la_CPPFLAGS = -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/librevenge-0.0.6/src/lib -DLIBREVENGE_BUILD -DLIBREVENGE_GENERATORS_BUILD
+librevenge_la_CPPFLAGS = -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/librevenge-0.0.6/src/lib -DLIBREVENGE_BUILD -DLIBREVENGE_GENERATORS_BUILD -DLIBREVENGE_STREAM_BUILD
 libwpd_la_SOURCES = \
 	libwpd-0.10.3/src/lib/WP1BottomMarginGroup.cpp \
 	libwpd-0.10.3/src/lib/WP1CenterTextGroup.cpp \
@@ -1328,7 +1328,7 @@ libwpd_la_SOURCES = \
 	libwpd-0.10.3/src/lib/libwpd_internal.cpp \
 	libwpd-0.10.3/src/lib/libwpd_math.cpp
 
-libwpd_la_CPPFLAGS = -I$(srcdir)/libwpd-0.10.3/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwpd-0.10.3/src/lib -DLIBWPD_BUILD
+libwpd_la_CPPFLAGS = -I$(srcdir)/libwpd-0.10.3/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwpd-0.10.3/src/lib -DLIBWPD_BUILD -DLIBREVENGE_BUILD -DLIBREVENGE_GENERATORS_BUILD -DLIBREVENGE_STREAM_BUILD
 libwpg_la_SOURCES = \
 	libwpg-0.3.4/src/lib/WPG1Parser.cpp \
 	libwpg-0.3.4/src/lib/WPG2Parser.cpp \
@@ -1341,7 +1341,7 @@ libwpg_la_SOURCES = \
 	libwpg-0.3.4/src/lib/WPGraphics.cpp \
 	libwpg-0.3.4/src/lib/libwpg_utils.cpp
 
-libwpg_la_CPPFLAGS = -I$(srcdir)/libwpg-0.3.4/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwpd-0.10.3/inc -I$(srcdir)/libwpg-0.3.4/src/lib -DLIBWPG_BUILD
+libwpg_la_CPPFLAGS = -I$(srcdir)/libwpg-0.3.4/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwpd-0.10.3/inc -I$(srcdir)/libwpg-0.3.4/src/lib -DLIBWPG_BUILD -DLIBWPD_BUILD -DLIBREVENGE_BUILD -DLIBREVENGE_GENERATORS_BUILD -DLIBREVENGE_STREAM_BUILD
 libwps_la_SOURCES = \
 	libwps-0.4.14/src/lib/libwps_internal.cpp \
 	libwps-0.4.14/src/lib/libwps_tools_win.cpp \
@@ -1407,7 +1407,7 @@ libwps_la_SOURCES = \
 	libwps-0.4.14/src/lib/WPSTextSubDocument.cpp \
 	libwps-0.4.14/src/lib/XYWrite.cpp
 
-libwps_la_CPPFLAGS = -I$(srcdir)/libwps-0.4.14/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwps-0.4.14/src/lib -DBUILD_WPS
+libwps_la_CPPFLAGS = -I$(srcdir)/libwps-0.4.14/inc -I$(srcdir)/librevenge-0.0.6/inc -I$(srcdir)/libwps-0.4.14/src/lib -DBUILD_WPS -DLIBREVENGE_BUILD -DLIBREVENGE_GENERATORS_BUILD -DLIBREVENGE_STREAM_BUILD
 EXTRA_DIST = README UPGRADING.md VENDORED.json wv-1.2.9/config.h
 libwv_la_SOURCES = \
 	wv-1.2.9/anld.c \

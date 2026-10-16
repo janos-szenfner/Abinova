@@ -581,7 +581,8 @@ GMenuItem * EV_UnixMenu::_createMenuItem(XAP_Menu_Id id,
 			if (szIcon && *szIcon && g_ascii_strcasecmp(szIcon, "NoIcon"))
 			{
 				gchar * szStock = abi_stock_from_toolbar_id(szIcon);
-				GIcon * icon = g_themed_icon_new(szStock);
+				GIcon * icon = g_themed_icon_new(
+					abi_stock_pick_icon(szStock));
 				g_menu_item_set_icon(item, icon);
 				g_object_unref(icon);
 				g_free(szStock);

@@ -67,6 +67,7 @@
 #include "ap_Toolbar_Id.h"
 #include "ap_UnixStockIcons.h"
 #include "ev_UnixFontCombo.h"
+#include "ev_UnixSizeCombo.h"
 #include "xap_GtkUtils.h"
 #include "xap_GtkComboBoxHelpers.h"
 
@@ -111,7 +112,8 @@ toolbar_append_button (GtkBox 	*toolbar,
 					   gulong		*handler_id)
 {
 	gchar* stock_id = abi_stock_from_toolbar_id(icon_name);
-	GtkWidget* item = gtk_button_new_from_icon_name(stock_id);
+	GtkWidget* item = gtk_button_new_from_icon_name(
+		abi_stock_pick_icon(stock_id));
 	g_free(stock_id);
 	stock_id = nullptr;
 	*handler_id = g_signal_connect(G_OBJECT(item), "clicked", handler, data);
@@ -132,7 +134,8 @@ toolbar_append_toggle (GtkBox 	*toolbar,
 					   gulong		*handler_id)
 {
 	gchar* stock_id = abi_stock_from_toolbar_id(icon_name);
-	GtkWidget* icon = gtk_image_new_from_icon_name(stock_id);
+	GtkWidget* icon = gtk_image_new_from_icon_name(
+		abi_stock_pick_icon(stock_id));
 	GtkWidget* item = gtk_toggle_button_new();
 	gtk_button_set_child(GTK_BUTTON(item), icon);
 	g_free (stock_id);
@@ -226,58 +229,6 @@ public:									// we create...
 		}
 	}
 
-	/*!
-	 * Only accept numeric input in the toolbar's font size combo.
-	 */
-	static void s_insert_text_cb (GtkEditable *editable,
-								  gchar       *new_text,
-								  gint         new_text_length,
-								  gint        /* *position */ , 
-								  gpointer    /* data */)
-	{
-		gchar		*iter;
-		gunichar	 c;
-
-		// insert-text may report -1 when new_text is NUL-terminated
-		if (new_text_length < 0)
-			new_text_length = strlen(new_text);
-
-		iter = new_text;
-		while (iter < (new_text + new_text_length)) {
-			c = g_utf8_get_char (iter);
-			if (!g_unichar_isdigit (c)) {
-				g_signal_stop_emission_by_name (G_OBJECT (editable), "insert-text");
-				return;
-			}
-			iter = g_utf8_next_char (iter);
-		}
-	}
-
-	/*!
-	 * Apply font size upon <return>
-	 */
-	static gboolean	s_key_press_event_cb (GtkEventControllerKey * /*controller*/,
-										  guint        keyval,
-										  guint        /*keycode*/,
-										  GdkModifierType /*state*/,
-										  _wd         *wd)
-	{
-		if (keyval == GDK_KEY_Return) {
-			s_combo_apply_changes (wd->m_widget, wd);
-		}
-
-		return FALSE;
-	}
-
-	/*!
-	 * Apply changes after editing of the font size is done.
-	 */
-	static void	s_focus_out_event_cb (GtkEventControllerFocus * /*controller*/,
-									  _wd           *wd)
-	{
-		s_combo_apply_changes (wd->m_widget, wd);
-	}
-
 	static void s_combo_changed(GtkWidget * combo, _wd * wd)
 	{
 		UT_return_if_fail(wd);
@@ -285,15 +236,6 @@ public:									// we create...
 		// only act if the widget has been shown and embedded in the toolbar
 		if (!wd->m_widget || wd->m_blockSignal) {
 			return;
-		}
-
-		if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE)) {
-			// no updates of the font size while the entry is being edited
-			GtkWidget *entry = GTK_WIDGET(g_object_get_data(
-				G_OBJECT(wd->m_widget), "abi-size-entry"));
-			if (entry && gtk_widget_has_focus(entry)) {
-				return;
-			}
 		}
 
 		s_combo_apply_changes (combo, wd);
@@ -311,31 +253,6 @@ public:									// we create...
 	}
 
 	/*!
-	 * The size drop-down mirrors its selection into the paired entry;
-	 * selecting an item also applies the size, unless the user is
-	 * currently typing in the entry.
-	 */
-	static void s_size_drop_changed(GtkWidget * drop, GParamSpec * /*pspec*/,
-									_wd * wd)
-	{
-		UT_return_if_fail(wd);
-		if (!wd->m_widget || wd->m_blockSignal) {
-			return;
-		}
-		GtkWidget *entry = GTK_WIDGET(g_object_get_data(
-			G_OBJECT(wd->m_widget), "abi-size-entry"));
-		if (entry && gtk_widget_has_focus(entry)) {
-			return;
-		}
-		std::string sel =
-			XAP_dropDownGetSelectedText (GTK_DROP_DOWN (drop));
-		if (entry && !sel.empty()) {
-			XAP_gtk_entry_set_text (GTK_EDITABLE (entry), sel.c_str());
-		}
-		s_combo_apply_changes (wd->m_widget, wd);
-	}
-
-	/*!
 	 * Actually apply changes after a combo has been frobbed.
 	 * This is not meant to be used as a signal handler, but rather to 
 	 * implement common functionality after the decision has been made 
@@ -348,18 +265,10 @@ public:									// we create...
 		gchar *buffer = nullptr;
 		if (ABI_IS_FONT_COMBO (combo)) {
 			buffer = abi_font_combo_get_active_text (ABI_FONT_COMBO (combo));
-		} else if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE)) {
-			// the size widget is an entry + drop-down pair; the typed
-			// value may not be in the list, so the entry is authoritative
-			GtkWidget *entry = GTK_WIDGET(g_object_get_data(
-				G_OBJECT(wd->m_widget), "abi-size-entry"));
-			if (entry) {
-				const char *entryText =
-					gtk_editable_get_text (GTK_EDITABLE (entry));
-				if (entryText && *entryText) {
-					buffer = g_strdup (entryText);
-				}
-			}
+		} else if (ABI_IS_SIZE_COMBO (combo)) {
+			// the entry may hold a size that is not in the list, so
+			// it is authoritative
+			buffer = abi_size_combo_get_active_text (ABI_SIZE_COMBO (combo));
 		} else if (GTK_IS_DROP_DOWN (combo)) {
 			buffer = g_strdup (XAP_dropDownGetSelectedText (
 								   GTK_DROP_DOWN (combo)).c_str());
@@ -368,7 +277,7 @@ public:									// we create...
 			return;
 		}
 
-		if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_FONT)) {
+		if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE)) {
 			const gchar *font;
 			font = XAP_EncodingManager::fontsizes_mapping.lookupByTarget(buffer);
 			if (font) {
@@ -809,28 +718,13 @@ bool EV_UnixToolbar::synthesize(void)
 				GtkWidget *combo = nullptr;
 				GtkWidget *listWidget = nullptr; /* the widget whose selection we watch */
 				if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE)) {
-					/* GTK4 has no combo-with-entry: pair a GtkEntry
-					 * with a GtkDropDown for the canned sizes. */
-					combo = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-					GtkWidget *entry = gtk_entry_new();
-					gtk_widget_set_can_focus (entry, TRUE);
-					gtk_editable_set_width_chars (GTK_EDITABLE(entry), 4);
-					gtk_editable_set_max_width_chars (GTK_EDITABLE(entry), 6);
-					g_signal_connect (G_OBJECT (entry), "insert-text", G_CALLBACK (_wd::s_insert_text_cb), nullptr);
-					GtkEventController *focusController = gtk_event_controller_focus_new();
-					g_signal_connect (G_OBJECT (focusController), "leave", G_CALLBACK (_wd::s_focus_out_event_cb), static_cast<gpointer>( wd));
-					gtk_widget_add_controller (entry, focusController);
-					GtkEventController *keyController = gtk_event_controller_key_new();
-					g_signal_connect (G_OBJECT (keyController), "key-pressed", G_CALLBACK (_wd::s_key_press_event_cb), static_cast<gpointer>( wd));
-					gtk_widget_add_controller (entry, keyController);
-					gtk_box_append (GTK_BOX (combo), entry);
-					listWidget = gtk_drop_down_new (nullptr, nullptr);
-					XAP_makeGtkDropDown (GTK_DROP_DOWN (listWidget));
-					gtk_box_append (GTK_BOX (combo), listWidget);
-					g_object_set_data (G_OBJECT (combo), "abi-size-entry", entry);
-					g_object_set_data (G_OBJECT (combo), "abi-size-drop", listWidget);
-					wd->m_handlerId = g_signal_connect (G_OBJECT(listWidget), "notify::selected",
-														G_CALLBACK(_wd::s_size_drop_changed),
+					/* same UX as the font combo: one editable field
+					 * with a drop-down list of the canned sizes */
+					combo = abi_size_combo_new ();
+					gtk_widget_set_name (combo, "AbiSizeCombo");
+					listWidget = combo;
+					wd->m_handlerId = g_signal_connect (G_OBJECT(listWidget), "changed",
+														G_CALLBACK(_wd::s_font_combo_changed),
 														wd);
 				}
 				else if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_FONT)) {
@@ -876,6 +770,14 @@ bool EV_UnixToolbar::synthesize(void)
 						}						
 						abi_font_combo_set_fonts (ABI_FONT_COMBO (combo), fonts);
 						g_free (fonts); fonts = nullptr;
+					}
+					else if (ABI_IS_SIZE_COMBO (combo)) {
+						const gchar **sizes = g_new0 (const gchar *, items + 1);
+						for (gint m=0; m < items; m++) {
+							sizes[m] = (*v)[m];
+						}
+						abi_size_combo_set_sizes (ABI_SIZE_COMBO (combo), sizes);
+						g_free (sizes); sizes = nullptr;
 					}
 					else {
 						for (gint m=0; m < items; m++) {
@@ -1105,31 +1007,16 @@ bool EV_UnixToolbar::refreshToolbar(AV_View * pView, AV_ChangeMask mask)
 					if (!szState) {
 						if (ABI_IS_FONT_COMBO (combo))
 							abi_font_combo_unselect (ABI_FONT_COMBO (combo));
+						else if (ABI_IS_SIZE_COMBO (combo))
+							abi_size_combo_unselect (ABI_SIZE_COMBO (combo));
 						else if (GTK_IS_DROP_DOWN (combo))
 							gtk_drop_down_set_selected (GTK_DROP_DOWN (combo),
 														GTK_INVALID_LIST_POSITION);
-						else {
-							GtkWidget *drop = GTK_WIDGET(g_object_get_data(
-								G_OBJECT(combo), "abi-size-drop"));
-							if (drop)
-								gtk_drop_down_set_selected (GTK_DROP_DOWN (drop),
-															GTK_INVALID_LIST_POSITION);
-						}
 					}
 					else if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_SIZE)) {
-						GtkWidget *drop = GTK_WIDGET(g_object_get_data(
-							G_OBJECT(combo), "abi-size-drop"));
-						GtkWidget *entry = GTK_WIDGET(g_object_get_data(
-							G_OBJECT(combo), "abi-size-entry"));
 						const char * fsz = XAP_EncodingManager::fontsizes_mapping.lookupBySource(szState);
-						gboolean ret = FALSE;
-						if (drop && fsz) {
-							ret = combo_box_set_active_text(drop, fsz, wd->m_handlerId);
-						}
-						if (entry) {
-							XAP_gtk_entry_set_text(GTK_EDITABLE(entry),
-											   ret ? fsz : szState);
-						}
+						abi_size_combo_select_text (ABI_SIZE_COMBO (combo),
+													fsz ? fsz : szState);
 					}
 					else if (wd->m_id == static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_STYLE)) {
 #define BUILTIN_INDEX "builtin-index"

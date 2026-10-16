@@ -60,11 +60,11 @@ g_cclosure_user_marshal_VOID__UINT_UINT (GClosure     *closure,
   if (G_CCLOSURE_SWAP_DATA (closure))
     {
       data1 = closure->data;
-      data2 = g_value_get_pointer (param_values + 0);
+      data2 = g_value_get_object (param_values + 0);
     }
   else
     {
-      data1 = g_value_get_pointer (param_values + 0);
+      data1 = g_value_get_object (param_values + 0);
       data2 = closure->data;
     }
   callback = reinterpret_cast<GMarshalFunc_VOID__UINT_UINT>( (marshal_data ? marshal_data : cc->callback));

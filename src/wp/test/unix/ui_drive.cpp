@@ -2156,6 +2156,7 @@ static int drive_abiwidget(const char *scratch_uri)
 #include "ev_UnixMenuPopup.h"
 #include "ev_UnixMenuBar.h"
 #include "ev_UnixFontCombo.h"
+#include "ev_UnixSizeCombo.h"
 #include "ev_UnixToolbar.h"
 #include "xap_UnixTableWidget.h"
 #include "ev_EditEventMapper.h"
@@ -2845,6 +2846,10 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 				} else if (ABI_IS_FONT_COMBO(w)) {
 					abi_font_combo_select_text(ABI_FONT_COMBO(w),
 											   "Serif");
+					g_signal_emit_by_name(w, "changed");
+				} else if (ABI_IS_SIZE_COMBO(w)) {
+					abi_size_combo_select_text(ABI_SIZE_COMBO(w),
+											   "14");
 					g_signal_emit_by_name(w, "changed");
 				} else if (GTK_IS_MENU_BUTTON(w)) {
 					/* color buttons: popover holds [automatic btn,

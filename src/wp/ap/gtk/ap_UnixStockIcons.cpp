@@ -323,6 +323,48 @@ abi_stock_get_gtk_stock_id (const gchar * abi_stock_id)
 }
 
 /*!
+ * Resolve a theme icon name to one the current icon theme actually
+ * provides.  Modern Adwaita ships action icons only as *-symbolic
+ * while older themes provide the unsuffixed name — prefer the
+ * unsuffixed (colourful) variant where it exists, else the -symbolic
+ * one.  Returned string is owned by the internal cache and must not
+ * be freed; returns icon_name unchanged when it is null/empty or no
+ * variant is known to the theme.
+ */
+const gchar *
+abi_stock_pick_icon (const gchar *icon_name)
+{
+	static GHashTable *s_picked = nullptr; /* name -> resolved name */
+
+	if (!icon_name || !*icon_name)
+		return icon_name;
+	if (!s_picked)
+		s_picked = g_hash_table_new_full (g_str_hash, g_str_equal,
+										  g_free, g_free);
+	const gchar *hit = static_cast<const gchar *>(
+		g_hash_table_lookup (s_picked, icon_name));
+	if (hit)
+		return hit;
+
+	const gchar *chosen = icon_name;
+	gchar *sym = nullptr;
+	GdkDisplay *display = gdk_display_get_default ();
+	GtkIconTheme *theme = display
+		? gtk_icon_theme_get_for_display (display) : nullptr;
+	if (theme && !gtk_icon_theme_has_icon (theme, icon_name))
+	{
+		sym = g_strdup_printf ("%s-symbolic", icon_name);
+		if (gtk_icon_theme_has_icon (theme, sym))
+			chosen = sym;
+	}
+	g_hash_table_insert (s_picked, g_strdup (icon_name),
+						 g_strdup (chosen));
+	g_free (sym);
+	return static_cast<const gchar *>(
+		g_hash_table_lookup (s_picked, icon_name));
+}
+
+/*!
  * Map a menu item id to a theme icon name, using the stock_mapping
  * table's menu_id column.  This lets ribbon buttons for actions that
  * have no toolbar counterpart (find, replace, select all, ...) still

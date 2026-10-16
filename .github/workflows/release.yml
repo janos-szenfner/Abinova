@@ -39,28 +39,14 @@ jobs:
           tar -cJf "abinova-${VERSION#v}-linux-x86_64.tar.xz" -C dist "$(basename "$BUNDLE")"
 
       - name: Debian package (.deb)
+        # dist/make-deb.sh wires the desktop integration the bundle
+        # carries: /usr/bin/abinova symlink, Exec=/usr/bin/abinova in
+        # the .desktop file, hicolor icons + metainfo + MIME under
+        # /usr/share, root-owned payload and postinst/postrm that
+        # refresh the desktop/icon/MIME caches so the launcher shows
+        # up right after install.
         run: |
-          BUNDLE="${{ env.bundle }}"
-          PKG="abinova-${VERSION#v}-amd64"
-          ROOT="pkg-deb"
-          mkdir -p "$ROOT/opt" "$ROOT/usr/bin" "$ROOT/usr/share" "$ROOT/DEBIAN"
-          cp -a "$BUNDLE" "$ROOT/opt/abinova"
-          ln -s ../opt/abinova/bin/abinova "$ROOT/usr/bin/abinova"
-          cp -a "$BUNDLE/share/applications" "$ROOT/usr/share/"
-          cp -a "$BUNDLE/share/icons" "$ROOT/usr/share/"
-          cp -a "$BUNDLE/share/metainfo" "$ROOT/usr/share/" || true
-          cp -a "$BUNDLE/share/mime" "$ROOT/usr/share/" || true
-          {
-            printf 'Package: abinova\n'
-            printf 'Version: %s\n' "${VERSION#v}"
-            printf 'Section: editors\nPriority: optional\nArchitecture: amd64\n'
-            printf 'Maintainer: The Abinova Authors\n'
-            printf 'Description: Abinova word processor (self-contained build)\n'
-            printf ' GTK4 AbiWord-derived document editor. Installs to /opt/abinova\n'
-            printf ' with a /usr/bin/abinova symlink; no external dependencies.\n'
-          } > "$ROOT/DEBIAN/control"
-          dpkg-deb --build "$ROOT" "${PKG}.deb"
-          rm -rf "$ROOT"
+          dist/make-deb.sh --bundle "${{ env.bundle }}" --out .
 
       - name: RPM package (.rpm)
         run: |
@@ -76,6 +62,9 @@ jobs:
           cp -a "$BUNDLE/share/icons" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/"
           cp -a "$BUNDLE/share/metainfo" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/" || true
           cp -a "$BUNDLE/share/mime" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/" || true
+          # launch through the /usr/bin symlink, not PATH lookup
+          sed -i 's|^Exec=.*|Exec=/usr/bin/abinova %U|' \
+            "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/applications/"*.desktop
           {
             printf 'Name:       abinova\n'
             printf 'Version:    %s\n' "${VERSION#v}"
@@ -87,6 +76,14 @@ jobs:
             printf '%%description\n'
             printf 'GTK4 AbiWord-derived document editor. Installs to /opt/abinova\n'
             printf 'with a /usr/bin/abinova symlink; no external dependencies.\n\n'
+            printf '%%post\n'
+            printf 'update-desktop-database /usr/share/applications 2>/dev/null || :\n'
+            printf 'gtk-update-icon-cache -q /usr/share/icons/hicolor 2>/dev/null || :\n'
+            printf 'update-mime-database /usr/share/mime 2>/dev/null || :\n\n'
+            printf '%%postun\n'
+            printf 'update-desktop-database /usr/share/applications 2>/dev/null || :\n'
+            printf 'gtk-update-icon-cache -q /usr/share/icons/hicolor 2>/dev/null || :\n'
+            printf 'update-mime-database /usr/share/mime 2>/dev/null || :\n\n'
             printf '%%files\n'
             printf '/opt/abinova\n/usr/bin/abinova\n'
             printf '/usr/share/applications/*\n/usr/share/icons/*\n'
@@ -102,7 +99,7 @@ jobs:
           name: linux
           path: |
             abinova-*-linux-x86_64.tar.xz
-            abinova-*-amd64.deb
+            abinova_*.deb
             abinova-*.rpm
 
   # ------------------------------------------------------------------

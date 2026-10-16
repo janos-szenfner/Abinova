@@ -136,3 +136,4 @@ void		  abi_stock_init 				(void);
 gchar * 	  abi_stock_from_toolbar_id 	(const gchar *toolbar_id);
 const gchar* abi_stock_get_gtk_stock_id(const gchar * abi_stock_id);
 const gchar* abi_stock_from_menu_id		(XAP_Menu_Id menu_id);
+const gchar* abi_stock_pick_icon		(const gchar *icon_name);
