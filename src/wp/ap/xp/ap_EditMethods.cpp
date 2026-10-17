@@ -885,6 +885,7 @@ public:
 	static EV_EditMethod_Fn designTheme;
 	static EV_EditMethod_Fn themeColorsApply;
 	static EV_EditMethod_Fn themeFontsApply;
+	static EV_EditMethod_Fn paraSpacing;
 	static EV_EditMethod_Fn pageWatermark;
 	static EV_EditMethod_Fn pageBorders;
 	static EV_EditMethod_Fn footnoteNext;
@@ -1389,6 +1390,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(paraProp),				0,	""),
 	EV_EditMethod(NF(paraSortAscend),		0,		""),
 	EV_EditMethod(NF(paraSortDescend),		0,		""),
+	EV_EditMethod(NF(paraSpacing),			0,		""),
 		// intended for ^V and Menu[Edit/Paste]
 	EV_EditMethod(NF(paste),				0,	""),
 	EV_EditMethod(NF(pasteClipItem),		0,	""),
@@ -7532,6 +7534,7 @@ static void s_applyStylePatches(FV_View * pView,
 	PD_Document * pDoc = pView->getDocument();
 	if (!pDoc)
 		return;
+	bool bChanged = false;
 	for (size_t i = 0; i < nPatches; i++)
 	{
 		std::string sProps(pPatches[i].props);
@@ -7548,6 +7551,7 @@ static void s_applyStylePatches(FV_View * pView,
 				"basedon", "Normal",
 				"followedby", "Normal",
 				"props", sProps });
+			bChanged = true;
 			continue;
 		}
 		PP_PropertyVector vAtts = {
@@ -7568,9 +7572,16 @@ static void s_applyStylePatches(FV_View * pView,
 		vAtts.push_back("props");
 		vAtts.push_back(sProps);
 		if (pTarget->setAllAttributes(vAtts))
+		{
 			pDoc->updateDocForStyleChange(pPatches[i].name,
 										  !pTarget->isCharStyle());
+			bChanged = true;
+		}
 	}
+	/* style-only edits never touch the piece table - flag the change
+	 * so the save command and the quit prompt pick it up */
+	if (bChanged)
+		pDoc->forceDirty();
 }
 
 /* Normal baseline shared by every set: identical to the built-in
@@ -7726,8 +7737,12 @@ static void s_mergeStyleProps(FV_View * pView,
 			vAtts.push_back("props");
 			vAtts.push_back(PP_makePropString(vProps));
 			if (pTarget->setAllAttributes(vAtts))
+			{
 				pDoc->updateDocForStyleChange(pPatches[i].style,
 											  !pTarget->isCharStyle());
+				/* style-only edits never touch the piece table */
+				pDoc->forceDirty();
+			}
 		}
 		i = j;
 	}
@@ -7881,6 +7896,54 @@ Defun(designTheme)
 				{ "Subtle Emphasis",  "color", t.accent2 },
 				{ "Intense Emphasis", "color", t.accent  },
 				{ "Intense Reference","color", t.accent  },
+			};
+			s_mergeStyleProps(pView, patches, G_N_ELEMENTS(patches));
+			return true;
+		}
+	}
+	return false;
+}
+
+/* Word's Design > Paragraph Spacing gallery: one row rewrites the
+ * document's default (space before / space after / line spacing) on
+ * the Normal style - basedon styles inherit line-height, styles with
+ * their own margin props keep them (wordcraft's
+ * design.paragraphSpacing presets). */
+struct _ParaSpacing
+{
+	const char * key;
+	const char * before;
+	const char * after;
+	const char * line;
+};
+
+static const _ParaSpacing s_para_spacings[] = {
+	{ "none",    "0pt", "0pt",  "1.0"  },
+	{ "compact", "0pt", "4pt",  "1.0"  },
+	{ "tight",   "0pt", "6pt",  "1.15" },
+	{ "open",    "0pt", "10pt", "1.15" },
+	{ "relaxed", "0pt", "6pt",  "1.5"  },
+	{ "double",  "0pt", "8pt",  "2.0"  },
+};
+
+/*
+ * callData is the preset key (case-insensitive); unknown keys fail.
+ */
+Defun(paraSpacing)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const char * szKey = s.utf8_str();
+	for (const _ParaSpacing & ps : s_para_spacings)
+	{
+		if (!g_ascii_strcasecmp(ps.key, szKey))
+		{
+			const _PropPatch patches[] = {
+				{ "Normal", "margin-top",    ps.before },
+				{ "Normal", "margin-bottom", ps.after  },
+				{ "Normal", "line-height",   ps.line   },
 			};
 			s_mergeStyleProps(pView, patches, G_N_ELEMENTS(patches));
 			return true;

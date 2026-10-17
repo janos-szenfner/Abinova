@@ -168,6 +168,12 @@ responsibility** — see `README.md`.
   named styles in one step — the same change the Colors and
   Fonts dropdowns make separately. Also scriptable as the
   `designTheme` edit method (`studio`, `darkroom`, …).
+- **Paragraph Spacing gallery** — the Design tab's Document
+  Formatting group gains Word's paragraph-spacing presets (No
+  Paragraph Space, Compact, Tight, Open, Relaxed, Double) that
+  rewrite the document's default space-before/space-after/line
+  spacing on the Normal style in one step — also scriptable as
+  the `paraSpacing` edit method (`open`, `double`, …).
 - **Design tab drawn icons** — every button on the Design ribbon
   tab now shows a distinct procedurally drawn icon (the shared
   20x20 pen-glyph set): Document Formatting gets an "A" set mark,

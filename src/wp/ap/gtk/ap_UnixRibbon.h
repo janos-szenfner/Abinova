@@ -109,6 +109,7 @@ private:
 	GtkWidget *		_makeHyphenationPopover();
 	GtkWidget *		_makeThemesPopover();
 	GtkWidget *		_makeStyleSetsPopover();
+	GtkWidget *		_makeDesignParaSpacingPopover();
 	GtkWidget *		_makeThemeColorsPopover();
 	GtkWidget *		_makeThemeFontsPopover();
 	GtkWidget *		_makeWatermarkPopover();

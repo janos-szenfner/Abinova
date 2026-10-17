@@ -617,6 +617,14 @@ and page-background controls.
   colour, alignment, under-heading rules and shaded bands change
   across the whole document at once while keeping the
   document's body font.
+- **Themes**: named themes (Craft, Studio, Gallery, Atelier,
+  Darkroom, Sketchbook) that apply a coordinated heading/body
+  font pair and accent palette in one step.
+- **Paragraph Spacing**: Word's document-wide spacing presets
+  (No Paragraph Space, Compact, Tight, Open, Relaxed, Double)
+  that rewrite the default space-before/space-after and line
+  spacing on the Normal style in one step — based-on styles
+  inherit the line-height change.
 - **Colors**: theme palettes (Office, Grayscale, Blue, Green,
   Red) that re-tint the accent/subtitle/body colours of the
   named styles.
@@ -636,10 +644,10 @@ and page-background controls.
   with `.docx`/`.doc` import; **Page Color** (shared with the
   Layout tab) rounds out the Page Background group.
 
-All five galleries dispatch real edit methods — `styleSetApply`,
-`themeColorsApply`, `themeFontsApply`, `pageWatermark` and
-`pageBorders` — so the control channel can drive them for
-automation.
+All the galleries dispatch real edit methods — `designTheme`,
+`styleSetApply`, `paraSpacing`, `themeColorsApply`,
+`themeFontsApply`, `pageWatermark` and `pageBorders` — so the
+control channel can drive them for automation.
 
 #### References tab
 

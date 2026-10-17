@@ -226,6 +226,7 @@ static struct AbiStockMapping {
   { "abinova-design-themefonts",	AP_MENU_ID_DESIGN_THEMEFONTS,			"abinova-design-themefonts" },
   { "abinova-design-watermark",	AP_MENU_ID_DESIGN_WATERMARK,			"abinova-design-watermark" },
   { "abinova-design-pageborders",	AP_MENU_ID_DESIGN_PAGEBORDERS,		"abinova-design-pageborders" },
+  { "abinova-design-paraspacing",	AP_MENU_ID_DESIGN_PARASPACING,		"abinova-design-paraspacing" },
   { nullptr, 					static_cast<_Ap_Menu_Id>(0),					nullptr }
 };
 

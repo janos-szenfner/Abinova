@@ -2408,6 +2408,9 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_STYLESETS):
 		popover = _makeStyleSetsPopover();
 		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_PARASPACING):
+		popover = _makeDesignParaSpacingPopover();
+		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_THEMECOLORS):
 		popover = _makeThemeColorsPopover();
 		break;
@@ -6019,6 +6022,29 @@ GtkWidget * AP_UnixRibbon::_makeStyleSetsPopover()
 		gtk_box_append(GTK_BOX(box),
 					   _presetRow(s.name, s.det, nullptr,
 								  "styleSetApply", s.key));
+	return popover;
+}
+
+/* Paragraph Spacing dropdown: document-wide spacing presets written
+ * onto the Normal style (paraSpacing) */
+GtkWidget * AP_UnixRibbon::_makeDesignParaSpacingPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * det;
+						  const char * key; } presets[] = {
+		{ "No Paragraph Space", "No spacing, single lines",     "none"    },
+		{ "Compact",            "4pt after, single lines",      "compact" },
+		{ "Tight",              "6pt after, 1.15 line spacing", "tight"   },
+		{ "Open",               "10pt after, 1.15 line spacing","open"    },
+		{ "Relaxed",            "6pt after, 1.5 line spacing",  "relaxed" },
+		{ "Double",             "8pt after, double lines",      "double"  },
+	};
+	for (const auto & s : presets)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(s.name, s.det, nullptr,
+								  "paraSpacing", s.key));
 	return popover;
 }
 

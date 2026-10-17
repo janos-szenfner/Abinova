@@ -132,6 +132,7 @@ static const gchar * const s_prefer_glyph[] = {
 	"abinova-design-themecolors",
 	"abinova-design-themefonts",
 	"abinova-design-stylesets",
+	"abinova-design-paraspacing",
 	"abinova-design-watermark",
 	"abinova-design-pagecolor",
 	"abinova-design-pageborders",

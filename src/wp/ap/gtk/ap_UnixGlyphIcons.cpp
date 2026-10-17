@@ -519,6 +519,19 @@ static void _g_design_stylesets(const _GlyphPen & p)
 	_pen_line_c(p, chk, 2, p.fg);
 }
 
+/* paragraph spacing: text lines with an up/down arrow on the left */
+static void _g_design_paraspacing(const _GlyphPen & p)
+{
+	const double ys[] = { 5.0, 9.0, 13.0, 17.0 };
+	_pen_lines(p, 6.5, 17.0, ys, 4);
+	const double shaft[] = { 3.0, 5.5, 3.0, 14.5 };
+	_pen_line_c(p, shaft, 2, p.ac);
+	const double up[] = { 1.2, 6.5, 3.0, 4.5, 4.8, 6.5 };
+	_pen_line_c(p, up, 3, p.ac);
+	const double dn[] = { 1.2, 13.5, 3.0, 15.5, 4.8, 13.5 };
+	_pen_line_c(p, dn, 3, p.ac);
+}
+
 /* watermark: page with a washed-out bold "W" */
 static void _g_design_watermark(const _GlyphPen & p)
 {
@@ -598,6 +611,7 @@ static const _GlyphEntry _glyphs[] =
 	{ "abinova-design-themecolors",	_g_design_themecolors },
 	{ "abinova-design-themefonts",	_g_design_themefonts },
 	{ "abinova-design-stylesets",	_g_design_stylesets },
+	{ "abinova-design-paraspacing",	_g_design_paraspacing },
 	{ "abinova-design-watermark",	_g_design_watermark },
 	{ "abinova-design-pagecolor",	_g_design_pagecolor },
 	{ "abinova-design-pageborders",	_g_design_pageborders },
