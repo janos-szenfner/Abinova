@@ -625,6 +625,7 @@ dcl(FIELD_Document_Contributor, "Contributor(s)")
 dcl(FIELD_Document_Date, "Date")
 dcl(FIELD_Document_Date_Last_Changed, "Date Last Changed")
 dcl(FIELD_Document_ContentControl, "Content Control")
+dcl(FIELD_Document_Zotero, "Zotero Citation")
 dcl(FIELD_Document_Type, "Category")
 dcl(FIELD_Document_Language, "Language(s)")
 dcl(FIELD_Document_Coverage, "Coverage")
@@ -931,6 +932,17 @@ dcl(DLG_DocInspector_Intro, "The following identifying or hidden content was fou
 dcl(DLG_DocInspector_Reinspect, "Re-inspect")
 dcl(DLG_DocInspector_Remove, "Remove Selected")
 dcl(DLG_DocInspector_NoneFound, "Nothing found")
+
+	/* Zotero citation picker dialog */
+dcl(DLG_Zotero_Title, "Zotero - Insert Citation")
+dcl(DLG_Zotero_SearchLabel, "Search library:")
+dcl(DLG_Zotero_Search, "Search")
+dcl(DLG_Zotero_StyleLabel, "Style:")
+dcl(DLG_Zotero_Insert, "Insert Citation")
+dcl(DLG_Zotero_InsertBib, "Insert Bibliography Entry")
+dcl(DLG_Zotero_Searching, "Searching Zotero...")
+dcl(DLG_Zotero_NoResults, "No matching items")
+dcl(DLG_Zotero_Prompt, "Type a search to list items from the local Zotero library")
 
 	/* List revisions dialog */
 dcl(DLG_ListRevisions_Title, "Select Revision")

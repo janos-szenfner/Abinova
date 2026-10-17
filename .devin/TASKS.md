@@ -1847,7 +1847,7 @@ read aloud (user opt-out). Ribbon lives in
 | W15 | Async saves — details below | done | 0 | encode on UI thread to GsfOutputMemory, serial UT_AsyncWrite worker does .part+atomic-rename; save/saveAs/autosave/shutdown wired, dirty guarded by content serial + forcedirty gen; verify: make -j2 clean, Abinova-test asyncwrite+asyncsave 67/0, full suite 18440 tests only pre-existing flaky fv_DragAutoScroll fails |
 | W16 | Design tab: style sets + themes + watermark + page borders — details below | done | 2 | resumed mid-task: landed the in-tree work + stripped CTLDBG debug. New Design ribbon tab (docfmt+pagebg groups, 5 popovers incl. shared Page Color) drives 5 edit methods: styleSetApply rewrites named style defs via setAllAttributes+updateDocForStyleChange (__BODYFONT__ keeps the doc body font), themeColorsApply/themeFontsApply merge key:value patches into Normal/Title/Subtitle/Heading 1-3 + emphasis styles, pageWatermark stores new page-watermark-text/-color/-font/-size/-image sect props painted by fp_Page::_drawWatermark (-45deg stamp auto-fit to page, or washed-out centered dataid image via GR_BlipEffects lum+alphaMod), pageBorders writes the OOXML w:pgBorders page-border-* props painted by new fp_Page::_drawPageBorders (style-name->linestyle map, display firstPage/notFirstPage, offset text|page); fp_Container::drawLine now static so the page painter shares it; abwn exporter keeps the watermark image dataitem; control channel pumps the main ctx while CHECK_FRAME would drop a command (no more silently-dropped scripted commands) + gates pageWatermark's embedded 'image <path>' read. Verified: xvfb control-channel drive — all 7 executes ok, saved .abwn carries re-tinted styles + all section props, PDF render shows diagonal DRAFT stamp, blue double rules, green Georgia heading; image-watermark variant renders washed-out centered PNG; Badge.docx regression rc=0 |
 | W17 | Content controls (w:sdt forms, Developer tab) — details below | done | 1 | content_control field object + Developer ribbon tab; verified headless: insert text/checkbox/dropdown, normal-mode guards (props/remove/delLeft refused), design-mode edit+remove, checkbox toggle, .abwn round-trip, PDF render. DOCX w:sdt import/export deferred. |
-| W18 | Zotero integration — details below | pending | 0 |  |
+| W18 | Zotero integration — details below | done | 1 | resumed mid-task: landed W18 then fixed a blank-render bug (fp_FieldZoteroRun lacked _draw->_defaultDraw) + dialog initial focus/auto-select-first-result + a `dialog=` callData flag so automation can drive the picker; new xap_Zotero client (loopback REST, env host/port, depth-capped JSON, CSL HTML strip) + "zotero" field type (zotero-key/-style/-mode/-text attrs round-trip .abwn) + zoteroInsert/zoteroRefresh edit methods + picker dialog + References tab entries — verified: make -j2 clean; tools/zotero-check.py 27/27 (stub-server insert by query+key+bib, refresh picks up edits, picker search->select->insert via XTest, .abwn attrs, PDF shows text, no-server fail-soft no crash) |
 | W23 | Design tab: drawn icons for existing Design items — details below | pending | 0 |  |
 | W24 | Design tab: Themes umbrella (fonts+colors bundle) — details below | pending | 0 |  |
 | W25 | Design tab: Paragraph Spacing presets — details below | pending | 0 |  |
@@ -2088,9 +2088,97 @@ clean; against a running Zotero (or a recorded stub server) a
 citation inserts and refreshes; without Zotero, graceful error —
 no crash.
 
+### W23
+
+Design tab drawn icons for the existing items. Reference:
+`/tmp/wordcraft/crates/ui-egui/src/icons.rs` (drawn in code on a
+20x20 grid, two colours) — port these designs into
+`src/wp/ap/gtk/ap_UnixGlyphIcons.cpp` using the existing pen
+vocabulary (_pen_frect, _pen_fcircle, _pen_page, _pen_line_c,
+_pen_text, _pen_fill):
+
+- themes → 4 coloured squares: `frect(3,3,10,10)` accent,
+  `frect(10,3,17,10)` orange, `frect(3,10,10,17)` green,
+  `frect(10,10,17,17)` yellow (add _RED/_ORANGE consts like
+  _YELLOW/_GREEN; wordcraft: red D13B3B, orange E07B1F).
+- themeColors → three filled circles: (7,7.5,r3.5) red,
+  (13,7.5,r3.5) accent, (10,13,r3.5) green.
+- themeFonts → `text(10,10,13,"Aa",accent)`.
+- stylesets → wordcraft "styles": `text(10,10,14,"A",accent)` plus
+  a small check stroke `line[(13,15),(17,11)]` in fg — or an
+  equivalent "A"-based set mark.
+- watermark → `page(4,2,16,18)` + `text(10,11,7,"W",accent*0.6,bold)`.
+- pageColor → `page(4,2,16,18)` + `frect(5,9,15,17,accent*0.5)`
+  (for alpha-multiplied accent, blend GdkRGBA manually).
+- pageBorders → `page(4,2,16,18)` + `rect(6,6.5,14,15.5,accent)`.
+
+Register each glyph name in `_glyphs[]` and add stock_mapping rows
+in `src/wp/ap/gtk/ap_UnixStockIcons.cpp` so
+`abi_stock_from_menu_id(AP_MENU_ID_DESIGN_*)` resolves to the glyph
+names (e.g. "abinova-design-themecolors"); the Design MENUPOP
+buttons currently resolve no icon. Where a bundled bitmap might
+shadow the glyph, add the name to the `s_prefer_glyph` list in
+`src/wp/ap/gtk/ap_UnixActionIcons.cpp`.
+
+Verify: build clean; xvfb screenshot of the Design tab shows a
+distinct drawn icon on every button; no theme-icon dependency.
+
+### W24
+
+Design tab "Themes" umbrella command (wordcraft design.theme): a
+named theme applies a heading/body font pair AND a colour scheme in
+one step. Wordcraft's THEMES table (name, heading font, body font,
+6 accents) — Craft/Studio/Gallery/Atelier/Darkroom/Sketchbook in
+`/tmp/wordcraft/crates/engine/src/cmd/design.rs`. Implement an edit
+method (e.g. `designTheme` with a name param or a menupop of named
+themes) that applies fonts via the W16 theme-font machinery and
+tints via the W16 theme-colour machinery, plus a DESIGN_THEMES
+menu id and a "Themes" MENUPOP button FIRST in the docfmt group of
+`src/wp/ap/xp/ap_Ribbon_Layouts.h`. Draw its glyph per W23
+(themes = 4 coloured squares). Pick theme names that fit Abinova —
+reusing wordcraft's own table is fine (it is their own artwork,
+MIT/Apache).
+
+Verify: build clean; applying a theme changes heading font + accent
+colours together in a saved .abwn; control-channel `engine.execute`
+works; PDF render shows the theme.
+
+### W25
+
+Design tab "Paragraph Spacing" presets (wordcraft
+design.paragraphSpacing): a menupop applying document-wide default
+paragraph spacing — none(0/0/1.0), compact(0/4pt/1.0),
+tight(0/6pt/1.15), open(0/10pt/1.15), relaxed(0/6pt/1.5),
+double(0/8pt/2.0) as (space-before/space-after/line-spacing).
+Implement an edit method that writes these into the Normal/default
+paragraph props (margin-top/margin-bottom/line-height props —
+check how W09/styles handle it) and marks the doc dirty; menu id +
+MENUPOP in the docfmt group after Style Sets; draw the
+"paraSpacing" glyph per W23 (horizontal lines + left-side up/down
+arrow marks, accent).
+
+Verify: build clean; each preset visibly changes paragraph gaps;
+round-trips through save/load; PDF render reflects spacing.
+
+### W26
+
+Design tab "Set as Default" (wordcraft design.setDefault): make the
+current document's style set / theme fonts+colours the default for
+NEW documents. Persist via the template machinery (update the
+user's default template / the Normal template the new-doc path
+loads — investigate how `fileNewUsingTemplate` and the default doc
+path work; a pragmatic route is writing the current styles into the
+user template dir). Menu id + a MENUPOP or button in the docfmt
+group; draw the "setDefault" glyph per W23 (single green check
+stroke `line_c[(4,10.5),(8.5,15),(16.5,5)]` in _GREEN).
+
+Verify: build clean; after Set as Default, a brand-new document
+opens with the applied style set/fonts; does not clobber unrelated
+template content; no crash when the template dir is unwritable.
+
 ### W19
 
-FINAL GATE slice 1/4 — static analysis. Runs only after W01–W18
+FINAL GATE slice 1/4 — static analysis. Runs only after W01–W26
 are done/blocked (rows below are also final-gate slices — keep them
 last in the table).
 

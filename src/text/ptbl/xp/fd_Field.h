@@ -105,6 +105,7 @@ class ABI_EXPORT fd_Field
         FD_Meta_Description,
 
         FD_ContentControl,
+        FD_Zotero,
 
         __last_field_dont_use__
     };

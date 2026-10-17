@@ -175,6 +175,20 @@ responsibility** — see `README.md`.
   placeholder, items) and control removal. All metadata is stored
   on the object's `sdt-*` attributes and round-trips through the
   native `.abwn` format.
+- **Zotero citations** — the References tab's Citation popover gains
+  a **Zotero…** picker that talks to a running Zotero instance over
+  its local connector API (127.0.0.1:23119, overridable with
+  `ABINOVA_ZOTERO_HOST`/`ABINOVA_ZOTERO_PORT`): search the library,
+  pick an item and a CSL style, and insert the formatted citation or
+  bibliography entry as a single field object whose `zotero-key`,
+  `zotero-style` and `zotero-mode` attributes make it re-fetchable.
+  **Refresh Zotero Citations** re-renders every citation from the
+  live service in one undo step; unreachable or missing items keep
+  their last formatted text, and with no Zotero running the commands
+  report a graceful error instead of failing. For scripts, the
+  `zoteroInsert`/`zoteroRefresh` edit methods accept
+  `key=`/`query=`/`style=`/`mode=`/`text=` callData (`dialog=`
+  forces the picker).
 - **Mini toolbar on selection** — finishing a text selection (mouse
   release, double-click, or Shift+arrows from the keyboard) floats a
   compact formatting strip just above the selection: font family,

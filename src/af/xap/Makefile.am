@@ -109,6 +109,8 @@ libxap_la_SOURCES = \
 	xp/xap_ViewListener.cpp \
 	xp/xap_ViewListener.h \
 	xp/xap_Widget.h \
+	xp/xap_Zotero.cpp \
+	xp/xap_Zotero.h \
 	xp/xav_Listener.h \
 	xp/xav_View.cpp \
 	xp/xav_View.h

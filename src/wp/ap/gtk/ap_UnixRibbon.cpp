@@ -10650,6 +10650,18 @@ GtkWidget * AP_UnixRibbon::_makeCitationPopover()
 	g_signal_connect(btn, "clicked",
 					 G_CALLBACK(_s_citation_apply), this);
 	gtk_box_append(GTK_BOX(box), btn);
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Zotero"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Zotero…",
+							  "Search the local Zotero library",
+							  nullptr, "zoteroInsert", nullptr));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Refresh Zotero Citations",
+							  "Re-fetch every citation's formatted text",
+							  nullptr, "zoteroRefresh", nullptr));
 	return popover;
 }
 

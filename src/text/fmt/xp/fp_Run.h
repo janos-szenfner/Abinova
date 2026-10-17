@@ -880,7 +880,9 @@ private:
 	pf_Frag_Object*         m_OH;
 };
 
-#define FPFIELD_MAX_LENGTH	127
+/* 1KiB of field text: bibliography-style fields (zotero bib mode)
+ * render entries far longer than the historic 127-char cap */
+#define FPFIELD_MAX_LENGTH	1023
 
 #define  _FIELD(type,desc,tag)  /*nothing*/
 #define  _FIELDTYPE(type,desc)  FPFIELDTYPE_##type,
@@ -979,7 +981,7 @@ private:
 
 	//UT_RGBColor				m_colorFG;
 	UT_RGBColor				m_colorBG;
-	UT_UCS4Char				m_sFieldValue[FPFIELD_MAX_LENGTH];
+	UT_UCS4Char				m_sFieldValue[FPFIELD_MAX_LENGTH + 1];
 	fp_FieldsEnum			m_iFieldType;
 	const gchar *		m_pParameter;
 	enum: uint8_t
@@ -1236,6 +1238,37 @@ public:
 	virtual void			_draw(dg_DrawArgs* pDA) override { _defaultDraw(pDA); }
 	virtual UT_uint32		needsFrequentUpdates() override {return FIELD_UPDATE_WORD_COUNT;};
 };
+
+// Zotero citation: an atomic field object whose Zotero item key,
+// CSL style, display mode and the last-fetched formatted text live
+// on the field object's zotero-* attributes — refresh rewrites the
+// zotero-text attribute, so the formatted citation survives without
+// a running Zotero and round-trips through .abwn
+class ABI_EXPORT fp_FieldZoteroRun : public fp_FieldRun
+{
+public:
+	fp_FieldZoteroRun(fl_BlockLayout* pBL, UT_uint32 iOffsetFirst, UT_uint32 iLen);
+
+	virtual ~fp_FieldZoteroRun(){}
+
+	virtual bool			calculateValue(void) override;
+	virtual void			_draw(dg_DrawArgs* pDA) override { _defaultDraw(pDA); }
+
+	const std::string &		getZoteroKey(void) const { return m_sKey; }
+
+protected:
+	virtual void			_lookupProperties(const PP_AttrProp * pSpanAP,
+											  const PP_AttrProp * pBlockAP,
+											  const PP_AttrProp * pSectionAP,
+											  GR_Graphics * pG = nullptr) override;
+
+private:
+	std::string				m_sKey;
+	std::string				m_sStyle;
+	std::string				m_sMode;
+	std::string				m_sText;
+};
+
 
 // Word-style content control (w:sdt): an atomic control object whose
 // metadata — control kind, value, title/tag, placeholder and dropdown

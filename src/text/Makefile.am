@@ -83,6 +83,7 @@ libtext_la_SOURCES = \
 	fmt/xp/fp_FieldTableSumRun.cpp \
 	fmt/xp/fp_FieldTOCNum.cpp \
 	fmt/xp/fp_FieldTOCNum.h \
+	fmt/xp/fp_FieldZoteroRun.cpp \
 	fmt/xp/fp_FmtMarkRun.cpp \
 	fmt/xp/fp_FmtMarkRun.h \
 	fmt/xp/fp_FootnoteContainer.cpp \

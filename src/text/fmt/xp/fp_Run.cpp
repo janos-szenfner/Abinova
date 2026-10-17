@@ -4160,7 +4160,8 @@ bool fp_FieldRun::_setValue(const UT_UCS4Char *p_new_value)
 		}
 		else
 		{
-			UT_UCS4_strcpy(m_sFieldValue, p_new_value);
+			UT_UCS4_strncpy(m_sFieldValue, p_new_value, iLen);
+			m_sFieldValue[iLen] = 0;
 		}
 
 		{

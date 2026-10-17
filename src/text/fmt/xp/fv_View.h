@@ -392,6 +392,18 @@ public:
 	const gchar *	getContentControlAttr(PT_DocPosition pos,
 										  const char* szAttr) const;
 
+	//! Zotero citations: a "zotero" field object carries zotero-key/
+	//! -style/-mode/-text attributes; the text is the last-fetched
+	//! CSL-formatted output (citation or bibliography entry)
+	UT_Error		cmdInsertZoteroCitation(const char* szKey,
+										const char* szStyle,
+										const char* szMode,
+										const char* szText);
+	//! re-fetch every zotero field's formatted text from the local
+	//! service; counts updated + failed fields (fail-soft per field)
+	bool			cmdZoteroRefresh(UT_uint32 & nUpdated,
+									 UT_uint32 & nFailed);
+
 	UT_Error		cmdInsertBookmark(const char* szName);
 	UT_Error		cmdDeleteBookmark(const char* szName);
 	UT_Error		cmdInsertHyperlink(const char* szName, const char* szTitle = nullptr);

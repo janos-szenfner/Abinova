@@ -48,6 +48,8 @@ libap_la_SOURCES = \
 	xp/ap_Dialog_Document.h \
 	xp/ap_Dialog_DocInspector.cpp \
 	xp/ap_Dialog_DocInspector.h \
+	xp/ap_Dialog_Zotero.cpp \
+	xp/ap_Dialog_Zotero.h \
 	xp/ap_Dialog_Field.cpp \
 	xp/ap_Dialog_Field.h \
 	xp/ap_Dialog_FormatFootnotes.cpp \
@@ -301,6 +303,8 @@ libap_la_SOURCES += \
 	gtk/ap_UnixDialog_Document.h \
 	gtk/ap_UnixDialog_DocInspector.cpp \
 	gtk/ap_UnixDialog_DocInspector.h \
+	gtk/ap_UnixDialog_Zotero.cpp \
+	gtk/ap_UnixDialog_Zotero.h \
 	gtk/ap_UnixDialogFactory.cpp \
 	gtk/ap_UnixDialog_Field.cpp \
 	gtk/ap_UnixDialog_Field.h \

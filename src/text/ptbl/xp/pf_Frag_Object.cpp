@@ -364,6 +364,18 @@ pf_Frag_Object::pf_Frag_Object(pt_PieceTable * pPT,
 		            fieldType = fd_Field::FD_None;
         		}
 				break;
+    		case 'z':
+				if (0 == strcmp(pszType, "zotero"))
+				{
+					fieldType = fd_Field::FD_Zotero;
+				}
+		        else
+        		{
+		            UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
+        		    //Better than segfaulting I figure
+		            fieldType = fd_Field::FD_None;
+        		}
+				break;
     		default:
     			UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
        		    //Better than segfaulting I figure

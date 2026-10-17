@@ -5969,6 +5969,10 @@ bool	fl_BlockLayout::_doInsertFieldRun(PT_BlockOffset blockOffset, const PX_Chan
 	  {
 	    pNewRun = new fp_FieldContentControlRun(this,   blockOffset, 1);
 	  }
+	else if(strcmp(pszType, "zotero") == 0)
+	  {
+	    pNewRun = new fp_FieldZoteroRun(this,   blockOffset, 1);
+	  }
 	else
 	{
 		UT_ASSERT_NOT_REACHED ();

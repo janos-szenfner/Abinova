@@ -113,6 +113,7 @@
 #include "ap_Dialog_Annotation.h"
 #include "xap_Dialog.h"
 #include "xap_DialogFactory.h"
+#include "xap_Zotero.h"
 #include "ap_Dialog_Id.h"
 
 // NB -- irrespective of this size, the piecetable will store
@@ -12401,5 +12402,128 @@ bool FV_View::cmdContentControlRemove(void)
 	_restorePieceTableState();
 	_generalUpdate();
 	_fixInsertionPointCoords();
+	return true;
+}
+
+/*****************************************************************/
+/* Zotero citations                                               */
+/*****************************************************************/
+
+UT_Error FV_View::cmdInsertZoteroCitation(const char* szKey,
+										const char* szStyle,
+										const char* szMode,
+										const char* szText)
+{
+	PP_PropertyVector atts;
+	if (szKey && *szKey)
+	{
+		atts.push_back("zotero-key");
+		atts.push_back(szKey);
+	}
+	if (szStyle && *szStyle)
+	{
+		atts.push_back("zotero-style");
+		atts.push_back(szStyle);
+	}
+	if (szMode && *szMode)
+	{
+		atts.push_back("zotero-mode");
+		atts.push_back(szMode);
+	}
+	if (szText && *szText)
+	{
+		atts.push_back("zotero-text");
+		atts.push_back(szText);
+	}
+	return cmdInsertField("zotero", atts, PP_NOPROPS);
+}
+
+/* walk the piece table for zotero field objects and re-fetch each
+ * one's formatted text from the local Zotero service.  A field that
+ * fails (service down, item gone) keeps its cached zotero-text —
+ * refresh is best-effort per field, never destructive. */
+bool FV_View::cmdZoteroRefresh(UT_uint32 & nUpdated, UT_uint32 & nFailed)
+{
+	nUpdated = 0;
+	nFailed = 0;
+
+	struct _zotRefresh {
+		PT_DocPosition pos;
+		std::string key, style, mode, text;
+	};
+	std::vector<_zotRefresh> jobs;
+
+	pt_PieceTable * pPT = m_pDoc->getPieceTable();
+	UT_return_val_if_fail(pPT, false);
+	pf_Frag * pf = pPT->getFragments().getFirst();
+	UT_return_val_if_fail(pf, false);
+	while (pf && pf != pPT->getFragments().getLast())
+	{
+		if (pf->getType() == pf_Frag::PFT_Object)
+		{
+			pf_Frag_Object * pfo = static_cast<pf_Frag_Object *>(pf);
+			if (pfo->getObjectType() == PTO_Field &&
+				pfo->getField() &&
+				pfo->getField()->getFieldType() == fd_Field::FD_Zotero)
+			{
+				const PP_AttrProp * pAP = nullptr;
+				if (m_pDoc->getAttrProp(pfo->getIndexAP(), &pAP) && pAP)
+				{
+					_zotRefresh job;
+					job.pos = pPT->getFragPosition(pfo);
+					const gchar * v = nullptr;
+					if (pAP->getAttribute("zotero-key", v) && v)
+						job.key = v;
+					if (pAP->getAttribute("zotero-style", v) && v)
+						job.style = v;
+					if (pAP->getAttribute("zotero-mode", v) && v)
+						job.mode = v;
+					if (pAP->getAttribute("zotero-text", v) && v)
+						job.text = v;
+					if (!job.key.empty())
+						jobs.push_back(std::move(job));
+				}
+			}
+		}
+		pf = pf->getNext();
+	}
+	if (jobs.empty())
+		return false;
+
+	/* fetch everything first (network, fail-soft), then apply the
+	 * attribute rewrites in one undo glob */
+	for (_zotRefresh & job : jobs)
+	{
+		XAP_ZoteroItem item;
+		std::string err;
+		if (!XAP_zoteroFetchItem(job.key, job.style.c_str(), item, err))
+		{
+			++nFailed;
+			continue;
+		}
+		const std::string & fresh =
+			(job.mode == "bib") ? item.bib : item.citation;
+		const std::string & text = fresh.empty() ? item.bib : fresh;
+		if (text.empty() || text == job.text)
+			continue;
+		job.text = text;
+
+		PP_PropertyVector atts = { "zotero-text", job.text.c_str() };
+		if (nUpdated == 0)
+		{
+			_saveAndNotifyPieceTableChange();
+			m_pDoc->beginUserAtomicGlob();
+		}
+		m_pDoc->changeSpanFmt(PTC_AddFmt, job.pos, job.pos + 1,
+							  atts, PP_NOPROPS);
+		++nUpdated;
+	}
+	if (nUpdated)
+	{
+		m_pDoc->endUserAtomicGlob();
+		_restorePieceTableState();
+		_generalUpdate();
+		_fixInsertionPointCoords();
+	}
 	return true;
 }

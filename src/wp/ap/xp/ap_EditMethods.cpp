@@ -78,6 +78,7 @@
 #include "xap_EditMethods.h"
 #include "xap_Menu_Layouts.h"
 #include "xap_Prefs.h"
+#include "xap_Zotero.h"
 #include "ap_Strings.h"
 #include "ap_LoadBindings.h"
 #include "ap_FrameData.h"
@@ -132,6 +133,7 @@
 #include "ap_Dialog_Latex.h"
 #include "ap_Dialog_Document.h"
 #include "ap_Dialog_DocInspector.h"
+#include "ap_Dialog_Zotero.h"
 #include "ap_DocInspect.h"
 #include "fv_FrameEdit.h"
 #include "fl_FootnoteLayout.h"
@@ -275,6 +277,9 @@ public:
 	static EV_EditMethod_Fn contentControlProps;
 	static EV_EditMethod_Fn contentControlRemove;
 	static EV_EditMethod_Fn contentControlToggle;
+
+	static EV_EditMethod_Fn zoteroInsert;
+	static EV_EditMethod_Fn zoteroRefresh;
 
 #ifdef ENABLE_SPELL
 	static EV_EditMethod_Fn spellSuggest_1;
@@ -1712,6 +1717,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	// y
 
 	// z
+	EV_EditMethod(NF(zoteroInsert),			0,		""),
+	EV_EditMethod(NF(zoteroRefresh),		0,		""),
 	EV_EditMethod(NF(zoom), 				0,		""),
 	EV_EditMethod(NF(zoom100), 0, ""),
 	EV_EditMethod(NF(zoom200), 0, ""),
@@ -13389,6 +13396,142 @@ Defun(contentControlToggle)
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
 	return pView->cmdContentControlToggle();
+}
+
+
+/* ==================================================================
+ * Zotero citations (local service on 127.0.0.1:23119 — the Zotero 7
+ * local REST API; ABINOVA_ZOTERO_HOST/PORT retarget it).
+ *
+ * zoteroInsert callData is a ';'-separated "key=value" list; keys:
+ *   key    insert this item's citation directly
+ *   query  search the library, insert the top hit's citation
+ *   style  CSL style name (e.g. "apa") — empty = service default
+ *   mode   citation|bib — which CSL form to insert (default citation)
+ *   text   preformatted text override (skips the fetch; for tests)
+ *   dialog force the picker dialog (query= pre-fills its search
+ *          box) — lets automation drive the interactive path
+ * No callData at all opens the Zotero picker dialog instead.
+ * ================================================================== */
+
+static bool s_zoteroInsertText(FV_View * pView,
+							   const std::map<std::string,std::string> & kv,
+							   std::string & err)
+{
+	std::string style, mode = "citation";
+	if (kv.count("style")) style = kv.at("style");
+	if (kv.count("mode") && !kv.at("mode").empty())
+		mode = kv.at("mode");
+	const bool bBib = (mode == "bib");
+
+	XAP_ZoteroItem item;
+	if (kv.count("text"))
+	{
+		/* scripted path: caller already has the formatted output */
+		item.key = kv.count("key") ? kv.at("key") : "";
+		item.citation = item.bib = kv.at("text");
+		if (!kv.count("key") || kv.at("key").empty())
+		{
+			err = "zoteroInsert: 'text' requires a 'key'";
+			return false;
+		}
+	}
+	else if (kv.count("key"))
+	{
+		if (!XAP_zoteroFetchItem(kv.at("key"), style.c_str(), item, err))
+			return false;
+	}
+	else if (kv.count("query"))
+	{
+		std::vector<XAP_ZoteroItem> items;
+		if (!XAP_zoteroSearch(kv.at("query"), style.c_str(), items, err))
+			return false;
+		if (items.empty())
+		{
+			err = "no Zotero items match";
+			return false;
+		}
+		item = items.front();
+	}
+	else
+	{
+		err = "zoteroInsert: nothing to insert";
+		return false;
+	}
+
+	const std::string & text =
+		(bBib && !item.bib.empty()) ? item.bib
+		: (!item.citation.empty() ? item.citation : item.bib);
+	if (text.empty())
+	{
+		err = "Zotero returned no formatted citation";
+		return false;
+	}
+	return pView->cmdInsertZoteroCitation(
+		item.key.c_str(), style.c_str(), mode.c_str(),
+		text.c_str()) != UT_ERROR;
+}
+
+// "zoteroInsert": insert a CSL-formatted citation field.  Scripted
+// forms (key=/query=/text= in callData) insert directly; no data
+// raises the search-and-pick dialog.
+Defun(zoteroInsert)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+
+	std::map<std::string,std::string> kv;
+	s_parseCtlPairs(pCallData, kv);
+	if (!kv.empty() && !kv.count("dialog"))
+	{
+		std::string err;
+		if (!s_zoteroInsertText(pView, kv, err))
+		{
+			UT_DEBUGMSG(("zoteroInsert: %s\n", err.c_str()));
+			return false;
+		}
+		return true;
+	}
+
+	/* interactive: the picker dialog */
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	pFrame->raise();
+
+	XAP_DialogFactory * pDialogFactory
+		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+	AP_Dialog_Zotero * pDialog
+		= static_cast<AP_Dialog_Zotero *>(
+			pDialogFactory->requestDialog(
+				static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_ZOTERO)));
+	UT_return_val_if_fail(pDialog, false);
+	pDialog->setView(pView);
+	if (kv.count("query"))
+		pDialog->setQuery(kv.at("query"));
+	if (kv.count("style"))
+		pDialog->setStyle(kv.at("style"));
+	pDialog->runModal(pFrame);
+	pDialogFactory->releaseDialog(pDialog);
+	return true;
+}
+
+// "zoteroRefresh": re-render every Zotero citation field in the
+// document from the live service.  Fails softly per field — a
+// citation whose item is gone keeps its last formatted text.
+Defun1(zoteroRefresh)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_uint32 nUpdated = 0, nFailed = 0;
+	const bool bHad = pView->cmdZoteroRefresh(nUpdated, nFailed);
+	UT_DEBUGMSG(("zoteroRefresh: %u updated, %u failed\n",
+				 nUpdated, nFailed));
+	/* false = no zotero fields at all; all-failed = the service is
+	 * unreachable — report failure so automation sees it */
+	return bHad && !(nFailed > 0 && nUpdated == 0);
 }
 
 
