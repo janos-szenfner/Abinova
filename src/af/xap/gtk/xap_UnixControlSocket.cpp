@@ -123,6 +123,7 @@ struct _ControlState
 	XAP_App *			app = nullptr;
 	GSocketService *	service = nullptr;
 	std::string			key;
+	std::string			key_path;
 };
 
 static _ControlState s_ctl;
@@ -132,12 +133,19 @@ struct _Conn
 	GSocketConnection *		conn;
 	GDataInputStream *		in;
 	GOutputStream *			out;
+	/* set by the "auth" method or any request that carried a
+	 * correct top-level key — requests after it may omit the key */
+	bool					authed = false;
+	/* closes an unauthenticated connection after 30 s */
+	guint					auth_timer = 0;
 };
 
 static void _conn_close(_Conn * c)
 {
 	if (!c)
 		return;
+	if (c->auth_timer)
+		g_source_remove(c->auth_timer);
 	if (c->in)
 		g_object_unref(c->in);
 	if (c->conn)
@@ -316,28 +324,68 @@ static bool _m_screenshot(const std::string & j, std::string & out,
 	return true;
 }
 
-static void _dispatch(_Conn * c, const std::string & line)
+/* returns false when the connection must close after the reply:
+ * wordcraft-compatible behaviour for auth failures, oversized
+ * lines and non-JSON input (so an HTTP probe can't reach the
+ * dispatcher) */
+static bool _dispatch(_Conn * c, const std::string & line)
 {
 	long id = 0;
 	_json_num(line, "id", id);
 
-	std::string key;
-	if (!_json_str(line, "key", key) || key != s_ctl.key)
+	/* anything that isn't a JSON object gets one error reply */
+	size_t i = line.find_first_not_of(" \t\r\n");
+	if (i == std::string::npos || line[i] != '{')
 	{
-		_conn_send(c, id, nullptr, "bad key");
-		return;
+		_conn_send(c, id, nullptr, "bad request");
+		return false;
 	}
-	std::string method;
-	if (!_json_str(line, "method", method))
+
+	std::string method, key;
+	_json_str(line, "method", method);
+	_json_str(line, "key", key);
+
+	if (method == "auth")
+	{
+		if (key == s_ctl.key)
+		{
+			c->authed = true;
+			if (c->auth_timer)
+			{
+				g_source_remove(c->auth_timer);
+				c->auth_timer = 0;
+			}
+			_conn_send(c, id, "{}", nullptr);
+		}
+		else
+		{
+			_conn_send(c, id, nullptr, "unauthorized");
+			return false;
+		}
+		return true;
+	}
+
+	if (!c->authed)
+	{
+		if (!key.empty() && key == s_ctl.key)
+			c->authed = true;
+		else
+		{
+			_conn_send(c, id, nullptr, "unauthorized");
+			return false;
+		}
+	}
+	if (method.empty())
 	{
 		_conn_send(c, id, nullptr, "missing method");
-		return;
+		return true;
 	}
+
 	std::string err;
 	if (method == "ping")
 	{
 		_conn_send(c, id, "\"pong\"", nullptr);
-		return;
+		return true;
 	}
 	if (method == "engine.execute")
 	{
@@ -345,7 +393,7 @@ static void _dispatch(_Conn * c, const std::string & line)
 			_conn_send(c, id, "{\"ok\":true}", nullptr);
 		else
 			_conn_send(c, id, nullptr, err.c_str());
-		return;
+		return true;
 	}
 	if (method == "ui.screenshot")
 	{
@@ -354,9 +402,10 @@ static void _dispatch(_Conn * c, const std::string & line)
 			_conn_send(c, id, out.c_str(), nullptr);
 		else
 			_conn_send(c, id, nullptr, err.c_str());
-		return;
+		return true;
 	}
 	_conn_send(c, id, nullptr, "unknown method");
+	return true;
 }
 
 /*****************************************************************/
@@ -375,11 +424,34 @@ static void _s_line_ready(GObject * src, GAsyncResult * res,
 		_conn_close(c);
 		return;
 	}
-	if (len && len < 65536)
-		_dispatch(c, std::string(line, len));
+	bool keep = true;
+	if (len)
+	{
+		if (len > 1048576)
+		{
+			_conn_send(c, 0, nullptr, "line too long");
+			keep = false;
+		}
+		else
+			keep = _dispatch(c, std::string(line, len));
+	}
 	g_free(line);
+	if (!keep)
+	{
+		_conn_close(c);
+		return;
+	}
 	g_data_input_stream_read_line_async(
 		c->in, G_PRIORITY_DEFAULT, nullptr, _s_line_ready, c);
+}
+
+static gboolean _s_auth_timeout(gpointer data)
+{
+	_Conn * c = static_cast<_Conn *>(data);
+	c->auth_timer = 0;
+	if (!c->authed)
+		_conn_close(c);
+	return G_SOURCE_REMOVE;
 }
 
 static gboolean _s_incoming(GSocketService * /*svc*/,
@@ -391,6 +463,7 @@ static gboolean _s_incoming(GSocketService * /*svc*/,
 	c->in = g_data_input_stream_new(
 		g_io_stream_get_input_stream(G_IO_STREAM(conn)));
 	c->out = g_io_stream_get_output_stream(G_IO_STREAM(conn));
+	c->auth_timer = g_timeout_add_seconds(30, _s_auth_timeout, c);
 	g_data_input_stream_read_line_async(
 		c->in, G_PRIORITY_DEFAULT, nullptr, _s_line_ready, c);
 	return G_SOURCE_CONTINUE;
@@ -437,12 +510,18 @@ bool abi_control_start(XAP_App * pApp, int port)
 		key[i] = "0123456789abcdef"[g_random_int_range(0, 16)];
 	key[32] = 0;
 	s_ctl.key = key;
-	gchar * dir = g_path_get_dirname(_key_path(port).c_str());
+	s_ctl.key_path = _key_path(port);
+	gchar * dir = g_path_get_dirname(s_ctl.key_path.c_str());
 	g_mkdir_with_parents(dir, 0700);
 	g_free(dir);
-	g_file_set_contents(_key_path(port).c_str(), s_ctl.key.c_str(),
+	g_file_set_contents(s_ctl.key_path.c_str(), s_ctl.key.c_str(),
 						-1, nullptr);
-	g_chmod(_key_path(port).c_str(), 0600);
+	g_chmod(s_ctl.key_path.c_str(), 0600);
+	/* a stale key file must never outlive the session it unlocks */
+	atexit(+[] {
+		if (!s_ctl.key_path.empty())
+			g_remove(s_ctl.key_path.c_str());
+	});
 
 	g_signal_connect(s_ctl.service, "incoming",
 					 G_CALLBACK(_s_incoming), nullptr);

@@ -1105,6 +1105,37 @@ cannot do):
   state;
 - non-local targets (gvfs URIs) keep the direct-write behaviour.
 
+### Automation — runtime control channel
+
+Abinova can be driven externally over a JSON-lines TCP channel,
+for automated tests and scripting:
+
+```sh
+abinova --control 7981            # or ABINOVA_CONTROL_PORT=7981
+```
+
+- Listens on `127.0.0.1` only. Every request is one JSON object per
+  line and must carry the per-instance key written at startup to
+  `~/.config/abinova/control-key.local-<port>` (mode `0600`,
+  deleted on clean exit) — either as `"key"` on each request or
+  once per connection via `{"method":"auth","key":"…"}`.
+- Requests get `{"id":…,"result":…}` or
+  `{"id":…,"error":{"message":…}}` replies. Non-JSON input,
+  a bad key, and lines over 1 MiB each get an error reply and
+  close the connection; unauthenticated connections are dropped
+  after 30 s.
+- Methods: `ping`, `engine.execute` (run any edit method by name,
+  e.g. `{"command":"insertData","data":"Hello"}`), and
+  `ui.screenshot` (render a live window to PNG).
+
+Example:
+
+```sh
+key=$(cat ~/.config/abinova/control-key.local-7981)
+echo '{"id":1,"key":"'$key'","method":"engine.execute",
+       "params":{"command":"insertData","data":"Hello"}}' | nc 127.0.0.1 7981
+```
+
 ### Debian bug audit
 
 - **#896745 font size by keyboard** — fixed: typed sizes not in the

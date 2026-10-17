@@ -6,49 +6,18 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
-## [4.0.1] — 2026-10-16
+## [4.0.3] — unreleased
 
-### User interface
+### Automation
 
-- **Font size field is now a real combo box** — the Home tab (and the
-  classic toolbar) previously showed the size as two adjacent boxes:
-  a plain entry plus a separate `GtkDropDown` echoing the same value.
-  It is now a single editable field with an attached drop-down arrow,
-  the same widget style as the font name combo (`AbiSizeCombo`,
-  `src/af/ev/gtk/ev_UnixSizeCombo.{h,cpp}`): type a size and press
-  <enter>, or open the list and pick one. Typing filters the list,
-  the arrow preselects/scrolls to the current size, and sizes that
-  are not in the list (e.g. `10.5` or a stray `3pt` run) can be typed
-  without leaking into the list. Digits and one decimal point are
-  accepted; commit happens on <enter>, on a list pick, or when the
-  field loses focus.
-
-### Icons
-
-- **macOS: missing action icons fixed** — the Editing group buttons
-  (Search, Replace, Select All, Go To, Undo, Redo) and several menu
-  items resolved to freedesktop names (`edit-find`, `edit-undo`,
-  `go-jump`, `edit-select-all`, …) that modern Adwaita ships only as
-  `*-symbolic`. On Linux these names come from the distro theme, but
-  the macOS bundle's vanilla Adwaita has only the `-symbolic`
-  variants, so the buttons degraded to plain text. Icon lookup now
-  falls back to the `-symbolic` name when the plain name is absent
-  (`abi_stock_pick_icon()` in `ap_UnixStockIcons`), applied to ribbon
-  buttons, popup-menu icons and classic-toolbar icons alike.
-
-### Packaging
-
-- **Linux `.deb` registers with the desktop properly** — the CI-built
-  package installed files owned by the build user, rewrote nothing in
-  the `.desktop` file (`Exec=abinova` relied on `PATH`) and shipped
-  no maintainer scripts, so `update-desktop-database`,
-  `gtk-update-icon-cache` and `update-mime-database` never ran and
-  the app could be invisible to menus and GUI installers (no Launch
-  button). The release workflow now builds the package via
-  `dist/make-deb.sh`: root-owned payload, `Exec=/usr/bin/abinova`,
-  and `postinst`/`postrm` that refresh the desktop, icon and MIME
-  caches. The RPM gains the same `%post`/`%postun` cache refreshes
-  and the absolute `Exec` path.
+- **Control channel hardening** — the `--control PORT` listener now
+  supports `{"method":"auth","key":"…"}` once per connection
+  (subsequent requests may omit the key), rejects missing/wrong keys
+  with `unauthorized` and closes the connection, replies `bad
+  request` and closes on non-JSON input, caps request lines at
+  1 MiB, disconnects unauthenticated clients after 30 s, and removes
+  the `control-key.local-PORT` file on clean exit so a stale key
+  can't be replayed into the next session.
 
 ## [4.0.2] — 2026-10-17
 
@@ -94,6 +63,50 @@ responsibility** — see `README.md`.
   `~/.config/abinova/control-key.local-PORT`; methods include
   `ping`, `engine.execute` (dispatch any edit method by name) and
   `ui.screenshot` (render a live window to PNG).
+
+## [4.0.1] — 2026-10-16
+
+### User interface
+
+- **Font size field is now a real combo box** — the Home tab (and the
+  classic toolbar) previously showed the size as two adjacent boxes:
+  a plain entry plus a separate `GtkDropDown` echoing the same value.
+  It is now a single editable field with an attached drop-down arrow,
+  the same widget style as the font name combo (`AbiSizeCombo`,
+  `src/af/ev/gtk/ev_UnixSizeCombo.{h,cpp}`): type a size and press
+  <enter>, or open the list and pick one. Typing filters the list,
+  the arrow preselects/scrolls to the current size, and sizes that
+  are not in the list (e.g. `10.5` or a stray `3pt` run) can be typed
+  without leaking into the list. Digits and one decimal point are
+  accepted; commit happens on <enter>, on a list pick, or when the
+  field loses focus.
+
+### Icons
+
+- **macOS: missing action icons fixed** — the Editing group buttons
+  (Search, Replace, Select All, Go To, Undo, Redo) and several menu
+  items resolved to freedesktop names (`edit-find`, `edit-undo`,
+  `go-jump`, `edit-select-all`, …) that modern Adwaita ships only as
+  `*-symbolic`. On Linux these names come from the distro theme, but
+  the macOS bundle's vanilla Adwaita has only the `-symbolic`
+  variants, so the buttons degraded to plain text. Icon lookup now
+  falls back to the `-symbolic` name when the plain name is absent
+  (`abi_stock_pick_icon()` in `ap_UnixStockIcons`), applied to ribbon
+  buttons, popup-menu icons and classic-toolbar icons alike.
+
+### Packaging
+
+- **Linux `.deb` registers with the desktop properly** — the CI-built
+  package installed files owned by the build user, rewrote nothing in
+  the `.desktop` file (`Exec=abinova` relied on `PATH`) and shipped
+  no maintainer scripts, so `update-desktop-database`,
+  `gtk-update-icon-cache` and `update-mime-database` never ran and
+  the app could be invisible to menus and GUI installers (no Launch
+  button). The release workflow now builds the package via
+  `dist/make-deb.sh`: root-owned payload, `Exec=/usr/bin/abinova`,
+  and `postinst`/`postrm` that refresh the desktop, icon and MIME
+  caches. The RPM gains the same `%post`/`%postun` cache refreshes
+  and the absolute `Exec` path.
 
 ## [4.0.0] — 2026-10-12
 
