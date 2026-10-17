@@ -31,6 +31,7 @@
 #include "ev_EditMethod.h"
 #include "fv_View.h"
 #include "pd_Document.h"
+#include "ap_FmtInspect.h"
 #include "ie_types.h"
 #include "ie_exp.h"
 #include "pt_PieceTable.h"
@@ -602,6 +603,23 @@ static bool _m_doc_inspect(std::string & out, std::string & err)
 	return true;
 }
 
+/* Reveal Formatting report at the caret — the same sectioned text the
+ * docked Formatting pane shows (stylesInspect) */
+static bool _m_doc_fmtinspect(std::string & out, std::string & err)
+{
+	FV_View * view = _first_view();
+	if (!view)
+	{
+		err = "no view";
+		return false;
+	}
+	std::vector<AP_FmtReportSection> secs;
+	AP_FmtInspect::buildReport(view, secs);
+	out = "{\"report\":\"" + _json_escape(AP_FmtInspect::toText(secs)) +
+		  "\"}";
+	return true;
+}
+
 /* dialog-free save: params.path is the target file; honours the
  * automation write root when configured */
 static bool _m_file_save(const std::string & j, std::string & err)
@@ -1105,6 +1123,15 @@ static bool _dispatch(_Conn * c, const std::string & line)
 	{
 		std::string out;
 		if (_m_doc_inspect(out, err))
+			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "document.formatinspect")
+	{
+		std::string out;
+		if (_m_doc_fmtinspect(out, err))
 			_conn_send(c, id, out.c_str(), nullptr);
 		else
 			_conn_send(c, id, nullptr, err.c_str());

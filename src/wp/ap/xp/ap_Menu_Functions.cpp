@@ -1287,6 +1287,14 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_View)
 			s = EV_MIS_ZERO;
 		break;
 
+	case AP_MENU_ID_VIEW_FMTPANE:
+		if (pFrame->getFrameImpl() &&
+			pFrame->getFrameImpl()->isFmtPaneVisible())
+			s = EV_MIS_Toggled;
+		else
+			s = EV_MIS_ZERO;
+		break;
+
 	case AP_MENU_ID_VIEW_SPLIT:
 		if (pFrame->getFrameImpl() &&
 			pFrame->getFrameImpl()->isSplitView())

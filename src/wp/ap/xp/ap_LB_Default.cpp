@@ -374,7 +374,7 @@ ap_bs_NVK NVKTable[] =
 						  "",					"",					"",				""					}},
 //	{EV_NVK_HELP,		{ "",					"",					"",				"",
 //						  "",					"",					"",				""					}},
-	{EV_NVK_F1,			{ "helpContents",					"",					"",				"",
+	{EV_NVK_F1,			{ "helpContents",	"stylesInspect",		"",				"",
 						  "",					"",					"",				""					}},
 	{EV_NVK_F2,			{ "",					"",					"printPreview",	"",
 						  "",					"",					"",				""					}},

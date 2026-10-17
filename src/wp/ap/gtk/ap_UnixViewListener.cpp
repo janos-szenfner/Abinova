@@ -57,6 +57,7 @@ bool ap_UnixViewListener::notify(AV_View * pView, const AV_ChangeMask mask)
 		pImpl->refreshSelPane();
 		pImpl->refreshCommentsPane();
 		pImpl->refreshNavPane();
+		pImpl->refreshFmtPane();
 		pImpl->updateMiniBar(mask);
 	}
 

@@ -116,6 +116,8 @@ libap_la_SOURCES = \
 	xp/ap_EditMethods.h \
 	xp/ap_EmbeddedFeatures.h \
 	xp/ap_Features.h \
+	xp/ap_FmtInspect.cpp \
+	xp/ap_FmtInspect.h \
 	xp/ap_Frame.cpp \
 	xp/ap_FrameData.cpp \
 	xp/ap_FrameData.h \
@@ -381,6 +383,8 @@ libap_la_SOURCES += \
 	gtk/ap_UnixNavPane.h \
 	gtk/ap_UnixClipPane.cpp \
 	gtk/ap_UnixClipPane.h \
+	gtk/ap_UnixFmtPane.cpp \
+	gtk/ap_UnixFmtPane.h \
 	gtk/ap_UnixMiniBar.cpp \
 	gtk/ap_UnixMiniBar.h \
 	gtk/ap_UnixStatusBar.h \

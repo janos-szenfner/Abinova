@@ -725,7 +725,12 @@ labels, like Word's ribbon.
   buttons; the active mode stays pressed (radio state).
 - **Immersive**: Focus (full-screen).
 - **Show**: checkboxes for Ruler, Status Bar, Formatting Marks and
-  the Selection Pane.
+  the Selection Pane, plus the **Reveal Formatting** inspector
+  (also Shift+F1) — a docked read-only pane reporting the style
+  chain at the caret: paragraph style with its based-on chain and
+  followed-by style, character style, direct-formatting deltas
+  split by character/paragraph, resolved property values, and
+  list/table/frame context. It refreshes live as the caret moves.
 - **Zoom**: the Zoom button opens a popover with the presets
   (200 %/100 %/75 %/50 %, Page Width, One Page — the active preset
   is ticked) plus a Zoom… row for the classic dialog; Zoom to
@@ -845,7 +850,8 @@ switcher.
   Alt+↑ / Alt+↓ previous/next comment · Alt+Shift+X mark index entry.
 - **View & windows** — Ctrl+Alt+P print layout · Ctrl+Alt+N normal
   (draft) layout · Ctrl+Alt+S split window · Alt+Shift+C remove
-  split · F11 fullscreen · Ctrl+wheel zoom.
+  split · Shift+F1 Reveal Formatting pane · F11 fullscreen ·
+  Ctrl+wheel zoom.
 - **Misc** — F1 help · F10 context menu · Alt+F8 run script ·
   F11 fullscreen · Ctrl+Alt+F9 update styles from the attached
   template · Ctrl+Alt+F10 / Ctrl+Alt+F11 different-first-page /

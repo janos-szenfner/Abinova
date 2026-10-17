@@ -618,6 +618,7 @@ public:
 	static EV_EditMethod_Fn zoom;
 	static EV_EditMethod_Fn dlgZoom;
 	static EV_EditMethod_Fn viewClipPane;
+	static EV_EditMethod_Fn stylesInspect;
 	static EV_EditMethod_Fn viewFullScreen;
 	static EV_EditMethod_Fn viewGridlines;
 	static EV_EditMethod_Fn viewNavPane;
@@ -1519,6 +1520,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(splitCellsDir),        0,  ""),
 	EV_EditMethod(NF(splitTable),           0,  ""),
 	EV_EditMethod(NF(style),				_D_,""),
+	EV_EditMethod(NF(stylesInspect),		0,	""),
 
 	// t
 	EV_EditMethod(NF(tableBorder),			0,		""),
@@ -12209,6 +12211,21 @@ Defun1(viewClipPane)
 	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
 	UT_return_val_if_fail(pImpl, false);
 	pImpl->toggleClipPane();
+	return true;
+}
+
+/*! stylesInspect — Word's Reveal Formatting (Shift+F1): toggle the
+ * docked pane that reports the style chain, direct-formatting deltas
+ * and layout context at the caret. */
+Defun1(stylesInspect)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	pImpl->toggleFmtPane();
 	return true;
 }
 

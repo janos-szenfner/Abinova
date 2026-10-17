@@ -51,6 +51,7 @@
 #include "ap_UnixCommentsPane.h"
 #include "ap_UnixNavPane.h"
 #include "ap_UnixClipPane.h"
+#include "ap_UnixFmtPane.h"
 #include "ap_UnixMiniBar.h"
 #include "ap_Prefs.h"
 #include "xap_App.h"
@@ -98,6 +99,8 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_pNavPane(nullptr),
 	m_wClipPaneW(nullptr),
 	m_pClipPane(nullptr),
+	m_wFmtPaneW(nullptr),
+	m_pFmtPane(nullptr),
 	m_bGridlines(false),
 	m_wSplitPaned(nullptr),
 	m_wSplitGrid(nullptr),
@@ -154,6 +157,7 @@ AP_UnixFrameImpl::~AP_UnixFrameImpl()
 	DELETEP(m_pCommentsPane);
 	DELETEP(m_pNavPane);
 	DELETEP(m_pClipPane);
+	DELETEP(m_pFmtPane);
 }
 
 XAP_FrameImpl * AP_UnixFrameImpl::createInstance(XAP_Frame *pFrame)
@@ -511,6 +515,10 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	m_wClipPaneW = m_pClipPane->createWidget();
 	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wClipPaneW,
 						"clipboard");
+	m_pFmtPane = new AP_UnixFmtPane(pFrame);
+	m_wFmtPaneW = m_pFmtPane->createWidget();
+	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wFmtPaneW,
+						"formatting");
 	gtk_widget_set_visible(m_wSideDeck, FALSE);
 	gtk_paned_set_end_child(GTK_PANED(m_wDocPaned), m_wSideDeck);
 	gtk_paned_set_resize_end_child(GTK_PANED(m_wDocPaned), FALSE);
@@ -903,6 +911,37 @@ void AP_UnixFrameImpl::toggleClipPane()
 bool AP_UnixFrameImpl::pasteClipHistoryItem(UT_uint32 idx)
 {
 	return m_pClipPane && m_pClipPane->pasteIndex(idx);
+}
+
+/* ===== Reveal Formatting pane (style chain at the caret) ===== */
+
+void AP_UnixFrameImpl::setFmtPaneVisible(bool bVisible)
+{
+	if (!m_wDocPaned || !m_wSideDeck)
+		return;
+	s_deckShow(m_wSideDeck, "formatting", bVisible, m_wDocPaned);
+	if (bVisible && m_pFmtPane)
+		m_pFmtPane->refresh();
+}
+
+bool AP_UnixFrameImpl::isFmtPaneVisible() const
+{
+	const char * cur = m_wSideDeck
+		? gtk_stack_get_visible_child_name(GTK_STACK(m_wSideDeck))
+		: nullptr;
+	return cur && gtk_widget_get_visible(m_wSideDeck) &&
+		!strcmp(cur, "formatting");
+}
+
+void AP_UnixFrameImpl::toggleFmtPane()
+{
+	setFmtPaneVisible(!isFmtPaneVisible());
+}
+
+void AP_UnixFrameImpl::refreshFmtPane()
+{
+	if (isFmtPaneVisible() && m_pFmtPane)
+		m_pFmtPane->refresh();
 }
 
 /* ===== Gridlines ===== */

@@ -146,6 +146,16 @@ responsibility** — see `README.md`.
   at the caret as plain text. The pane offers a one-line preview per
   item plus Clear All, and re-copying an existing entry just bumps
   it back to the top.
+- **Reveal Formatting pane** — a Word-style Styles Inspector
+  (Shift+F1 or View → Reveal Formatting) docked in the right-hand
+  side deck. It reports, at the caret: the paragraph style with its
+  based-on chain and followed-by style, the character style, every
+  direct-formatting delta split into character and paragraph props
+  (so style-derived and hand-applied formatting stay distinct), the
+  resolved/effective values for the properties people actually
+  inspect, and layout context — list membership (listid/level),
+  table cell coordinates, text frames, headers/footers, footnotes,
+  comments, and TOC. The pane refreshes live as the caret moves.
 
 ## [4.0.2] — 2026-10-17
 

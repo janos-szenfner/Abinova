@@ -87,6 +87,12 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	 * Clipboard pane row-click and the pasteClipItem edit method
 	 * funnel through the same path */
 	virtual bool	pasteClipHistoryItem(UT_uint32 idx) override;
+	/* Reveal Formatting pane (Shift+F1): style chain, direct
+	 * formatting deltas and layout context at the caret */
+	virtual void	toggleFmtPane() override;
+	bool			isFmtPaneVisible() const override;
+	void			setFmtPaneVisible(bool bVisible);
+	void			refreshFmtPane();
 	/* moves keyboard focus back to the document canvas, e.g. after
 	 * a side-pane button was clicked so typing reaches the view */
 	void			focusDocument();
@@ -234,6 +240,8 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	class AP_UnixNavPane * m_pNavPane;
 	GtkWidget * m_wClipPaneW;
 	class AP_UnixClipPane * m_pClipPane;
+	GtkWidget * m_wFmtPaneW;
+	class AP_UnixFmtPane * m_pFmtPane;
 
 	/* gridlines overlay toggle for the document canvas */
 	bool        m_bGridlines;
