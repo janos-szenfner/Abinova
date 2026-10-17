@@ -63,6 +63,7 @@
 #include "fp_Line.h"
 #include "fg_Graphic.h"
 #include "pd_Document.h"
+#include "pd_Style.h"
 #include "pd_Iterator.h"
 #include "pf_Frag.h"
 #include "pf_Frag_Strux.h"
@@ -851,6 +852,11 @@ public:
 	static EV_EditMethod_Fn tocInsert;
 	static EV_EditMethod_Fn tocRemove;
 	static EV_EditMethod_Fn tocUpdate;
+	static EV_EditMethod_Fn tocGoTo;
+	static EV_EditMethod_Fn differentFirstPage;
+	static EV_EditMethod_Fn differentOddEven;
+	static EV_EditMethod_Fn attachTemplate;
+	static EV_EditMethod_Fn updateStyles;
 	static EV_EditMethod_Fn footnoteNext;
 	static EV_EditMethod_Fn footnotePrev;
 	static EV_EditMethod_Fn endnoteNext;
@@ -962,6 +968,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(alignRight),			0,		""),
 	EV_EditMethod(NF(arrangeAll), 0, ""),
 	EV_EditMethod(NF(arrangePosition),		0,	""),
+	EV_EditMethod(NF(attachTemplate),		0,		""),
 	EV_EditMethod(NF(autoFitTable),         0,      ""),
 	EV_EditMethod(NF(autoFitTableFixed),    0,      ""),
 	EV_EditMethod(NF(autoFitTableWindow),   0,      ""),
@@ -1071,6 +1078,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(deleteRows),   		0,	""),
 	EV_EditMethod(NF(deleteTable),   		0,	""),
 	EV_EditMethod(NF(deleteXMLID),  		0,	""),
+	EV_EditMethod(NF(differentFirstPage),	0,		""),
+	EV_EditMethod(NF(differentOddEven),		0,		""),
 	EV_EditMethod(NF(distributeTableCols),	0,	""),
 	EV_EditMethod(NF(distributeTableRows),	0,	""),
 	EV_EditMethod(NF(dlgAbout), 			_A_, ""),
@@ -1520,6 +1529,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(tableToTextTabs),    0,		""),
 	EV_EditMethod(NF(textToTable),		0,		""),
 	EV_EditMethod(NF(tocAddText),			0,		""),
+	EV_EditMethod(NF(tocGoTo),				0,		""),
 	EV_EditMethod(NF(tocInsert),			0,		""),
 	EV_EditMethod(NF(tocRemove),			0,		""),
 	EV_EditMethod(NF(tocUpdate),			0,		""),
@@ -1563,6 +1573,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(unHangingIndent),		0,	""),
 	EV_EditMethod(NF(undo), 				0,	""),
 	EV_EditMethod(NF(updateField),			0,	""),
+	EV_EditMethod(NF(updateStyles),			0,		""),
 
 	// v
 	EV_EditMethod(NF(viCmd_5e),		0,	""), //^ 
@@ -7135,6 +7146,173 @@ Defun(tocAddText)
 	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
 	UT_sint32 iLevel = atoi(s.utf8_str());
 	pView->setTocLevel(iLevel);
+	return true;
+}
+
+/*
+ * Ctrl+Click on a generated TOC entry jumps the caret to the source
+ * heading (Word's TOC hyperlink behaviour). Bound on the TOC mouse
+ * context's ctrl+click slot.
+ */
+Defun(tocGoTo)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, false);
+	return pView->cmdGoToTOCEntry(pCallData->m_xPos, pCallData->m_yPos);
+}
+
+/*
+ * Word's Header & Footer "Different First Page" / "Different Odd &
+ * Even Pages" toggles as commands: they create or remove the matching
+ * header+footer pair for the section holding the caret.
+ */
+static void _toggleHdrFtrPair(FV_View * pView, const char * szAttr,
+							  HdrFtrType tHdr, HdrFtrType tFtr)
+{
+	PP_PropertyVector props_in;
+	pView->getSectionFormat(props_in);
+	if(PP_getAttribute(szAttr, props_in).empty())
+	{
+		pView->createThisHdrFtr(tHdr);
+		pView->createThisHdrFtr(tFtr);
+	}
+	else
+	{
+		pView->removeThisHdrFtr(tHdr);
+		pView->removeThisHdrFtr(tFtr);
+	}
+}
+
+Defun1(differentFirstPage)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	_toggleHdrFtrPair(pView, "header-first",
+					  FL_HDRFTR_HEADER_FIRST, FL_HDRFTR_FOOTER_FIRST);
+	return true;
+}
+
+Defun1(differentOddEven)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	_toggleHdrFtrPair(pView, "header-even",
+					  FL_HDRFTR_HEADER_EVEN, FL_HDRFTR_FOOTER_EVEN);
+	return true;
+}
+
+/*
+ * Attach a template document to this file. The path is stored as
+ * document metadata ("attached-template"); updateStyles uses it when
+ * invoked without an explicit path. callData is the path.
+ */
+Defun(attachTemplate)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const char * szPath = s.utf8_str();
+	UT_return_val_if_fail(szPath && *szPath, false);
+	pDoc->setMetaDataProp("attached-template", szPath);
+	return true;
+}
+
+/*
+ * Word's "Automatically update document styles": pull every style
+ * definition out of a template document and apply it here. Existing
+ * styles get the template's attributes (incl. props) via
+ * setAllAttributes; missing styles are appended. callData is the
+ * template path; empty falls back to the attached template.
+ */
+Defun(updateStyles)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc, false);
+
+	std::string sPath;
+	if(pCallData && pCallData->m_pData && pCallData->m_dataLength > 0)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		sPath = s.utf8_str();
+	}
+	if(sPath.empty())
+	{
+		pDoc->getMetaDataProp("attached-template", sPath);
+	}
+	UT_return_val_if_fail(!sPath.empty(), false);
+
+	PD_Document * pTmpl = new PD_Document();
+	if(pTmpl->readFromFile(sPath.c_str(), IEFT_Unknown) != UT_OK)
+	{
+		pTmpl->unref();
+		return false;
+	}
+	std::vector<PD_Style*> * pvStyles = nullptr;
+	if(!pTmpl->enumStyles(pvStyles) || pvStyles == nullptr)
+	{
+		pTmpl->unref();
+		return false;
+	}
+
+	for(PD_Style * pS : *pvStyles)
+	{
+		UT_nonnull_or_continue(pS);
+		const char * szName = pS->getName();
+		if(szName == nullptr || !*szName)
+		{
+			continue;
+		}
+		// rebuild the full style attribute vector: identity +
+		// inheritance attributes plus the "props" string, in the same
+		// shape appendStyle/importers use
+		PP_PropertyVector vAtts = {
+			PT_NAME_ATTRIBUTE_NAME, szName,
+			PT_TYPE_ATTRIBUTE_NAME, pS->isCharStyle() ? "C" : "P"
+		};
+		const gchar * szV = nullptr;
+		if(pS->getAttribute("basedon", szV) && szV)
+		{
+			vAtts.push_back("basedon");
+			vAtts.push_back(szV);
+		}
+		if(pS->getAttribute("followedby", szV) && szV)
+		{
+			vAtts.push_back("followedby");
+			vAtts.push_back(szV);
+		}
+		PP_PropertyVector vProps;
+		pS->getAllProperties(vProps, 0);
+		const std::string sProps = PP_makePropString(vProps);
+		if(!sProps.empty())
+		{
+			vAtts.push_back("props");
+			vAtts.push_back(sProps);
+		}
+		PD_Style * pTarget = nullptr;
+		if(pDoc->getStyle(szName, &pTarget) && pTarget)
+		{
+			if(pTarget->setAllAttributes(vAtts))
+			{
+				pDoc->updateDocForStyleChange(szName,
+											  !pS->isCharStyle());
+			}
+		}
+		else
+		{
+			pDoc->appendStyle(vAtts);
+		}
+	}
+	pTmpl->unref();
 	return true;
 }
 

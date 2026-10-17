@@ -141,6 +141,11 @@ bool XAP_FrameImpl::_updateTitle()
 	if (!szURI.empty())
 	{
 		gchar *szName = UT_go_basename_from_uri (szURI.c_str());
+		/* plain filesystem paths are not URIs — the URI helper can
+		 * return nothing for them; fall back to a plain basename so
+		 * the title never ends up assigned a nullptr */
+		if (!szName)
+			szName = g_path_get_basename (szURI.c_str());
 		UT_UTF8String sUntruncatedString(szName);
 		FREEP(szName);
 
@@ -162,7 +167,8 @@ bool XAP_FrameImpl::_updateTitle()
 		iter = iter.start ();
 		for (int currentSize = sUntruncatedString.size(); currentSize > (MAX_TITLE_LENGTH - lenRO); currentSize--)
 			iter.advance();
-		m_pFrame->m_sTitle = iter.current();
+		const char * szTrunc = iter.current();
+		m_pFrame->m_sTitle = szTrunc ? szTrunc : sUntruncatedString.utf8_str();
 
 		if(lenRO > 0)
 			m_pFrame->m_sTitle += " (" + s + ")";

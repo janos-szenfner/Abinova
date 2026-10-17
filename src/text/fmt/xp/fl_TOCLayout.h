@@ -51,6 +51,10 @@ public:
 	virtual ~TOCEntry(void);
 	fl_BlockLayout *     getBlock(void) const
 		{ return m_pBlock;}
+	void                 setSourceSDH(pf_Frag_Strux * sdh)
+		{ m_sdhSource = sdh;}
+	pf_Frag_Strux *      getSourceSDH(void) const
+		{ return m_sdhSource;}
 	PT_DocPosition       getPositionInDoc(void) const;
 	UT_sint32            getLevel(void) const
 		{ return m_iLevel;}
@@ -69,6 +73,7 @@ public:
 	UT_UTF8String       getFullLabel(void) const;
 private:
 	fl_BlockLayout *  m_pBlock;
+	pf_Frag_Strux *   m_sdhSource = nullptr;
 	UT_sint32         m_iLevel;
 	UT_UTF8String     m_sDispStyle;
 	bool              m_bHasLabel;
@@ -142,6 +147,8 @@ public:
 	const UT_UTF8String &    getRangeBookmarkName() const {return m_sRangeBookmark;}
 	bool                     verifyBookmarkAssumptions();
 	bool                     fillTOC(void);
+	bool                     getSourcePosForGenBlock(fl_BlockLayout * pGen,
+													 PT_DocPosition & posSource) const;
 	
 	static std::string       getDefaultHeading();
 	static UT_UTF8String     getDefaultSourceStyle(UT_uint32 iLevel);
@@ -157,7 +164,8 @@ private:
 
 	void                     _createAndFillTOCEntry(PT_DocPosition posStart, PT_DocPosition posEnd,
 													fl_BlockLayout * pPrevBL, const char * pszStyle,
-													UT_sint32 iAllBlocks);
+													UT_sint32 iAllBlocks,
+													pf_Frag_Strux * sdhSource);
 
 	void                     _addBlockInVec(fl_BlockLayout * pBlock,UT_UTF8String & sStyle);
 	void                     _removeBlockInVec(fl_BlockLayout * pBlock, bool bDontRecurse = false);

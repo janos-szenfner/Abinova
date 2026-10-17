@@ -9716,6 +9716,16 @@ GtkWidget * AP_UnixRibbon::_makeHdrFtrPopover(bool bFooter)
 	gtk_box_append(GTK_BOX(inner),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 	gtk_box_append(GTK_BOX(inner),
+				   _presetRow("Different First Page",
+							  nullptr, nullptr,
+							  "differentFirstPage", nullptr));
+	gtk_box_append(GTK_BOX(inner),
+				   _presetRow("Different Odd &amp; Even Pages",
+							  nullptr, nullptr,
+							  "differentOddEven", nullptr));
+	gtk_box_append(GTK_BOX(inner),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(inner),
 				   _presetRow(bFooter ? "Edit Footer" : "Edit Header",
 							  nullptr,
 							  _layout_icon(bFooter
@@ -9729,6 +9739,10 @@ GtkWidget * AP_UnixRibbon::_makeHdrFtrPopover(bool bFooter)
 							  nullptr, nullptr,
 							  bFooter ? "removeFooter" : "removeHeader",
 							  nullptr));
+	gtk_box_append(GTK_BOX(inner),
+				   _presetRow("Header &amp; Footer Options…",
+							  nullptr, nullptr,
+							  "dlgHdrFtr", nullptr));
 	return popover;
 }
 

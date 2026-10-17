@@ -149,6 +149,7 @@ ap_bs_Mouse MouseTable[] =
 
 // Button-1 TOC-context
 	{_CTO _B1,	{ "selectTOC", "warpInsPtToXY",	"dragToXY",	"dragToXYword",	"endDrag",	"endDrag"		}},
+	{_CTO _B1 _C,{ "tocGoTo",	"",				"",			"",				"",			""				}},
 
 //	Button-1, Left-of-Text-context (left-margin)
 //  { context	{ click				doubleclick		drag,		dbldrag,		release,	doublerelease	}},

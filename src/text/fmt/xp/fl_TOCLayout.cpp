@@ -660,7 +660,8 @@ bool fl_TOCLayout::addBlock(fl_BlockLayout * pBlock, bool bVerifyRange)
 */
 void fl_TOCLayout::_createAndFillTOCEntry(PT_DocPosition posStart, PT_DocPosition posEnd,
 										  fl_BlockLayout * pPrevBL, const char * pszStyle,
-										  UT_sint32 iAllBlocks)
+										  UT_sint32 iAllBlocks,
+										  pf_Frag_Strux * sdhSource)
 {
 	UT_return_if_fail(pszStyle);
 	
@@ -699,6 +700,7 @@ void fl_TOCLayout::_createAndFillTOCEntry(PT_DocPosition posStart, PT_DocPositio
 
 	// OK Now add the block to our vector.
 	TOCEntry *pNewEntry = createNewEntry(pNewBlock);
+	pNewEntry->setSourceSDH(sdhSource);
 	if(iAllBlocks == 0)
 	{
 		m_vecEntries.emplace(m_vecEntries.begin(), pNewEntry);
@@ -788,8 +790,9 @@ void fl_TOCLayout::_addBlockInVec(fl_BlockLayout * pBlock, UT_UTF8String & sStyl
 	PT_DocPosition posStart = pBlock->getPosition(true);
 	PT_DocPosition posEnd = posStart + static_cast<PT_DocPosition>(pBlock->getLength());
 
-	_createAndFillTOCEntry(posStart, posEnd, pPrevBL, sStyle.utf8_str(), iAllBlocks);
-	
+	_createAndFillTOCEntry(posStart, posEnd, pPrevBL, sStyle.utf8_str(), iAllBlocks,
+						   pBlock->getStruxDocHandle());
+
 	// Tell the block it's shadowed in a TOC
 	pBlock->setStyleInTOC(true);
 }
@@ -2563,4 +2566,65 @@ bool fl_TOCLayout::fillTOC(void)
     }
 
     return filled;
+}
+
+
+/*!
+ * Resolve a generated TOC paragraph back to the document position of
+ * the source heading it was built from. Used by Ctrl+Click
+ * navigation; the entry remembers the heading's strux handle and the
+ * piece table maps it to a live position, so a deleted heading simply
+ * fails to resolve.
+\param pGen a generated entry block owned by this TOC
+\param posSource out: doc position just inside the source heading
+\returns true when the position resolved
+ */
+bool fl_TOCLayout::getSourcePosForGenBlock(fl_BlockLayout * pGen,
+										   PT_DocPosition & posSource) const
+{
+	UT_return_val_if_fail(pGen, false);
+	/* Generated TOC content occupies a single doc position, so the
+	 * entry cannot be found by comparing positions — locate the
+	 * clicked block among this layout's children instead.  The child
+	 * chain is in display order: an optional title paragraph first,
+	 * then one generated paragraph per m_vecEntries entry in the same
+	 * order. */
+	UT_sint32 iHit = -1, iChildren = 0;
+	for(fl_ContainerLayout * pC = getFirstLayout(); pC;
+		pC = pC->getNext(), ++iChildren)
+	{
+		if(pC == pGen)
+		{
+			iHit = iChildren;
+		}
+	}
+	if(iHit < 0)
+	{
+		return false;
+	}
+	const UT_sint32 iEntries =
+		static_cast<UT_sint32>(m_vecEntries.size());
+	// a leading child with no corresponding entry is the TOC title
+	if(iChildren > iEntries)
+	{
+		iHit -= iChildren - iEntries;
+	}
+	if(iHit < 0 || iHit >= iEntries)
+	{
+		return false;
+	}
+	const TOCEntry * pHit = m_vecEntries[iHit].get();
+	if(pHit == nullptr || !pHit->getSourceSDH())
+	{
+		return false;
+	}
+	PT_DocPosition pos =
+		m_pDoc->getStruxPosition(pHit->getSourceSDH());
+	if(pos == 0)
+	{
+		return false;
+	}
+	// point just inside the heading paragraph
+	posSource = pos + 1;
+	return true;
 }

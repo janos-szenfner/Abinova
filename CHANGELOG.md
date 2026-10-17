@@ -39,6 +39,30 @@ responsibility** — see `README.md`.
   outside get an error reply. With no roots configured, paths are
   unconstrained as before.
 
+### Documents
+
+- **Clickable table of contents** — Ctrl+Click on a generated TOC
+  entry now warps the caret to the heading it was generated from,
+  Word-style. Each `TOCEntry` keeps its source paragraph strux; the
+  click is resolved by on-screen line inside the TOC container (all
+  generated content shares one document position), mapped to the
+  entry's position in the entry list, and the caret is moved to the
+  source heading and scrolled into view.
+- **Header/footer commands** — `differentFirstPage` and
+  `differentOddEven` are real edit methods: each toggles the
+  matching `header-first`/`footer-first` or
+  `header-even`/`footer-even` section attributes, creating or
+  removing the header+footer pair for the caret's section. Both are
+  reachable from the ribbon Header & Footer group and through the
+  control channel.
+- **Template attachment** — `attachTemplate <file>` records the
+  template path in the document (exposed as `attachedTemplate` in
+  `document.inspect`); `updateStyles <file>` merges template styles
+  into the open document — new styles are appended, existing styles
+  get the template's full property set while `name`, `type`,
+  `basedon` and `followedby` are preserved. Template reads honour
+  `--automation-read-root`.
+
 ## [4.0.2] — 2026-10-17
 
 ### Ribbon

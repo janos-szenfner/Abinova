@@ -752,6 +752,90 @@ void  FV_View::cmdSelectTOC(UT_sint32 x, UT_sint32 y)
 }
 
 /*!
+ * Ctrl+Click on a generated TOC entry: warp the caret to the source
+ * heading the entry was generated from. Returns false when the click
+ * was outside a TOC or the source could not be resolved (e.g. the
+ * heading was deleted).
+ */
+bool FV_View::cmdGoToTOCEntry(UT_sint32 x, UT_sint32 y)
+{
+	UT_sint32 xClick = 0, yClick = 0;
+	fp_Page* pPage = _getPageForXY(x, y, xClick, yClick);
+	if(pPage == nullptr)
+	{
+		return false;
+	}
+	// mapXYToPosition records the TOC the click resolved to on the
+	// page; generated TOC content all maps to one doc position, so
+	// the clicked entry must be found by its on-screen line, not by
+	// document position.
+	getDocPositionFromXY(x, y);
+	fl_TOCLayout * pTOCL = pPage->getLastMappedTOC();
+	if(pTOCL == nullptr)
+	{
+		return false;
+	}
+	// find the fp_Line under the click inside this page's slice of
+	// the TOC container
+	fl_BlockLayout * pBL = nullptr;
+	for(fp_Container * pCon = pTOCL->getFirstContainer(); pCon;
+		pCon = static_cast<fp_Container *>(pCon->getNext()))
+	{
+		if(pCon->getPage() != pPage)
+		{
+			continue;
+		}
+		// container Y is parent-relative — accumulate up to the page
+		UT_sint32 yCon = pCon->getY();
+		for(fp_Container * pPar = pCon->getContainer(); pPar;
+			pPar = pPar->getContainer())
+		{
+			yCon += pPar->getY();
+		}
+		UT_sint32 yLocal = yClick - yCon;
+		for(UT_sint32 i = 0; i < pCon->countCons(); ++i)
+		{
+			fp_ContainerObject * pObj =
+				static_cast<fp_ContainerObject *>(pCon->getNthCon(i));
+			if(pObj == nullptr ||
+			   pObj->getContainerType() != FP_CONTAINER_LINE)
+			{
+				continue;
+			}
+			fp_Line * pLine = static_cast<fp_Line *>(pObj);
+			if(yLocal >= pLine->getY() &&
+			   yLocal < pLine->getY() + pLine->getHeight())
+			{
+				pBL = pLine->getBlock();
+				break;
+			}
+		}
+		if(pBL)
+		{
+			break;
+		}
+	}
+	if(pBL == nullptr)
+	{
+		return false;
+	}
+	PT_DocPosition posSource = 0;
+	if(!pTOCL->getSourcePosForGenBlock(pBL, posSource))
+	{
+		return false;
+	}
+	if(!isSelectionEmpty())
+	{
+		_clearSelection();
+	}
+	_setPoint(posSource);
+	_fixInsertionPointCoords();
+	_ensureInsertionPointOnScreen();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/*!
  * Select the column of the table  identified by the document position 
  * posOfColumn
  */

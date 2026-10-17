@@ -591,6 +591,7 @@ public:
     void            selectRange( const std::pair< PT_DocPosition, PT_DocPosition >& range );
 	void			cmdSelect(UT_sint32 xPos, UT_sint32 yPos, FV_DocPos dpBeg, FV_DocPos dpEnd);
 	void			cmdSelectTOC(UT_sint32 xPos, UT_sint32 yPos);
+	bool			cmdGoToTOCEntry(UT_sint32 xPos, UT_sint32 yPos);
 	bool            isTOCSelected(void) const;
 	bool            setTOCProps(PT_DocPosition pos, const char * szProps);
 

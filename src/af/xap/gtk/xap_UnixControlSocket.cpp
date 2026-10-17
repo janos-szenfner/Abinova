@@ -31,6 +31,8 @@
 #include "ev_EditMethod.h"
 #include "fv_View.h"
 #include "pd_Document.h"
+#include "ie_types.h"
+#include "ie_exp.h"
 #include "pt_PieceTable.h"
 #include "ut_string.h"
 
@@ -310,7 +312,7 @@ static XAP_Frame * _first_frame()
  * by the automation roots when those are configured */
 static bool _cmd_reads_path(const char * cmd)
 {
-	static const char * const kRead[] = { "openRecent" };
+	static const char * const kRead[] = { "openRecent", "updateStyles" };
 	for (const char * n : kRead)
 		if (!strcmp(cmd, n))
 			return true;
@@ -588,7 +590,52 @@ static bool _m_doc_inspect(std::string & out, std::string & err)
 	out += ",\"chars\":";  out += num;
 	g_snprintf(num, sizeof(num), "%u", (unsigned) c.page);
 	out += ",\"pages\":";  out += num;
+	PD_Document * doc = static_cast<PD_Document *>(f->getCurrentDoc());
+	std::string sTemplate;
+	if (doc && doc->getMetaDataProp("attached-template", sTemplate))
+	{
+		out += ",\"attachedTemplate\":\"";
+		out += _json_escape(sTemplate.c_str());
+		out += "\"";
+	}
 	out += "}";
+	return true;
+}
+
+/* dialog-free save: params.path is the target file; honours the
+ * automation write root when configured */
+static bool _m_file_save(const std::string & j, std::string & err)
+{
+	std::string path;
+	if (!_json_str(j, "path", path) || path.empty())
+	{
+		err = "missing params.path";
+		return false;
+	}
+	if (!abi_automation_path_allowed(true, path.c_str()))
+	{
+		err = "params.path outside automation-write-root";
+		return false;
+	}
+	FV_View * view = _first_view();
+	if (!view)
+	{
+		err = "no view";
+		return false;
+	}
+	/* resolve the exporter from the suffix — IEFT_Unknown does not
+	 * infer a format and constructExporter fails with it */
+	const char * dot = strrchr(path.c_str(), '.');
+	IEFileType ft = IE_Exp::fileTypeForSuffix(dot ? dot : "");
+	if (ft == IEFT_Unknown)
+		ft = IE_Exp::fileTypeForSuffix(".abw");
+	UT_Error e = view->cmdSaveAs(path.c_str(), ft);
+	if (e != UT_OK)
+	{
+		err = "save failed: ";
+		err += std::to_string((int) e);
+		return false;
+	}
 	return true;
 }
 
@@ -799,8 +846,13 @@ static unsigned _x_keysym_for(const char * name)
 
 static bool _m_ui_key(const std::string & j, std::string & err)
 {
+	/* params.key must be read inside "params" — a bare scan hits the
+	 * top-level auth "key" first */
+	const size_t pAt = j.find("\"params\"");
+	const std::string tail =
+		(pAt == std::string::npos) ? j : j.substr(pAt);
 	std::string spec;
-	if (!_json_str(j, "key", spec) || spec.empty())
+	if (!_json_str(tail, "key", spec) || spec.empty())
 	{
 		err = "missing params.key";
 		return false;
@@ -902,6 +954,24 @@ static bool _m_ui_click(const std::string & j, std::string & err)
 		return false;
 	}
 	XTestFakeMotionEvent(dpy, -1, rx, ry, CurrentTime);
+	/* params.ctrl/shift/alt hold the modifier for the click (needed
+	 * to drive modifier-click behaviours like TOC navigation) */
+	struct { const char * key; const char * sym; } const kMods[] = {
+		{ "ctrl", "Control_L" }, { "shift", "Shift_L" },
+		{ "alt", "Alt_L" }, { "meta", "Meta_L" }
+	};
+	KeyCode mods[G_N_ELEMENTS(kMods)];
+	unsigned nMods = 0;
+	for (const auto & m : kMods)
+	{
+		if (_json_bool(j, m.key))
+		{
+			mods[nMods++] =
+				XKeysymToKeycode(dpy, XStringToKeysym(m.sym));
+		}
+	}
+	for (unsigned i = 0; i < nMods; ++i)
+		XTestFakeKeyEvent(dpy, mods[i], True, CurrentTime);
 	const int clicks = dbl ? 2 : 1;
 	for (int i = 0; i < clicks; ++i)
 	{
@@ -915,6 +985,9 @@ static bool _m_ui_click(const std::string & j, std::string & err)
 		if (dbl)
 			usleep(40000);
 	}
+	for (unsigned i = 0; i < nMods; ++i)
+		XTestFakeKeyEvent(dpy, mods[i], False, CurrentTime);
+	XSync(dpy, False);
 	return true;
 }
 #else
@@ -1033,6 +1106,14 @@ static bool _dispatch(_Conn * c, const std::string & line)
 		std::string out;
 		if (_m_doc_inspect(out, err))
 			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "file.save")
+	{
+		if (_m_file_save(line, err))
+			_conn_send(c, id, "{\"ok\":true}", nullptr);
 		else
 			_conn_send(c, id, nullptr, err.c_str());
 		return true;
