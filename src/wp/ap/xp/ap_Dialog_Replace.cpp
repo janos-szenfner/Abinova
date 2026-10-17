@@ -263,6 +263,19 @@ bool AP_Dialog_Replace::getWholeWord(void)
 	return getFvView()->findGetWholeWord();
 }
 
+void AP_Dialog_Replace::setPatternKind(UT_FindPatternKind kind)
+{
+	UT_DEBUGMSG(("AP_dlg_replace::setPatternKind(%d)\n", static_cast<int>(kind)));
+
+	getFvView()->findSetPatternKind(kind);
+}
+
+UT_FindPatternKind AP_Dialog_Replace::getPatternKind(void)
+{
+	UT_DEBUGMSG(("AP_dlg_replace::getPatternKind()\n"));
+	return getFvView()->findGetPatternKind();
+}
+
 // --------------------------- Action Functions -----------------------------
 
 bool AP_Dialog_Replace::findPrev()

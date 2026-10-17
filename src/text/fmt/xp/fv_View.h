@@ -36,6 +36,7 @@
 #include "xap_Features.h"
 #include "xap_Prefs.h"
 #include "ut_types.h"
+#include "ut_findpattern.h"
 #include "xav_View.h"
 #include "pt_Types.h"
 #include "pp_Property.h"
@@ -869,11 +870,13 @@ public:
 	void			findSetReverseFind	(bool newValue);
 	void			findSetMatchCase	(bool newValue);
 	void			findSetWholeWord	(bool newValue);
+	void			findSetPatternKind	(UT_FindPatternKind kind);
 	UT_UCS4Char *	findGetFindString   (void);
 	UT_UCS4Char *	findGetReplaceString(void);
 	bool			findGetReverseFind	();
 	bool			findGetMatchCase	();
 	bool			findGetWholeWord	();
+	UT_FindPatternKind findGetPatternKind	();
 
 	bool			findAgain(void);
 
@@ -887,12 +890,17 @@ public:
 
 	bool			_findNext(UT_uint32* pPrefix,
 							 bool& bDoneEntireDocument);
+	bool			_findNextPattern(bool& bDoneEntireDocument);
 
 	bool			findPrev(bool& bDoneEntireDocument);
 	bool			findPrev(const UT_UCS4Char* pFind, bool& bDoneEntireDocument);
 
 	bool			_findPrev(UT_uint32* pPrefix,
 							  bool& bDoneEntireDocument);
+	bool			_findPrevPattern(bool& bDoneEntireDocument);
+
+	GRegex *		_findGetPattern(void);
+	const UT_UCS4Char *	_findCurrentReplace(void);
 
 	bool			findReplaceReverse(bool& bDoneEntireDocument);
 
@@ -1355,8 +1363,18 @@ private:
 	bool				m_bReverseFind;
 	bool				m_bWholeWord;
 	bool				m_bMatchCase;
+	UT_FindPatternKind	m_eFindPatternKind;
 	UT_UCS4Char *		m_sFind;
 	UT_UCS4Char *		m_sReplace;
+
+	// pattern-search state (UFP_WILDCARD/UFP_REGEX): compiled-pattern
+	// cache, the last match's length in UCS4 chars, its capture groups
+	// as UTF-8 strings and the expanded replacement scratch buffer
+	GRegex *			m_pFindPattern;
+	std::string			m_findPatternKey;
+	UT_uint32			m_iLastMatchLen;
+	std::vector<std::string> m_vecMatchGroups;
+	UT_UCS4Char *		m_sReplaceExpanded;
 
 	UT_sint32			_findBlockSearchRegexp(const UT_UCS4Char * haystack, const UT_UCS4Char * needle);
 

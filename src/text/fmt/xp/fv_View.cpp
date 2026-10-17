@@ -264,8 +264,12 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 		m_bReverseFind(false),
 		m_bWholeWord(false),
 		m_bMatchCase(false),
+		m_eFindPatternKind(UFP_LITERAL),
 		m_sFind(nullptr),
 		m_sReplace(nullptr),
+		m_pFindPattern(nullptr),
+		m_iLastMatchLen(0),
+		m_sReplaceExpanded(nullptr),
 		m_bShowPara(false),
 #ifdef EMBEDDED_TARGET
 		m_viewMode(VIEW_NORMAL),
@@ -695,6 +699,8 @@ FV_View::~FV_View()
 
 	FREEP(m_sFind);
 	FREEP(m_sReplace);
+	FREEP(m_sReplaceExpanded);
+	g_clear_pointer(&m_pFindPattern, g_regex_unref);
 
 	DELETEP(m_pLocalBuf);
 }
@@ -9040,6 +9046,11 @@ FV_View::findSetStartAtInsPoint(void)
 void
 FV_View::findSetFindString(const UT_UCS4Char* pFind)
 {
+	// a different pattern invalidates the stored capture groups of
+	// the last match (but don't clear on a redundant re-set, which is
+	// what the dialog does before every replace operation)
+	if (!m_sFind || !pFind || UT_UCS4_strcmp(m_sFind, pFind) != 0)
+		m_vecMatchGroups.clear();
 	FREEP(m_sFind);
 	UT_UCS4_cloneString(&m_sFind, pFind);
 }
@@ -9121,6 +9132,25 @@ bool
 FV_View::findGetWholeWord()
 {
 	return m_bWholeWord;
+}
+
+void
+FV_View::findSetPatternKind(UT_FindPatternKind kind)
+{
+	if (kind != m_eFindPatternKind)
+	{
+		m_eFindPatternKind = kind;
+		// the last match's selection/expansion is meaningless under a
+		// different pattern syntax
+		FREEP(m_sReplaceExpanded);
+		m_vecMatchGroups.clear();
+	}
+}
+
+UT_FindPatternKind
+FV_View::findGetPatternKind()
+{
+	return m_eFindPatternKind;
 }
 
 /*!

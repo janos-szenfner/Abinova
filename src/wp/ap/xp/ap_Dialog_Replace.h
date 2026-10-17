@@ -74,6 +74,9 @@ public:
 	void						setWholeWord( bool newValue);
 	bool						getWholeWord(void);
 
+	void						setPatternKind(UT_FindPatternKind kind);
+	UT_FindPatternKind			getPatternKind(void);
+
 	// Action functions... set data using the accessors
 	// above and call one of these.
 	bool						findNext(void);

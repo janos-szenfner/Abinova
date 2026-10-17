@@ -80,6 +80,13 @@ responsibility** — see `README.md`.
   never steals keyboard focus, follows the selection while
   scrolling, and disappears on click-away, selection collapse or
   Escape.
+- **Wildcard and regex Find/Replace** — the Find and Replace dialogs
+  gain a "Mode" dropdown: Literal text (default, unchanged),
+  Wildcards (Word-style `?`, `*`, `[a-z]`, `[!a-z]`, `<word>`,
+  `{n,m}`, `@`, groups and `^t`/`^n`/`^p` escapes) or full Regular
+  expression. Match case and whole-word settings apply to all modes,
+  and Replace expands capture-group references (`\1`, `\2`, …) from
+  the found text.
 
 ## [4.0.2] — 2026-10-17
 

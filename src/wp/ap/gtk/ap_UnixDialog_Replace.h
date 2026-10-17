@@ -98,4 +98,5 @@ private:
 
 	GtkWidget * m_checkbuttonMatchCase;
 	GtkWidget * m_checkbuttonWholeWord;
+	GtkWidget * m_dropPatternKind;
 };

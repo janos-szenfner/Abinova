@@ -45,6 +45,8 @@ libutil_la_SOURCES = \
 	xp/ut_Encoding.h \
 	xp/ut_endian.h \
 	xp/ut_export.h \
+	xp/ut_findpattern.cpp \
+	xp/ut_findpattern.h \
 	xp/ut_go_file.cpp \
 	xp/ut_go_file.h \
 	xp/ut_growbuf.cpp \

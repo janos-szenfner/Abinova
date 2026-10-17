@@ -62,6 +62,7 @@ AP_UnixDialog_Replace::AP_UnixDialog_Replace(XAP_DialogFactory * pDlgFactory,
 	, m_menuBtnReplace(nullptr)
 	, m_checkbuttonMatchCase(nullptr)
 	, m_checkbuttonWholeWord(nullptr)
+	, m_dropPatternKind(nullptr)
 {
 }
 
@@ -119,6 +120,14 @@ static void s_replace_entry_activate(GtkWidget * /*w*/, AP_UnixDialog_Replace * 
 }
 
 static void s_option_toggled(GtkWidget * /*w*/, AP_UnixDialog_Replace * dlg)
+{
+	dlg->event_OptionsChanged();
+}
+
+/* "notify" callbacks take (instance, pspec, data) — a two-arg
+ * trampoline would receive the GParamSpec as the dialog pointer */
+static void s_option_notify(GObject * /*obj*/, GParamSpec * /*pspec*/,
+							AP_UnixDialog_Replace * dlg)
 {
 	dlg->event_OptionsChanged();
 }
@@ -210,6 +219,8 @@ void AP_UnixDialog_Replace::_syncStringsFromWidgets(void)
 
 void AP_UnixDialog_Replace::_updateSensitivity(void)
 {
+	if (!m_buttonFindNext)
+		return;
 	bool enable = !_entryText(m_entryFind).empty();
 	gtk_widget_set_sensitive(m_buttonFindNext, enable);
 	gtk_widget_set_sensitive(m_buttonFindPrev, enable);
@@ -270,10 +281,21 @@ void AP_UnixDialog_Replace::event_FindEntryChange(void)
 
 void AP_UnixDialog_Replace::event_OptionsChanged(void)
 {
+	/* teardown fires notify::selected on the drop-down — bail once the
+	 * widgets are gone */
+	if (!m_checkbuttonMatchCase || !m_dropPatternKind)
+		return;
+
 	setMatchCase(gtk_check_button_get_active(
 					 GTK_CHECK_BUTTON(m_checkbuttonMatchCase)));
 	setWholeWord(gtk_check_button_get_active(
 					 GTK_CHECK_BUTTON(m_checkbuttonWholeWord)));
+
+	/* drop-down order mirrors UT_FindPatternKind: literal, wildcard,
+	 * regex */
+	guint sel = gtk_drop_down_get_selected(GTK_DROP_DOWN(m_dropPatternKind));
+	if (sel <= static_cast<guint>(UFP_REGEX))
+		setPatternKind(static_cast<UT_FindPatternKind>(sel));
 }
 
 void AP_UnixDialog_Replace::event_Cancel(void)
@@ -285,9 +307,28 @@ void AP_UnixDialog_Replace::event_Cancel(void)
 void AP_UnixDialog_Replace::destroy(void)
 {
 	_storeWindowData();
-	modeless_cleanup();
+	/* destroying the window re-enters our handlers via teardown-time
+	 * widget signals (drop-down notify::selected, entry changed) —
+	 * clear the pointers first so they bail instead of touching freed
+	 * widgets */
+	m_buttonFindNext = nullptr;
+	m_buttonFindPrev = nullptr;
+	m_buttonFindReplace = nullptr;
+	m_buttonReplaceAll = nullptr;
+	m_entryFind = nullptr;
+	m_entryReplace = nullptr;
+	m_historyFind = nullptr;
+	m_historyReplace = nullptr;
+	m_menuBtnFind = nullptr;
+	m_menuBtnReplace = nullptr;
+	m_checkbuttonMatchCase = nullptr;
+	m_checkbuttonWholeWord = nullptr;
+	m_dropPatternKind = nullptr;
 	abiDestroyWidget(m_windowMain);
 	m_windowMain = nullptr;
+	/* unregisters the dialog and ends its use — last, after anything
+	 * touching our members */
+	modeless_cleanup();
 }
 
 /*****************************************************************/
@@ -400,6 +441,26 @@ GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 	m_checkbuttonWholeWord = gtk_check_button_new_with_mnemonic(unixstr);
 	gtk_box_append(GTK_BOX(opts), m_checkbuttonWholeWord);
 
+	/* mode toggle: literal (default), Word-style wildcards, regex */
+	CONVERT_TO_ACC_STRING(dummy, AP_STRING_ID_DLG_FR_PatternMode, unixstr);
+	GtkWidget * labelMode = gtk_label_new_with_mnemonic(unixstr);
+	gtk_box_append(GTK_BOX(opts), labelMode);
+
+	std::string sLit, sWild, sRx;
+	pSS->getValueUTF8(AP_STRING_ID_DLG_FR_ModeLiteral, sLit);
+	pSS->getValueUTF8(AP_STRING_ID_DLG_FR_ModeWildcard, sWild);
+	pSS->getValueUTF8(AP_STRING_ID_DLG_FR_ModeRegex, sRx);
+	const char * modeItems[] = { sLit.c_str(), sWild.c_str(), sRx.c_str(),
+								 nullptr };
+	m_dropPatternKind = gtk_drop_down_new_from_strings(modeItems);
+	gtk_drop_down_set_selected(GTK_DROP_DOWN(m_dropPatternKind),
+							   static_cast<guint>(getPatternKind()));
+	gtk_label_set_mnemonic_widget(GTK_LABEL(labelMode), m_dropPatternKind);
+	gtk_widget_set_tooltip_text(
+		m_dropPatternKind,
+		"Wildcards: ? * [a-z] [!a-z] {n,m}  Regex: full pattern syntax");
+	gtk_box_append(GTK_BOX(opts), m_dropPatternKind);
+
 	/* ---- Action buttons ---- */
 	std::string s;
 
@@ -456,6 +517,8 @@ GtkWidget * AP_UnixDialog_Replace::_constructWindow(void)
 					 G_CALLBACK(s_option_toggled), this);
 	g_signal_connect(G_OBJECT(m_checkbuttonWholeWord), "toggled",
 					 G_CALLBACK(s_option_toggled), this);
+	g_signal_connect(G_OBJECT(m_dropPatternKind), "notify::selected",
+					 G_CALLBACK(s_option_notify), this);
 
 	g_signal_connect(G_OBJECT(m_windowMain), "close-request",
 					 G_CALLBACK(s_close_request), this);

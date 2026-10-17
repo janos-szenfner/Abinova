@@ -38,9 +38,11 @@
 
 #include "ut_assert.h"
 #include "ut_debugmsg.h"
+#include "ut_findpattern.h"
 #include "ut_growbuf.h"
 #include "ut_misc.h"
 #include "ut_string.h"
+#include "ut_string_class.h"
 #include "ut_std_string.h"
 #include "ut_bytebuf.h"
 #include "ut_timer.h"
@@ -2754,6 +2756,9 @@ FV_View::_findNext(UT_uint32* pPrefix,
 {
 	UT_ASSERT(m_sFind);
 
+	if (m_eFindPatternKind != UFP_LITERAL)
+		return _findNextPattern(bDoneEntireDocument);
+
 	fl_BlockLayout* block = _findGetCurrentBlock();
 	PT_DocPosition offset = _findGetCurrentOffset();
 	UT_UCS4Char* buffer = nullptr;
@@ -2828,6 +2833,8 @@ FV_View::_findNext(UT_uint32* pPrefix,
 			_charMotion(true, m);
 
 			m_doneFind = true;
+			m_iLastMatchLen = m;
+			m_vecMatchGroups.clear();
 
 			FREEP(pFindStr);
 			FREEP(buffer);
@@ -2856,6 +2863,9 @@ FV_View::_findPrev(UT_uint32* /*pPrefix*/,
 				   bool& bDoneEntireDocument)
 {
 	UT_ASSERT(m_sFind);
+
+	if (m_eFindPatternKind != UFP_LITERAL)
+		return _findPrevPattern(bDoneEntireDocument);
 
 	fl_BlockLayout* block = _findGetCurrentBlock();
 	PT_DocPosition offset = _findGetCurrentOffset();
@@ -2949,6 +2959,8 @@ FV_View::_findPrev(UT_uint32* /*pPrefix*/,
 			_charMotion(false, m);
 
 			m_doneFind = true;
+			m_iLastMatchLen = m;
+			m_vecMatchGroups.clear();
 
 			FREEP(pFindStr);
 			FREEP(buffer);
@@ -2971,6 +2983,310 @@ FV_View::_findPrev(UT_uint32* /*pPrefix*/,
 	FREEP(pFindStr);
 
 	return false;
+}
+
+/*!
+ * Convert a byte position in a UTF-8 string to an index counted in
+ * UCS4 characters — needed because GRegex reports byte offsets while
+ * document positions are counted in UCS4 chars.
+ */
+static UT_uint32 s_utf8BytePosToUcs4Index(const gchar * utf8, gint bytePos)
+{
+	UT_uint32 index = 0;
+	const gchar * p = utf8;
+	const gchar * end = utf8 + bytePos;
+	while (p < end && *p)
+	{
+		p = g_utf8_next_char(p);
+		index++;
+	}
+	return index;
+}
+
+/*! Copy all capture groups of a match into the UTF-8 string vector
+ * used later to expand the replacement. */
+static void s_fetchMatchGroups(GMatchInfo * info,
+							   std::vector<std::string> & groups)
+{
+	groups.clear();
+	if (!info)
+		return;
+	gint count = g_match_info_get_match_count(info);
+	for (gint g = 0; g < count; g++)
+	{
+		gchar * text = g_match_info_fetch(info, g);
+		groups.emplace_back(text ? text : "");
+		g_free(text);
+	}
+}
+
+/*! Advance a UTF-8 byte offset by one character after an empty regex
+ * match so the search always makes progress. */
+static gint s_utf8SkipChar(const gchar * utf8, gint bytePos)
+{
+	const gchar * next = utf8 + bytePos;
+	return *next ? static_cast<gint>(g_utf8_next_char(next) - utf8)
+				 : static_cast<gint>(strlen(utf8));
+}
+
+/*! Return the compiled pattern for the current find string, pattern
+ * kind, match-case and whole-word settings.  The result is cached and
+ * only rebuilt when any of those inputs change.  nullptr when the
+ * pattern is invalid or there is no find string. */
+GRegex *
+FV_View::_findGetPattern(void)
+{
+	if (!m_sFind || !*m_sFind)
+		return nullptr;
+
+	UT_UTF8String utf8(m_sFind);
+	std::string key = utf8.utf8_str();
+	key += '\x1f';
+	key += static_cast<char>('0' + static_cast<int>(m_eFindPatternKind));
+	key += m_bMatchCase ? 'C' : 'c';
+	key += m_bWholeWord ? 'W' : 'w';
+
+	if (m_pFindPattern && m_findPatternKey == key)
+		return m_pFindPattern;
+
+	g_clear_pointer(&m_pFindPattern, g_regex_unref);
+	GError * err = nullptr;
+	m_pFindPattern = UT_findPatternCompile(m_eFindPatternKind, m_sFind,
+										 m_bMatchCase, m_bWholeWord, &err);
+	if (!m_pFindPattern)
+	{
+		UT_DEBUGMSG(("invalid find pattern: %s\n",
+					 err ? err->message : "(unknown)"));
+		g_clear_error(&err);
+		m_findPatternKey.clear();
+		return nullptr;
+	}
+	m_findPatternKey = key;
+	return m_pFindPattern;
+}
+
+/*!
+ * Find next match of the compiled wildcard/regex pattern.  The block
+ * buffers are converted to UTF-8 for GRegex and byte match offsets are
+ * mapped back to UCS4 indices for document positioning.
+ *
+ * \param bDoneEntireDocument  Set to true when the end of the document
+ *                             (or the search wrap area) was reached.
+ * \return True when a match was found and selected.
+ */
+bool
+FV_View::_findNextPattern(bool& bDoneEntireDocument)
+{
+	GRegex * pRx = _findGetPattern();
+	if (!pRx)
+	{
+		bDoneEntireDocument = true;
+		m_wrappedEnd = false;
+		return false;
+	}
+
+	fl_BlockLayout* block = _findGetCurrentBlock();
+	PT_DocPosition offset = _findGetCurrentOffset();
+	UT_UCS4Char* buffer = nullptr;
+
+	while ((buffer = _findGetNextBlockBuffer(&block, &offset)))
+	{
+		UT_uint32 bufLen = UT_UCS4_strlen(buffer);
+		gchar * utf8 = g_ucs4_to_utf8(
+			reinterpret_cast<const gunichar*>(buffer),
+			static_cast<glong>(bufLen), nullptr, nullptr, nullptr);
+
+		UT_sint32 foundAt = -1;
+		UT_uint32 matchLen = 0;
+		gint startByte = 0;
+		GMatchInfo * info = nullptr;
+
+		while (utf8
+			   && g_regex_match_full(pRx, utf8, -1, startByte,
+									 static_cast<GRegexMatchFlags>(0),
+									 &info, nullptr)
+			   && g_match_info_matches(info))
+		{
+			gint ms = 0, me = 0;
+			g_match_info_fetch_pos(info, 0, &ms, &me);
+			UT_uint32 charStart = s_utf8BytePosToUcs4Index(utf8, ms);
+			UT_uint32 charEnd = s_utf8BytePosToUcs4Index(utf8, me);
+			if (charEnd > charStart)
+			{
+				foundAt = static_cast<UT_sint32>(charStart);
+				matchLen = charEnd - charStart;
+				break;
+			}
+			/* zero-length match: skipping a character keeps the search
+			 * from stalling or spinning in replace-all; at end of
+			 * buffer there is no next char, so stop */
+			gint next = s_utf8SkipChar(utf8, me);
+			g_match_info_free(info);
+			info = nullptr;
+			if (next <= me)
+				break;
+			startByte = next;
+		}
+
+		if (foundAt != -1)
+		{
+			_setPoint(block->getPosition(false) + offset + foundAt);
+			_setSelectionAnchor();
+			_charMotion(true, matchLen);
+
+			m_doneFind = true;
+			m_iLastMatchLen = matchLen;
+			s_fetchMatchGroups(info, m_vecMatchGroups);
+
+			g_match_info_free(info);
+			g_free(utf8);
+			FREEP(buffer);
+			return true;
+		}
+		if (info)
+			g_match_info_free(info);
+		g_free(utf8);
+
+		// Didn't find anything, so set the offset to the end of the
+		// current area
+		offset += UT_MAX(UT_UCS4_strlen(buffer),1);
+		FREEP(buffer);
+	}
+
+	bDoneEntireDocument = true;
+	m_wrappedEnd = false;
+	return false;
+}
+
+/*!
+ * Find previous match of the compiled wildcard/regex pattern.  Each
+ * block is scanned left to right and the last match ending at or
+ * before the insertion offset is kept.
+ *
+ * \param bDoneEntireDocument  Set to true when the start of the
+ *                             document (or the search wrap area) was
+ *                             reached.
+ * \return True when a match was found and selected.
+ */
+bool
+FV_View::_findPrevPattern(bool& bDoneEntireDocument)
+{
+	GRegex * pRx = _findGetPattern();
+	if (!pRx)
+	{
+		bDoneEntireDocument = true;
+		m_wrappedEnd = false;
+		return false;
+	}
+
+	fl_BlockLayout* block = _findGetCurrentBlock();
+	PT_DocPosition offset = _findGetCurrentOffset();
+	UT_UCS4Char* buffer = nullptr;
+	UT_sint32 endIndex = 0;
+
+	while ((buffer = _findGetPrevBlockBuffer(&block, &offset, endIndex)))
+	{
+		UT_uint32 bufLen = UT_UCS4_strlen(buffer);
+		UT_uint32 limit = UT_MIN(static_cast<UT_uint32>(offset), bufLen);
+		gchar * utf8 = g_ucs4_to_utf8(
+			reinterpret_cast<const gunichar*>(buffer),
+			static_cast<glong>(bufLen), nullptr, nullptr, nullptr);
+
+		UT_sint32 foundAt = -1;
+		UT_uint32 matchLen = 0;
+		GMatchInfo * best = nullptr;
+		gint startByte = 0;
+		GMatchInfo * info = nullptr;
+
+		while (utf8
+			   && g_regex_match_full(pRx, utf8, -1, startByte,
+									 static_cast<GRegexMatchFlags>(0),
+									 &info, nullptr)
+			   && g_match_info_matches(info))
+		{
+			gint ms = 0, me = 0;
+			g_match_info_fetch_pos(info, 0, &ms, &me);
+			UT_uint32 charStart = s_utf8BytePosToUcs4Index(utf8, ms);
+			UT_uint32 charEnd = s_utf8BytePosToUcs4Index(utf8, me);
+
+			if (charStart >= limit)
+			{
+				/* successive matches start later, so nothing more can
+				 * end before the offset */
+				g_match_info_free(info);
+				info = nullptr;
+				break;
+			}
+			if (charEnd <= limit
+				&& charEnd > charStart
+				&& charStart >= static_cast<UT_uint32>(endIndex))
+			{
+				if (best)
+					g_match_info_free(best);
+				best = info;
+				info = nullptr;
+				foundAt = static_cast<UT_sint32>(charStart);
+				matchLen = charEnd - charStart;
+			}
+			gint next = (me > ms) ? me : s_utf8SkipChar(utf8, me);
+			if (info)
+			{
+				g_match_info_free(info);
+				info = nullptr;
+			}
+			/* empty match at end of buffer cannot advance — stop */
+			if (next <= startByte)
+				break;
+			startByte = next;
+		}
+
+		if (foundAt != -1)
+		{
+			_setPoint(block->getPosition(false) + foundAt + matchLen);
+			_setSelectionAnchor();
+			_charMotion(false, matchLen);
+
+			m_doneFind = true;
+			m_iLastMatchLen = matchLen;
+			s_fetchMatchGroups(best, m_vecMatchGroups);
+
+			g_match_info_free(best);
+			g_free(utf8);
+			FREEP(buffer);
+			return true;
+		}
+		if (best)
+			g_match_info_free(best);
+		g_free(utf8);
+		offset = 0;
+		FREEP(buffer);
+	}
+
+	bDoneEntireDocument = true;
+	m_wrappedEnd = false;
+	return false;
+}
+
+/*! Replacement text for the currently selected match: in pattern mode
+ * capture references in m_sReplace are expanded with the groups stored
+ * when the match was found; in literal mode m_sReplace is used as is. */
+const UT_UCS4Char *
+FV_View::_findCurrentReplace(void)
+{
+	if (m_eFindPatternKind == UFP_LITERAL || m_vecMatchGroups.empty())
+		return m_sReplace;
+
+	std::string replUtf8;
+	if (m_sReplace)
+	{
+		UT_UTF8String u8(m_sReplace);
+		replUtf8 = u8.utf8_str();
+	}
+	std::string expanded = UT_findPatternExpandReplace(replUtf8, m_vecMatchGroups);
+	UT_UCS4String ucs(expanded.c_str());
+	FREEP(m_sReplaceExpanded);
+	UT_UCS4_cloneString(&m_sReplaceExpanded, ucs.ucs4_str());
+	return m_sReplaceExpanded;
 }
 PT_DocPosition
 FV_View::_BlockOffsetToPos(fl_BlockLayout * block, PT_DocPosition offset) const
@@ -3370,6 +3686,9 @@ FV_View::_findReplaceReverse(UT_uint32* pPrefix, bool& bDoneEntireDocument, bool
 	{
 		bRes = true;
 
+		const UT_UCS4Char * pReplace = _findCurrentReplace();
+		const UT_uint32 replaceLen = pReplace ? UT_UCS4_strlen(pReplace) : 0;
+
 		PP_AttrProp AttrProp_Before;
 
 		if (!isSelectionEmpty() && !m_FrameEdit.isActive())
@@ -3383,13 +3702,12 @@ FV_View::_findReplaceReverse(UT_uint32* pPrefix, bool& bDoneEntireDocument, bool
 
 		// If we have a string with length, do an insert, else let it
 		// hang from the delete above
-		if (*m_sReplace)
+		if (replaceLen)
 		{
-			bRes = m_pDoc->insertSpan(getPoint(), m_sReplace,
-									  UT_UCS4_strlen(m_sReplace),
+			bRes = m_pDoc->insertSpan(getPoint(), pReplace, replaceLen,
 									  &AttrProp_Before);
-			
-			setPoint( getPoint() - UT_UCS4_strlen(m_sReplace)) ;
+
+			setPoint( getPoint() - replaceLen) ;
 		}
 		// Do not increase the insertion point index, since the insert
 		// span will leave us at the correct place.
@@ -3403,8 +3721,8 @@ FV_View::_findReplaceReverse(UT_uint32* pPrefix, bool& bDoneEntireDocument, bool
 		// start position so that we stop at the right spot.
 		if (m_wrappedEnd && !bDoneEntireDocument)
 		{
-			m_startPosition += static_cast<long>( UT_UCS4_strlen(m_sReplace));
-			m_startPosition -= static_cast<long>( UT_UCS4_strlen(m_sFind));
+			m_startPosition += static_cast<long>(replaceLen);
+			m_startPosition -= static_cast<long>(m_iLastMatchLen);
 		}
 
 		UT_ASSERT(m_startPosition >= 2);
@@ -3446,6 +3764,9 @@ FV_View::_findReplace(UT_uint32* pPrefix, bool& bDoneEntireDocument, bool bNoUpd
 	{
 		bRes = true;
 
+		const UT_UCS4Char * pReplace = _findCurrentReplace();
+		const UT_uint32 replaceLen = pReplace ? UT_UCS4_strlen(pReplace) : 0;
+
 		PP_AttrProp AttrProp_Before;
 
 		if (!isSelectionEmpty() && !m_FrameEdit.isActive())
@@ -3459,9 +3780,8 @@ FV_View::_findReplace(UT_uint32* pPrefix, bool& bDoneEntireDocument, bool bNoUpd
 
 		// If we have a string with length, do an insert, else let it
 		// hang from the delete above
-		if (*m_sReplace)
-			bRes = m_pDoc->insertSpan(getPoint(), m_sReplace,
-									  UT_UCS4_strlen(m_sReplace),
+		if (replaceLen)
+			bRes = m_pDoc->insertSpan(getPoint(), pReplace, replaceLen,
 									  &AttrProp_Before);
 
 		// Do not increase the insertion point index, since the insert
@@ -3475,8 +3795,8 @@ FV_View::_findReplace(UT_uint32* pPrefix, bool& bDoneEntireDocument, bool bNoUpd
 		// start position so that we stop at the right spot.
 		if (m_wrappedEnd && !bDoneEntireDocument)
 		{
-			m_startPosition += static_cast<long>( UT_UCS4_strlen(m_sReplace));
-			m_startPosition -= static_cast<long>( UT_UCS4_strlen(m_sFind));
+			m_startPosition += static_cast<long>(replaceLen);
+			m_startPosition -= static_cast<long>(m_iLastMatchLen);
 		}
 
 		UT_ASSERT(m_startPosition >= 2);

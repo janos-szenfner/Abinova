@@ -35,7 +35,9 @@
 #include "pp_AttrProp.h"
 #include "ut_growbuf.h"
 #include "ut_string.h"
+#include "ut_string_class.h"
 #include "ut_types.h"
+#include "ut_findpattern.h"
 
 #include <glib.h>
 
@@ -74,6 +76,51 @@ struct HeadlessOpsView
 		layout = new FL_DocLayout(doc, graphics);
 		view = new FV_View(XAP_App::getApp(), nullptr, layout);
 		return true;
+	}
+
+	/* create a scratch document with one paragraph per line of `text`
+	 * (each '\n' becomes a block strux) — same shape as the
+	 * EditOpsView::load in fv_EditOps.t.cpp */
+	bool load(const char *text)
+	{
+		doc = new PD_Document;
+		if (doc->createRawDocument() != UT_OK)
+		{
+			doc->unref();
+			doc = nullptr;
+			return false;
+		}
+		pt_PieceTable * pt = doc->getPieceTable();
+		bool ok = pt->appendStrux(PTX_Section, PP_NOPROPS);
+		const char *p = text;
+		while (p)
+		{
+			const char *nl = strchr(p, '\n');
+			ok = ok && pt->appendStrux(PTX_Block, PP_NOPROPS);
+			UT_UCS4String s(p, nl ? static_cast<size_t>(nl - p)
+								  : strlen(p));
+			if (s.length())
+			{
+				ok = ok && pt->appendSpan(s.ucs4_str(),
+							static_cast<UT_uint32>(s.length()));
+			}
+			p = nl ? nl + 1 : nullptr;
+		}
+		if (!ok)
+		{
+			doc->unref();
+			doc = nullptr;
+			return false;
+		}
+		doc->finishRawCreation();
+
+		GR_UnixCairoAllocInfo ai(nullptr);
+		graphics = XAP_App::getApp()->newGraphics(GRID_UNIX_PANGO, ai);
+		if (!graphics)
+			return false;
+		layout = new FL_DocLayout(doc, graphics);
+		view = new FV_View(XAP_App::getApp(), nullptr, layout);
+		return format();
 	}
 
 	bool format()
@@ -187,6 +234,172 @@ TFTEST_MAIN("find and replace walks the document in both directions")
 	v->findSetFindString(find);
 	UT_uint32 n = v->findReplaceAll();
 	TFPASS(n > 0);
+}
+
+static std::string selTextUtf8(FV_View * v)
+{
+	UT_UCS4Char * sel = nullptr;
+	v->getSelectionText(sel);
+	std::string out;
+	if (sel)
+	{
+		for (UT_UCS4Char * p = sel; *p; ++p)
+			if (*p < 0x80)
+				out += static_cast<char>(*p);
+		FREEP(sel);
+	}
+	return out;
+}
+
+static std::string docTextUtf8(FV_View * v)
+{
+	UT_GrowBuf buf;
+	v->getTextInDocument(buf);
+	std::string out;
+	for (UT_uint32 i = 0; i < buf.getLength(); ++i)
+	{
+		UT_UCS4Char c = static_cast<UT_UCS4Char>(buf.getPointer(i)[0]);
+		if (c < 0x80)
+			out += static_cast<char>(c);
+	}
+	return out;
+}
+
+TFTEST_MAIN("wildcard and regex find modes with group replace")
+{
+	HeadlessOpsView hv;
+	TFPASS(hv.load("order 42 items\nsubtotal 17 now\norder 7 more"));
+	if (!hv.view)
+		return;
+	FV_View *v = hv.view;
+
+	bool bDone = false;
+
+	/* literal mode is still the default and literal search works */
+	TFPASS(v->findGetPatternKind() == UFP_LITERAL);
+	v->setPoint(2);
+	v->findSetStartAtInsPoint();
+	const UT_UCS4Char lit[] = {'o','r','d','e','r',0};
+	TFPASS(v->findNext(lit, bDone));
+	TFPASS(selTextUtf8(v) == "order");
+
+	v->findSetPatternKind(UFP_WILDCARD);
+	TFPASS(v->findGetPatternKind() == UFP_WILDCARD);
+
+	/* '?' = any single character */
+	v->setPoint(2);
+	v->findSetStartAtInsPoint();
+	const UT_UCS4Char q[] = {'o','?','d','e','r',0};
+	bDone = false;
+	TFPASS(v->findNext(q, bDone));
+	TFPASS(selTextUtf8(v) == "order");
+
+	/* '*' = any run of characters */
+	v->setPoint(2);
+	v->findSetStartAtInsPoint();
+	const UT_UCS4Char star[] = {'o','r','d','e','r',' ','*',
+								'i','t','e','m','s',0};
+	bDone = false;
+	TFPASS(v->findNext(star, bDone));
+	TFPASS(selTextUtf8(v) == "order 42 items");
+
+	/* '[0-9]{2}' = class + repeat count */
+	v->setPoint(2);
+	v->findSetStartAtInsPoint();
+	const UT_UCS4Char cls[] = {'[','0','-','9',']','{','2','}',0};
+	bDone = false;
+	TFPASS(v->findNext(cls, bDone));
+	TFPASS(selTextUtf8(v) == "42");
+
+	/* '<' word-start anchor: "sub" inside "subtotal" is not a match
+	 * start elsewhere, the anchor pins it at the word front */
+	v->setPoint(2);
+	v->findSetStartAtInsPoint();
+	const UT_UCS4Char anch[] = {'<','s','u','b',0};
+	bDone = false;
+	TFPASS(v->findNext(anch, bDone));
+	TFPASS(selTextUtf8(v) == "sub");
+
+	/* regex mode gets the full PCRE syntax */
+	v->findSetPatternKind(UFP_REGEX);
+	v->setPoint(2);
+	v->findSetStartAtInsPoint();
+	const UT_UCS4Char rx[] = {'\\','b','o','r','d','e','r','\\','s',
+							  '\\','d','+',0};
+	bDone = false;
+	TFPASS(v->findNext(rx, bDone));
+	TFPASS(selTextUtf8(v) == "order 42");
+
+	/* a pattern that can only match empty ('x*' has no 'x' here)
+	 * must terminate, not spin on zero-length matches */
+	v->setPoint(2);
+	v->findSetStartAtInsPoint();
+	const UT_UCS4Char emptyRx[] = {'x','*',0};
+	bDone = false;
+	TFPASS(!v->findNext(emptyRx, bDone));
+	TFPASS(bDone);
+
+	/* invalid regex reports a clean miss, not a crash */
+	v->setPoint(2);
+	v->findSetStartAtInsPoint();
+	const UT_UCS4Char badRx[] = {'(',0};
+	bDone = false;
+	TFPASS(!v->findNext(badRx, bDone));
+	TFPASS(bDone);
+
+	/* backwards pattern search finds the last match in range —
+	 * compare the resulting point/anchor span against literal mode
+	 * (getSelectionText is unreliable on backward selections) */
+	const UT_UCS4Char digits[] = {'\\','d','+',0};
+	const UT_UCS4Char seven[] = {'7',0};
+	PT_DocPosition eod = 0;
+	hv.doc->getBounds(true, eod);
+
+	v->findSetPatternKind(UFP_LITERAL);
+	v->setPoint(eod);
+	v->findSetStartAtInsPoint();
+	bDone = false;
+	TFPASS(v->findPrev(seven, bDone));
+	PT_DocPosition litPoint = v->getPoint();
+	PT_DocPosition litAnchor = v->getSelectionAnchor();
+
+	v->findSetPatternKind(UFP_REGEX);
+	v->setPoint(eod);
+	v->findSetStartAtInsPoint();
+	bDone = false;
+	TFPASS(v->findPrev(digits, bDone));
+	TFPASS(v->getPoint() == litPoint
+		   && v->getSelectionAnchor() == litAnchor);
+	/* the match is the "7" in "order 7 more" */
+	TFPASS(!v->isSelectionEmpty());
+
+	/* capture groups expand in the replacement (Word-style \1) */
+	const UT_UCS4Char gpat[] = {'o','r','d','e','r',' ','(',
+								'\\','d','+',')',0};
+	const UT_UCS4Char grepl[] = {'n','=','\\','1',0};
+	v->setPoint(2);
+	v->findSetStartAtInsPoint();
+	v->findSetFindString(gpat);
+	v->findSetReplaceString(grepl);
+	UT_uint32 n = v->findReplaceAll();
+	TFPASS(n == 2);
+	std::string dt = docTextUtf8(v);
+	TFPASS(dt.find("n=42 items") != std::string::npos);
+	TFPASS(dt.find("n=7 more") != std::string::npos);
+
+	/* same groups shape works through the wildcard translator */
+	const UT_UCS4Char wpat[] = {'(','n','=',')','[','0','-','9',']','@',0};
+	const UT_UCS4Char wrepl[] = {'\\','1','#',0};
+	v->findSetPatternKind(UFP_WILDCARD);
+	v->setPoint(2);
+	v->findSetStartAtInsPoint();
+	v->findSetFindString(wpat);
+	v->findSetReplaceString(wrepl);
+	n = v->findReplaceAll();
+	TFPASS(n == 2);
+	dt = docTextUtf8(v);
+	TFPASS(dt.find("n=# items") != std::string::npos);
+	TFPASS(dt.find("n=# more") != std::string::npos);
 }
 
 TFTEST_MAIN("position and text queries follow the caret")
