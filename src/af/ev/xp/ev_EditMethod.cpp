@@ -102,7 +102,11 @@ EV_EditMethodCallData::EV_EditMethodCallData(const char * pChar, UT_uint32 dataL
 			m_pData[0] = 0;
 		} else {
 			for (UT_uint32 k = 0; k < dataLength; k++) {
-				m_pData[k] = pChar[k];
+				/* widen each byte unsigned: signed char sign-extends
+				 * bytes >= 0x80 into out-of-range UCS-4 (e.g.
+				 * 0xffffff80) which nothing downstream can handle */
+				m_pData[k] = static_cast<UT_UCS4Char>(
+					static_cast<unsigned char>(pChar[k]));
 			}
 		}
 		m_dataLength = dataLength;

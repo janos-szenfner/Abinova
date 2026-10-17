@@ -1642,10 +1642,17 @@ void AP_UnixFrameImpl::_createRibbonUI()
 	// UI chrome in the ribbon-only build.
 	if (m_pRibbon)
 	{
-		if (m_wRibbon)
-			gtk_widget_unparent(m_wRibbon);
+		/* unparenting drives the notebook's page-removal path, which
+		 * emits "switch-page" -> _s_switch_page -> refresh(); the
+		 * menu rebuild that reaches this has already freed the
+		 * ribbon's EV_UnixMenuBar, so that refresh dereferences a
+		 * dead m_pMenu.  Deleting the ribbon first removes its
+		 * signal handlers and makes the unparent silent. */
+		GtkWidget * wOld = m_wRibbon;
 		DELETEP(m_pRibbon);
 		m_wRibbon = nullptr;
+		if (wOld)
+			gtk_widget_unparent(wOld);
 	}
 
 	m_pRibbon = new AP_UnixRibbon(getFrame(), m_pUnixMenu);

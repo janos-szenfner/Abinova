@@ -38,6 +38,25 @@ responsibility** — see `README.md`.
   must equal a root or sit under it at a path boundary; requests
   outside get an error reply. With no roots configured, paths are
   unconstrained as before.
+- **Hostile-params fuzz driver** (`tools/hostile-params.py`) —
+  exercises every registered edit method (644 of them) through
+  `engine.execute` with 24 hostile `params.data` payloads each —
+  absent, empty, 400 KB, non-UTF-8/NUL, format-string, traversal,
+  absolute/URI paths, numeric edge cases, markup, RTF, control
+  characters, astral/combining text and JSON injection — plus
+  wire-level abuse (unauthenticated requests, non-JSON input,
+  binary garbage, >1 MiB lines, hostile command names). It
+  distinguishes real hangs from responsive modal dialogs, restarts
+  and resumes around crashes, and writes a JSON report. The sweep
+  surfaced and fixed several real defects: a static-buffer overrun
+  in the font-size toolbar readout that corrupted adjacent state,
+  a use-after-free when the menu rebuild tore the ribbon notebook
+  down under its own `switch-page` handler, a whole-app freeze in
+  the screenshot fallback's synchronous child wait, and an
+  unbounded caption label that could wedge layout on a 400 KB
+  single word, plus hardening in call-data widening, text
+  itemization, character insertion, annotation editing, the spell
+  dialog's teardown, TOC layout purging and autosave recovery.
 
 ### Documents
 

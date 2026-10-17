@@ -669,6 +669,18 @@ bool GR_CairoGraphics::itemize(UT_TextIterator & text, GR_Itemization & I)
 		iOffset += pItem->num_chars;
 	}
 
+	/* a span whose characters were all dropped by the UCS-4 -> UTF-8
+	 * conversion (e.g. out-of-range codepoints) itemizes to nothing;
+	 * without a real item the run ends up holding the NULL-m_pi
+	 * terminator below and shape()/getTextWidth()/renderChars() all
+	 * dereference it, so give the span a real, empty item instead */
+	if (!iItemCount)
+	{
+		PangoItem * pEmpty = pango_item_new();
+		if (pEmpty)
+			I.addItem(0, new GR_CairoPangoItem(pEmpty));
+	}
+
 	I.addItem(iPosEnd - iPosStart + 1, new GR_CairoPangoItem());
 
 	g_list_free(gItems);

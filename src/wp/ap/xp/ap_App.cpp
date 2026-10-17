@@ -192,6 +192,42 @@ bool AP_App::isAutosaveSidecarUriSafe(const char * uri)
 void AP_App::recoverAutosavedDocs()
 {
 	std::string dir = XAP_Frame::getAutosaveDirectory();
+
+	/* A .saved file that crashes the app while being recovered would
+	 * otherwise be retried on every launch — and saveRecoveryFiles
+	 * writes a fresh .saved for the half-recovered doc on each crash,
+	 * so the crash chain never converges.  The sentinel names the
+	 * candidate currently in flight; finding it here means that file
+	 * killed the previous run, so quarantine it aside (.crashed is not
+	 * a candidate suffix) instead of loading it again. */
+	std::string sentinel = dir + ".recovering";
+	if (UT_isRegularFile(sentinel.c_str()))
+	{
+		std::string crashed;
+		FILE *sf = g_fopen(sentinel.c_str(), "r");
+		if (sf)
+		{
+			char buf[4096];
+			if (fgets(buf, sizeof(buf), sf))
+			{
+				buf[strcspn(buf, "\r\n")] = 0;
+				crashed = buf;
+			}
+			fclose(sf);
+		}
+		g_unlink(sentinel.c_str());
+		/* only trust basename entries the scan itself could produce */
+		if (!crashed.empty() && crashed.find('/') == std::string::npos)
+		{
+			std::string bad = dir + crashed;
+			g_rename(bad.c_str(), (bad + ".crashed").c_str());
+			g_rename((bad + ".info").c_str(),
+					 (bad + ".info.crashed").c_str());
+			UT_DEBUGMSG(("autosave: quarantined %s — it crashed the "
+						 "previous recovery attempt\n", crashed.c_str()));
+		}
+	}
+
 	GDir *d = g_dir_open(dir.c_str(), 0, nullptr);
 	if (!d)
 		return;
@@ -241,9 +277,20 @@ void AP_App::recoverAutosavedDocs()
 		gchar *uri = UT_go_filename_to_uri(path.c_str());
 		if (!uri)
 			continue;
+
+		/* mark the in-flight candidate so a crash during load is
+		 * quarantined by the sentinel check on the next launch */
+		FILE *sf = g_fopen(sentinel.c_str(), "w");
+		if (sf)
+		{
+			fputs(nm.c_str(), sf);
+			fclose(sf);
+		}
+
 		XAP_Frame *f = newFrame();
 		UT_Error error = f->loadDocument(uri, abiType, true);
 		g_free(uri);
+		g_unlink(sentinel.c_str());
 
 		if (UT_IS_IE_SUCCESS(error)) {
 			AD_Document *pDoc = f->getCurrentDoc();

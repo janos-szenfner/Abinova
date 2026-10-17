@@ -51,6 +51,7 @@
 #include "px_CR_Object.h"
 #include "px_CR_ObjectChange.h"
 #include "px_CR_Span.h"
+#include "pf_Frag_Strux.h"
 #include "px_CR_SpanChange.h"
 #include "px_CR_Strux.h"
 #include "px_CR_StruxChange.h"
@@ -950,6 +951,11 @@ void fl_TOCLayout::_removeBlockInVec(fl_BlockLayout * pBlock, bool /*bDontRecurs
 		UT_ASSERT(k== -1);
 	}
 
+	pf_Frag_Strux * pSDH = pThisBL->getStruxDocHandle();
+	if (pSDH && pSDH->getFmtHandle(m_pLayout->getLID()) == pThisBL)
+	{
+		pSDH->setFmtHandle(m_pLayout->getLID(), nullptr);
+	}
 	delete pThisBL;
 	delete pThisEntry;
 //
@@ -1359,6 +1365,18 @@ void fl_TOCLayout::_purgeLayout(void)
 	while(pCL)
 	{
 		fl_ContainerLayout * pNext = pCL->getNext();
+		// The strux this layout is bound to stays in the piece table
+		// (TOC member struxes are not deleted when the TOC refills).
+		// If its fmt handle points at the dying layout, clear it so a
+		// later delete-strux notification is skipped rather than
+		// dispatching to freed memory.  Generated entry blocks share
+		// the source heading's strux, whose handle points at the real
+		// source block -- the equality check leaves those alone.
+		pf_Frag_Strux * pSDH = pCL->getStruxDocHandle();
+		if (pSDH && pSDH->getFmtHandle(m_pLayout->getLID()) == pCL)
+		{
+			pSDH->setFmtHandle(m_pLayout->getLID(), nullptr);
+		}
 		delete pCL;
 		pCL = pNext;
 	}

@@ -24,6 +24,8 @@
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 
+#include <signal.h>
+
 namespace
 {
 
@@ -185,6 +187,18 @@ UT_ScreenshotResult s_portal_capture(std::string & outPath)
 	return UT_SCREENSHOT_OK;
 }
 
+/* the wait on the external capture tool shares the portal path's
+ * shape: a child watch quits the nested loop on exit and a generous
+ * failsafe quits it anyway, so a wedged picker can never freeze the
+ * app (a synchronous g_spawn_sync stopped the main loop outright —
+ * menus, redraw and every other window included) */
+struct ToolShotCtx
+{
+	GMainLoop *	loop;
+	gint		status = -1;
+	bool		exited = false;
+};
+
 /* gnome-screenshot fallback: still shipped by GNOME Flashback and
  * friends; -a gives the interactive area picker, -f the output file */
 UT_ScreenshotResult s_gnome_capture(std::string & outPath)
@@ -208,14 +222,52 @@ UT_ScreenshotResult s_gnome_capture(std::string & outPath)
 	/* argv form: no shell parsing or quoting involved */
 	gchar * argv[] = { shot, const_cast<gchar *>("-a"),
 					   const_cast<gchar *>("-f"), tmp, nullptr };
-	gint status = 0;
-	gboolean ok = g_spawn_sync(nullptr, argv, nullptr,
-							   static_cast<GSpawnFlags>(
-								   G_SPAWN_STDOUT_TO_DEV_NULL |
-								   G_SPAWN_STDERR_TO_DEV_NULL),
-							   nullptr, nullptr, nullptr, nullptr,
-							   &status, nullptr);
+	GPid pid = 0;
+	gboolean ok = g_spawn_async(nullptr, argv, nullptr,
+								static_cast<GSpawnFlags>(
+									G_SPAWN_DO_NOT_REAP_CHILD |
+									G_SPAWN_STDOUT_TO_DEV_NULL |
+									G_SPAWN_STDERR_TO_DEV_NULL),
+								nullptr, nullptr, &pid, nullptr);
 	g_free(shot);
+	if (!ok || pid <= 0)
+	{
+		g_unlink(tmp);
+		g_free(tmp);
+		return UT_SCREENSHOT_UNAVAILABLE;
+	}
+
+	ToolShotCtx ctx;
+	ctx.loop = g_main_loop_new(nullptr, FALSE);
+	g_child_watch_add(pid, +[](GPid, gint status, gpointer d) -> void
+		{
+			ToolShotCtx * c = static_cast<ToolShotCtx *>(d);
+			c->status = status;
+			c->exited = true;
+			g_main_loop_quit(c->loop);
+		}, &ctx);
+	/* the area picker is user-paced; same 600s failsafe as the
+	 * portal wait above */
+	guint timeoutId = g_timeout_add_seconds(600, +[](gpointer d) -> gboolean
+		{
+			ToolShotCtx * c = static_cast<ToolShotCtx *>(d);
+			g_main_loop_quit(c->loop);
+			return G_SOURCE_REMOVE;
+		}, &ctx);
+	g_main_loop_run(ctx.loop);
+	g_source_remove(timeoutId);
+	g_main_loop_unref(ctx.loop);
+
+	if (!ctx.exited)
+	{
+		kill(pid, SIGTERM);
+		g_spawn_close_pid(pid);
+		g_unlink(tmp);
+		g_free(tmp);
+		return UT_SCREENSHOT_CANCELLED;
+	}
+	g_spawn_close_pid(pid);
+	gint status = ctx.status;
 
 	if (ok && status == 0 && g_file_test(tmp, G_FILE_TEST_IS_REGULAR))
 	{

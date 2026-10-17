@@ -6451,6 +6451,40 @@ bool FV_View::_makePointLegal(void)
 
 bool FV_View::_charInsert(const UT_UCS4Char * text, UT_uint32 count, bool bForce)
 {
+	/* call data can carry arbitrary bytes widened to UCS-4 (scripting,
+	 * control channel, paste sources): characters that cannot exist in
+	 * the document — the NUL terminator, surrogates, values past
+	 * U+10FFFF — must never reach the piece table; an embedded NUL ends
+	 * up as a 0x00 byte in the UTF-8 fed to pango_itemize, which aborts
+	 * on the resulting zero-length run */
+	std::vector<UT_UCS4Char> vFiltered; // outlives the text pointer swap
+	if (text && count)
+	{
+		bool bAllValid = true;
+		for (UT_uint32 k = 0; k < count; ++k)
+		{
+			const UT_UCS4Char c = text[k];
+			if (!c || c > 0x10FFFF || (c >= 0xD800 && c <= 0xDFFF))
+			{
+				bAllValid = false;
+				break;
+			}
+		}
+		if (!bAllValid)
+		{
+			vFiltered.reserve(count);
+			for (UT_uint32 k = 0; k < count; ++k)
+			{
+				const UT_UCS4Char c = text[k];
+				if (c && c <= 0x10FFFF && !(c >= 0xD800 && c <= 0xDFFF))
+					vFiltered.push_back(c);
+			}
+			if (vFiltered.empty())
+				return true;
+			text = vFiltered.data();
+			count = static_cast<UT_uint32>(vFiltered.size());
+		}
+	}
 	// see if prefs specify we should set language based on kbd layout
 	UT_return_val_if_fail(m_pApp, false);
 	bool bSetLang = false;

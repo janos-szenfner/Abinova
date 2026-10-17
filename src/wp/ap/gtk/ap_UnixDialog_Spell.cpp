@@ -81,6 +81,36 @@ AP_UnixDialog_Spell::AP_UnixDialog_Spell (XAP_DialogFactory * pDlgFactory,
  */
 AP_UnixDialog_Spell::~AP_UnixDialog_Spell (void)
 {
+	/* the factory deletes dialog objects when the owning frame goes
+	 * away — possibly while this object is still sitting in its modal
+	 * loop and possibly while the GtkWindow outlives us.  Detach every
+	 * handler carrying this pointer, drop the weak refs that would
+	 * write into freed member storage, and take the window down so a
+	 * teardown-time row-selected/changed can never fire on a dead
+	 * dialog. */
+	if (m_lbSuggestions)
+	{
+		g_signal_handlers_disconnect_by_data(
+			G_OBJECT(m_lbSuggestions), this);
+		g_object_remove_weak_pointer(
+			G_OBJECT(m_lbSuggestions),
+			reinterpret_cast<gpointer*>(&m_lbSuggestions));
+	}
+	if (m_eChange)
+	{
+		g_signal_handlers_disconnect_by_data(G_OBJECT(m_eChange), this);
+		g_object_remove_weak_pointer(
+			G_OBJECT(m_eChange),
+			reinterpret_cast<gpointer*>(&m_eChange));
+	}
+	if (m_wDialog)
+	{
+		g_object_remove_weak_pointer(
+			G_OBJECT(m_wDialog),
+			reinterpret_cast<gpointer*>(&m_wDialog));
+		abiDestroyWidget(m_wDialog);
+		m_wDialog = nullptr;
+	}
 }
 
 /*****************************************************************/
@@ -193,7 +223,9 @@ AP_UnixDialog_Spell::runModal (XAP_Frame * pFrame)
 		bRes = nextMisspelledWord();
 	}
 
-	abiDestroyWidget(mainWindow);
+	/* mainWindow == m_wDialog, but only the member is weak-tracked —
+	 * an external teardown nulls it so this doesn't double-destroy */
+	abiDestroyWidget(m_wDialog);
 	m_wDialog = nullptr;
 }
 
@@ -328,6 +360,16 @@ AP_UnixDialog_Spell::_constructWindow (void)
 					 G_CALLBACK(s_suggestion_row_activated), this);
 	m_changeHandlerID = g_signal_connect(m_eChange, "changed",
 										 G_CALLBACK(s_entry_changed), this);
+
+	/* the widgets can be finalized by an external teardown (frame or
+	 * session destruction) while this object still exists — weak
+	 * pointers keep the members honest; the dtor removes them */
+	g_object_add_weak_pointer(G_OBJECT(m_wDialog),
+							  reinterpret_cast<gpointer*>(&m_wDialog));
+	g_object_add_weak_pointer(G_OBJECT(m_eChange),
+							  reinterpret_cast<gpointer*>(&m_eChange));
+	g_object_add_weak_pointer(G_OBJECT(m_lbSuggestions),
+							  reinterpret_cast<gpointer*>(&m_lbSuggestions));
 
 	/* ---- Close ---- */
 	pSS->getValueUTF8(XAP_STRING_ID_DLG_Close, s);
@@ -507,7 +549,8 @@ AP_UnixDialog_Spell::onAddClicked ()
 void
 AP_UnixDialog_Spell::onSuggestionSelected ()
 {
-	if (m_bUiUpdating || !m_Suggestions || !m_Suggestions->size())
+	if (m_bUiUpdating || !m_lbSuggestions || !m_eChange
+		|| !m_Suggestions || !m_Suggestions->size())
 		return;
 
 	GtkListBoxRow * row =
@@ -531,7 +574,7 @@ AP_UnixDialog_Spell::onSuggestionSelected ()
 void
 AP_UnixDialog_Spell::onSuggestionActivated ()
 {
-	if (m_bUiUpdating)
+	if (m_bUiUpdating || !m_wDialog)
 		return;
 	onSuggestionSelected();
 	gtk_dialog_response(GTK_DIALOG(m_wDialog), SPELL_RESPONSE_CHANGE);
@@ -543,7 +586,7 @@ AP_UnixDialog_Spell::onSuggestionActivated ()
 void
 AP_UnixDialog_Spell::onSuggestionChanged ()
 {
-	if (m_bUiUpdating)
+	if (m_bUiUpdating || !m_eChange || !m_lbSuggestions)
 		return;
 
 	const gchar * modtext = XAP_gtk_entry_get_text(GTK_EDITABLE(m_eChange));

@@ -7940,6 +7940,12 @@ Defun(refCaption)
 	const std::string sLabel = sData.substr(0, iBar);
 	const bool bAbove = (iBar != std::string::npos &&
 						 sData.substr(iBar + 1) == "above");
+	/* the label becomes a style name and the inserted caption text;
+	 * unbounded call-data would mint a huge style and drop an
+	 * unbreakable mega-word into layout — a real caption label is
+	 * a few words at most */
+	UT_return_val_if_fail(
+		sLabel.size() > 0 && sLabel.size() <= 128, false);
 	return (UT_OK == pView->cmdInsertCaption(sLabel.c_str(), bAbove));
 }
 
@@ -13153,10 +13159,12 @@ Defun1(editAnnotation)
 	UT_return_val_if_fail(pView,false);
 	UT_DEBUGMSG(("editAnnotation\n"));
 
-	fp_AnnotationRun * pA = static_cast<fp_AnnotationRun *>(pView->getHyperLinkRun(pView->getPoint()));
-	UT_ASSERT(pA);
-	
-	pView->cmdEditAnnotationWithDialog(pA->getPID());
+	fp_HyperlinkRun * pHRun = static_cast<fp_HyperlinkRun *>(pView->getHyperLinkRun(pView->getPoint()));
+	if (pHRun && pHRun->getHyperlinkType() == HYPERLINK_ANNOTATION)
+	{
+		fp_AnnotationRun * pA = static_cast<fp_AnnotationRun *>(pHRun);
+		pView->cmdEditAnnotationWithDialog(pA->getPID());
+	}
 	return true;
 }
 
