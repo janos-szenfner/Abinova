@@ -252,11 +252,17 @@ static void _g_redo(const _GlyphPen & p)
 {
 	const double a[] = { 15.0, 8.0, 7.0, 8.0 };
 	_pen_line_c(p, a, 2, p.fg);
-	_pen_arc(p, 7.0, 12.5, 4.5, -G_PI / 2.0, G_PI / 2.0, p.fg);
+	_pen_arc(p, 7.0, 12.5, 4.5, G_PI / 2.0, 3.0 * G_PI / 2.0, p.fg);
 	const double b[] = { 7.0, 17.0, 12.0, 17.0 };
 	_pen_line_c(p, b, 2, p.fg);
 	const double h[] = { 17.5, 8.0, 13.5, 4.5, 13.5, 11.5 };
 	_pen_fill(p, h, 3, p.ac);
+}
+
+/* show/hide formatting marks — the pilcrow, like wordcraft's "pilcrow" */
+static void _g_showpara(const _GlyphPen & p)
+{
+	_pen_text(p, 10.0, 10.5, 15.0, "\xc2\xb6", p.fg, FALSE);
 }
 
 static void _g_find(const _GlyphPen & p)
@@ -500,6 +506,7 @@ static const _GlyphEntry _glyphs[] =
 {
 	{ "edit-undo",					_g_undo },
 	{ "edit-redo",					_g_redo },
+	{ "tb_view_showpara",			_g_showpara },
 	{ "edit-find",					_g_find },
 	{ "edit-find-replace",			_g_replace },
 	{ "edit-select-all",			_g_select_all },

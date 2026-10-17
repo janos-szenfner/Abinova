@@ -124,6 +124,13 @@ abi_action_icon_for_menu (XAP_Menu_Id id)
 
 /* ------------------------------------------------------------------ */
 
+/* icon names whose bundled bitmap predates the vector set — prefer
+ * the drawn glyph even though the legacy theme icon exists */
+static const gchar * const s_prefer_glyph[] = {
+	"tb_view_showpara",
+	nullptr
+};
+
 gboolean
 abi_action_prefers_glyph (const gchar *icon_name)
 {
@@ -131,6 +138,9 @@ abi_action_prefers_glyph (const gchar *icon_name)
 		return FALSE;
 	if (abi_glyph_icons_forced ())
 		return TRUE;
+	for (gint i = 0; s_prefer_glyph[i]; i++)
+		if (strcmp (icon_name, s_prefer_glyph[i]) == 0)
+			return TRUE;
 	GdkDisplay * display = gdk_display_get_default ();
 	if (!display)
 		return TRUE; /* headless-ish: glyph always renders */
