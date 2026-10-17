@@ -17,6 +17,7 @@
 <ul>
 <li><b>Linux <code>.deb</code> registers with the desktop properly</b> — the CI-built   package installed files owned by the build user, rewrote nothing in   the <code>.desktop</code> file (<code>Exec=abinova</code> relied on <code>PATH</code>) and shipped   no maintainer scripts, so <code>update-desktop-database</code>,   <code>gtk-update-icon-cache</code> and <code>update-mime-database</code> never ran and   the app could be invisible to menus and GUI installers (no Launch   button). The release workflow now builds the package via   <code>dist/make-deb.sh</code>: root-owned payload, <code>Exec=/usr/bin/abinova</code>,   and <code>postinst</code>/<code>postrm</code> that refresh the desktop, icon and MIME   caches. The RPM gains the same <code>%post</code>/<code>%postun</code> cache refreshes   and the absolute <code>Exec</code> path.</li>
 </ul>
+<h2>[4.0.2] — 2026-10-17</h2>
 <h3>Ribbon</h3>
 <ul>
 <li><b>Drawn vector icons</b> — a new procedural icon module   (<code>ap_UnixGlyphIcons</code>) renders ~29 core action icons (undo/redo,   find/replace, select-all, go-to, cut/copy/paste, formatting,   alignment, indent, zoom, table, image…) as two-color Cairo   vectors on a 20×20 grid. Used when the icon theme lacks the name   (or with <code>ABINOVA_GLYPH_ICONS=1</code>), on ribbon buttons,   classic-toolbar buttons and popup-menu items — so icons no longer   depend on what a given distro/macOS theme happens to ship.</li>

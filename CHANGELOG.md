@@ -50,6 +50,8 @@ responsibility** — see `README.md`.
   caches. The RPM gains the same `%post`/`%postun` cache refreshes
   and the absolute `Exec` path.
 
+## [4.0.2] — 2026-10-17
+
 ### Ribbon
 
 - **Drawn vector icons** — a new procedural icon module
