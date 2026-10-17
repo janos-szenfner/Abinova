@@ -18,6 +18,16 @@ responsibility** — see `README.md`.
   1 MiB, disconnects unauthenticated clients after 30 s, and removes
   the `control-key.local-PORT` file on clean exit so a stale key
   can't be replayed into the next session.
+- **Control channel methods** — the channel now also serves
+  `engine.commands` (self-describing catalog of every edit method),
+  `document.text` and `document.inspect` (extract document content,
+  caret/selection, word/paragraph/page counts without screenshots),
+  `ui.focus`, `ui.resize`, `ui.render` (PNG of the document view,
+  not just the whole window), `ui.text` (insert at caret), `ui.key`
+  and `ui.click` (real XTest input events on X11 — synthetic
+  shortcuts and clicks go through the same path as the keyboard),
+  `file.close` (refuses a dirty document unless `"force":true`), and
+  `app.quit` (closes all frames; same dirty guard).
 
 ## [4.0.2] — 2026-10-17
 

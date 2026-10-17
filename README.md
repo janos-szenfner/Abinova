@@ -1124,9 +1124,23 @@ abinova --control 7981            # or ABINOVA_CONTROL_PORT=7981
   a bad key, and lines over 1 MiB each get an error reply and
   close the connection; unauthenticated connections are dropped
   after 30 s.
-- Methods: `ping`, `engine.execute` (run any edit method by name,
-  e.g. `{"command":"insertData","data":"Hello"}`), and
-  `ui.screenshot` (render a live window to PNG).
+- Methods:
+  - `ping` — liveness.
+  - `engine.commands` — catalog of every edit method.
+  - `engine.execute` — run an edit method by name, e.g.
+    `{"command":"insertData","data":"Hello"}`.
+  - `document.text` / `document.inspect` — document content and
+    caret/selection/word/page stats without screenshots.
+  - `ui.screenshot` / `ui.render` — PNG of the whole window or the
+    document view.
+  - `ui.focus`, `ui.resize` — window management.
+  - `ui.text` — insert text at the caret.
+  - `ui.key` / `ui.click` — real XTest input on X11, e.g.
+    `{"key":"ctrl+b"}`, `{"x":320,"y":200,"button":1}`; shortcuts
+    and clicks take the same path as physical input.
+  - `file.close` — closes the front document; refuses while it has
+    unsaved changes unless `"force":true`.
+  - `app.quit` — closes every frame and exits; same dirty guard.
 
 Example:
 

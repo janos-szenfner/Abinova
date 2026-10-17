@@ -21,12 +21,24 @@
 #include <cairo.h>
 #include <gsk/gsk.h>
 #include <string.h>
+#include <unistd.h>
+#include <vector>
 
 #include "xap_UnixControlSocket.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
 #include "xap_UnixFrameImpl.h"
 #include "ev_EditMethod.h"
+#include "fv_View.h"
+#include "pd_Document.h"
+#include "pt_PieceTable.h"
+#include "ut_string.h"
+
+#ifdef GDK_WINDOWING_X11
+#include <gdk/x11/gdkx.h>
+#include <X11/Xlib.h>
+#include <X11/extensions/XTest.h>
+#endif
 
 /*****************************************************************/
 /* wire format                                                    */
@@ -94,6 +106,24 @@ static bool _json_num(const std::string & j, const char * name,
 	char * e = nullptr;
 	out = strtol(j.c_str() + at, &e, 10);
 	return e != j.c_str() + at;
+}
+
+static bool _json_bool(const std::string & j, const char * name)
+{
+	std::string pat = "\"";
+	pat += name;
+	pat += "\"";
+	size_t at = j.find(pat);
+	if (at == std::string::npos)
+		return false;
+	at = j.find(':', at + pat.size());
+	if (at == std::string::npos)
+		return false;
+	++at;
+	while (at < j.size() &&
+		   (j[at] == ' ' || j[at] == '\t'))
+		++at;
+	return j.compare(at, 4, "true") == 0;
 }
 
 static std::string _json_escape(const std::string & s)
@@ -195,14 +225,9 @@ static XAP_Frame * _first_frame()
 	return app->getFrameCount() > 0 ? app->getFrame(0) : nullptr;
 }
 
-static bool _m_engine_execute(const std::string & j, std::string & err)
+static bool _exec_named(const std::string & cmd,
+						const std::string & data, std::string & err)
 {
-	std::string cmd;
-	if (!_json_str(j, "command", cmd) || cmd.empty())
-	{
-		err = "missing params.command";
-		return false;
-	}
 	EV_EditMethodContainer * emc =
 		s_ctl.app ? s_ctl.app->getEditMethodContainer() : nullptr;
 	EV_EditMethod * em =
@@ -220,8 +245,6 @@ static bool _m_engine_execute(const std::string & j, std::string & err)
 		err = "no view for document command";
 		return false;
 	}
-	std::string data;
-	_json_str(j, "data", data);
 	if ((t & EV_EMT_REQUIREDATA) && data.empty())
 	{
 		err = "command requires params.data";
@@ -239,34 +262,36 @@ static bool _m_engine_execute(const std::string & j, std::string & err)
 	return true;
 }
 
-static bool _m_screenshot(const std::string & j, std::string & out,
-						  std::string & err)
+static bool _m_engine_execute(const std::string & j, std::string & err)
 {
-	std::string path;
-	if (!_json_str(j, "path", path) || path.empty())
+	std::string cmd;
+	if (!_json_str(j, "command", cmd) || cmd.empty())
 	{
-		err = "missing params.path";
+		err = "missing params.command";
 		return false;
 	}
-	XAP_Frame * f = _first_frame();
+	std::string data;
+	_json_str(j, "data", data);
+	return _exec_named(cmd, data, err);
+}
+
+static GtkWidget * _frame_window(XAP_Frame * f)
+{
 	if (!f)
-	{
-		err = "no frame";
-		return false;
-	}
+		return nullptr;
 	XAP_UnixFrameImpl * impl =
 		static_cast<XAP_UnixFrameImpl *>(f->getFrameImpl());
-	GtkWidget * win = impl ? impl->getTopLevelWindow() : nullptr;
-	if (!win)
-	{
-		err = "frame has no window";
-		return false;
-	}
-	const int w = gtk_widget_get_width(win);
-	const int h = gtk_widget_get_height(win);
+	return impl ? impl->getTopLevelWindow() : nullptr;
+}
+
+static bool _m_widget_png(GtkWidget * wid, const std::string & path,
+						  std::string & out, std::string & err)
+{
+	const int w = gtk_widget_get_width(wid);
+	const int h = gtk_widget_get_height(wid);
 	if (w <= 0 || h <= 0)
 	{
-		err = "window not mapped";
+		err = "widget not mapped";
 		return false;
 	}
 
@@ -278,7 +303,7 @@ static bool _m_screenshot(const std::string & j, std::string & out,
 	for (int tries = 0; tries < 2 && !node; ++tries)
 	{
 		GtkSnapshot * snap = gtk_snapshot_new();
-		GdkPaintable * paintable = gtk_widget_paintable_new(win);
+		GdkPaintable * paintable = gtk_widget_paintable_new(wid);
 		gdk_paintable_snapshot(paintable, snap, w, h);
 		g_object_unref(paintable);
 		node = gtk_snapshot_free_to_node(snap);
@@ -291,7 +316,14 @@ static bool _m_screenshot(const std::string & j, std::string & out,
 	/* run the node through the window's own renderer — plain
 	 * gsk_render_node_draw into a fresh cairo surface comes out
 	 * empty under headless X11 */
-	GskRenderer * renderer = gtk_native_get_renderer(GTK_NATIVE(win));
+	GtkNative * nat = gtk_widget_get_native(wid);
+	GskRenderer * renderer = nat ? gtk_native_get_renderer(nat) : nullptr;
+	if (!renderer)
+	{
+		gsk_render_node_unref(node);
+		err = "no renderer";
+		return false;
+	}
 	const graphene_rect_t vp =
 		GRAPHENE_RECT_INIT(0.f, 0.f, (float) w, (float) h);
 	GdkTexture * tex =
@@ -323,6 +355,451 @@ static bool _m_screenshot(const std::string & j, std::string & out,
 		  ",\"height\":" + std::to_string(h) + "}";
 	return true;
 }
+
+static bool _m_screenshot(const std::string & j, std::string & out,
+						  std::string & err)
+{
+	std::string path;
+	if (!_json_str(j, "path", path) || path.empty())
+	{
+		err = "missing params.path";
+		return false;
+	}
+	GtkWidget * win = _frame_window(_first_frame());
+	if (!win)
+	{
+		err = "frame has no window";
+		return false;
+	}
+	return _m_widget_png(win, path, out, err);
+}
+
+static bool _m_engine_commands(std::string & out, std::string & err)
+{
+	EV_EditMethodContainer * emc =
+		s_ctl.app ? s_ctl.app->getEditMethodContainer() : nullptr;
+	if (!emc)
+	{
+		err = "no edit method container";
+		return false;
+	}
+	out = "{\"commands\":[";
+	const UT_uint32 n = emc->countEditMethods();
+	for (UT_uint32 i = 0; i < n; ++i)
+	{
+		EV_EditMethod * em = emc->getNthEditMethod(i);
+		if (!em)
+			continue;
+		const char * name = em->getName();
+		const char * desc = em->getDescription();
+		if (i)
+			out += ',';
+		out += "{\"name\":\"";
+		out += _json_escape(name ? name : "");
+		out += "\",\"description\":\"";
+		out += _json_escape(desc ? desc : "");
+		out += "\"}";
+	}
+	out += "]}";
+	return true;
+}
+
+static FV_View * _first_view()
+{
+	XAP_Frame * f = _first_frame();
+	return f ? static_cast<FV_View *>(f->getCurrentView()) : nullptr;
+}
+
+static bool _m_doc_text(std::string & out, std::string & err)
+{
+	FV_View * view = _first_view();
+	if (!view)
+	{
+		err = "no view";
+		return false;
+	}
+	PT_DocPosition posEOD = 0;
+	view->getEditableBounds(true, posEOD);
+	UT_UCS4Char * buf = posEOD > 0
+		? view->getTextBetweenPos(0, posEOD) : nullptr;
+	std::string text;
+	if (buf)
+	{
+		text = UT_UTF8String(UT_UCS4String(buf)).utf8_str();
+		delete[] buf;
+	}
+	out = "{\"text\":\"" + _json_escape(text) +
+		  "\",\"length\":" + std::to_string(posEOD) + "}";
+	return true;
+}
+
+static bool _m_doc_inspect(std::string & out, std::string & err)
+{
+	FV_View * view = _first_view();
+	XAP_Frame * f = _first_frame();
+	if (!view || !f)
+	{
+		err = "no view";
+		return false;
+	}
+	const FV_DocCount c = view->countWords();
+	const char * name = f->getFilename();
+	const PT_DocPosition point = view->getPoint();
+	const PT_DocPosition anchor = view->getSelectionAnchor();
+	char num[80];
+	out = "{";
+	out += "\"file\":\"";
+	out += _json_escape(name ? name : "");
+	out += "\",\"dirty\":";
+	out += f->isDirty() ? "true" : "false";
+	g_snprintf(num, sizeof(num), "%u", (unsigned) point);
+	out += ",\"point\":";  out += num;
+	g_snprintf(num, sizeof(num), "%u", (unsigned) anchor);
+	out += ",\"anchor\":"; out += num;
+	g_snprintf(num, sizeof(num), "%u", (unsigned) c.word);
+	out += ",\"words\":";  out += num;
+	g_snprintf(num, sizeof(num), "%u", (unsigned) c.para);
+	out += ",\"paras\":";  out += num;
+	g_snprintf(num, sizeof(num), "%u", (unsigned) c.ch_no);
+	out += ",\"chars\":";  out += num;
+	g_snprintf(num, sizeof(num), "%u", (unsigned) c.page);
+	out += ",\"pages\":";  out += num;
+	out += "}";
+	return true;
+}
+
+/* closes frames after the reply has been written — closing the
+ * last frame exits the app mid-dispatch otherwise.  Routed through
+ * the closeWindowX edit method so the full frame lifecycle runs
+ * (view teardown, frame removal, app exit on last close) the same
+ * as a title-bar close */
+struct _CloseJob { std::vector<XAP_Frame *> frames; };
+
+static gboolean _s_close_frames(gpointer data)
+{
+	_CloseJob * job = static_cast<_CloseJob *>(data);
+	EV_EditMethodContainer * emc =
+		s_ctl.app ? s_ctl.app->getEditMethodContainer() : nullptr;
+	const EV_EditMethod * em =
+		emc ? emc->findEditMethodByName("closeWindowX") : nullptr;
+	for (XAP_Frame * f : job->frames)
+	{
+		if (f && em)
+			em->Fn(f->getCurrentView(), nullptr);
+	}
+	delete job;
+	return G_SOURCE_REMOVE;
+}
+
+static bool _m_file_close(const std::string & j, std::string & err)
+{
+	XAP_Frame * f = _first_frame();
+	if (!f)
+	{
+		err = "no frame";
+		return false;
+	}
+	const bool force = _json_bool(j, "force");
+	if (f->isDirty() && !force)
+	{
+		err = "document has unsaved changes";
+		return false;
+	}
+	if (force)
+	{
+		PD_Document * doc = static_cast<PD_Document *>(f->getCurrentDoc());
+		if (doc && doc->getPieceTable())
+			doc->getPieceTable()->setClean();
+	}
+	_CloseJob * job = new _CloseJob;
+	job->frames.push_back(f);
+	g_idle_add(_s_close_frames, job);
+	return true;
+}
+
+static bool _m_app_quit(const std::string & j, std::string & err)
+{
+	XAP_App * app = s_ctl.app;
+	if (!app)
+	{
+		err = "no app";
+		return false;
+	}
+	const bool force = _json_bool(j, "force");
+	_CloseJob * job = new _CloseJob;
+	int dirty = 0;
+	for (UT_uint32 i = 0; i < app->getFrameCount(); ++i)
+	{
+		XAP_Frame * f = app->getFrame(i);
+		if (!f)
+			continue;
+		job->frames.push_back(f);
+		if (f->isDirty())
+			++dirty;
+	}
+	if (dirty && !force)
+	{
+		delete job;
+		err = std::to_string(dirty) +
+			  " document(s) have unsaved changes";
+		return false;
+	}
+	if (force)
+	{
+		for (XAP_Frame * f : job->frames)
+		{
+			PD_Document * doc = static_cast<PD_Document *>(f->getCurrentDoc());
+			if (doc && doc->getPieceTable())
+				doc->getPieceTable()->setClean();
+		}
+	}
+	g_idle_add(_s_close_frames, job);
+	return true;
+}
+
+static bool _m_ui_focus(std::string & err)
+{
+	GtkWidget * win = _frame_window(_first_frame());
+	if (!win)
+	{
+		err = "frame has no window";
+		return false;
+	}
+	gtk_window_present(GTK_WINDOW(win));
+	return true;
+}
+
+static bool _m_ui_resize(const std::string & j, std::string & err)
+{
+	long w = 0, h = 0;
+	if (!_json_num(j, "width", w) || !_json_num(j, "height", h) ||
+		w < 16 || h < 16 || w > 16384 || h > 16384)
+	{
+		err = "bad width/height (16..16384)";
+		return false;
+	}
+	GtkWidget * win = _frame_window(_first_frame());
+	if (!win)
+	{
+		err = "frame has no window";
+		return false;
+	}
+	gtk_window_unmaximize(GTK_WINDOW(win));
+	gtk_window_set_default_size(GTK_WINDOW(win),
+								(int) w, (int) h);
+	return true;
+}
+
+/* the document drawing area, reached without an ap-layer include:
+ * largest mapped GtkDrawingArea below the toplevel */
+static void _find_drawing_area(GtkWidget * w, GtkWidget ** best,
+							   long * best_px)
+{
+	if (!w)
+		return;
+	if (GTK_IS_DRAWING_AREA(w))
+	{
+		const long px = (long) gtk_widget_get_width(w) *
+						(long) gtk_widget_get_height(w);
+		if (px > *best_px)
+		{
+			*best_px = px;
+			*best = w;
+		}
+	}
+	for (GtkWidget * c = gtk_widget_get_first_child(w); c;
+		 c = gtk_widget_get_next_sibling(c))
+		_find_drawing_area(c, best, best_px);
+}
+
+static bool _m_ui_render(const std::string & j, std::string & out,
+						 std::string & err)
+{
+	std::string path;
+	if (!_json_str(j, "path", path) || path.empty())
+	{
+		err = "missing params.path";
+		return false;
+	}
+	GtkWidget * area = nullptr;
+	long px = 0;
+	_find_drawing_area(_frame_window(_first_frame()), &area, &px);
+	if (!area)
+	{
+		err = "no document view";
+		return false;
+	}
+	return _m_widget_png(area, path, out, err);
+}
+
+static bool _m_ui_text(const std::string & j, std::string & err)
+{
+	std::string text;
+	if (!_json_str(j, "text", text) || text.empty())
+	{
+		err = "missing params.text";
+		return false;
+	}
+	return _exec_named("insertData", text, err);
+}
+
+#ifdef GDK_WINDOWING_X11
+static Display * _x_display()
+{
+	GdkDisplay * d = gdk_display_get_default();
+	return GDK_IS_X11_DISPLAY(d) ? GDK_DISPLAY_XDISPLAY(d) : nullptr;
+}
+
+static Window _x_frame_window()
+{
+	GtkWidget * win = _frame_window(_first_frame());
+	GdkSurface * s = win ? gtk_native_get_surface(GTK_NATIVE(win))
+					   : nullptr;
+	return s && GDK_IS_X11_SURFACE(s)
+		? gdk_x11_surface_get_xid(s) : 0;
+}
+
+static unsigned _x_keysym_for(const char * name)
+{
+	const guint kv = gdk_keyval_from_name(name);
+	if (kv == GDK_KEY_VoidSymbol)
+		return 0;
+	KeySym ks = XStringToKeysym(gdk_keyval_name(kv));
+	return ks ? (unsigned) XKeysymToKeycode(_x_display(), ks) : 0;
+}
+
+static bool _m_ui_key(const std::string & j, std::string & err)
+{
+	std::string spec;
+	if (!_json_str(j, "key", spec) || spec.empty())
+	{
+		err = "missing params.key";
+		return false;
+	}
+	Display * dpy = _x_display();
+	Window xid = _x_frame_window();
+	if (!dpy || !xid)
+	{
+		err = "ui.key requires the X11 backend";
+		return false;
+	}
+	/* split "ctrl+shift+F5" into modifiers + final key */
+	std::vector<unsigned> mods;
+	std::string key_name;
+	size_t start = 0;
+	for (size_t at = 0; at <= spec.size(); ++at)
+	{
+		if (at != spec.size() && spec[at] != '+')
+			continue;
+		std::string part = spec.substr(start, at - start);
+		start = at + 1;
+		if (part.empty())
+			continue;
+		std::string low = part;
+		for (size_t i = 0; i < low.size(); ++i)
+			low[i] = (char) g_ascii_tolower(low[i]);
+		const char * sym = nullptr;
+		if (low == "ctrl" || low == "control")
+			sym = "Control_L";
+		else if (low == "shift")
+			sym = "Shift_L";
+		else if (low == "alt" || low == "mod1")
+			sym = "Alt_L";
+		else if (low == "super" || low == "meta" || low == "win")
+			sym = "Super_L";
+		if (sym)
+		{
+			const unsigned kc = _x_keysym_for(sym);
+			if (!kc)
+			{
+				err = "bad modifier: " + part;
+				return false;
+			}
+			mods.push_back(kc);
+		}
+		else if (at == spec.size())
+			key_name = part;
+		else
+		{
+			err = "unknown key: " + part;
+			return false;
+		}
+	}
+	const unsigned kc = _x_keysym_for(key_name.c_str());
+	if (!kc)
+	{
+		err = "unknown key: " + key_name;
+		return false;
+	}
+	/* focus the frame so the synthetic input lands in the app
+	 * the same way a real WM-delivered event would */
+	XSetInputFocus(dpy, xid, RevertToPointerRoot, CurrentTime);
+	for (unsigned m : mods)
+		XTestFakeKeyEvent(dpy, m, True, CurrentTime);
+	XTestFakeKeyEvent(dpy, kc, True, CurrentTime);
+	XTestFakeKeyEvent(dpy, kc, False, CurrentTime);
+	for (auto it = mods.rbegin(); it != mods.rend(); ++it)
+		XTestFakeKeyEvent(dpy, *it, False, CurrentTime);
+	XSync(dpy, False);
+	return true;
+}
+
+static bool _m_ui_click(const std::string & j, std::string & err)
+{
+	long x = 0, y = 0, button = 1;
+	if (!_json_num(j, "x", x) || !_json_num(j, "y", y) ||
+		x < 0 || y < 0 || x > 16384 || y > 16384)
+	{
+		err = "missing/bad params.x,params.y";
+		return false;
+	}
+	_json_num(j, "button", button);
+	if (button < 1 || button > 9)
+		button = 1;
+	const bool dbl = _json_bool(j, "double");
+	Display * dpy = _x_display();
+	Window xid = _x_frame_window();
+	if (!dpy || !xid)
+	{
+		err = "ui.click requires the X11 backend";
+		return false;
+	}
+	Window root = DefaultRootWindow(dpy), child = 0;
+	int rx = 0, ry = 0;
+	if (!XTranslateCoordinates(dpy, xid, root,
+							   (int) x, (int) y, &rx, &ry, &child))
+	{
+		err = "coordinate translation failed";
+		return false;
+	}
+	XTestFakeMotionEvent(dpy, -1, rx, ry, CurrentTime);
+	const int clicks = dbl ? 2 : 1;
+	for (int i = 0; i < clicks; ++i)
+	{
+		XTestFakeButtonEvent(dpy, (unsigned) button, True,
+							 CurrentTime);
+		XSync(dpy, False);
+		usleep(20000);
+		XTestFakeButtonEvent(dpy, (unsigned) button, False,
+							 CurrentTime);
+		XSync(dpy, False);
+		if (dbl)
+			usleep(40000);
+	}
+	return true;
+}
+#else
+static bool _m_ui_key(const std::string &, std::string & err)
+{
+	err = "ui.key requires the X11 backend";
+	return false;
+}
+static bool _m_ui_click(const std::string &, std::string & err)
+{
+	err = "ui.click requires the X11 backend";
+	return false;
+}
+#endif
 
 /* returns false when the connection must close after the reply:
  * wordcraft-compatible behaviour for auth failures, oversized
@@ -400,6 +877,98 @@ static bool _dispatch(_Conn * c, const std::string & line)
 		std::string out;
 		if (_m_screenshot(line, out, err))
 			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "engine.commands")
+	{
+		std::string out;
+		if (_m_engine_commands(out, err))
+			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "document.text")
+	{
+		std::string out;
+		if (_m_doc_text(out, err))
+			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "document.inspect")
+	{
+		std::string out;
+		if (_m_doc_inspect(out, err))
+			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "file.close")
+	{
+		if (_m_file_close(line, err))
+			_conn_send(c, id, "{\"closed\":true}", nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "app.quit")
+	{
+		if (_m_app_quit(line, err))
+			_conn_send(c, id, "{\"ok\":true}", nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "ui.focus")
+	{
+		if (_m_ui_focus(err))
+			_conn_send(c, id, "{\"ok\":true}", nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "ui.resize")
+	{
+		if (_m_ui_resize(line, err))
+			_conn_send(c, id, "{\"ok\":true}", nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "ui.render")
+	{
+		std::string out;
+		if (_m_ui_render(line, out, err))
+			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "ui.text")
+	{
+		if (_m_ui_text(line, err))
+			_conn_send(c, id, "{\"ok\":true}", nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "ui.key")
+	{
+		if (_m_ui_key(line, err))
+			_conn_send(c, id, "{\"ok\":true}", nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "ui.click")
+	{
+		if (_m_ui_click(line, err))
+			_conn_send(c, id, "{\"ok\":true}", nullptr);
 		else
 			_conn_send(c, id, nullptr, err.c_str());
 		return true;

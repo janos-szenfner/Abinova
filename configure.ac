@@ -476,7 +476,7 @@ dnl using the X11 backend; macOS/Quartz and Windows/Win32 skip it
 abi_x11_pkg=''
 case "$host_os" in
   darwin*|mingw*|msys*|cygwin*|windows*) ;;
-  *) abi_x11_pkg='x11' ;;
+  *) abi_x11_pkg='x11 xtst' ;;
 esac
 
 deps_pkgs="$deps_pkgs $gtk_pkgs $abi_x11_pkg"

@@ -8,6 +8,7 @@
 <h3>Automation</h3>
 <ul>
 <li><b>Control channel hardening</b> — the <code>--control PORT</code>   listener now supports <code>{"method":"auth","key":"…"}</code>   once per connection (subsequent requests may omit the key),   rejects missing/wrong keys with <code>unauthorized</code> and   closes the connection, replies <code>bad request</code> and   closes on non-JSON input, caps request lines at 1 MiB,   disconnects unauthenticated clients after 30 s, and removes the   <code>control-key.local-PORT</code> file on clean exit so a stale   key can't be replayed into the next session.</li>
+<li><b>Control channel methods</b> — <code>engine.commands</code>,   <code>document.text</code>/<code>document.inspect</code>,   <code>ui.focus</code>/<code>ui.resize</code>/<code>ui.render</code>,   <code>ui.text</code>/<code>ui.key</code>/<code>ui.click</code>   (X11), dirty-document-guarded <code>file.close</code>, and   <code>app.quit</code>.</li>
 </ul>
 <h2>[4.0.2] — 2026-10-17</h2>
 <h3>Ribbon</h3>
