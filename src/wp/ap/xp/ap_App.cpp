@@ -175,6 +175,53 @@ bool AP_App::isAutosaveSidecarUriSafe(const char * uri)
 }
 
 /*!
+ * Remove abandoned autosave temp files: a ".part" file exists only for
+ * the moments between a saveAs and the atomic rename that publishes
+ * the recovery copy, and ".info" sidecars are written just after that
+ * rename — so a ".part" (or an ".info" whose base file is gone) older
+ * than maxAgeSecs is crash/kill fallout, never an in-flight write.
+ * Deliberately untouched: ".lock" files (unlinking a lock file another
+ * instance holds would split the lock domain), the recovery payloads
+ * themselves, ".crashed" quarantine files and the ".recovering"
+ * sentinel.
+ */
+void AP_App::cleanupAutosaveTemps(const std::string & dir,
+								  UT_sint64 maxAgeSecs,
+								  time_t now)
+{
+	GDir *d = g_dir_open(dir.c_str(), 0, nullptr);
+	if (!d)
+		return;
+
+	std::vector<std::string> victims;
+	const gchar *name;
+	while ((name = g_dir_read_name(d)) != nullptr) {
+		if (g_str_has_suffix(name, ".part")) {
+			victims.push_back(name);
+		}
+		else if (g_str_has_suffix(name, ".info")) {
+			std::string base = dir + name;
+			base.erase(base.size() - 5); /* strip ".info" */
+			if (!UT_isRegularFile(base.c_str()))
+				victims.push_back(name);
+		}
+	}
+	g_dir_close(d);
+
+	for (const std::string &nm : victims) {
+		std::string path = dir + nm;
+		GStatBuf st;
+		if (g_stat(path.c_str(), &st) != 0 ||
+			!UT_isRegularFile(path.c_str()) ||
+			static_cast<UT_sint64>(now - st.st_mtime) < maxAgeSecs)
+			continue;
+		UT_DEBUGMSG(("autosave: removing abandoned temp file %s\n",
+					 path.c_str()));
+		g_unlink(path.c_str());
+	}
+}
+
+/*!
  * Scans the autosave directory for recovery files left behind by an
  * unclean shutdown and opens each one for review. A ".info" sidecar
  * written next to each backup carries the document's original URI, so
@@ -244,6 +291,11 @@ void AP_App::recoverAutosavedDocs()
 			files.push_back(name);
 	}
 	g_dir_close(d);
+
+	/* reclaim crash/kill temp fallout (.part, orphaned .info) before
+	 * loading candidates — a graceful shutdown never leaves these */
+	cleanupAutosaveTemps(dir, 600, time(nullptr));
+
 	if (files.empty())
 		return;
 
@@ -343,11 +395,15 @@ void AP_App::saveRecoveryFiles()
 				continue;
 			}
 			curFrame->clearBackupInProgress();
+			/* bSkipInstanceLock: this runs in a fork of the crashed
+			 * process — the only contender for the recovery-name
+			 * lock is the dying parent itself, which may still hold
+			 * it if the crash hit mid-backup */
 			if (nullptr == curFrame->getFilename()) {
-				curFrame->backup(".abw.saved",abiType);
+				curFrame->backup(".abw.saved",abiType,true);
 			}
 			else {
-				curFrame->backup(".saved",abiType);
+				curFrame->backup(".saved",abiType,true);
 			}
 		}
 		catch(...) {

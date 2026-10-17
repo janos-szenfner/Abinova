@@ -208,7 +208,12 @@ public:
 
 	XAP_Dialog_MessageBox::tAnswer		showMessageBox(XAP_Dialog_MessageBox * pDialog);
 
-	UT_Error	    backup(const char* stExt = nullptr, UT_sint32 iEFT = -1);
+	UT_Error	    backup(const char* stExt = nullptr, UT_sint32 iEFT = -1,
+						   bool bSkipInstanceLock = false);
+	// decode gate behind backup(): a recovery file only counts as
+	// valid when it re-reads (gzip-transparent) and parses as a
+	// well-formed abiword document
+	static bool			isValidRecoveryCopy(const char * path);
 	// clears the re-entrancy guard — crash-recovery path only: a crash
 	// inside backup() leaves it set and would silently skip the frame
 	void clearBackupInProgress() { m_bBackupInProgress = false; }

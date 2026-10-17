@@ -22,6 +22,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
+#include <fcntl.h>
+#ifdef G_OS_WIN32
+#include <windows.h>
+#else
+#include <sys/file.h>
+#include <unistd.h>
+#endif
 
 #include <string>
 #include "ut_types.h"
@@ -32,6 +40,8 @@
 #include "ut_growbuf.h"
 #include "ut_timer.h"
 #include "ut_go_file.h"
+#include "ut_path.h"
+#include "ut_xml.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
 #include "xap_FrameImpl.h"
@@ -452,7 +462,7 @@ void XAP_Frame::autosaveTick()
 		if (pDoc == m_pBackupDoc && iSerial == m_iBackupSerial &&
 			!m_stAutoSaveNamePrevious.empty() &&
 			makeBackupName() == m_stAutoSaveNamePrevious &&
-			UT_go_file_exists(m_stAutoSaveNamePrevious.c_str()))
+			UT_isRegularFile(m_stAutoSaveNamePrevious.c_str()))
 		{
 			/* content identical to the recovery copy already on disk —
 			 * skipping the serialize is what keeps an idle dirty doc
@@ -480,6 +490,13 @@ void XAP_Frame::autosaveTick()
 			m_pBackupDoc = pDoc;
 			m_iBackupSerial = iSerial;
 			m_tBackupTime = now;
+		}
+		else if (error == UT_SAVE_LOCKED)
+		{
+			/* another instance is mid-write on this recovery name —
+			 * retry on the short fuse rather than slipping a period */
+			_armAutosaveRetry();
+			return;
 		}
 		else
 		{
@@ -912,6 +929,172 @@ XAP_Dialog_MessageBox::tAnswer XAP_Frame::showMessageBox(const char * szMessage,
   return showMessageBox(pDialog);
 }
 
+namespace {
+
+/*! Result of trying to take the inter-instance lock on one recovery
+ * file name. */
+enum s_AutosaveLockResult {
+	s_LockTaken,	// we hold it
+	s_LockBusy,		// another live process holds it
+	s_LockUnavailable // locking unsupported/failed — degrade unlocked
+};
+
+/*! Advisory lock on "<backup>.lock" serializing recovery writes
+ * between Abinova instances that share the autosave directory.
+ * Without it two processes writing the same backup name interleave
+ * their ".part" output and rename torn bytes over the last good
+ * copy.  The lock file itself is never unlinked: deleting a file
+ * another instance holds a lock on would split the lock domain. */
+class s_AutosaveLock
+{
+public:
+	s_AutosaveLock()
+		:
+#ifdef G_OS_WIN32
+		m_hFile(INVALID_HANDLE_VALUE)
+#else
+		m_fd(-1)
+#endif
+	{}
+	~s_AutosaveLock() { release(); }
+
+	s_AutosaveLockResult tryLock(const std::string & path)
+	{
+#ifdef G_OS_WIN32
+		if (m_hFile != INVALID_HANDLE_VALUE)
+			return s_LockTaken;
+		gunichar2 * w = g_utf8_to_utf16(path.c_str(), -1, nullptr, nullptr, nullptr);
+		if (!w)
+			return s_LockUnavailable;
+		HANDLE h = CreateFileW(reinterpret_cast<LPCWSTR>(w),
+							   GENERIC_READ | GENERIC_WRITE,
+							   FILE_SHARE_READ | FILE_SHARE_WRITE,
+							   nullptr, OPEN_ALWAYS,
+							   FILE_ATTRIBUTE_NORMAL, nullptr);
+		g_free(w);
+		if (h == INVALID_HANDLE_VALUE)
+			return s_LockUnavailable;
+		OVERLAPPED ovl;
+		memset(&ovl, 0, sizeof(ovl));
+		if (!LockFileEx(h, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+						0, 1, 0, &ovl))
+		{
+			DWORD e = GetLastError();
+			CloseHandle(h);
+			return (e == ERROR_LOCK_VIOLATION || e == ERROR_IO_PENDING)
+				? s_LockBusy : s_LockUnavailable;
+		}
+		m_hFile = h;
+		return s_LockTaken;
+#else
+		if (m_fd >= 0)
+			return s_LockTaken;
+		int fd = g_open(path.c_str(), O_RDWR | O_CREAT, 0600);
+		if (fd < 0)
+			return s_LockUnavailable;
+		if (flock(fd, LOCK_EX | LOCK_NB) != 0)
+		{
+			int e = errno;
+			close(fd);
+			return (e == EWOULDBLOCK) ? s_LockBusy : s_LockUnavailable;
+		}
+		m_fd = fd;
+		return s_LockTaken;
+#endif
+	}
+
+	void release()
+	{
+#ifdef G_OS_WIN32
+		if (m_hFile != INVALID_HANDLE_VALUE)
+		{
+			OVERLAPPED ovl;
+			memset(&ovl, 0, sizeof(ovl));
+			UnlockFileEx(m_hFile, 0, 1, 0, &ovl);
+			CloseHandle(m_hFile);
+			m_hFile = INVALID_HANDLE_VALUE;
+		}
+#else
+		if (m_fd >= 0)
+		{
+			close(m_fd);
+			m_fd = -1;
+		}
+#endif
+	}
+
+private:
+#ifdef G_OS_WIN32
+	HANDLE m_hFile;
+#else
+	int m_fd;
+#endif
+};
+
+/*! Reopen a recovery file through the decompressing reader (gzip is
+ * unwrapped exactly as the importer sees it), then require the bytes
+ * to parse as a well-formed document with an abiword root element.
+ * Used before a freshly written copy may replace the last good one
+ * and to compare a new copy's decoded content against the old. */
+class s_RecoveryXmlListener : public UT_XML::Listener
+{
+public:
+	bool m_bSawRoot = false;
+	bool m_bGoodRoot = false;
+
+	virtual void startElement(const gchar * name, const gchar ** /*atts*/) override
+	{
+		if (!m_bSawRoot)
+		{
+			m_bSawRoot = true;
+			m_bGoodRoot = name &&
+				(!strcmp(name, "abiword") ||
+				 !strcmp(name, "abinova") ||
+				 !strcmp(name, "awml"));
+		}
+	}
+	virtual void endElement(const gchar * /*name*/) override {}
+	virtual void charData(const gchar * /*buffer*/, int /*length*/) override {}
+};
+
+bool s_decodeRecoveryFile(const char * path, std::string & plain)
+{
+	plain.clear();
+	gchar * uri = UT_go_filename_to_uri(path);
+	if (!uri)
+		return false;
+	GsfInput * in = UT_go_file_open(uri, nullptr);
+	g_free(uri);
+	if (!in)
+		return false;
+	const gsf_off_t size = gsf_input_size(in);
+	const guint8 * bytes = size > 0
+		? gsf_input_read(in, static_cast<size_t>(size), nullptr)
+		: nullptr;
+	if (bytes)
+		plain.assign(reinterpret_cast<const char *>(bytes),
+					 static_cast<size_t>(size));
+	g_object_unref(in);
+	if (plain.empty())
+		return false;
+
+	s_RecoveryXmlListener listener;
+	UT_XML parser;
+	parser.setListener(&listener);
+	if (parser.parse(plain.c_str(),
+					 static_cast<UT_uint32>(plain.size())) != UT_OK)
+		return false;
+	return listener.m_bSawRoot && listener.m_bGoodRoot;
+}
+
+} // anonymous namespace
+
+bool XAP_Frame::isValidRecoveryCopy(const char * path)
+{
+	std::string plain;
+	return s_decodeRecoveryFile(path, plain);
+}
+
 std::string XAP_Frame::makeBackupName(const char* szExt)
 {
 	if (!m_pDoc)
@@ -973,10 +1156,29 @@ std::string XAP_Frame::makeBackupName(const char* szExt)
  * szExt overrides the suffix of the backup file; the native .abwn
  * format is used unless a different filetype is passed.
  */
-UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT)
+UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
+						   bool bSkipInstanceLock)
 {
 	if (m_bBackupInProgress || !m_pDoc)
 		return UT_OK;
+
+	/* A document carrying a save password must never spill plaintext
+	 * into the autosave directory — a recovery write would either go
+	 * out unprotected or produce an encrypted copy that prompts the
+	 * recovering instance for a password it cannot supply.  Drop any
+	 * copy written before the password was set so nothing plaintext
+	 * lingers either. */
+	if (m_pDoc->isSaveProtected())
+	{
+		_removeAutoSaveFile();
+		std::string own = makeBackupName(szExt);
+		if (!own.empty())
+		{
+			g_unlink(own.c_str());
+			g_unlink((own + ".info").c_str());
+		}
+		return UT_OK;
+	}
 
 	m_bBackupInProgress = true;
 
@@ -985,6 +1187,23 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT)
 	{
 		m_bBackupInProgress = false;
 		return UT_SAVE_NAMEERROR;
+	}
+
+	/* Inter-instance lock: two Abinova processes sharing this
+	 * autosave directory (the same document opened twice, or
+	 * colliding untitled numbers) otherwise write the same .part
+	 * name concurrently and rename torn output over the last good
+	 * copy.  A busy lock just defers the write to a later tick; a
+	 * lock that cannot be taken at all degrades to the previous
+	 * unprotected behaviour rather than disabling recovery.  The
+	 * crash-recovery child skips this entirely — the only other
+	 * contender is the dying parent itself. */
+	s_AutosaveLock instLock;
+	if (!bSkipInstanceLock &&
+		instLock.tryLock(backupPath + ".lock") == s_LockBusy)
+	{
+		m_bBackupInProgress = false;
+		return UT_SAVE_LOCKED;
 	}
 
 	if (!m_stAutoSaveNamePrevious.empty() && (backupPath != m_stAutoSaveNamePrevious))
@@ -1016,10 +1235,30 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT)
 	UT_Error error = m_pDoc->saveAs(partUri, iEFT, false);
 	g_free(partUri);
 
-	if (error == UT_OK && g_rename(partPath.c_str(), backupPath.c_str()) != 0)
+	if (error == UT_OK)
 	{
-		UT_DEBUGMSG(("autosave: rename %s -> %s failed\n", partPath.c_str(), backupPath.c_str()));
-		error = UT_SAVE_WRITEERROR;
+		std::string newPlain, oldPlain;
+		if (!s_decodeRecoveryFile(partPath.c_str(), newPlain))
+		{
+			/* decode-and-compare gate: the freshly written bytes must
+			 * re-read and parse as a well-formed document before they
+			 * are allowed to replace the last good copy */
+			UT_DEBUGMSG(("autosave: %s failed decode validation, "
+						 "keeping previous copy\n", partPath.c_str()));
+			error = UT_SAVE_WRITEERROR;
+		}
+		else if (s_decodeRecoveryFile(backupPath.c_str(), oldPlain) &&
+				 oldPlain == newPlain)
+		{
+			/* decoded content identical to the last good copy —
+			 * keep it in place instead of churning the file */
+			g_unlink(partPath.c_str());
+		}
+		else if (g_rename(partPath.c_str(), backupPath.c_str()) != 0)
+		{
+			UT_DEBUGMSG(("autosave: rename %s -> %s failed\n", partPath.c_str(), backupPath.c_str()));
+			error = UT_SAVE_WRITEERROR;
+		}
 	}
 
 	if (error != UT_OK)

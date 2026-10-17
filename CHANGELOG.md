@@ -124,6 +124,19 @@ responsibility** — see `README.md`.
   call data) and is only active inside a table; `.docx` files
   round-trip the formulas via both `w:fldSimple` and complex
   `fldChar`/`instrText` fields so Word recalculates them on open.
+- **Autosave/recovery hardening** — the recovery write path is safer
+  in four ways: each new recovery copy is decode-validated
+  (gzip-transparent open + XML parse) and compared against the
+  existing copy before the rename, so a corrupt serialize can never
+  clobber the last good copy and identical content is not rewritten;
+  an advisory per-file lock (`flock` on POSIX, `LockFileEx` on
+  Windows) stops two Abinova instances sharing the autosave
+  directory from tearing each other's recovery files — a busy lock
+  defers to the next tick; password-protected documents no longer
+  get any recovery copy (and stale plaintext copies are removed),
+  since startup recovery cannot answer a password prompt; and stale
+  `.part`/orphaned `.info` temp files left by crashes or kills are
+  reclaimed at startup while `.lock` files are preserved.
 
 ### User interface
 

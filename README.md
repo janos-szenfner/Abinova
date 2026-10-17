@@ -1041,6 +1041,18 @@ Autosave was rebuilt so that unsaved work survives an unclean exit:
 - **Atomic writes**: each backup is written to a `.part` file and
   renamed into place; a crash mid-write cannot leave a half-written
   recovery file.
+- **Validated replacement**: a new recovery copy is decode-validated
+  (gzip-transparent open + XML parse) before the rename, and an
+  identical decoded copy is left in place rather than rewritten — a
+  corrupt serialize can never overwrite the last good copy.
+- **Inter-instance locks**: writes hold an advisory `flock`/
+  `LockFileEx` on `<backup>.lock` so two Abinova processes sharing
+  the autosave directory cannot tear each other's recovery files;
+  a busy lock defers to a later tick.
+- **Abandoned temp cleanup**: stale `.part` files and orphaned
+  `.info` sidecars left by a crash or kill are reclaimed at
+  startup; `.lock` files are deliberately preserved so the lock
+  domain survives cleanup.
 - **`.info` sidecar**: next to every backup a small metadata file
   records the document's original URI and the write timestamp.
 - **Startup recovery**: on launch, leftover recovery files are
@@ -1094,8 +1106,11 @@ The native format supports password encryption, using the same
 - A document opened from an encrypted file keeps its password:
   a later plain Ctrl+S **re-encrypts**. Saving As without ticking
   the checkbox (or to a non-encryptable format) writes plaintext.
-- Autosave backups of password-protected documents are encrypted
-  too — no plaintext leaks into `~/.config/abinova/autosave`.
+- Password-protected documents are skipped by autosave entirely —
+  no recovery copy (plaintext or encrypted) is written to
+  `~/.config/abinova/autosave`, and any copy written before the
+  password was set is removed. A password prompt on startup
+  recovery could not be answered non-interactively anyway.
 
 On-disk format (`src/wp/impexp/xp/ut_abwncrypt.{h,cpp}`): an
 `ABWNCRP1` magic + versioned header (KDF id, iteration count, salt,

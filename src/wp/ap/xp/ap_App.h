@@ -68,6 +68,11 @@ class ABI_EXPORT AP_App : public XAP_App_BaseClass
 	static bool	isAutosaveCandidateName(const char * name,
 										const char * configuredExt);
 	static bool	isAutosaveSidecarUriSafe(const char * uri);
+	/* sweeps abandoned ".part"/orphaned ".info" temp files older than
+	 * maxAgeSecs out of the autosave directory */
+	static void	cleanupAutosaveTemps(const std::string & dir,
+									 UT_sint64 maxAgeSecs,
+									 time_t now);
 protected:
 	virtual void saveRecoveryFiles() override;
  private:

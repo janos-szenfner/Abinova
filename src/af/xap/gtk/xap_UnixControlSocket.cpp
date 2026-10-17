@@ -37,6 +37,7 @@
 #include "ie_exp.h"
 #include "pt_PieceTable.h"
 #include "ut_string.h"
+#include "ut_path.h"
 
 #ifdef GDK_WINDOWING_X11
 #include <gdk/x11/gdkx.h>
@@ -638,8 +639,32 @@ static bool _m_doc_privacyinspect(std::string & out, std::string & err)
 	return true;
 }
 
+/* run one autosave cycle synchronously — the timer path otherwise
+ * waits out the configured period in minutes, which would make the
+ * recovery machinery untestable from automation.  Reports the
+ * recovery path and whether it exists afterwards */
+static bool _m_doc_autosave(std::string & out, std::string & err)
+{
+	XAP_Frame * f = _first_frame();
+	if (!f)
+	{
+		err = "no frame";
+		return false;
+	}
+	f->autosaveTick();
+	std::string path = f->makeBackupName();
+	out = "{\"path\":\"" + _json_escape(path) +
+		  "\",\"exists\":" +
+		  std::string(!path.empty() && UT_isRegularFile(path.c_str())
+						  ? "true" : "false") +
+		  ",\"dirty\":" +
+		  std::string(f->isDirty() ? "true" : "false") + "}";
+	return true;
+}
+
 /* dialog-free save: params.path is the target file; honours the
- * automation write root when configured */
+ * automation write root when configured.  params.password (optional)
+ * applies a save password for exporters that support encryption */
 static bool _m_file_save(const std::string & j, std::string & err)
 {
 	std::string path;
@@ -658,6 +683,15 @@ static bool _m_file_save(const std::string & j, std::string & err)
 	{
 		err = "no view";
 		return false;
+	}
+	std::string pw;
+	if (_json_str(j, "password", pw) && !pw.empty())
+	{
+		XAP_Frame * f = _first_frame();
+		PD_Document * doc =
+			f ? static_cast<PD_Document *>(f->getCurrentDoc()) : nullptr;
+		if (doc)
+			doc->setSavePassword(pw);
 	}
 	/* resolve the exporter from the suffix — IEFT_Unknown does not
 	 * infer a format and constructExporter fails with it */
@@ -1159,6 +1193,15 @@ static bool _dispatch(_Conn * c, const std::string & line)
 	{
 		std::string out;
 		if (_m_doc_privacyinspect(out, err))
+			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "document.autosave")
+	{
+		std::string out;
+		if (_m_doc_autosave(out, err))
 			_conn_send(c, id, out.c_str(), nullptr);
 		else
 			_conn_send(c, id, nullptr, err.c_str());

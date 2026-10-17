@@ -144,6 +144,7 @@ typedef	UT_sint32		UT_Error;
 #define UT_SAVE_EXPORTERROR     (static_cast<UT_Error>( -203))
 #define UT_EXTENSIONERROR       (static_cast<UT_Error>( -204))
 #define UT_SAVE_CANCELLED       (static_cast<UT_Error>( -205))
+#define UT_SAVE_LOCKED          (static_cast<UT_Error>( -206))	/* recovery name locked by another instance — retry later */
 #define UT_SAVE_OTHERERROR      (static_cast<UT_Error>( -200)) 	/* This should eventually dissapear. */
 #define UT_IE_FILENOTFOUND      (static_cast<UT_Error>( -301))
 #define UT_IE_NOMEMORY          (static_cast<UT_Error>( -302))

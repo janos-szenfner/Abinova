@@ -168,6 +168,13 @@ public:
 	{
 		return 0;
 	}
+	/*! Does the document carry a save password?  Recovery copies are
+	 * written without consulting the user, so autosave machinery must
+	 * never spill a plaintext snapshot of a protected document. */
+	virtual bool			isSaveProtected(void) const
+	{
+		return false;
+	}
 
 	virtual bool			canDo(bool bUndo) const = 0;
 	virtual bool			undoCmd(UT_uint32 repeatCount) = 0;

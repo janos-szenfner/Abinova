@@ -603,6 +603,7 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 	// document protection (e.g. ODF). Runtime only, never serialized.
 	void					setSavePassword(const std::string& pw) { UT_secureClearString(m_savePassword); m_savePassword = pw; }
 	const std::string&		getSavePassword() const { return m_savePassword; }
+	bool					isSaveProtected(void) const override { return !m_savePassword.empty(); }
 	bool					updateFields(void);
 	bool					getField(const pf_Frag_Strux* sdh,
 									 UT_uint32 offset,
