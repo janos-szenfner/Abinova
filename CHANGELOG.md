@@ -74,6 +74,13 @@ responsibility** — see `README.md`.
   the most recent edit points and back to where you started, Word
   style. Edit spots are tracked through later inserts and deletes,
   so they still land where the text actually is.
+- **`=rand()` / `=lorem()` sample text** — typing `=rand()`,
+  `=rand(p,s)` or `=lorem()`/`=lorem(p,s)` as the only content of a
+  paragraph and pressing Enter expands it to *p* paragraphs of *s*
+  sample sentences each (Word-style; defaults 3×3, clamped to 200
+  paragraphs / 99 sentences, case-insensitive). `=rand()` fills with
+  the quick-brown-fox pangram, `=lorem()` cycles lorem-ipsum
+  sentences, and the whole expansion is a single undo step.
 
 ### User interface
 

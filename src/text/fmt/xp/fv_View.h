@@ -1319,6 +1319,9 @@ private:
 	// Markdown-style "+---+---+" auto-table on paragraph break
 	bool				_autoFormatTableOnEnter(void);
 
+	// Word-style "=rand(p,s)" / "=lorem(p,s)" expansion on break
+	bool				_expandSampleTextOnEnter(void);
+
 	UT_uint32			m_iNumHorizPages; /////////////////////////////////////////////////
 	UT_uint32			m_getNumHorizPagesCachedWindowWidth;
 	bool				m_autoNumHorizPages;

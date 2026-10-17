@@ -4761,6 +4761,170 @@ bool FV_View::_autoFormatTableOnEnter(void)
 	return true;
 }
 
+/*!
+ * Word-style "=rand(p,s)" / "=lorem(p,s)" sample-text expansion. If the
+ * block ending at the insertion point consists solely of one of those
+ * commands — "=rand()" / "=lorem()" with optional paragraph and
+ * sentence counts — replace it with that many sample paragraphs and
+ * consume the Enter. Counts default to Word's 3x3 and are clamped to
+ * Word's own bounds (200 paragraphs, 99 sentences). Called from
+ * insertParagraphBreak() while a user atomic glob and disabled list
+ * updates are already in effect.
+ */
+bool FV_View::_expandSampleTextOnEnter(void)
+{
+	if (!isSelectionEmpty() || m_FrameEdit.isActive())
+	{
+		return false;
+	}
+	fl_BlockLayout * pBlock = getCurrentBlock();
+	UT_return_val_if_fail(pBlock, false);
+	PT_DocPosition posBlock = pBlock->getPosition(true);
+	UT_GrowBuf buf;
+	if (!pBlock->getBlockBuf(&buf))
+	{
+		return false;
+	}
+	UT_uint32 len = buf.getLength();
+	if (len < 7 || len > 64)   /* shortest command is "=rand()" */
+	{
+		return false;
+	}
+	// the command only triggers with the caret at end-of-line
+	if (getPoint() != posBlock + len + 1)
+	{
+		return false;
+	}
+	const UT_UCS4Char * pText =
+		reinterpret_cast<const UT_UCS4Char *>(buf.getPointer(0));
+	UT_return_val_if_fail(pText, false);
+	if (pText[0] != '=')
+	{
+		return false;
+	}
+
+	auto lower = [](UT_UCS4Char c) -> UT_UCS4Char {
+		return (c >= 'A' && c <= 'Z') ? c + ('a' - 'A') : c;
+	};
+	auto keyword = [&](const char * word) -> bool {
+		for (UT_uint32 k = 0; word[k]; ++k)
+		{
+			if (pText[1 + k] != static_cast<UT_UCS4Char>(word[k]) &&
+				lower(pText[1 + k]) != static_cast<UT_UCS4Char>(word[k]))
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+	bool bLorem;
+	UT_uint32 i;
+	if (len >= 6 && keyword("rand"))
+	{
+		bLorem = false;
+		i = 5;
+	}
+	else if (len >= 7 && keyword("lorem"))
+	{
+		bLorem = true;
+		i = 6;
+	}
+	else
+	{
+		return false;
+	}
+	auto isWs = [](UT_UCS4Char c) { return c == ' ' || c == UCS_TAB; };
+	auto isDigit = [](UT_UCS4Char c) { return c >= '0' && c <= '9'; };
+	auto skipWs = [&]() { while (i < len && isWs(pText[i])) i++; };
+	auto readNum = [&]() -> UT_uint32 {
+		UT_uint32 n = 0;
+		while (i < len && isDigit(pText[i]))
+		{
+			n = UT_MIN(n * 10 + (pText[i] - '0'), 999u);
+			i++;
+		}
+		return n;
+	};
+	skipWs();
+	if (i >= len || pText[i] != '(')
+	{
+		return false;
+	}
+	i++;
+	skipWs();
+	UT_uint32 iParas = readNum();
+	skipWs();
+	UT_uint32 iSents = 0;
+	if (i < len && pText[i] == ',')
+	{
+		i++;
+		skipWs();
+		iSents = readNum();
+		skipWs();
+	}
+	if (i >= len || pText[i] != ')')
+	{
+		return false;
+	}
+	i++;
+	skipWs();
+	if (i != len)
+	{
+		return false;
+	}
+	if (iParas == 0)
+		iParas = 3;
+	else
+		iParas = UT_MIN(iParas, 200u);
+	if (iSents == 0)
+		iSents = 3;
+	else
+		iSents = UT_MIN(iSents, 99u);
+
+	static const char * const s_szRandSentence =
+		"The quick brown fox jumps over the lazy dog.";
+	static const char * const s_szLoremSentences[] = {
+		"Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+		"Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+		"Ut enim ad minim veniam, quis nostrud exercitation ullamco "
+			"laboris nisi ut aliquip ex ea commodo consequat.",
+		"Duis aute irure dolor in reprehenderit in voluptate velit "
+			"esse cillum dolore eu fugiat nulla pariatur.",
+		"Excepteur sint occaecat cupidatat non proident, sunt in culpa "
+			"qui officia deserunt mollit anim id est laborum."
+	};
+
+	// replace the command text with the generated paragraphs, split by
+	// real block struxes so every undo step/formatting rule sees
+	// ordinary paragraphs
+	setPoint(posBlock + len + 1);
+	cmdCharDelete(false, len);
+	setPoint(posBlock + 1);
+	for (UT_uint32 p = 0; p < iParas; ++p)
+	{
+		std::string sPara;
+		for (UT_uint32 s = 0; s < iSents; ++s)
+		{
+			if (s)
+			{
+				sPara += ' ';
+			}
+			sPara += bLorem
+				? s_szLoremSentences[(p + s) %
+					G_N_ELEMENTS(s_szLoremSentences)]
+				: s_szRandSentence;
+		}
+		cmdCharInsert(sPara, true);
+		if (p + 1 < iParas)
+		{
+			PT_DocPosition pos = getPoint();
+			m_pDoc->insertStrux(pos, PTX_Block);
+			setPoint(pos + 1);
+		}
+	}
+	return true;
+}
+
 bool
 FV_View::cmdCharInsert(const std::string& s, bool bForce)
 {

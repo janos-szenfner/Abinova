@@ -33,6 +33,7 @@
 #include "pt_PieceTable.h"
 #include "fl_DocLayout.h"
 #include "fl_AutoNum.h"
+#include "fl_ContainerLayout.h"
 #include "fv_View.h"
 #include "fp_types.h"
 #include "gr_UnixCairoGraphics.h"
@@ -655,6 +656,117 @@ TFTEST_MAIN("Go Back points track through later edits")
 	v2->cmdCharDelete(true, 1);
 	TFPASS(v2->cmdGoBack());
 	TFPASS(v2->getPoint() <= hv2.eod());
+}
+
+namespace {
+
+UT_sint32 eo_count_blocks(FL_DocLayout * layout)
+{
+	UT_sint32 n = 0;
+	fl_ContainerLayout * pDSL =
+		static_cast<fl_ContainerLayout *>(layout->getFirstSection());
+	for (; pDSL; pDSL = pDSL->getNext())
+	{
+		for (fl_ContainerLayout * pCL = pDSL->getFirstLayout(); pCL;
+			 pCL = pCL->getNext())
+		{
+			if (pCL->getContainerType() == FL_CONTAINER_BLOCK)
+				n++;
+		}
+	}
+	return n;
+}
+
+size_t eo_count(const std::string & hay, const std::string & needle)
+{
+	size_t n = 0, at = 0;
+	while ((at = hay.find(needle, at)) != std::string::npos)
+	{
+		n++;
+		at++;
+	}
+	return n;
+}
+
+}
+
+TFTEST_MAIN("=rand()/=lorem() expand to sample paragraphs on Enter")
+{
+	/* =rand(2,3) -> 2 blocks x 3 pangram sentences, one undo step */
+	EditOpsView hv;
+	TFPASS(hv.load("=rand(2,3)"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	v->setPoint(hv.eod());
+	v->insertParagraphBreak();
+	{
+		const std::string t = eo_doc_text(v);
+		TFPASS(eo_count(t, "The quick brown fox jumps over the lazy dog.") == 6);
+		TFPASS(t.find("=rand") == std::string::npos);
+		TFPASS(eo_count_blocks(hv.layout) == 2);
+	}
+	v->cmdUndo(1);
+	TFPASS(eo_doc_text(v) == "=rand(2,3)");
+	TFPASS(eo_count_blocks(hv.layout) == 1);
+
+	/* =rand() defaults to Word's 3 paragraphs x 3 sentences */
+	EditOpsView hv2;
+	TFPASS(hv2.load("=rand()"));
+	FV_View * v2 = hv2.view;
+	v2->setPoint(hv2.eod());
+	v2->insertParagraphBreak();
+	TFPASS(eo_count(eo_doc_text(v2),
+		"The quick brown fox jumps over the lazy dog.") == 9);
+	TFPASS(eo_count_blocks(hv2.layout) == 3);
+
+	/* =lorem(2,1) -> 2 blocks of lorem ipsum */
+	EditOpsView hv3;
+	TFPASS(hv3.load("=lorem(2,1)"));
+	FV_View * v3 = hv3.view;
+	v3->setPoint(hv3.eod());
+	v3->insertParagraphBreak();
+	{
+		const std::string t = eo_doc_text(v3);
+		TFPASS(eo_count(t, "Lorem ipsum dolor sit amet") == 1);
+		TFPASS(eo_count_blocks(hv3.layout) == 2);
+	}
+	v3->cmdUndo(1);
+	TFPASS(eo_doc_text(v3) == "=lorem(2,1)");
+
+	/* ordinary paragraphs are untouched by the expansion */
+	EditOpsView hv4;
+	TFPASS(hv4.load("plain text"));
+	FV_View * v4 = hv4.view;
+	v4->setPoint(hv4.eod());
+	v4->insertParagraphBreak();
+	TFPASS(eo_doc_text(v4) == "plain text");
+	TFPASS(eo_count_blocks(hv4.layout) == 2);
+
+	/* so is a near-miss: leading text, mid-line caret, no parens */
+	EditOpsView hv5;
+	TFPASS(hv5.load("x=rand()"));
+	FV_View * v5 = hv5.view;
+	v5->setPoint(hv5.eod());
+	v5->insertParagraphBreak();
+	TFPASS(eo_doc_text(v5).find("quick brown fox") == std::string::npos);
+	TFPASS(eo_count_blocks(hv5.layout) == 2);
+
+	EditOpsView hv6;
+	TFPASS(hv6.load("=rand()\ntail"));
+	FV_View * v6 = hv6.view;
+	v6->setPoint(3);                     /* caret inside the command */
+	v6->insertParagraphBreak();
+	TFPASS(eo_doc_text(v6).find("quick brown fox") == std::string::npos);
+	TFPASS(eo_count_blocks(hv6.layout) == 3);
+
+	EditOpsView hv7;
+	TFPASS(hv7.load("=rand"));
+	FV_View * v7 = hv7.view;
+	v7->setPoint(hv7.eod());
+	v7->insertParagraphBreak();
+	TFPASS(eo_doc_text(v7) == "=rand");
+	TFPASS(eo_count_blocks(hv7.layout) == 2);
 }
 
 TFTEST_MAIN("undo history enumerates labelled ops and undoes N steps")

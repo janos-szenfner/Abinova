@@ -4611,9 +4611,10 @@ void FV_View::insertParagraphBreak(void)
 	//
 	m_pDoc->disableListUpdates();
 
-	// Markdown-style "+---+---+" autoformat: replace the pattern line
-	// with a real table (still inside this user-atomic glob)
-	if (_autoFormatTableOnEnter())
+	// On-Enter autoformats (still inside this user-atomic glob):
+	// "+---+---+" becomes a real table, "=rand()"/"=lorem()" expands
+	// to sample paragraphs
+	if (_autoFormatTableOnEnter() || _expandSampleTextOnEnter())
 	{
 		m_pDoc->enableListUpdates();
 		m_pDoc->updateDirtyLists();
