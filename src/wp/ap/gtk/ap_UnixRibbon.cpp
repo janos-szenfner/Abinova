@@ -781,8 +781,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 	gtk_widget_add_css_class(qatLane, "qat");
 	gtk_widget_set_valign(qatLane, GTK_ALIGN_CENTER);
 	gtk_box_append(GTK_BOX(qatLane), m_wQat);
-	m_wAutoSave = _makeAutoSaveToggle();
-	gtk_box_append(GTK_BOX(qatLane), m_wAutoSave);
+	gtk_box_append(GTK_BOX(qatLane), _makeAutoSaveToggle());
 	gtk_notebook_set_action_widget(GTK_NOTEBOOK(m_wNotebook), qatLane,
 								   GTK_PACK_START);
 
@@ -13005,24 +13004,21 @@ void AP_UnixRibbon::_s_popover_history_show(GtkPopover * w, gpointer data)
 }
 
 /* Word puts an AutoSave switch in the same top-left lane as the
- * QAT: a flat toggle that flips the AutoSaveFile pref.  The pref
- * machinery does the rest - DocLayout's prefs listener starts or
- * stops the frame's save timer, so the interval and options stay
- * in Preferences where they belong. */
+ * QAT: a label plus a GtkSwitch that flips the AutoSaveFile pref.
+ * The pref machinery does the rest - DocLayout's prefs listener
+ * starts or stops the frame's save timer, so the interval and
+ * options stay in Preferences where they belong. */
 GtkWidget * AP_UnixRibbon::_makeAutoSaveToggle()
 {
-	m_wAutoSave = gtk_toggle_button_new();
-	gtk_widget_add_css_class(m_wAutoSave, "flat");
-	gtk_widget_add_css_class(m_wAutoSave, "qat-button");
-	GtkWidget * in = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
-	GtkWidget * img = abi_action_icon_widget("document-save-symbolic", 16);
-	if (img)
-		gtk_box_append(GTK_BOX(in), img);
+	GtkWidget * in = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	gtk_widget_set_valign(in, GTK_ALIGN_CENTER);
 	gtk_box_append(GTK_BOX(in), gtk_label_new("AutoSave"));
-	gtk_button_set_child(GTK_BUTTON(m_wAutoSave), in);
+	m_wAutoSave = gtk_switch_new();
+	gtk_widget_set_valign(m_wAutoSave, GTK_ALIGN_CENTER);
+	gtk_box_append(GTK_BOX(in), m_wAutoSave);
 	XAP_gtk_a11y_name(m_wAutoSave, "AutoSave");
 	_syncAutoSaveToggle();
-	g_signal_connect(m_wAutoSave, "toggled",
+	g_signal_connect(m_wAutoSave, "state-set",
 					 G_CALLBACK(_s_autosave_toggled), this);
 	/* if the pref flips elsewhere (the Options dialog), the
 	 * toggle follows it */
@@ -13033,7 +13029,7 @@ GtkWidget * AP_UnixRibbon::_makeAutoSaveToggle()
 	 * toplevel - the weak ref nulls the member on finalize */
 	g_object_weak_ref(G_OBJECT(m_wAutoSave),
 					  s_widget_weak_notify, &m_wAutoSave);
-	return m_wAutoSave;
+	return in;
 }
 
 void AP_UnixRibbon::_syncAutoSaveToggle()
@@ -13046,7 +13042,7 @@ void AP_UnixRibbon::_syncAutoSaveToggle()
 		pPrefs->getPrefsValueBool(XAP_PREF_KEY_AutoSaveFile, b);
 	g_signal_handlers_block_by_func(m_wAutoSave,
 		reinterpret_cast<gpointer>(_s_autosave_toggled), this);
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wAutoSave), b);
+	gtk_switch_set_active(GTK_SWITCH(m_wAutoSave), b);
 	g_signal_handlers_unblock_by_func(m_wAutoSave,
 		reinterpret_cast<gpointer>(_s_autosave_toggled), this);
 	gtk_widget_set_tooltip_text(m_wAutoSave, b
@@ -13056,23 +13052,24 @@ void AP_UnixRibbon::_syncAutoSaveToggle()
 		  " periodically");
 }
 
-void AP_UnixRibbon::_s_autosave_toggled(GtkToggleButton * w,
-										gpointer data)
+gboolean AP_UnixRibbon::_s_autosave_toggled(GtkSwitch * w,
+											gboolean state,
+											gpointer data)
 {
 	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
-	UT_return_if_fail(self && w);
+	UT_return_val_if_fail(self && w, FALSE);
 	XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
 	if (!pPrefs)
-		return;
+		return FALSE;
 	XAP_PrefsScheme * pScheme = pPrefs->getCurrentScheme(true);
 	if (!pScheme)
-		return;
+		return FALSE;
 	/* scheme setValue fires the prefs listeners - DocLayout flips
 	 * the frame's autosave timer live and _s_autosave_pref resyncs
-	 * the toggle; persist at once, as the Options dialog does */
-	pScheme->setValueBool(XAP_PREF_KEY_AutoSaveFile,
-						  gtk_toggle_button_get_active(w));
+	 * the switch; persist at once, as the Options dialog does */
+	pScheme->setValueBool(XAP_PREF_KEY_AutoSaveFile, state);
 	pPrefs->savePrefsFile();
+	return FALSE;
 }
 
 /*static*/ void AP_UnixRibbon::_s_autosave_pref(

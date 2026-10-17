@@ -324,7 +324,7 @@ private:
 	 * the pref listeners start/stop the frame's save timer */
 	GtkWidget *		_makeAutoSaveToggle();
 	void			_syncAutoSaveToggle();
-	static void		_s_autosave_toggled(GtkToggleButton * w,
+	static gboolean	_s_autosave_toggled(GtkSwitch * w, gboolean state,
 										gpointer data);
 	static void		_s_autosave_pref(class XAP_Prefs *,
 								 const std::set<std::string> * phChanges,
