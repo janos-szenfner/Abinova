@@ -313,6 +313,13 @@ bool AP_UnixApp::initialize(bool has_display)
 	if(m_pClipboard)
 		m_pClipboard->initialize();
 
+	/* automation path confinement for control-channel requests:
+	 * --automation-read-root/--automation-write-root (repeatable) */
+	for (const char ** r = AP_Args::m_sAutoReadRoots; r && *r; ++r)
+		abi_automation_add_root(false, *r);
+	for (const char ** r = AP_Args::m_sAutoWriteRoots; r && *r; ++r)
+		abi_automation_add_root(true, *r);
+
 	/* runtime control channel (tests/automation): --control=<port>
 	 * or ABINOVA_CONTROL_PORT; loopback only, off by default */
 	int ctlPort = AP_Args::m_iControlPort;

@@ -28,6 +28,16 @@ responsibility** — see `README.md`.
   shortcuts and clicks go through the same path as the keyboard),
   `file.close` (refuses a dirty document unless `"force":true`), and
   `app.quit` (closes all frames; same dirty guard).
+- **Automation path roots** — new repeatable
+  `--automation-read-root=DIR` / `--automation-write-root=DIR`
+  options confine every filesystem path a control-channel request
+  may touch: screenshot/render output paths, `openRecent`'s file,
+  and `fileSave*`/`fileExport` data paths. Paths are resolved
+  through symlinks (deepest existing ancestor + remaining
+  components, so `..` and links inside a root can't escape it) and
+  must equal a root or sit under it at a path boundary; requests
+  outside get an error reply. With no roots configured, paths are
+  unconstrained as before.
 
 ## [4.0.2] — 2026-10-17
 

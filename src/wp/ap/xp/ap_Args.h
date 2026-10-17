@@ -61,6 +61,8 @@ public:
 	static const char ** m_sFiles;
 	static int    m_iVersion;
 	static int    m_iControlPort;
+	static const char ** m_sAutoReadRoots;
+	static const char ** m_sAutoWriteRoots;
 	static int    m_iHelp;
 
 	static const char * m_impProps;

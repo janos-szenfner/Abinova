@@ -211,6 +211,87 @@ static void _conn_send(_Conn * c, long id, const char * result,
 }
 
 /*****************************************************************/
+/* automation path roots                                          */
+/*****************************************************************/
+
+static std::vector<std::string> s_roots_read;
+static std::vector<std::string> s_roots_write;
+
+/* resolve through symlinks as far as the filesystem allows:
+ * realpath() when the path exists, else realpath of the deepest
+ * existing ancestor with the remaining components re-appended
+ * (the case for a write target that does not exist yet) */
+static std::string _resolve_path(const std::string & p)
+{
+	std::string cur = p;
+	std::string tail;
+	for (int depth = 0; depth < 64; ++depth)
+	{
+		gchar * real = realpath(cur.c_str(), nullptr);
+		if (real)
+		{
+			std::string out = real;
+			free(real);
+			if (!tail.empty())
+				out += "/" + tail;
+			return out;
+		}
+		gchar * dir = g_path_get_dirname(cur.c_str());
+		gchar * base = g_path_get_basename(cur.c_str());
+		if (!dir || std::string(dir) == cur || !base)
+		{
+			g_free(dir);
+			g_free(base);
+			break;
+		}
+		tail = tail.empty()
+			? std::string(base)
+			: std::string(base) + "/" + tail;
+		cur = dir;
+		g_free(dir);
+		g_free(base);
+	}
+	gchar * can = g_canonicalize_filename(p.c_str(), nullptr);
+	std::string out = can ? can : p;
+	g_free(can);
+	return out;
+}
+
+void abi_automation_add_root(bool write, const char * path)
+{
+	if (!path || !*path)
+		return;
+	std::vector<std::string> & roots =
+		write ? s_roots_write : s_roots_read;
+	roots.push_back(_resolve_path(path));
+}
+
+bool abi_automation_path_allowed(bool write, const char * path)
+{
+	const std::vector<std::string> & roots =
+		write ? s_roots_write : s_roots_read;
+	if (roots.empty())
+		return true;
+	if (!path || !*path)
+		return false;
+	std::string p = path;
+	/* MRU/control data can arrive as a file:// URI */
+	if (p.compare(0, 7, "file://") == 0)
+		p = p.substr(7);
+	const std::string rp = _resolve_path(p);
+	for (const std::string & root : roots)
+	{
+		if (rp == root)
+			return true;
+		if (rp.size() > root.size() &&
+			rp.compare(0, root.size(), root) == 0 &&
+			rp[root.size()] == '/')
+			return true;
+	}
+	return false;
+}
+
+/*****************************************************************/
 /* methods                                                        */
 /*****************************************************************/
 
@@ -225,9 +306,47 @@ static XAP_Frame * _first_frame()
 	return app->getFrameCount() > 0 ? app->getFrame(0) : nullptr;
 }
 
+/* edit methods whose params.data is a filesystem path — confined
+ * by the automation roots when those are configured */
+static bool _cmd_reads_path(const char * cmd)
+{
+	static const char * const kRead[] = { "openRecent" };
+	for (const char * n : kRead)
+		if (!strcmp(cmd, n))
+			return true;
+	return false;
+}
+
+static bool _cmd_writes_path(const char * cmd)
+{
+	static const char * const kWrite[] = {
+		"fileSave", "fileSaveAs", "fileExport", "fileSaveImage",
+		"fileSaveAsWeb", "fileSaveTemplate"
+	};
+	for (const char * n : kWrite)
+		if (!strcmp(cmd, n))
+			return true;
+	return false;
+}
+
 static bool _exec_named(const std::string & cmd,
 						const std::string & data, std::string & err)
 {
+	if (!data.empty())
+	{
+		if (_cmd_reads_path(cmd.c_str()) &&
+			!abi_automation_path_allowed(false, data.c_str()))
+		{
+			err = "params.data outside automation-read-root";
+			return false;
+		}
+		if (_cmd_writes_path(cmd.c_str()) &&
+			!abi_automation_path_allowed(true, data.c_str()))
+		{
+			err = "params.data outside automation-write-root";
+			return false;
+		}
+	}
 	EV_EditMethodContainer * emc =
 		s_ctl.app ? s_ctl.app->getEditMethodContainer() : nullptr;
 	EV_EditMethod * em =
@@ -363,6 +482,11 @@ static bool _m_screenshot(const std::string & j, std::string & out,
 	if (!_json_str(j, "path", path) || path.empty())
 	{
 		err = "missing params.path";
+		return false;
+	}
+	if (!abi_automation_path_allowed(true, path.c_str()))
+	{
+		err = "params.path outside automation-write-root";
 		return false;
 	}
 	GtkWidget * win = _frame_window(_first_frame());
@@ -619,6 +743,11 @@ static bool _m_ui_render(const std::string & j, std::string & out,
 	if (!_json_str(j, "path", path) || path.empty())
 	{
 		err = "missing params.path";
+		return false;
+	}
+	if (!abi_automation_path_allowed(true, path.c_str()))
+	{
+		err = "params.path outside automation-write-root";
 		return false;
 	}
 	GtkWidget * area = nullptr;

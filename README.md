@@ -1141,6 +1141,12 @@ abinova --control 7981            # or ABINOVA_CONTROL_PORT=7981
   - `file.close` — closes the front document; refuses while it has
     unsaved changes unless `"force":true`.
   - `app.quit` — closes every frame and exits; same dirty guard.
+- Optional path confinement: `--automation-read-root=DIR` and
+  `--automation-write-root=DIR` (repeatable) restrict which
+  filesystem paths channel requests may read or write — covering
+  screenshot/render output and file open/save command data. Paths
+  resolve through symlinks and must stay inside a root; with no
+  roots given, paths are unrestricted.
 
 Example:
 

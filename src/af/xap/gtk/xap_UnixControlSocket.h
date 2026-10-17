@@ -38,4 +38,14 @@ class XAP_App;
  */
 bool abi_control_start(XAP_App * pApp, int port);
 
+/* Automation path confinement: --automation-read-root=DIR and
+ * --automation-write-root=DIR (repeatable) limit which filesystem
+ * paths control-channel requests may touch.  Roots are resolved
+ * through symlinks once at registration; every checked path is
+ * likewise resolved (deepest existing ancestor + remaining
+ * components) and must equal a root or sit under it at a path
+ * boundary.  With no roots registered, nothing is confined. */
+void abi_automation_add_root(bool write, const char * path);
+bool abi_automation_path_allowed(bool write, const char * path);
+
 #endif /* XAP_UNIXCONTROLSOCKET_H */
