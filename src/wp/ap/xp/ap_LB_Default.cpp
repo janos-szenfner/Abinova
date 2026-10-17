@@ -382,7 +382,7 @@ ap_bs_NVK NVKTable[] =
 						  "",					"",					"",				""					}},
 	{EV_NVK_F4,			{ "redo",				"",					"closeWindow",	"",
 						  "querySaveAndExit",	"",					"",				""					}},
-	{EV_NVK_F5,			{ "go",					"",					"",				"insertBookmark",
+	{EV_NVK_F5,			{ "go",					"goBack",			"",				"insertBookmark",
 						  "",					"",					"",				""					}},
 	{EV_NVK_F6,			{ "",					"",					"cycleWindows",	"cycleWindowsBck",
 						  "",					"",					"",			""					}},

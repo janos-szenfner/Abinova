@@ -39,6 +39,7 @@
 #include "ut_findpattern.h"
 #include "xav_View.h"
 #include "pt_Types.h"
+#include "pl_Listener.h"
 #include "pp_Property.h"
 #include "fp_types.h"
 #include "fl_PartOfBlock.h"
@@ -277,7 +278,8 @@ class ABI_EXPORT FV_View_BubbleBlocker
 
 };
 
-class ABI_EXPORT FV_View : public AV_View
+class ABI_EXPORT FV_View : public AV_View,
+						   public PL_EditPointTracker
 {
 	friend class fl_DocListener;
 	friend class fl_BlockLayout;
@@ -597,6 +599,8 @@ public:
 	void			cmdSelect(UT_sint32 xPos, UT_sint32 yPos, FV_DocPos dpBeg, FV_DocPos dpEnd);
 	void			cmdSelectTOC(UT_sint32 xPos, UT_sint32 yPos);
 	bool			cmdGoToTOCEntry(UT_sint32 xPos, UT_sint32 yPos);
+	bool			cmdGoBack(void);
+	virtual void	recordEditPoint(const PX_ChangeRecord * pcr) override;
 	bool            isTOCSelected(void) const;
 	bool            setTOCProps(PT_DocPosition pos, const char * szProps);
 
@@ -1485,4 +1489,15 @@ private:
 	FV_ViewDoubleBuffering *m_pViewDoubleBufferingObject;
 
 	std::queue<std::optional<UT_Rect>> m_drawQueue;
+
+	/* Word "Go Back" (Shift+F5): the last few positions where the
+	 * piece table reported a content edit, shifted as later edits
+	 * move them.  m_posEditBurstEnd marks the end of the contiguous
+	 * burst so continued typing merges into one remembered spot;
+	 * m_posGoBackAnchor/m_posGoBackLast drive the repeat-press cycle. */
+	std::vector<PT_DocPosition>	m_vecEditPoints;
+	PT_DocPosition		m_posEditBurstEnd;
+	UT_sint32			m_iGoBackIndex;
+	PT_DocPosition		m_posGoBackAnchor;
+	PT_DocPosition		m_posGoBackLast;
 };

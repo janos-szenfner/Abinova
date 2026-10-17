@@ -109,6 +109,7 @@ TFTEST_MAIN("ap_KeyBindings")
 	TFPASS(expectChar('h', EV_EMS_CONTROL, "replace"));
 	TFPASS(expectChar('g', EV_EMS_CONTROL, "go"));
 	TFPASS(expectNVK(EV_NVK_F5, 0, "go"));
+	TFPASS(expectNVK(EV_NVK_F5, EV_EMS_SHIFT, "goBack"));     /* Shift+F5 = Go Back (Word) */
 	TFPASS(expectNVK(EV_NVK_F5, EV_EMS_SHIFT | EV_EMS_CONTROL,
 				   "insertBookmark"));                        /* Ctrl+Shift+F5 */
 	TFPASS(expectNVK(EV_NVK_BACKSPACE, EV_EMS_CONTROL, "delBOW"));

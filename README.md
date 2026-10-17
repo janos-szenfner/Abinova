@@ -823,7 +823,8 @@ switcher.
   Ctrl+Shift+G word count.
 - **Navigation & selection** — arrows, Ctrl+arrows (word/paragraph
   jumps), Home/End, Ctrl+Home/End (document bounds), all with Shift
-  to extend the selection · PageUp/PageDown · Ctrl+Tab or
+  to extend the selection · PageUp/PageDown · Shift+F5 Go Back to
+  the last edit point (repeat to cycle) · Ctrl+Tab or
   Ctrl+F6 / Ctrl+Shift+F6 cycle open documents.
 - **Insertions** — Enter paragraph · Shift+Enter line break ·
   Ctrl+Enter page break · Ctrl+Shift+Enter column break ·

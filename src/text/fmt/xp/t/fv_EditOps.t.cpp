@@ -574,3 +574,85 @@ TFTEST_MAIN("latex math object inserts")
 	TFPASS(v->cmdInsertLatexMath(tex, mathml, true));
 	TFPASS(hv.layout->countPages() >= 1);
 }
+
+TFTEST_MAIN("Go Back revisits recent edit points")
+{
+	EditOpsView hv;
+	TFPASS(hv.load("alpha\nbeta\ngamma"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	const UT_UCS4Char Z[] = { 'Z' };
+
+	/* nothing edited yet — Go Back has nowhere to go */
+	TFPASS(!v->cmdGoBack());
+
+	/* one burst of typing at each of two spots */
+	v->setPoint(2);
+	TFPASS(v->cmdCharInsert(Z, 1));
+	const PT_DocPosition spot1 = 2;
+	const PT_DocPosition tail = hv.eod();
+	v->setPoint(tail);
+	TFPASS(v->cmdCharInsert(std::string(" tail"), false));
+
+	/* park elsewhere: presses walk newest->oldest then the anchor */
+	v->setPoint(10);
+	TFPASS(v->cmdGoBack());
+	TFPASS(v->getPoint() == tail);
+	TFPASS(v->cmdGoBack());
+	TFPASS(v->getPoint() == spot1);
+	TFPASS(v->cmdGoBack());
+	TFPASS(v->getPoint() == 10);
+	TFPASS(v->cmdGoBack());
+	TFPASS(v->getPoint() == tail);
+}
+
+TFTEST_MAIN("Go Back points track through later edits")
+{
+	EditOpsView hv;
+	TFPASS(hv.load("alpha\nbeta\ngamma"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	const UT_UCS4Char Z[] = { 'Z' };
+
+	v->setPoint(10);
+	TFPASS(v->cmdCharInsert(Z, 1));              /* remembered 10 */
+	const PT_DocPosition tail = hv.eod();
+	v->setPoint(tail);
+	TFPASS(v->cmdCharInsert(Z, 1));              /* remembered tail */
+
+	/* inserting before both shifts them; this edit is the newest */
+	v->setPoint(3);
+	TFPASS(v->cmdCharInsert(std::string("abc"), false));
+
+	v->setPoint(hv.eod());
+	TFPASS(v->cmdGoBack());
+	TFPASS(v->getPoint() == 3);
+	TFPASS(v->cmdGoBack());
+	TFPASS(v->getPoint() == tail + 3);
+	TFPASS(v->cmdGoBack());
+	TFPASS(v->getPoint() == 13);
+
+	/* a point swallowed by a delete clamps onto the surviving edge */
+	EditOpsView hv2;
+	TFPASS(hv2.load("alpha\nbeta\ngamma"));
+	FV_View * v2 = hv2.view;
+	v2->setPoint(12);
+	TFPASS(v2->cmdCharInsert(Z, 1));             /* remembered 12 */
+	v2->setPoint(10);
+	v2->cmdCharDelete(true, 5);                  /* delete [10,15) */
+	v2->setPoint(4);
+	TFPASS(v2->cmdGoBack());
+	TFPASS(v2->getPoint() == 10);                /* delete spot is newest */
+	TFPASS(v2->cmdGoBack());
+	/* the swallowed 12 clamped onto 10 and deduped away — with an
+	 * untracked ring the second press would land on stale 12 */
+	TFPASS(v2->getPoint() == 4);
+
+	/* boundaries: shrink the doc under a remembered tail point */
+	v2->cmdSelect(2, hv2.eod());
+	v2->cmdCharDelete(true, 1);
+	TFPASS(v2->cmdGoBack());
+	TFPASS(v2->getPoint() <= hv2.eod());
+}

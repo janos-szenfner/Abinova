@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <algorithm>
 #include <memory>
 #include <unordered_set>
 
@@ -4144,6 +4145,25 @@ void PD_Document::getAllViews(std::vector<AV_View *> * vecViews) const
 	}
 }
 
+void PD_Document::addEditPointTracker(PL_EditPointTracker * pTracker)
+{
+	UT_return_if_fail(pTracker);
+	if(std::find(m_vecEditPointTrackers.begin(),
+				 m_vecEditPointTrackers.end(), pTracker)
+	   == m_vecEditPointTrackers.end())
+	{
+		m_vecEditPointTrackers.push_back(pTracker);
+	}
+}
+
+void PD_Document::removeEditPointTracker(PL_EditPointTracker * pTracker)
+{
+	m_vecEditPointTrackers.erase(
+		std::remove(m_vecEditPointTrackers.begin(),
+					m_vecEditPointTrackers.end(), pTracker),
+		m_vecEditPointTrackers.end());
+}
+
 bool PD_Document::notifyListeners(const pf_Frag_Strux* pfs, PX_ChangeRecord* pcr) const
 {
 	// notify listeners of a change.
@@ -4161,6 +4181,12 @@ bool PD_Document::notifyListeners(const pf_Frag_Strux* pfs, PX_ChangeRecord* pcr
 	{
 			pcr->setCRNumber();
 	}
+
+	for(PL_EditPointTracker * pTracker : m_vecEditPointTrackers)
+	{
+		pTracker->recordEditPoint(pcr);
+	}
+
 	PL_ListenerId lid;
 	PL_ListenerId lidCount = static_cast<PL_ListenerId>(m_vecListeners.size());
 
@@ -4355,6 +4381,11 @@ bool PD_Document::notifyListeners(const pf_Frag_Strux * pfs,
 	else if(pcr->getCRNumber() == 0)
 	{
 			pcr->setCRNumber();
+	}
+
+	for(PL_EditPointTracker * pTracker : m_vecEditPointTrackers)
+	{
+		pTracker->recordEditPoint(pcr);
 	}
 
 	PL_ListenerId lid;

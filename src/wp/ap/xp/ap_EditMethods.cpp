@@ -853,6 +853,7 @@ public:
 	static EV_EditMethod_Fn tocRemove;
 	static EV_EditMethod_Fn tocUpdate;
 	static EV_EditMethod_Fn tocGoTo;
+	static EV_EditMethod_Fn goBack;
 	static EV_EditMethod_Fn differentFirstPage;
 	static EV_EditMethod_Fn differentOddEven;
 	static EV_EditMethod_Fn attachTemplate;
@@ -1213,6 +1214,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 
 	// g
 	EV_EditMethod(NF(go),					0,	""),
+	EV_EditMethod(NF(goBack),				0,		""),
 	EV_EditMethod(NF(hangingIndent),		0,	""),
 
 	// h
@@ -7160,6 +7162,18 @@ Defun(tocGoTo)
 	ABIWORD_VIEW;
 	UT_return_val_if_fail (pView, false);
 	return pView->cmdGoToTOCEntry(pCallData->m_xPos, pCallData->m_yPos);
+}
+
+/*
+ * Word's Go Back (Shift+F5): return the caret to the last edit point,
+ * cycling through the remembered positions on repeat presses.
+ */
+Defun(goBack)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, false);
+	return pView->cmdGoBack();
 }
 
 /*

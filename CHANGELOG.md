@@ -69,6 +69,11 @@ responsibility** — see `README.md`.
   layer now folds Command into Ctrl like the keyboard path, so
   Cmd+Click TOC navigation, Cmd+wheel zoom and the other Ctrl-click
   bindings work on macOS too.
+- **Go Back (Shift+F5)** — pressing Shift+F5 returns the caret to the
+  last place the document was edited; repeated presses cycle through
+  the most recent edit points and back to where you started, Word
+  style. Edit spots are tracked through later inserts and deletes,
+  so they still land where the text actually is.
 
 ### User interface
 

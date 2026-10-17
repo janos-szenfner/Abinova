@@ -341,10 +341,17 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 		m_bPasteTagArmed(false),
 		m_posPasteTagStart(0),
 		m_posPasteTagEnd(0),
-		m_pViewDoubleBufferingObject(nullptr)
+		m_pViewDoubleBufferingObject(nullptr),
+		m_posEditBurstEnd(0),
+		m_iGoBackIndex(-1),
+		m_posGoBackAnchor(0),
+		m_posGoBackLast(0)
 {
 	if(m_pDoc)
+	{
 		m_sDocUUID = m_pDoc->getMyUUIDString();
+		m_pDoc->addEditPointTracker(this);
+	}
 	m_colorRevisions[0] = UT_RGBColor(171,4,254);
 	m_colorRevisions[1] = UT_RGBColor(171,20,119);
 	m_colorRevisions[2] = UT_RGBColor(255,151,8);
@@ -681,6 +688,10 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 
 FV_View::~FV_View()
 {
+	if(m_pDoc)
+	{
+		m_pDoc->removeEditPointTracker(this);
+	}
 	// detach from the layout first - fl_FrameLayout's destructor
 	// dereferences getView() during teardown, so the layout must not
 	// hold a pointer to this dying view

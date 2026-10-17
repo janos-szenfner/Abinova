@@ -474,6 +474,8 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
                                                 PL_ListenerCoupleCloser* closer = nullptr) const;
 	bool					addListener(PL_Listener * pListener, PL_ListenerId * pListenerId);
 	bool					removeListener(PL_ListenerId listenerId);
+	void					addEditPointTracker(PL_EditPointTracker * pTracker);
+	void					removeEditPointTracker(PL_EditPointTracker * pTracker);
 	bool					signalListeners(UT_uint32 iSignal) const;
 	bool					notifyListeners(const pf_Frag_Strux* pfs, PX_ChangeRecord* pcr) const;
 	bool					notifyListeners(const pf_Frag_Strux* pfs,
@@ -913,6 +915,7 @@ private:
 	pt_PieceTable *			m_pPieceTable;
     PD_DocumentRDFHandle    m_hDocumentRDF;
 	std::vector<PL_Listener *> m_vecListeners;
+	std::vector<PL_EditPointTracker *> m_vecEditPointTrackers;
 	std::vector<fl_AutoNumPtr> m_vecLists;
 	std::unordered_map<UT_uint32, fl_AutoNumPtr> m_mapLists;
 	bool                    m_bHasListStopped;

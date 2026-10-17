@@ -111,6 +111,22 @@ public:
 };
 
 /*!
+ * PL_EditPointTracker -- a minimal observer for the document's
+ * change-record stream.  Unlike PL_Listener it binds no layout
+ * handles and performs no populate walk: PD_Document calls
+ * recordEditPoint() from inside notifyListeners() for every real
+ * change record.  FV_View uses this to keep Word-style "Go Back"
+ * (Shift+F5) edit positions without becoming a layout listener.
+ */
+class ABI_EXPORT PL_EditPointTracker
+{
+public:
+	virtual ~PL_EditPointTracker(){}
+
+	virtual void		recordEditPoint(const PX_ChangeRecord * pcr) = 0;
+};
+
+/*!
  * I Need this subclass so I can trigger AbiCollab to update it'self if the docuemnt changes or goes away.
  */
 class ABI_EXPORT PL_DocChangeListener : public PL_Listener

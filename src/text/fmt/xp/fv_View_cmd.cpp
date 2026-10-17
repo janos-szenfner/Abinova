@@ -69,6 +69,7 @@
 #include "fg_GraphicRaster.h"
 #include "pd_Document.h"
 #include "pd_Style.h"
+#include "px_CR_Span.h"
 #include "pp_Property.h"
 #include "pp_AttrProp.h"
 #include "gr_Graphics.h"
@@ -829,6 +830,127 @@ bool FV_View::cmdGoToTOCEntry(UT_sint32 x, UT_sint32 y)
 		_clearSelection();
 	}
 	_setPoint(posSource);
+	_fixInsertionPointCoords();
+	_ensureInsertionPointOnScreen();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+// Word keeps the last few spots where the document was edited.
+static const size_t FV_MAX_EDIT_POINTS = 4;
+
+/*!
+ * PL_EditPointTracker callback fired from PD_Document::notifyListeners
+ * for every real change record.  Content edits push their position
+ * onto the ring; the same records shift the remembered points so a
+ * spot survives later inserts/deletes before it.
+ */
+void FV_View::recordEditPoint(const PX_ChangeRecord * pcr)
+{
+	UT_return_if_fail(pcr);
+	const PT_DocPosition pos = pcr->getPosition();
+	UT_uint32 iLen = 0;
+	bool bInsert = false;
+	switch(pcr->getType())
+	{
+	case PX_ChangeRecord::PXT_InsertSpan:
+		iLen = static_cast<const PX_ChangeRecord_Span *>(pcr)->getLength();
+		bInsert = true;
+		break;
+	case PX_ChangeRecord::PXT_InsertStrux:
+	case PX_ChangeRecord::PXT_InsertObject:
+		iLen = 1;
+		bInsert = true;
+		break;
+	case PX_ChangeRecord::PXT_DeleteSpan:
+		iLen = static_cast<const PX_ChangeRecord_Span *>(pcr)->getLength();
+		break;
+	case PX_ChangeRecord::PXT_DeleteStrux:
+	case PX_ChangeRecord::PXT_DeleteObject:
+		iLen = 1;
+		break;
+	default:
+		// formatting, glob and list records don't move document positions
+		return;
+	}
+
+	// the document has already been updated: shift remembered points
+	// past inserted content and clamp points swallowed by a delete
+	// onto the surviving edge.
+	for(PT_DocPosition & e : m_vecEditPoints)
+	{
+		if(bInsert)
+		{
+			if(e > pos)
+				e += iLen;
+		}
+		else if(e > pos)
+		{
+			e = (e >= pos + iLen) ? e - iLen : pos;
+		}
+	}
+	m_vecEditPoints.erase(
+		std::unique(m_vecEditPoints.begin(), m_vecEditPoints.end()),
+		m_vecEditPoints.end());
+	m_iGoBackIndex = -1;
+
+	// continued typing at the burst edge moves the remembered point
+	// instead of flooding the ring with one entry per character.
+	if(!m_vecEditPoints.empty() && pos >= m_vecEditPoints.back()
+	   && pos <= m_posEditBurstEnd)
+	{
+		m_vecEditPoints.back() = pos;
+	}
+	else if(m_vecEditPoints.empty() || pos != m_vecEditPoints.back())
+	{
+		m_vecEditPoints.push_back(pos);
+		if(m_vecEditPoints.size() > FV_MAX_EDIT_POINTS)
+			m_vecEditPoints.erase(m_vecEditPoints.begin());
+	}
+	m_posEditBurstEnd = bInsert ? pos + iLen : pos;
+}
+
+/*!
+ * Word "Go Back" (Shift+F5): warp the caret to the most recent edit
+ * point.  Repeated presses walk back through the remembered points
+ * and finally return to where the cycle started.
+ */
+bool FV_View::cmdGoBack(void)
+{
+	if(m_vecEditPoints.empty())
+	{
+		return false;
+	}
+	const PT_DocPosition posCur = getPoint();
+	if(m_iGoBackIndex < 0 || posCur != m_posGoBackLast)
+	{
+		// (re)start the cycle: the caret moved since the last jump
+		// (or this is the first press) so this position becomes the
+		// wrap-around entry.
+		m_posGoBackAnchor = posCur;
+		m_iGoBackIndex = 0;
+	}
+	const UT_uint32 n = static_cast<UT_uint32>(m_vecEditPoints.size());
+	PT_DocPosition posTarget = (static_cast<UT_uint32>(m_iGoBackIndex) < n)
+		? m_vecEditPoints[n - 1 - m_iGoBackIndex]
+		: m_posGoBackAnchor;
+	m_iGoBackIndex = (m_iGoBackIndex + 1) % static_cast<UT_sint32>(n + 1);
+
+	// remembered points may be stale relative to the current story
+	// bounds — clamp before the warp.
+	const PT_DocPosition posBOD = _getDocPos(FV_DOCPOS_BOD);
+	const PT_DocPosition posEOD = _getDocPos(FV_DOCPOS_EOD);
+	if(posTarget < posBOD)
+		posTarget = posBOD;
+	else if(posTarget > posEOD)
+		posTarget = posEOD;
+	m_posGoBackLast = posTarget;
+
+	if(!isSelectionEmpty())
+	{
+		_clearSelection();
+	}
+	_setPoint(posTarget);
 	_fixInsertionPointCoords();
 	_ensureInsertionPointOnScreen();
 	notifyListeners(AV_CHG_MOTION);
