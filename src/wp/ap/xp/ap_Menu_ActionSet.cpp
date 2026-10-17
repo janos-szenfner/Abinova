@@ -200,6 +200,10 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_INSERT_DROPCAP,	0,1,0,0,	"dropCap",		nullptr,								nullptr);
 	_s(AP_MENU_ID_INSERT_SIGNATURE,	0,1,0,0,	"insertSignatureLine",	nullptr,							nullptr);
 	_s(AP_MENU_ID_INSERT_OBJECT,	0,1,0,0,	nullptr,			nullptr,								nullptr);
+	_s(AP_MENU_ID_INSERT_CONTENTCONTROL,	0,1,0,0,	"insContentControl", nullptr,							nullptr);
+	_s(AP_MENU_ID_CTL_DESIGNMODE,	0,0,1,0,	"contentControlDesignMode", ap_GetState_DesignMode,				nullptr);
+	_s(AP_MENU_ID_CTL_PROPS,	0,1,0,0,	"contentControlProps", ap_GetState_InContentControlDesign,		nullptr);
+	_s(AP_MENU_ID_CTL_REMOVE,	0,0,0,0,	"contentControlRemove", ap_GetState_InContentControlDesign,		nullptr);
 
 	_s(AP_MENU_ID_FORMAT,			1,0,0,0,	nullptr,				nullptr,					nullptr);
 	_s(AP_MENU_ID_FMT,			1,0,0,0,	nullptr,				nullptr,					nullptr);

@@ -84,6 +84,7 @@
 #include "ap_Prefs.h"
 #include "ap_Strings.h"
 #include "fd_Field.h"
+#include "pf_Frag_Object.h"
 #include "pf_Frag_Strux.h"
 #include "fp_FootnoteContainer.h"
 #include "fv_CoverAssets.h"
@@ -5514,6 +5515,14 @@ void FV_View::cmdCharDelete(bool bForward, UT_uint32 count)
 		}
 
 		if(m_pDoc->isEndFrameAtPos(posCur))
+		{
+			return;
+		}
+
+		/* content controls are read-only outside SDT design mode:
+		 * a backspace/delete reaching into one is refused */
+		if(!m_bSDTDesignMode &&
+		   _rangeHasContentControl(posCur, posCur + amt))
 		{
 			return;
 		}
@@ -12193,5 +12202,204 @@ bool FV_View::cmdParaBorder(const char * szWhich)
 	}
 	m_pDoc->endUserAtomicGlob();
 	_generalUpdate();
+	return true;
+}
+
+/*****************************************************************/
+/* Word-style content controls (OOXML w:sdt)                      */
+/*                                                               */
+/* A control is a single atomic field object of type              */
+/* "content_control" whose sdt-* attributes hold the metadata:    */
+/*   sdt-type        text | checkbox | dropdown | combo | date    */
+/*   sdt-value       the control's current value                  */
+/*   sdt-title       display title                                */
+/*   sdt-tag         programmatic tag                             */
+/*   sdt-placeholder prompt text when sdt-value is empty          */
+/*   sdt-items       dropdown/combo items, ';' separated          */
+/*                                                               */
+/* While SDT design mode is off the control is read-only: the     */
+/* attr-changing commands refuse and _deleteSelection blocks      */
+/* deletion. The checkbox affordance (value flip) is a form-fill  */
+/* action and works in both modes.                                */
+/*****************************************************************/
+
+void FV_View::setSDTDesignMode(bool b)
+{
+	if (m_bSDTDesignMode == b)
+		return;
+	m_bSDTDesignMode = b;
+	updateScreen(false);
+}
+
+static bool s_isContentControlFrag(const pf_Frag * pf)
+{
+	if (!pf || pf->getType() != pf_Frag::PFT_Object)
+		return false;
+	const pf_Frag_Object * pfo = static_cast<const pf_Frag_Object *>(pf);
+	if (pfo->getObjectType() != PTO_Field)
+		return false;
+	const fd_Field * fd = pfo->getField();
+	return fd && fd->getFieldType() == fd_Field::FD_ContentControl;
+}
+
+bool FV_View::_rangeHasContentControl(PT_DocPosition pos1,
+									  PT_DocPosition pos2) const
+{
+	if (pos1 >= pos2)
+		return false;
+	pf_Frag * pf = m_pDoc->getFragFromPosition(pos1);
+	for (; pf && pf->getPos() < pos2; pf = pf->getNext())
+	{
+		if (s_isContentControlFrag(pf))
+			return true;
+	}
+	return false;
+}
+
+bool FV_View::getContentControlAt(PT_DocPosition pos,
+								  pf_Frag_Object ** ppObj,
+								  PT_DocPosition * pObjPos) const
+{
+	/* the object occupies one char position: the caret may sit just
+	 * before it (pos == objPos) or just after it (pos == objPos+1) */
+	for (int i = 0; i < 2; ++i)
+	{
+		if (i == 1 && pos == 0)
+			break;
+		PT_DocPosition p = pos - static_cast<PT_DocPosition>(i);
+		pf_Frag * pf = m_pDoc->getFragFromPosition(p);
+		if (s_isContentControlFrag(pf))
+		{
+			if (ppObj)
+				*ppObj = static_cast<pf_Frag_Object *>(pf);
+			if (pObjPos)
+				*pObjPos = p;
+			return true;
+		}
+	}
+	return false;
+}
+
+const gchar * FV_View::getContentControlAttr(PT_DocPosition pos,
+											 const char* szAttr) const
+{
+	pf_Frag_Object * pfo = nullptr;
+	if (!getContentControlAt(pos, &pfo, nullptr) || !pfo || !szAttr)
+		return nullptr;
+	const PP_AttrProp * pAP = nullptr;
+	if (!m_pDoc->getAttrProp(pfo->getIndexAP(), &pAP) || !pAP)
+		return nullptr;
+	const gchar * v = nullptr;
+	if (pAP->getAttribute(szAttr, v))
+		return v;
+	return nullptr;
+}
+
+UT_Error FV_View::cmdInsertContentControl(const char* szCtlType,
+										const char* szTitle,
+										const char* szTag,
+										const char* szValue,
+										const char* szItems,
+										const char* szPlaceholder)
+{
+	PP_PropertyVector atts;
+	if (szCtlType && *szCtlType)
+	{
+		atts.push_back("sdt-type");
+		atts.push_back(szCtlType);
+	}
+	if (szTitle && *szTitle)
+	{
+		atts.push_back("sdt-title");
+		atts.push_back(szTitle);
+	}
+	if (szTag && *szTag)
+	{
+		atts.push_back("sdt-tag");
+		atts.push_back(szTag);
+	}
+	if (szValue && *szValue)
+	{
+		atts.push_back("sdt-value");
+		atts.push_back(szValue);
+	}
+	if (szItems && *szItems)
+	{
+		atts.push_back("sdt-items");
+		atts.push_back(szItems);
+	}
+	if (szPlaceholder && *szPlaceholder)
+	{
+		atts.push_back("sdt-placeholder");
+		atts.push_back(szPlaceholder);
+	}
+	return cmdInsertField("content_control", atts, PP_NOPROPS);
+}
+
+bool FV_View::cmdContentControlSetProps(const PP_PropertyVector & attrs)
+{
+	if (!m_bSDTDesignMode)
+		return false;
+	pf_Frag_Object * pfo = nullptr;
+	PT_DocPosition objPos = 0;
+	if (!getContentControlAt(getPoint(), &pfo, &objPos) || !pfo)
+		return false;
+	if (attrs.empty())
+		return false;
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	bool bRes = m_pDoc->changeSpanFmt(PTC_AddFmt, objPos, objPos + 1,
+									  attrs, PP_NOPROPS);
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	_fixInsertionPointCoords();
+	return bRes;
+}
+
+bool FV_View::cmdContentControlToggle(void)
+{
+	pf_Frag_Object * pfo = nullptr;
+	PT_DocPosition objPos = 0;
+	if (!getContentControlAt(getPoint(), &pfo, &objPos) || !pfo)
+		return false;
+	const gchar * szType = getContentControlAttr(objPos, "sdt-type");
+	if (!szType || strcmp(szType, "checkbox") != 0)
+		return false;
+	const gchar * szVal = getContentControlAttr(objPos, "sdt-value");
+	const bool bChecked = szVal && (!strcmp(szVal, "1") ||
+									!strcmp(szVal, "true") ||
+									!strcmp(szVal, "on"));
+	PP_PropertyVector atts = { "sdt-value", bChecked ? "0" : "1" };
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	bool bRes = m_pDoc->changeSpanFmt(PTC_AddFmt, objPos, objPos + 1,
+									  atts, PP_NOPROPS);
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	_fixInsertionPointCoords();
+	return bRes;
+}
+
+bool FV_View::cmdContentControlRemove(void)
+{
+	if (!m_bSDTDesignMode)
+		return false;
+	pf_Frag_Object * pfo = nullptr;
+	PT_DocPosition objPos = 0;
+	if (!getContentControlAt(getPoint(), &pfo, &objPos) || !pfo)
+		return false;
+
+	_saveAndNotifyPieceTableChange();
+	UT_uint32 iRealDeleteCount = 0;
+	m_pDoc->beginUserAtomicGlob();
+	m_pDoc->deleteSpan(objPos, objPos + 1, nullptr, iRealDeleteCount);
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	_fixInsertionPointCoords();
 	return true;
 }

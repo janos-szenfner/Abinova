@@ -149,6 +149,12 @@ private:
 	GtkWidget *		_makeHdrFtrPopover(bool bFooter);
 	GtkWidget *		_makePageNumberPopover();
 	GtkWidget *		_makeDropCapPopover();
+	/* Developer tab: content controls (w:sdt) */
+	GtkWidget *		_makeContentControlPopover();
+	GtkWidget *		_makeCtlPropsPopover();
+	GtkWidget *		_ctlPropRow(const char * szLabel,
+								const char * szValue);
+	static void		_s_ctlprops_apply(GtkWidget * w, gpointer data);
 	/* Table Design tab */
 	GtkWidget *		_makeTableStyleOptions();
 	GtkWidget *		_makeTableStyleGallery();

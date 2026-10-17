@@ -78,4 +78,5 @@ _FIELD(DOCUMENT, AP_STRING_ID_FIELD_Document_Coverage, meta_coverage)
 _FIELD(DOCUMENT, AP_STRING_ID_FIELD_Document_Rights, meta_rights)
 _FIELD(DOCUMENT, AP_STRING_ID_FIELD_Document_Date, meta_date)
 _FIELD(DOCUMENT, AP_STRING_ID_FIELD_Document_Date_Last_Changed, meta_date_last_changed)
+_FIELD(DOCUMENT, AP_STRING_ID_FIELD_Document_ContentControl, content_control)
 

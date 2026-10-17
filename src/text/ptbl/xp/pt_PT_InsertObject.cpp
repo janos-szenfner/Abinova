@@ -161,6 +161,41 @@ bool pt_PieceTable::_realInsertObject(PT_DocPosition dpos,
 	
 	apiOld = _chooseIndexAP(pf,fragOffset);
 
+	if (pto == PTO_Field)
+	{
+		// field attrs (incl. content-control sdt-*) must not leak
+		// into a new field object from the AP at the insertion
+		// position — same list insertSpan eliminates for the span
+		// following a field.
+		PP_PropertyVector pFieldAttrs = {
+			"type", "",
+			"param", "",
+			"name", "",
+			"endnote-id", "",
+			"sdt-type", "",
+			"sdt-value", "",
+			"sdt-title", "",
+			"sdt-tag", "",
+			"sdt-placeholder", "",
+			"sdt-items", ""
+		};
+
+		const PP_AttrProp * pAPOld = nullptr;
+		if (getAttrProp(apiOld, &pAPOld) && pAPOld &&
+			pAPOld->areAnyOfTheseNamesPresent(pFieldAttrs, PP_NOPROPS))
+		{
+			pFieldAttrs.push_back("style");
+			pFieldAttrs.push_back("");
+			PP_AttrProp * pAPNew = pAPOld->cloneWithElimination(pFieldAttrs, PP_NOPROPS);
+			if (pAPNew)
+			{
+				pAPNew->markReadOnly();
+				if (!m_varset.addIfUniqueAP(pAPNew, &apiOld))
+					return false;
+			}
+		}
+	}
+
 	if (!m_varset.mergeAP(PTC_AddFmt, apiOld, attributes, properties, &indexAP, m_pDocument))
 		return false;
 

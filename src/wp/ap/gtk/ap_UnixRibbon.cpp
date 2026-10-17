@@ -111,6 +111,7 @@ static const _ribbon_kv s_ribbon_tab_labels[] =
 	{ "review",     "Review" },
 	{ "view",       "View" },
 	{ "tabledesign","Table Design" },
+	{ "developer",  "Developer" },
 	{ "table",      "Table Layout" },
 	{ "equation",   "Equation" },
 	{ "help",       "Help" },
@@ -177,6 +178,7 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "tblstyles",   "Table Styles" },
 	{ "borders",     "Borders" },
 	{ "equation",    "Equation" },
+	{ "controls",    "Controls" },
 	{ "structures",  "Structures" },
 	{ "help",        "Help" },
 	{ "interface",   "Interface" },
@@ -2475,6 +2477,12 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_DROPCAP):
 		popover = _makeDropCapPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_CONTENTCONTROL):
+		popover = _makeContentControlPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_CTL_PROPS):
+		popover = _makeCtlPropsPopover();
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_REF_TOCPOP):
 		popover = _makeTOCGalleryPopover();
@@ -10002,6 +10010,152 @@ GtkWidget * AP_UnixRibbon::_makeDropCapPopover()
 					   _presetRow(label.c_str(), nullptr, nullptr,
 								  "dropCap", data.c_str()));
 	}
+	return popover;
+}
+
+/* Developer tab, Word's Controls gallery: insert a w:sdt-style
+ * content control of the chosen kind at the caret */
+GtkWidget * AP_UnixRibbon::_makeContentControlPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _popover_section_label("Insert a control"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Plain Text", "Free-form text entry",
+							  nullptr, "insContentControl", "type=text"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Check Box", "On/off value",
+							  nullptr, "insContentControl", "type=checkbox"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Combo Box", "Editable pick list",
+							  nullptr, "insContentControl", "type=combo"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Drop-down List", "Pick list",
+							  nullptr, "insContentControl", "type=dropdown"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Date Picker", "Date value",
+							  nullptr, "insContentControl", "type=date"));
+	return popover;
+}
+
+struct _CtlPropsCtx
+{
+	GtkWidget *	eTitle;
+	GtkWidget *	eTag;
+	GtkWidget *	eValue;
+	GtkWidget *	ePlaceholder;
+	GtkWidget *	eItems;
+};
+
+static void _s_ctlprops_ctx_free(gpointer p)
+{
+	g_free(p);
+}
+
+/* one labelled entry row for the properties popover */
+GtkWidget * AP_UnixRibbon::_ctlPropRow(const char * szLabel,
+									   const char * szValue)
+{
+	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	GtkWidget * wLabel = gtk_label_new(szLabel);
+	gtk_widget_set_size_request(wLabel, 80, -1);
+	gtk_widget_set_halign(wLabel, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(row), wLabel);
+	GtkWidget * wEntry = gtk_entry_new();
+	gtk_widget_set_hexpand(wEntry, TRUE);
+	if (szValue && *szValue)
+		gtk_editable_set_text(GTK_EDITABLE(wEntry), szValue);
+	gtk_box_append(GTK_BOX(row), wEntry);
+	g_object_set_data(G_OBJECT(row), "abi-ctl-entry", wEntry);
+	return row;
+}
+
+void AP_UnixRibbon::_s_ctlprops_apply(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	_CtlPropsCtx * ctx = static_cast<_CtlPropsCtx *>(
+		g_object_get_data(G_OBJECT(w), "abi-ctlprops-ctx"));
+	UT_return_if_fail(ctx);
+
+	std::string spec;
+	struct { const char * key; GtkWidget * entry; } pairs[] = {
+		{ "title",       ctx->eTitle },
+		{ "tag",         ctx->eTag },
+		{ "value",       ctx->eValue },
+		{ "placeholder", ctx->ePlaceholder },
+		{ "items",       ctx->eItems },
+	};
+	for (const auto & pr : pairs)
+	{
+		const char * t = gtk_editable_get_text(GTK_EDITABLE(pr.entry));
+		if (!t)
+			continue;
+		for (const char * p = t; *p; ++p)
+			if (*p == ';' || *p == '=')
+				return;	/* would corrupt the callData stream */
+		spec += pr.key;
+		spec += '=';
+		spec += t;
+		spec += ';';
+	}
+	_tb_popdown_popover(w);
+	self->_invokeEditMethod("contentControlProps", spec.c_str());
+}
+
+/* Developer tab: per-control properties (title/tag/value/
+ * placeholder/items) for the content control under the caret.
+ * Pre-filled from the control's sdt-* attrs; applying rewrites them.
+ * Requires design mode - the menu state greys the item otherwise. */
+GtkWidget * AP_UnixRibbon::_makeCtlPropsPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	FV_View * pView = nullptr;
+	if (m_pFrame)
+		pView = static_cast<FV_View *>(m_pFrame->getCurrentView());
+	const PT_DocPosition pos = pView ? pView->getPoint() : 0;
+	auto curAttr = [&](const char * a) -> const gchar * {
+		return pView ? pView->getContentControlAttr(pos, a) : nullptr;
+	};
+
+	gtk_box_append(GTK_BOX(box),
+				   _popover_section_label("Control properties"));
+
+	_CtlPropsCtx * ctx = g_new0(_CtlPropsCtx, 1);
+	GtkWidget * row;
+	row = _ctlPropRow("Title",       curAttr("sdt-title"));
+	ctx->eTitle = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(row), "abi-ctl-entry"));
+	gtk_box_append(GTK_BOX(box), row);
+	row = _ctlPropRow("Tag",         curAttr("sdt-tag"));
+	ctx->eTag = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(row), "abi-ctl-entry"));
+	gtk_box_append(GTK_BOX(box), row);
+	row = _ctlPropRow("Value",       curAttr("sdt-value"));
+	ctx->eValue = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(row), "abi-ctl-entry"));
+	gtk_box_append(GTK_BOX(box), row);
+	row = _ctlPropRow("Placeholder", curAttr("sdt-placeholder"));
+	ctx->ePlaceholder = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(row), "abi-ctl-entry"));
+	gtk_box_append(GTK_BOX(box), row);
+	row = _ctlPropRow("Items",       curAttr("sdt-items"));
+	ctx->eItems = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(row), "abi-ctl-entry"));
+	gtk_box_append(GTK_BOX(box), row);
+
+	GtkWidget * apply = gtk_button_new_with_label("Apply");
+	gtk_widget_set_halign(apply, GTK_ALIGN_END);
+	gtk_widget_set_margin_top(apply, 6);
+	g_object_set_data_full(G_OBJECT(apply), "abi-ctlprops-ctx", ctx,
+						   _s_ctlprops_ctx_free);
+	g_signal_connect(apply, "clicked",
+					 G_CALLBACK(_s_ctlprops_apply), this);
+	gtk_box_append(GTK_BOX(box), apply);
 	return popover;
 }
 

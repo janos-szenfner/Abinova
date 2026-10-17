@@ -333,6 +333,7 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 		m_bInsertAtTablePending(false),
 		m_iPosAtTable(0),
 		m_bAnnotationPreviewActive(false),
+		m_bSDTDesignMode(false),
 		m_bAllowSmartQuoteReplacement(true),
 		m_bubbleBlockerCount(0),
 		m_iOldPageCount(-1),

@@ -815,6 +815,27 @@ static const AP_RibbonGroup s_ribbon_equation_groups[] =
 	{ nullptr,			nullptr }
 };
 
+/* ----------------------------------------------------------- Developer --- */
+
+/* Word's Developer tab: w:sdt-style content controls.  "Content
+ * Controls" is a gallery dropdown offering the control kinds;
+ * Properties edits the control under the caret (design mode only);
+ * Design Mode unlocks property edits + control deletion */
+static const AP_RibbonItem s_ribbon_developer_controls[] =
+{
+	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_INSERT_CONTENTCONTROL),
+	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_CTL_PROPS),
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_CTL_DESIGNMODE),
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_CTL_REMOVE),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonGroup s_ribbon_developer_groups[] =
+{
+	{ "controls",	s_ribbon_developer_controls },
+	{ nullptr,		nullptr }
+};
+
 /* --------------------------------------------------------------- Help --- */
 
 static const AP_RibbonItem s_ribbon_help_items[] =
@@ -846,6 +867,7 @@ static const AP_RibbonTab s_ribbon_tabs[] =
 	{ "layout",		s_ribbon_layout_groups,		false },
 	{ "review",		s_ribbon_review_groups,		false },
 	{ "view",		s_ribbon_view_groups,		false },
+	{ "developer",	s_ribbon_developer_groups,	false },
 	{ "tabledesign",s_ribbon_tabledesign_groups, true  },
 	{ "table",		s_ribbon_table_groups,		true  },
 	{ "equation",	s_ribbon_equation_groups,	true  },

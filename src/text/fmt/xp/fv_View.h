@@ -85,6 +85,7 @@ class fp_CellContainer;
 class FG_Graphic;
 
 class pf_Frag_Strux;
+class pf_Frag_Object;
 class PD_Document;
 class PP_AttrProp;
 class PP_RevisionAttr;
@@ -365,6 +366,32 @@ public:
 	virtual UT_Error		cmdSaveAs(const char * szFilename, int ieft, bool cpy) override;
 
 	UT_Error		cmdInsertField(const char* szName, const PP_PropertyVector & extra_attrs = PP_NOPROPS, const PP_PropertyVector & extra_props = PP_NOPROPS);
+
+	//! Word-style content controls (w:sdt). The control is a
+	//! "content_control" field object carrying sdt-* attributes.
+	//! Its value/properties are read-only while SDT design mode is
+	//! off; turning design mode on allows edits via the cmd* methods.
+	bool			isSDTDesignMode(void) const { return m_bSDTDesignMode; }
+	void			setSDTDesignMode(bool b);
+	UT_Error		cmdInsertContentControl(const char* szCtlType,
+											const char* szTitle,
+											const char* szTag,
+											const char* szValue,
+											const char* szItems,
+											const char* szPlaceholder);
+	bool			cmdContentControlSetProps(const PP_PropertyVector & attrs);
+	bool			cmdContentControlToggle(void);
+	bool			cmdContentControlRemove(void);
+	//! finds the content-control object adjacent to pos (object at
+	//! pos, or object ending at pos); returns its frag + doc position
+	bool			getContentControlAt(PT_DocPosition pos,
+										pf_Frag_Object ** ppObj,
+										PT_DocPosition * pObjPos) const;
+	//! reads one sdt-* attribute off the control object, nullptr if
+	//! pos is not on a control or the attr is unset
+	const gchar *	getContentControlAttr(PT_DocPosition pos,
+										  const char* szAttr) const;
+
 	UT_Error		cmdInsertBookmark(const char* szName);
 	UT_Error		cmdDeleteBookmark(const char* szName);
 	UT_Error		cmdInsertHyperlink(const char* szName, const char* szTitle = nullptr);
@@ -1215,6 +1242,8 @@ protected:
 	bool                _insertField(const char* szName,
 									 const PP_PropertyVector & extra_attrs = PP_NOPROPS,
 									 const PP_PropertyVector & extra_props = PP_NOPROPS);
+	bool                _rangeHasContentControl(PT_DocPosition pos1,
+												PT_DocPosition pos2) const;
 	void				_moveToSelectionEnd(bool bForward);
 	void				_eraseSelection(void);
 	void				_clearSelection(bool bRedraw = true);
@@ -1482,6 +1511,7 @@ private:
 	bool				m_bBorderSampler = false;
 	bool				m_bAnnotationPreviewActive;
 	UT_uint32			m_iAnnPviewID;
+	bool                m_bSDTDesignMode;
 	bool                m_bAllowSmartQuoteReplacement;  // Enable/disable replacing of quote with smart quote
 														// This allows temporarily disabling smart quotes to allow inserting ANSI quote.
     int                 m_bubbleBlockerCount;

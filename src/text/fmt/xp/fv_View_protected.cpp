@@ -505,6 +505,13 @@ void FV_View::_deleteSelection(PP_AttrProp *p_AttrProp_Before, bool bNoUpdate,
 	{
 	        iHigh++;
 	}
+	/* content controls are read-only outside SDT design mode: a
+	 * delete range covering one is refused (the control survives,
+	 * the selection stays) */
+	if(!m_bSDTDesignMode && _rangeHasContentControl(iLow, iHigh))
+	{
+		return;
+	}
 	_resetSelection();
 
 	if(!bNoUpdate)

@@ -76,6 +76,7 @@ libtext_la_SOURCES = \
 	fmt/xp/fp_DirectionMarkerRun.h \
 	fmt/xp/fp_EmbedRun.cpp \
 	fmt/xp/fp_EmbedRun.h \
+	fmt/xp/fp_FieldContentControlRun.cpp \
 	fmt/xp/fp_FieldListLabelRun.cpp \
 	fmt/xp/fp_FieldListLabelRun.h \
 	fmt/xp/fp_Fields.h \

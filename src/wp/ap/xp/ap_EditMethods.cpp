@@ -36,6 +36,7 @@
 #include <time.h>
 
 #include <algorithm>
+#include <map>
 #include <vector>
 
 #include <glib/gstdio.h>
@@ -269,6 +270,11 @@ public:
 	static EV_EditMethod_Fn contextMisspellText;
 #endif
 	static EV_EditMethod_Fn contextEmbedLayout;
+
+	static EV_EditMethod_Fn contentControlDesignMode;
+	static EV_EditMethod_Fn contentControlProps;
+	static EV_EditMethod_Fn contentControlRemove;
+	static EV_EditMethod_Fn contentControlToggle;
 
 #ifdef ENABLE_SPELL
 	static EV_EditMethod_Fn spellSuggest_1;
@@ -548,6 +554,7 @@ public:
 	static EV_EditMethod_Fn pageSize;
 	static EV_EditMethod_Fn pageColumns;
 	static EV_EditMethod_Fn insColumnBreak;
+	static EV_EditMethod_Fn insContentControl;
 	static EV_EditMethod_Fn insSectionBreak;
 	static EV_EditMethod_Fn paraProp;
 	static EV_EditMethod_Fn sectProps;
@@ -1031,6 +1038,10 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(colorBackTB), _D_, ""),
 	EV_EditMethod(NF(colorForeTB), _D_, ""),
 	EV_EditMethod(NF(commentsPane),			0,		""),
+	EV_EditMethod(NF(contentControlDesignMode),	0,	""),
+	EV_EditMethod(NF(contentControlProps),		_D_,	""),
+	EV_EditMethod(NF(contentControlRemove),		0,	""),
+	EV_EditMethod(NF(contentControlToggle),		0,	""),
 	EV_EditMethod(NF(contextEmbedLayout), 		0,	""),
 	EV_EditMethod(NF(contextField),		0,	""),
 	EV_EditMethod(NF(contextFrame), 		0,	""),
@@ -1253,6 +1264,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insAnnotationFromSel),	0,		""),
 	EV_EditMethod(NF(insBreak),				0,		""),
 	EV_EditMethod(NF(insColumnBreak),		0,	""),
+	EV_EditMethod(NF(insContentControl),	0,	""),
 	EV_EditMethod(NF(insDateTime),			0,		""),
 	EV_EditMethod(NF(insEmbeddedObject),	0,		""),
 	EV_EditMethod(NF(insEndnote),			0,		""),
@@ -13241,6 +13253,142 @@ Defun1(editField)
 	pDialogFactory->releaseDialog(pDialog);
 
 	return true;
+}
+
+
+/* ==================================================================
+ * Word-style content controls (w:sdt equivalents).
+ *
+ * callData for insContentControl / contentControlProps is a
+ * ';'-separated "key=value" list; keys:
+ *   type        text|checkbox|dropdown|combo|date  (default text)
+ *   title       display title
+ *   tag         programmatic tag
+ *   value       current value ("1" checks a checkbox)
+ *   items       dropdown/combo items, '|' separated
+ *   placeholder prompt text shown while value is empty
+ * ================================================================== */
+
+static void s_parseCtlPairs(const EV_EditMethodCallData * pCallData,
+							std::map<std::string,std::string> & out)
+{
+	out.clear();
+	if (!pCallData || !pCallData->m_pData || !pCallData->m_dataLength)
+		return;
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const std::string spec(s.utf8_str());
+	size_t at = 0;
+	while (at <= spec.size())
+	{
+		const size_t sc = spec.find(';', at);
+		std::string pair = spec.substr(
+			at, sc == std::string::npos ? sc : sc - at);
+		const size_t eq = pair.find('=');
+		if (eq != std::string::npos)
+		{
+			std::string k = pair.substr(0, eq);
+			std::string v = pair.substr(eq + 1);
+			while (!k.empty() && isspace(static_cast<unsigned char>(k.front())))
+				k.erase(k.begin());
+			while (!k.empty() && isspace(static_cast<unsigned char>(k.back())))
+				k.pop_back();
+			if (!k.empty())
+				out[k] = v;
+		}
+		if (sc == std::string::npos)
+			break;
+		at = sc + 1;
+	}
+}
+
+// (key in callData) -> (sdt-* attribute on the control object)
+static const struct { const char * key; const char * attr; } s_ctlKeys[] = {
+	{ "type",        "sdt-type"        },
+	{ "title",       "sdt-title"       },
+	{ "tag",         "sdt-tag"         },
+	{ "value",       "sdt-value"       },
+	{ "items",       "sdt-items"       },
+	{ "placeholder", "sdt-placeholder" },
+};
+
+Defun(insContentControl)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	std::map<std::string,std::string> kv;
+	s_parseCtlPairs(pCallData, kv);
+	if (!kv.count("type"))
+		kv["type"] = "text";
+	return pView->cmdInsertContentControl(
+		kv["type"].c_str(), kv["title"].c_str(), kv["tag"].c_str(),
+		kv["value"].c_str(), kv["items"].c_str(),
+		kv["placeholder"].c_str()) != UT_ERROR;
+}
+
+// Design Mode toggle (Word Developer tab): unlocks control property
+// edits + control deletion. callData "on"/"off" forces a state.
+Defun(contentControlDesignMode)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	bool bOn = !pView->isSDTDesignMode();
+	if (pCallData && pCallData->m_pData && pCallData->m_dataLength)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		const std::string v(s.utf8_str());
+		if (v == "on" || v == "1" || v == "true")
+			bOn = true;
+		else if (v == "off" || v == "0" || v == "false")
+			bOn = false;
+	}
+	pView->setSDTDesignMode(bOn);
+	return true;
+}
+
+// Rewrite sdt-* attributes of the control at the caret — design
+// mode only (read-only in normal mode).
+Defun(contentControlProps)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	std::map<std::string,std::string> kv;
+	s_parseCtlPairs(pCallData, kv);
+	if (kv.empty())
+		return false;
+	PP_PropertyVector atts;
+	for (const auto & k : s_ctlKeys)
+	{
+		if (kv.count(k.key))
+		{
+			atts.push_back(k.attr);
+			atts.push_back(kv[k.key].c_str());
+		}
+	}
+	if (atts.empty())
+		return false;
+	return pView->cmdContentControlSetProps(atts);
+}
+
+// Delete the control at the caret — design mode only.
+Defun(contentControlRemove)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdContentControlRemove();
+}
+
+// Form-fill affordance: flip the checkbox control at the caret.
+// Works in both modes — it's the control's designed interaction.
+Defun(contentControlToggle)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdContentControlToggle();
 }
 
 

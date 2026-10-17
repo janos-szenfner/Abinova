@@ -510,7 +510,13 @@ bool pt_PieceTable::_realInsertSpan(PT_DocPosition dpos,
 				"type", "",
 				"param", "",
 				"name", "",
-				"endnote-id", ""
+				"endnote-id", "",
+				"sdt-type", "",
+				"sdt-value", "",
+				"sdt-title", "",
+				"sdt-tag", "",
+				"sdt-placeholder", "",
+				"sdt-items", ""
 			};
 
 			const PP_AttrProp * pAP = nullptr;

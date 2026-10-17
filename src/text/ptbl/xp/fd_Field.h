@@ -104,6 +104,8 @@ class ABI_EXPORT fd_Field
         FD_Meta_Coverage,
         FD_Meta_Description,
 
+        FD_ContentControl,
+
         __last_field_dont_use__
     };
 

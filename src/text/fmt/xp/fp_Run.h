@@ -1237,6 +1237,44 @@ public:
 	virtual UT_uint32		needsFrequentUpdates() override {return FIELD_UPDATE_WORD_COUNT;};
 };
 
+// Word-style content control (w:sdt): an atomic control object whose
+// metadata — control kind, value, title/tag, placeholder and dropdown
+// items — lives on the field object's sdt-* attributes. Renders the
+// value (or dimmed placeholder when empty) inside a screen-only
+// bounding box; the box gains a design-mode "handle" while the view's
+// SDT design mode is on.
+class ABI_EXPORT fp_FieldContentControlRun : public fp_FieldRun
+{
+public:
+	fp_FieldContentControlRun(fl_BlockLayout* pBL, UT_uint32 iOffsetFirst, UT_uint32 iLen);
+
+	virtual ~fp_FieldContentControlRun(){}
+
+	virtual bool			calculateValue(void) override;
+	virtual void			_draw(dg_DrawArgs* pDA) override;
+
+	bool					isCheckbox(void) const { return m_sCtlType == "checkbox"; }
+	bool					isChecked(void) const { return m_bChecked; }
+	const std::string &		getCtlType(void) const { return m_sCtlType; }
+	const std::string &		getTag(void) const { return m_sTag; }
+
+protected:
+	virtual void			_lookupProperties(const PP_AttrProp * pSpanAP,
+											  const PP_AttrProp * pBlockAP,
+											  const PP_AttrProp * pSectionAP,
+											  GR_Graphics * pG = nullptr) override;
+
+private:
+	std::string				m_sCtlType;
+	std::string				m_sValue;
+	std::string				m_sTitle;
+	std::string				m_sTag;
+	std::string				m_sPlaceholder;
+	std::string				m_sItems;
+	bool					m_bPlaceholder;
+	bool					m_bChecked;
+};
+
 // count of the #para in the document
 class ABI_EXPORT fp_FieldParaCountRun : public fp_FieldRun
 {

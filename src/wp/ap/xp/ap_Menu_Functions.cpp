@@ -579,6 +579,27 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_FieldOK)
 	return EV_MIS_Gray;
 }
 
+Defun_EV_GetMenuItemState_Fn(ap_GetState_DesignMode)
+{
+	UT_UNUSED(id);
+	ABIWORD_VIEW ;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+	return pView->isSDTDesignMode() ? EV_MIS_Toggled : EV_MIS_ZERO;
+}
+
+Defun_EV_GetMenuItemState_Fn(ap_GetState_InContentControlDesign)
+{
+	UT_UNUSED(id);
+	ABIWORD_VIEW ;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+	if (pView->isSDTDesignMode() &&
+		pView->getContentControlAt(pView->getPoint(), nullptr, nullptr))
+	{
+		return EV_MIS_ZERO;
+	}
+	return EV_MIS_Gray;
+}
+
 Defun_EV_GetMenuItemState_Fn(ap_GetState_RDF_Query)
 {
 	UT_UNUSED(id);

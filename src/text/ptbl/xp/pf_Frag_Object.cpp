@@ -94,6 +94,10 @@ pf_Frag_Object::pf_Frag_Object(pt_PieceTable * pPT,
 				{
 					fieldType = fd_Field::FD_Doc_CharCount;
 				}
+				else if (0 == strcmp(pszType, "content_control"))
+				{
+					fieldType = fd_Field::FD_ContentControl;
+				}
 		        else
         		{
 		            UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);

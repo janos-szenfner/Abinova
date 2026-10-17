@@ -161,6 +161,20 @@ responsibility** — see `README.md`.
   Borders draws rules around the text area or the page edge,
   sharing the `page-border-*`/`page-watermark-*` section
   properties with `.docx` import so everything round-trips.
+- **Developer ribbon tab with content controls** — a new
+  Word-style **Developer** tab carrying a Controls group: Plain
+  Text, Check Box, Combo Box, Drop-down List and Date Picker
+  buttons insert a Word-like structured document control as a
+  single inline field object. Each control carries a title, tag,
+  value, placeholder prompt and (for lists) items; an empty value
+  renders the placeholder text dimmed, and a Word-like bounding
+  box marks the control on screen (it does not print). Controls
+  are read-only in normal mode — clicks toggle checkboxes, but
+  content edits and deletion are refused — while the tab's Design
+  Mode toggle unlocks the Properties popover (title, tag, value,
+  placeholder, items) and control removal. All metadata is stored
+  on the object's `sdt-*` attributes and round-trips through the
+  native `.abwn` format.
 - **Mini toolbar on selection** — finishing a text selection (mouse
   release, double-click, or Shift+arrows from the keyboard) floats a
   compact formatting strip just above the selection: font family,
