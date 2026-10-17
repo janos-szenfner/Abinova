@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <set>
 #include <vector>
 
 #include "ut_compiler.h"
@@ -106,6 +107,21 @@ protected:
 
 	GdkClipboard * clipboardForTarget(XAP_UnixClipboard::T_AllowGet get) const;
 
+	/* clipboard-history capture: CLIPBOARD's "changed" feeds the
+	 * app-level plain-text ring that backs the Clipboard side pane.
+	 * Pending foreign text reads track a heap ClipRead whose self
+	 * pointer is nulled if this object dies mid-flight. */
+	struct ClipRead { XAP_UnixClipboard * self; };
+	static void			_s_clipboardChanged(GdkClipboard * clip,
+											gpointer data);
+	static void			_s_historyReadDone(GObject * src,
+										   GAsyncResult * res,
+										   gpointer data);
+	void				_onClipboardChanged(GdkClipboard * clip);
+	/* push the fake CLIPBOARD's "text/plain" into the history ring,
+	 * trimming the NUL terminator some exporters append */
+	void				_recordFakeClipboardText();
+
 	bool				_getDataFromServer(T_AllowGet tFrom, const char** formatList,
 							   void ** ppData, UT_uint32 * pLen,
 							   const char **pszFormatFound);
@@ -129,4 +145,10 @@ protected:
 	GdkClipboard * m_primary;
 
 	bool				m_bOversizedData;
+	std::set<ClipRead *> m_clipReads;
+	gulong				m_iClipChanged;
+	/* set when addData() just filled the CLIPBOARD store - consumed by
+	 * finishedAddingData() to feed history deterministically, since
+	 * the "changed" signal can coalesce rapid successive claims */
+	bool				m_bClipTextPending;
 };

@@ -379,6 +379,8 @@ libap_la_SOURCES += \
 	gtk/ap_UnixSelPane.h \
 	gtk/ap_UnixNavPane.cpp \
 	gtk/ap_UnixNavPane.h \
+	gtk/ap_UnixClipPane.cpp \
+	gtk/ap_UnixClipPane.h \
 	gtk/ap_UnixMiniBar.cpp \
 	gtk/ap_UnixMiniBar.h \
 	gtk/ap_UnixStatusBar.h \

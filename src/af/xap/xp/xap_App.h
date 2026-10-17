@@ -28,6 +28,7 @@
 #include "ut_string_class.h"
 #include "xap_AppImpl.h"
 #include "xav_Listener.h"
+#include <deque>
 #include <map>
 #include <string>
 #include <list>
@@ -178,6 +179,23 @@ public:
 	virtual void					cacheCurrentSelection(AV_View *) = 0;
 	virtual void				addClipboardFmt (const char * /*szFormat*/) {}
 	virtual void				deleteClipboardFmt (const char * /*szFormat*/) {}
+
+	/* Clipboard history: a most-recent-first ring of plain-text
+	 * clipboard payloads feeding the Clipboard side pane.  The
+	 * platform clipboard monitor calls recordClipboardText() on every
+	 * ownership change that offers text; open panes subscribe through
+	 * addClipboardHistoryListener() and re-read clipboardHistory(). */
+	enum : UT_uint32 { CLIPBOARD_HISTORY_MAX = 20 };
+	typedef void (*XAP_ClipboardHistoryListener)(void * ctx);
+	void						recordClipboardText(const char * utf8,
+													size_t len);
+	const std::deque<std::string> &	clipboardHistory() const
+		{ return m_clipboardHistory; }
+	void						clearClipboardHistory();
+	void						addClipboardHistoryListener(
+		XAP_ClipboardHistoryListener fn, void * ctx);
+	void						removeClipboardHistoryListener(
+		XAP_ClipboardHistoryListener fn, void * ctx);
 	void						rememberFocussedFrame(XAP_Frame * pJustFocussedFrame);
 	XAP_Frame *					getLastFocussedFrame() const;
 	XAP_Frame *					findValidFrame() const;
@@ -330,4 +348,7 @@ private:
 	XAP_AppImpl* m_pImpl;
 	std::vector<AV_Listener *>			m_vecPluginListeners;
 	UT_ScriptLibrary *             m_pScriptLibrary;
+	std::deque<std::string>			m_clipboardHistory;
+	std::vector<std::pair<XAP_ClipboardHistoryListener, void *>>
+									m_clipboardHistoryListeners;
 };

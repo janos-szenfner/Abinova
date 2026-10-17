@@ -217,14 +217,30 @@ static AV_View * viewFromApp(XAP_App * pApp)
 XAP_UnixClipboard::XAP_UnixClipboard(XAP_UnixApp * pUnixApp)
 	: m_pUnixApp(pUnixApp)
 	, m_bOversizedData(false)
+	, m_iClipChanged(0)
+	, m_bClipTextPending(false)
 {
 	GdkDisplay *display = gdk_display_get_default();
 	m_clip = gdk_display_get_clipboard(display);
 	m_primary = gdk_display_get_primary_clipboard(display);
+	/* watch CLIPBOARD ownership changes so every copy — ours or a
+	 * foreign app's — lands in the app's clipboard-history ring
+	 * (PRIMARY selections are not history material) */
+	if (m_clip)
+		m_iClipChanged = g_signal_connect(m_clip, "changed",
+										G_CALLBACK(_s_clipboardChanged),
+										this);
 }
 
 XAP_UnixClipboard::~XAP_UnixClipboard()
 {
+	if (m_clip && m_iClipChanged)
+		g_signal_handler_disconnect(m_clip, m_iClipChanged);
+	/* foreign reads still in flight must not touch 'this' */
+	for (ClipRead * r : m_clipReads)
+		r->self = nullptr;
+	m_clipReads.clear();
+
 	/* any provider still held by GdkClipboard must not touch 'this' */
 	for (GObject * prov : m_vecProviders)
 	{
@@ -234,6 +250,100 @@ XAP_UnixClipboard::~XAP_UnixClipboard()
 	m_vecProviders.clear();
 
 	clearData(true,true);
+}
+
+//////////////////////////////////////////////////////////////////
+// Clipboard-history capture
+//////////////////////////////////////////////////////////////////
+
+void XAP_UnixClipboard::_s_clipboardChanged(GdkClipboard * clip,
+											gpointer data)
+{
+	XAP_UnixClipboard * self =
+		static_cast<XAP_UnixClipboard *>(data);
+	if (self)
+		self->_onClipboardChanged(clip);
+}
+
+void XAP_UnixClipboard::_s_historyReadDone(GObject * src,
+										   GAsyncResult * res,
+										   gpointer data)
+{
+	ClipRead * r = static_cast<ClipRead *>(data);
+	XAP_UnixClipboard * self = r->self;
+	if (self)
+		self->m_clipReads.erase(r);
+	char * txt =
+		gdk_clipboard_read_text_finish(GDK_CLIPBOARD(src), res, nullptr);
+	if (self && txt)
+	{
+		const size_t len = strlen(txt);
+		if (len && g_utf8_validate(txt, len, nullptr))
+			self->m_pUnixApp->recordClipboardText(txt, len);
+	}
+	g_free(txt);
+	delete r;
+}
+
+void XAP_UnixClipboard::_recordFakeClipboardText()
+{
+	if (!m_pUnixApp)
+		return;
+	void * pData = nullptr;
+	UT_uint32 len = 0;
+	if (!m_fakeClipboard.getClipboardData("text/plain", &pData, &len) ||
+		!pData)
+		return;
+	/* exporters can tack a terminating NUL onto the payload; it is
+	 * not clipboard text */
+	while (len && !static_cast<const char *>(pData)[len - 1])
+		--len;
+	if (len &&
+		g_utf8_validate(static_cast<const char *>(pData), len, nullptr))
+	{
+		m_pUnixApp->recordClipboardText(
+			static_cast<const char *>(pData), len);
+	}
+}
+
+void XAP_UnixClipboard::_onClipboardChanged(GdkClipboard * clip)
+{
+	if (!clip || !m_pUnixApp)
+		return;
+
+	/* our own copy already sits in the fake clipboard - read it
+	 * synchronously; the async server round-trip can deadlock
+	 * against our own content provider */
+	if (gdk_clipboard_is_local(clip))
+	{
+		_recordFakeClipboardText();
+		return;
+	}
+
+	/* foreign owner: pull plain text only when it is offered */
+	GdkContentFormats * fmts = gdk_clipboard_get_formats(clip);
+	static const char * const kTextMimes[] = {
+		"text/plain", "text/plain;charset=utf-8",
+		"UTF8_STRING", "STRING", "TEXT", nullptr
+	};
+	bool bOffered = false;
+	for (int i = 0; fmts && kTextMimes[i]; ++i)
+	{
+		if (gdk_content_formats_contain_mime_type(fmts,
+												  kTextMimes[i]))
+		{
+			bOffered = true;
+			break;
+		}
+	}
+	if (!bOffered)
+		return;
+
+	ClipRead * r = new ClipRead;
+	r->self = this;
+	m_clipReads.insert(r);
+	gdk_clipboard_read_text_async(clip, nullptr,
+								  _s_historyReadDone, r);
 }
 
 void XAP_UnixClipboard::_registerProvider(GObject * provider)
@@ -370,6 +480,7 @@ bool XAP_UnixClipboard::addData(T_AllowGet tFrom, const char* format, const void
 		if(!m_fakeClipboard.addData(format,pData,iNumBytes))
 			return false;
 
+		m_bClipTextPending = true;
 		return true;
 	}
 }
@@ -379,15 +490,26 @@ void XAP_UnixClipboard::finishedAddingData(void)
 	/* without a display there is nothing to claim - the fake
 	 * clipboard still serves same-process pastes via getData() */
 	GdkClipboard * clippy = clipboardForTarget(TAG_ClipboardOnly);
-	if (!clippy)
-		return;
-	std::vector<const char *> mimes = s_mime_ptrs(m_vecFormat_MimeType);
-	GdkContentProvider *provider =
-		abi_content_provider_new(this, mimes.data(),
-								 static_cast<guint>(m_vecFormat_MimeType.size()),
-								 false);
-	gdk_clipboard_set_content(clippy, provider);
-	g_object_unref(provider);
+	if (clippy)
+	{
+		std::vector<const char *> mimes =
+			s_mime_ptrs(m_vecFormat_MimeType);
+		GdkContentProvider *provider =
+			abi_content_provider_new(this, mimes.data(),
+									 static_cast<guint>(m_vecFormat_MimeType.size()),
+									 false);
+		gdk_clipboard_set_content(clippy, provider);
+		g_object_unref(provider);
+	}
+
+	/* XFixes can coalesce "changed" notices when copies land in
+	 * quick succession - record fresh CLIPBOARD payloads here so the
+	 * history ring never depends on the event round-trip */
+	if (m_bClipTextPending)
+	{
+		m_bClipTextPending = false;
+		_recordFakeClipboardText();
+	}
 }
 
 void XAP_UnixClipboard::_clearStoredData(T_AllowGet tFrom)
@@ -396,7 +518,10 @@ void XAP_UnixClipboard::_clearStoredData(T_AllowGet tFrom)
 	if (tFrom == TAG_PrimaryOnly)
 		m_fakePrimaryClipboard.clearClipboard();
 	else
+	{
 		m_fakeClipboard.clearClipboard();
+		m_bClipTextPending = false;
+	}
 }
 
 bool XAP_UnixClipboard::_materializeData(T_AllowGet /*tFrom*/,
@@ -416,6 +541,7 @@ void XAP_UnixClipboard::clearData(bool bClipboard, bool bPrimary)
 		if (clippy)
 			gdk_clipboard_set_content (clippy, nullptr);
 		m_fakeClipboard.clearClipboard();
+		m_bClipTextPending = false;
 	}
 
 	if (bPrimary)

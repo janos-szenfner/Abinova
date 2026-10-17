@@ -74,6 +74,11 @@ public:
 	/* heading-navigation pane (View > Navigation Pane) */
 	virtual void toggleNavPane() {}
 	virtual bool isNavPaneVisible() const { return false; }
+	/* clipboard-history pane (Home > Clipboard) */
+	virtual void toggleClipPane() {}
+	virtual bool isClipPaneVisible() const { return false; }
+	virtual bool pasteClipHistoryItem(UT_uint32 /*idx*/)
+		{ return false; }
 	/* in-window split view of the same document (View > Split) */
 	virtual void toggleSplitView() {}
 	virtual bool isSplitView() const { return false; }

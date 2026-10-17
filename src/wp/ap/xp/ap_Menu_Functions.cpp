@@ -1279,6 +1279,14 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_View)
 			s = EV_MIS_ZERO;
 		break;
 
+	case AP_MENU_ID_VIEW_CLIPPANE:
+		if (pFrame->getFrameImpl() &&
+			pFrame->getFrameImpl()->isClipPaneVisible())
+			s = EV_MIS_Toggled;
+		else
+			s = EV_MIS_ZERO;
+		break;
+
 	case AP_MENU_ID_VIEW_SPLIT:
 		if (pFrame->getFrameImpl() &&
 			pFrame->getFrameImpl()->isSplitView())

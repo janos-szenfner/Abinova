@@ -216,6 +216,7 @@ static struct AbiStockMapping {
   { "abinova-page-color",			AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR,	"preferences-color-symbolic" },
   { "abinova-page-image",			AP_MENU_ID_FMT_BACKGROUND_PAGE_IMAGE,	"preferences-desktop-wallpaper-symbolic" },
   { "abinova-selection-pane",		AP_MENU_ID_LAYOUT_SELPANE,				"sidebar-show-symbolic" },
+  { "abinova-clipboard-pane",		AP_MENU_ID_VIEW_CLIPPANE,				"edit-paste" },
   { "abinova-tools-options",		AP_MENU_ID_TOOLS_OPTIONS,				"preferences-system-symbolic" },
   { "abinova-rdf-editor",			AP_MENU_ID_RDF_EDITOR,					"accessories-text-editor-symbolic" },
   { nullptr, 					static_cast<_Ap_Menu_Id>(0),					nullptr }

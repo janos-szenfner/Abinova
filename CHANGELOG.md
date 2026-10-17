@@ -138,6 +138,14 @@ responsibility** — see `README.md`.
   or redoes back through N steps in one go. The list is rebuilt from
   the live undo stack each time it opens, so whole multi-step
   operations (paste, replace-all) always appear as a single entry.
+- **Clipboard history pane** — a Word-style Clipboard task pane,
+  docked in the right-hand side deck (Home → Clipboard launcher or
+  View → Clipboard). The last 20 copied/cut text payloads are kept
+  most-recent-first — captured from both our own copies and other
+  applications' clipboard claims — and clicking any entry pastes it
+  at the caret as plain text. The pane offers a one-line preview per
+  item plus Clear All, and re-copying an existing entry just bumps
+  it back to the top.
 
 ## [4.0.2] — 2026-10-17
 

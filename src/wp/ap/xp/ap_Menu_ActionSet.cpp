@@ -156,6 +156,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_VIEW_ZOOM_WIDTH, 0,0,0,1, "zoomWidth", ap_GetState_Zoom, nullptr);
 	_s(AP_MENU_ID_VIEW_GRIDLINES,	0,0,1,0,	"viewGridlines",	ap_GetState_View,		nullptr);
 	_s(AP_MENU_ID_VIEW_NAVPANE,	0,0,1,0,	"viewNavPane",		ap_GetState_View,		nullptr);
+	_s(AP_MENU_ID_VIEW_CLIPPANE,	0,0,1,0,	"viewClipPane",		ap_GetState_View,		nullptr);
 	_s(AP_MENU_ID_VIEW_SPLIT,	0,0,1,0,	"viewSplit",		ap_GetState_View,		nullptr);
 
 	_s(AP_MENU_ID_INSERT,			1,0,0,0,	nullptr,				nullptr,					nullptr);

@@ -50,6 +50,7 @@
 #include "ap_UnixIconsPane.h"
 #include "ap_UnixCommentsPane.h"
 #include "ap_UnixNavPane.h"
+#include "ap_UnixClipPane.h"
 #include "ap_UnixMiniBar.h"
 #include "ap_Prefs.h"
 #include "xap_App.h"
@@ -95,6 +96,8 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_pCommentsPane(nullptr),
 	m_wNavPaneW(nullptr),
 	m_pNavPane(nullptr),
+	m_wClipPaneW(nullptr),
+	m_pClipPane(nullptr),
 	m_bGridlines(false),
 	m_wSplitPaned(nullptr),
 	m_wSplitGrid(nullptr),
@@ -150,6 +153,7 @@ AP_UnixFrameImpl::~AP_UnixFrameImpl()
 	DELETEP(m_pIconsPane);
 	DELETEP(m_pCommentsPane);
 	DELETEP(m_pNavPane);
+	DELETEP(m_pClipPane);
 }
 
 XAP_FrameImpl * AP_UnixFrameImpl::createInstance(XAP_Frame *pFrame)
@@ -503,6 +507,10 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	m_wNavPaneW = m_pNavPane->createWidget();
 	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wNavPaneW,
 						"navigation");
+	m_pClipPane = new AP_UnixClipPane(pFrame);
+	m_wClipPaneW = m_pClipPane->createWidget();
+	gtk_stack_add_named(GTK_STACK(m_wSideDeck), m_wClipPaneW,
+						"clipboard");
 	gtk_widget_set_visible(m_wSideDeck, FALSE);
 	gtk_paned_set_end_child(GTK_PANED(m_wDocPaned), m_wSideDeck);
 	gtk_paned_set_resize_end_child(GTK_PANED(m_wDocPaned), FALSE);
@@ -865,6 +873,36 @@ void AP_UnixFrameImpl::refreshNavPane()
 {
 	if (isNavPaneVisible() && m_pNavPane)
 		m_pNavPane->refresh();
+}
+
+/* ===== Clipboard pane (copy history in the side deck) ===== */
+
+void AP_UnixFrameImpl::setClipPaneVisible(bool bVisible)
+{
+	if (!m_wDocPaned || !m_wSideDeck)
+		return;
+	s_deckShow(m_wSideDeck, "clipboard", bVisible, m_wDocPaned);
+	if (bVisible && m_pClipPane)
+		m_pClipPane->rebuildList();
+}
+
+bool AP_UnixFrameImpl::isClipPaneVisible() const
+{
+	const char * cur = m_wSideDeck
+		? gtk_stack_get_visible_child_name(GTK_STACK(m_wSideDeck))
+		: nullptr;
+	return cur && gtk_widget_get_visible(m_wSideDeck) &&
+		!strcmp(cur, "clipboard");
+}
+
+void AP_UnixFrameImpl::toggleClipPane()
+{
+	setClipPaneVisible(!isClipPaneVisible());
+}
+
+bool AP_UnixFrameImpl::pasteClipHistoryItem(UT_uint32 idx)
+{
+	return m_pClipPane && m_pClipPane->pasteIndex(idx);
 }
 
 /* ===== Gridlines ===== */

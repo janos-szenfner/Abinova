@@ -523,6 +523,10 @@ Text → Table conversion were removed.
   one "Picture" entry (best format auto-selected: PNG > SVG >
   JPEG…) and alias duplicates (text/plain vs UTF8_STRING,
   text/rtf vs application/rtf, text/html vs xhtml) are collapsed.
+  The group's **Clipboard** launcher (also View → Clipboard) docks
+  a Word-style **Clipboard history pane**: the last 20 copied/cut
+  text payloads are listed most-recent-first, and clicking an entry
+  pastes it at the caret.
 - **Editing**: Find / Replace / Select All large buttons.
 
 #### Insert tab

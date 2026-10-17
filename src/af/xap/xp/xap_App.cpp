@@ -928,6 +928,78 @@ XAP_Frame * XAP_App::findValidFrame() const
 	return validFrame;
 }
 
+/* ---- clipboard history ring -------------------------------------
+ *
+ * One app-wide most-recent-first list of plain-text clipboard
+ * payloads.  Platform clipboard monitors feed it; Clipboard panes
+ * read it and subscribe for change notices.  Deliberately text-only:
+ * rich payloads stay on the real clipboard. */
+
+/* a single item bigger than this is not worth pinning in history -
+ * huge copies are rare and 20 of them would be a real memory bill */
+static const size_t kClipItemMax = 256 * 1024;
+
+void XAP_App::recordClipboardText(const char * utf8, size_t len)
+{
+	if (!utf8 || !len || len > kClipItemMax)
+		return;
+
+	std::string item(utf8, len);
+	/* empty-after-trim payloads (a stray '\n') are noise in the pane */
+	if (item.find_first_not_of(" \t\r\n") == std::string::npos)
+		return;
+
+	/* re-copying an existing entry moves it back to the top rather
+	 * than duplicating it */
+	for (auto it = m_clipboardHistory.begin();
+		 it != m_clipboardHistory.end(); ++it)
+	{
+		if (*it == item)
+		{
+			m_clipboardHistory.erase(it);
+			break;
+		}
+	}
+	m_clipboardHistory.push_front(std::move(item));
+	while (m_clipboardHistory.size() > CLIPBOARD_HISTORY_MAX)
+		m_clipboardHistory.pop_back();
+
+	for (const auto & l : m_clipboardHistoryListeners)
+		l.first(l.second);
+}
+
+void XAP_App::clearClipboardHistory()
+{
+	if (m_clipboardHistory.empty())
+		return;
+	m_clipboardHistory.clear();
+	for (const auto & l : m_clipboardHistoryListeners)
+		l.first(l.second);
+}
+
+void XAP_App::addClipboardHistoryListener(
+	XAP_ClipboardHistoryListener fn, void * ctx)
+{
+	if (!fn)
+		return;
+	removeClipboardHistoryListener(fn, ctx);
+	m_clipboardHistoryListeners.push_back(std::make_pair(fn, ctx));
+}
+
+void XAP_App::removeClipboardHistoryListener(
+	XAP_ClipboardHistoryListener fn, void * ctx)
+{
+	for (auto it = m_clipboardHistoryListeners.begin();
+		 it != m_clipboardHistoryListeners.end(); ++it)
+	{
+		if (it->first == fn && it->second == ctx)
+		{
+			m_clipboardHistoryListeners.erase(it);
+			return;
+		}
+	}
+}
+
 void XAP_App::clearIdTable()
 {
 	for(UT_sint32 i =0; i <= NUM_MODELESSID; i++)

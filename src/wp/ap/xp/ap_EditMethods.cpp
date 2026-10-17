@@ -570,6 +570,7 @@ public:
 	static EV_EditMethod_Fn paraSortAscend;
 	static EV_EditMethod_Fn paraSortDescend;
 	static EV_EditMethod_Fn paste;
+	static EV_EditMethod_Fn pasteClipItem;
 	static EV_EditMethod_Fn pasteSelection;
 	static EV_EditMethod_Fn pasteSpecial;
 	static EV_EditMethod_Fn find;
@@ -616,6 +617,7 @@ public:
 	static EV_EditMethod_Fn viewHeadFoot;
 	static EV_EditMethod_Fn zoom;
 	static EV_EditMethod_Fn dlgZoom;
+	static EV_EditMethod_Fn viewClipPane;
 	static EV_EditMethod_Fn viewFullScreen;
 	static EV_EditMethod_Fn viewGridlines;
 	static EV_EditMethod_Fn viewNavPane;
@@ -1355,6 +1357,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(paraSortDescend),		0,		""),
 		// intended for ^V and Menu[Edit/Paste]
 	EV_EditMethod(NF(paste),				0,	""),
+	EV_EditMethod(NF(pasteClipItem),		0,	""),
 			// intended for X11 middle mouse
 	EV_EditMethod(NF(pasteSelection),		0,	""),
 	EV_EditMethod(NF(pasteSpecial), 		0,	""),
@@ -1619,6 +1622,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(viCmd_yb), 	0,	""),
 	EV_EditMethod(NF(viCmd_yw), 	0,	""),
 	EV_EditMethod(NF(viCmd_yy), 	0,	""),
+	EV_EditMethod(NF(viewClipPane), 0, ""),
 #if !XAP_SIMPLE_TOOLBAR
 	EV_EditMethod(NF(viewExtra),			0,		""),
 	EV_EditMethod(NF(viewFormat),			0,		""),
@@ -12194,6 +12198,40 @@ Defun1(viewNavPane)
 	UT_return_val_if_fail(pImpl, false);
 	pImpl->toggleNavPane();
 	return true;
+}
+
+Defun1(viewClipPane)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	pImpl->toggleClipPane();
+	return true;
+}
+
+/*! pasteClipItem — Clipboard pane paste; callData is the history
+ * index (0 = most recent).  Out-of-range or missing data is a
+ * harmless no-op. */
+Defun(pasteClipItem)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	if (!pCallData || !pCallData->m_pData ||
+		!pCallData->m_dataLength)
+		return false;
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	char * end = nullptr;
+	long idx = strtol(s.utf8_str(), &end, 10);
+	if (!end || *end || idx < 0 || idx >= XAP_App::CLIPBOARD_HISTORY_MAX)
+		return false;
+	return pImpl->pasteClipHistoryItem(static_cast<UT_uint32>(idx));
 }
 
 Defun1(viewSplit)

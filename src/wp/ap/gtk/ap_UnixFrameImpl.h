@@ -80,6 +80,13 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	bool			isCommentsPaneVisible() const override;
 	virtual void	toggleCommentsPane() override;
 	void			refreshCommentsPane();
+	virtual void	toggleClipPane() override;
+	bool			isClipPaneVisible() const override;
+	void			setClipPaneVisible(bool bVisible);
+	/* pastes clipboard-history item idx at the caret - the
+	 * Clipboard pane row-click and the pasteClipItem edit method
+	 * funnel through the same path */
+	virtual bool	pasteClipHistoryItem(UT_uint32 idx) override;
 	/* moves keyboard focus back to the document canvas, e.g. after
 	 * a side-pane button was clicked so typing reaches the view */
 	void			focusDocument();
@@ -225,6 +232,8 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	class AP_UnixCommentsPane * m_pCommentsPane;
 	GtkWidget * m_wNavPaneW;
 	class AP_UnixNavPane * m_pNavPane;
+	GtkWidget * m_wClipPaneW;
+	class AP_UnixClipPane * m_pClipPane;
 
 	/* gridlines overlay toggle for the document canvas */
 	bool        m_bGridlines;
