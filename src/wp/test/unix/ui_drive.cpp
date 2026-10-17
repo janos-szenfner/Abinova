@@ -4737,6 +4737,113 @@ static bool toc_drive_doc(AP_UnixApp *app, DriveCtx &ctx,
 	if (!view->isSelectionEmpty())
 		g_printerr("drive: toc — selection left after undo\n");
 
+#ifdef GDK_WINDOWING_X11
+	/* W02: real-input Ctrl+Click on a TOC entry must warp the caret
+	 * to the entry's source heading — the _CTO _B1 _C mouse binding
+	 * resolving through EV_UnixMouse and cmdGoToTOCEntry.  XTest
+	 * only, same contract as the ruler/keys legs; skipped on other
+	 * backends. */
+	{
+		GdkDisplay *gd = gdk_display_get_default();
+		/* cmdUpdateTOC above re-laid the TOC out — the fp_Line/rect
+		 * captured for the context click are stale; re-resolve the
+		 * first entry line now */
+		fl_TOCLayout *pTOC2 = lay->getNthTOC(0);
+		fp_Line *line2 = pTOC2 ? toc_first_line(
+			static_cast<fp_TOCContainer *>(pTOC2->getFirstContainer()))
+							   : nullptr;
+		std::optional<UT_Rect> rect2 = line2
+			? line2->getScreenRect() : std::optional<UT_Rect>();
+		if (rect2 && win && GDK_IS_X11_DISPLAY(gd)) {
+			Display *dpy = gdk_x11_display_get_xdisplay(gd);
+			void *xt = dlopen("libXtst.so.6", RTLD_NOW | RTLD_LOCAL);
+			if (!xt)
+				xt = dlopen("libXtst.so", RTLD_LOCAL);
+			typedef int (*XTestKeyFn)(Display *, unsigned int,
+									  Bool, unsigned long);
+			XTestBtnFn fakeBtn = xt ? reinterpret_cast<XTestBtnFn>(
+				dlsym(xt, "XTestFakeButtonEvent")) : nullptr;
+			XTestKeyFn fakeKeyEv = xt ? reinterpret_cast<XTestKeyFn>(
+				dlsym(xt, "XTestFakeKeyEvent")) : nullptr;
+			/* the landing position the click must produce: the source
+			 * heading recorded on the TOC entry's block */
+			PT_DocPosition want = 0;
+			bool have_want = line2 && line2->getBlock() &&
+				pTOC2->getSourcePosForGenBlock(line2->getBlock(), want);
+			GtkWidget *canvas = nullptr;
+			int best = 0;
+			std::vector<GtkWidget *> areas;
+			sweep_guard([&] {
+				tf_widgets::find_all(win,
+									 [](GtkWidget *c) {
+										 return GTK_IS_DRAWING_AREA(c);
+									 }, areas);
+			});
+			for (GtkWidget *a : areas) {
+				int sz = gtk_widget_get_width(a) *
+					gtk_widget_get_height(a);
+				if (sz > best) { best = sz; canvas = a; }
+			}
+			GtkWidget *native = canvas
+				? GTK_WIDGET(gtk_widget_get_native(canvas)) : nullptr;
+			GdkSurface *surf = native
+				? gtk_native_get_surface(GTK_NATIVE(native)) : nullptr;
+			if (fakeBtn && fakeKeyEv && surf &&
+				GDK_IS_X11_SURFACE(surf)) {
+				Window xid = gdk_x11_surface_get_xid(surf);
+				GR_Graphics *pG = view->getGraphics();
+				graphene_point_t in {
+					(float)pG->tdu(rect2->left + rect2->width / 2),
+					(float)pG->tdu(rect2->top + rect2->height / 2) }, out;
+				PT_DocPosition before = view->getPoint();
+				if (gtk_widget_compute_point(canvas, native,
+											 &in, &out)) {
+					XWarpPointer(dpy, None, xid, 0, 0, 0, 0,
+								 (int)lrint(out.x), (int)lrint(out.y));
+					XFlush(dpy);
+					tf_guard::pump_for(60);
+					KeyCode kc = XKeysymToKeycode(
+						dpy, (KeySym)GDK_KEY_Control_L);
+					if (kc)
+						fakeKeyEv(dpy, kc, True, 0);
+					XFlush(dpy);
+					fakeBtn(dpy, 1, True, 0);
+					XFlush(dpy);
+					tf_guard::pump_for(30);
+					fakeBtn(dpy, 1, False, 0);
+					if (kc)
+						fakeKeyEv(dpy, kc, False, 0);
+					XFlush(dpy);
+					tf_guard::pump_for(150);
+					if (have_want) {
+						if (view->getPoint() != want) {
+							g_printerr("drive: toc — Ctrl+Click "
+									   "landed at %u, want %u "
+									   "(was %u) in %s\n",
+									   (unsigned)view->getPoint(),
+									   (unsigned)want,
+									   (unsigned)before,
+									   path.c_str());
+							return false;
+						}
+						g_print("drive: toc — %s Ctrl+Click "
+								"navigated to source heading\n",
+								path.c_str());
+					} else {
+						g_print("drive: toc — %s Ctrl+Click "
+								"injected (entry has no source "
+								"heading to check)\n",
+								path.c_str());
+					}
+				}
+			} else {
+				g_print("drive: toc — %s Ctrl+Click leg skipped "
+						"(no XTest/X11 surface)\n", path.c_str());
+			}
+		}
+	}
+#endif /* GDK_WINDOWING_X11 */
+
 	g_print("drive: toc — %s updated via context menu + re-update ok\n",
 			path.c_str());
 	return true;

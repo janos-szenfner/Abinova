@@ -62,6 +62,13 @@ responsibility** — see `README.md`.
   get the template's full property set while `name`, `type`,
   `basedon` and `followedby` are preserved. Template reads honour
   `--automation-read-root`.
+- **Keyboard shortcuts for the new commands** — Ctrl+Alt+F9 updates
+  styles from the attached template, Ctrl+Alt+F10 toggles the
+  different-first-page header/footer, and Ctrl+Alt+F11 toggles the
+  odd/even header/footer pair (Cmd+Option+Fn on macOS). The mouse
+  layer now folds Command into Ctrl like the keyboard path, so
+  Cmd+Click TOC navigation, Cmd+wheel zoom and the other Ctrl-click
+  bindings work on macOS too.
 
 ## [4.0.2] — 2026-10-17
 

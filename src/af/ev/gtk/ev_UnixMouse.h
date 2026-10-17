@@ -28,6 +28,14 @@
 
 /*****************************************************************/
 
+/* GDK modifier state -> EV modifier mask, shared by every mouse op
+ * (click/up/motion/scroll).  Command on macOS arrives as Meta (or
+ * Super via XQuartz) and folds into Control -- the same fold the
+ * keyboard path applies in ev_UnixKeyboard.cpp -- so Cmd+Click and
+ * Cmd+wheel resolve the same bindings as their Ctrl equivalents.
+ * Free function (not a member) so the binding unit test can pin it. */
+EV_EditModifierState EV_UnixMouse_GdkModsToEMS(GdkModifierType state);
+
 class EV_UnixMouse : public EV_Mouse
 {
 public:

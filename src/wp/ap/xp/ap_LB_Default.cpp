@@ -392,12 +392,17 @@ ap_bs_NVK NVKTable[] =
 #endif
 	{EV_NVK_F8,			{ "",					"",					"",				"",
 						  "executeScript",		"",					"",				""					}},
+	/* Ctrl+Alt+Fn is the free chord family for the stream's structural
+	 * commands (Alt+F8 = executeScript already lives here).  On macOS
+	 * Command folds into the Ctrl column, so Cmd+Option+Fn lands in
+	 * the same slot.  attachTemplate stays unbound: it requires a
+	 * template path in callData, so a bare chord could only no-op. */
 	{EV_NVK_F9,			{ "updateField",		"",					"insField",		"",
-						  "",					"",					"",				""					}},
+						  "",					"",					"updateStyles",	""					}},
 	{EV_NVK_F10,		{ "",					"contextMenu",		"",				"",
-						  "selPane",			"",					"",				""					}},
+						  "selPane",			"",					"differentFirstPage",	""			}},
 	{EV_NVK_F11,		{ "viewFullScreen",					"",					"",				"",
-						  "",					"",					"",				""					}},
+						  "",					"",					"differentOddEven",	""				}},
 	{EV_NVK_F12,		{ "fileSaveAs",			"fileSave",			"fileOpen",		"print",
 						  "",				        "",					"",				""					}},
 // 	{EV_NVK_F13,		{

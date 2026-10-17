@@ -842,7 +842,9 @@ switcher.
   (draft) layout · Ctrl+Alt+S split window · Alt+Shift+C remove
   split · F11 fullscreen · Ctrl+wheel zoom.
 - **Misc** — F1 help · F10 context menu · Alt+F8 run script ·
-  F11 fullscreen.
+  F11 fullscreen · Ctrl+Alt+F9 update styles from the attached
+  template · Ctrl+Alt+F10 / Ctrl+Alt+F11 different-first-page /
+  odd-even headers · Ctrl+Click a TOC entry jumps to its heading.
 
 Notable moves away from the historical AbiWord map: Ctrl+K is now
 hyperlink (strikethrough moved to Ctrl+Shift+X), Ctrl+L is align-left

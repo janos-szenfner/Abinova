@@ -29,6 +29,7 @@
 #include "ev_EditBinding.h"
 #include "ev_EditMethod.h"
 #include "ev_NamedVirtualKey.h"
+#include "ev_UnixMouse.h"
 #include "xap_EditMethods.h"
 #include "ap_LoadBindings.h"
 
@@ -222,6 +223,41 @@ TFTEST_MAIN("ap_KeyBindings")
 	TFPASS(expectNVK(EV_NVK_F8, EV_EMS_ALT, "executeScript"));  /* Alt+F8 */
 	TFPASS(expectNVK(EV_NVK_F11, 0, "viewFullScreen"));
 	TFPASS(expectChar(',', EV_EMS_CONTROL, "dlgOptions"));      /* Cmd+, */
+
+	/* ---- stream commands ----
+	 * Ctrl+Alt+Fn is the free chord family these were bound into;
+	 * Cmd+Option+Fn resolves the same slot on macOS because Command
+	 * folds into the Ctrl column.  attachTemplate deliberately has
+	 * no binding: it requires a template path in callData. */
+	TFPASS(expectNVK(EV_NVK_F9, EV_EMS_ALT | EV_EMS_CONTROL,
+				   "updateStyles"));                          /* Ctrl+Alt+F9 */
+	TFPASS(expectNVK(EV_NVK_F10, EV_EMS_ALT | EV_EMS_CONTROL,
+				   "differentFirstPage"));                    /* Ctrl+Alt+F10 */
+	TFPASS(expectNVK(EV_NVK_F11, EV_EMS_ALT | EV_EMS_CONTROL,
+				   "differentOddEven"));                      /* Ctrl+Alt+F11 */
+
+	/* Ctrl+Click on a TOC entry navigates to its source heading; on
+	 * macOS Cmd+Click must reach the same slot, which it does via
+	 * the Meta/Super -> Control fold in EV_UnixMouse_GdkModsToEMS
+	 * (pinned below). */
+	{
+		EV_EditBinding * b = s_pMap->findEditBinding(
+			EV_EMC_TOC | EV_EMO_SINGLECLICK | EV_EMB_BUTTON1 |
+			EV_EMS_CONTROL);
+		TFPASS(b && b->getType() == EV_EBT_METHOD && b->getMethod()
+			   && !strcmp(b->getMethod()->getName(), "tocGoTo"));
+	}
+
+	/* pin the mouse-layer modifier fold: Command on macOS arrives
+	 * as Meta (Super via XQuartz) and must behave like Ctrl for
+	 * every mouse op -- same contract the keyboard path follows */
+	TFPASS(EV_UnixMouse_GdkModsToEMS(GDK_META_MASK) == EV_EMS_CONTROL);
+	TFPASS(EV_UnixMouse_GdkModsToEMS(GDK_SUPER_MASK) == EV_EMS_CONTROL);
+	TFPASS(EV_UnixMouse_GdkModsToEMS(GDK_CONTROL_MASK) == EV_EMS_CONTROL);
+	TFPASS(EV_UnixMouse_GdkModsToEMS(static_cast<GdkModifierType>(
+		   GDK_META_MASK | GDK_ALT_MASK)) ==
+		   (EV_EMS_CONTROL | EV_EMS_ALT));
+	TFPASS(EV_UnixMouse_GdkModsToEMS(static_cast<GdkModifierType>(0)) == 0);
 }
 
 namespace {

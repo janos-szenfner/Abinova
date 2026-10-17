@@ -38,10 +38,21 @@ EV_UnixMouse::EV_UnixMouse(EV_EditEventMapper * pEEM)
 {
 }
 
+EV_EditModifierState EV_UnixMouse_GdkModsToEMS(GdkModifierType ev_state)
+{
+	EV_EditModifierState ems = 0;
+	if (ev_state & GDK_SHIFT_MASK)
+		ems |= EV_EMS_SHIFT;
+	if (ev_state & (GDK_CONTROL_MASK | GDK_META_MASK | GDK_SUPER_MASK))
+		ems |= EV_EMS_CONTROL;
+	if (ev_state & GDK_ALT_MASK)
+		ems |= EV_EMS_ALT;
+	return ems;
+}
+
 void EV_UnixMouse::mouseUp(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble ev_y)
 {
 	EV_EditMethod * pEM;
-	EV_EditModifierState ems = 0;
 	EV_EditEventMapperResult result;
 	EV_EditMouseButton emb = 0;
 	EV_EditMouseOp mop;
@@ -50,12 +61,7 @@ void EV_UnixMouse::mouseUp(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble ev
 	GdkModifierType ev_state = static_cast<GdkModifierType>(0);
 	ev_state = gdk_event_get_modifier_state(e);
 
-	if (ev_state & GDK_SHIFT_MASK)
-		ems |= EV_EMS_SHIFT;
-	if (ev_state & GDK_CONTROL_MASK)
-		ems |= EV_EMS_CONTROL;
-	if (ev_state & GDK_ALT_MASK)
-		ems |= EV_EMS_ALT;
+	EV_EditModifierState ems = EV_UnixMouse_GdkModsToEMS(ev_state);
 
 	// report the release under the button that was actually released;
 	// the state mask still holds every other button that is down.
@@ -143,13 +149,8 @@ void EV_UnixMouse::mouseClick(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble
 		UT_DEBUGMSG(("EV_UnixMouse::mouseClick: unknown button %d\n", ev_button));
 		return;
 	}
-	
-	if (ev_state & GDK_SHIFT_MASK)
-		state |= EV_EMS_SHIFT;
-	if (ev_state & GDK_CONTROL_MASK)
-		state |= EV_EMS_CONTROL;
-	if (ev_state & GDK_ALT_MASK)
-		state |= EV_EMS_ALT;
+
+	state = EV_UnixMouse_GdkModsToEMS(ev_state);
 
 	// GTK4 delivers the click count via GtkGestureClick n_press
 	if (n_press == 1)
@@ -223,12 +224,7 @@ void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEvent *e, gdouble ev_x, gdoubl
 	GdkModifierType ev_state = static_cast<GdkModifierType>(0);
 	ev_state = gdk_event_get_modifier_state(e);
 
-	if (ev_state & GDK_SHIFT_MASK)
-		ems |= EV_EMS_SHIFT;
-	if (ev_state & GDK_CONTROL_MASK)
-		ems |= EV_EMS_CONTROL;
-	if (ev_state & GDK_ALT_MASK)
-		ems |= EV_EMS_ALT;
+	ems = EV_UnixMouse_GdkModsToEMS(ev_state);
 
 	if (ev_state & GDK_BUTTON1_MASK)
 		emb = EV_EMB_BUTTON1;
@@ -306,12 +302,7 @@ void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEvent *e, gdouble ev_x, gdoubl
 	}
 
 	GdkModifierType ev_state = gdk_event_get_modifier_state(e);
-	if (ev_state & GDK_SHIFT_MASK)
-		state |= EV_EMS_SHIFT;
-	if (ev_state & GDK_CONTROL_MASK)
-		state |= EV_EMS_CONTROL;
-	if (ev_state & GDK_ALT_MASK)
-		state |= EV_EMS_ALT;
+	state = EV_UnixMouse_GdkModsToEMS(ev_state);
 
 	GdkScrollDirection dir = gdk_scroll_event_get_direction(e);
 	// For GDK_SCROLL_SMOOTH we get the deltas
