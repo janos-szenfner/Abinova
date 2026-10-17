@@ -165,15 +165,12 @@ void AP_FmtInspect::buildReport(FV_View * pView,
 	}
 	PD_Document * pDoc = pView->getDocument();
 	PT_DocPosition posStart = pView->getPoint();
-	PT_DocPosition posEnd = posStart;
 	bool bSelEmpty = pView->isSelectionEmpty();
 	if (!bSelEmpty)
 	{
 		const PT_DocPosition anchor = pView->getSelectionAnchor();
 		if (anchor < posStart)
 			posStart = anchor;
-		else
-			posEnd = anchor;
 	}
 	if (posStart < 2)
 		posStart = 2;
@@ -194,8 +191,6 @@ void AP_FmtInspect::buildReport(FV_View * pView,
 	if (blockPosition > posStart)
 	{
 		posStart = blockPosition;
-		if (posEnd < posStart)
-			posEnd = posStart;
 	}
 	const PP_AttrProp * pSpanAP = nullptr;
 	/* same edge rule as getCharFormat: with a selection we want the

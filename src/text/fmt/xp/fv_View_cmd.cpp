@@ -9127,7 +9127,7 @@ struct FV_HdrLine
 	/* optional char props applied to \x01/\x02 field objects instead of
 	 * szCharProps - lets the number carry its own look (e.g. white text
 	 * on an orange highlight box while the rest of the line stays dark) */
-	const char * szFieldProps;
+	const char * szFieldProps = nullptr;
 };
 
 static const FV_HdrLine s_hdr_blank[] =

@@ -269,6 +269,18 @@ responsibility** — see `README.md`.
   `document.privacyinspect`. Stripped values are gone from the
   saved file, not just hidden.
 
+### Reliability
+
+- **Static-analysis gate over the whole 4.0.3 stream** — every file
+  touched this release was swept with clang's analyzer plus
+  `gcc -fanalyzer` on the new and heavily-rewritten modules, and
+  every compiler warning was classified against the 4.0.2 baseline.
+  The only new defects found were fixed: table-formula fields no
+  longer dereference a missing view, and `\#` numeric-picture
+  formatting is bounded so a hostile field instruction can't
+  truncate; the remaining findings were documented as analyzer
+  artifacts or pre-existing baseline in `.devin/W19-static.md`.
+
 ## [4.0.2] — 2026-10-17
 
 ### Ribbon

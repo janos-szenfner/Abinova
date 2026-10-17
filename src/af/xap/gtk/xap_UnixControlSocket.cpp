@@ -804,7 +804,7 @@ static bool _m_app_quit(const std::string & j, std::string & err)
 	const bool force = _json_bool(j, "force");
 	_CloseJob * job = new _CloseJob;
 	int dirty = 0;
-	for (UT_uint32 i = 0; i < app->getFrameCount(); ++i)
+	for (UT_sint32 i = 0; i < app->getFrameCount(); ++i)
 	{
 		XAP_Frame * f = app->getFrame(i);
 		if (!f)

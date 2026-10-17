@@ -62,6 +62,7 @@ void AP_UnixDialog_DocInspector::runModal(XAP_Frame * pFrame)
 	gint rc = abiRunModalDialog(GTK_DIALOG(mainWindow),
 							  pFrame, this, BUTTON_CLOSE, false);
 	UT_DEBUGMSG(("AP_UnixDialog_DocInspector::runModal() rc:%d\n", rc));
+	UT_UNUSED(rc);
 
 	m_answer = AP_Dialog_DocInspector::a_CLOSE;
 	abiDestroyWidget(mainWindow);

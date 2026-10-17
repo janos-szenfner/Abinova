@@ -1223,6 +1223,8 @@ static void s_formatNumericPicture(UT_UTF8String & sVal, double d,
 	}
 	if(decimals < 0)
 		decimals = 0;
+	else if(decimals > 15)
+		decimals = 15;
 	bool bGroup = f.find(',') != std::string::npos;
 	int pct = 0;
 	for(char ch : f)
@@ -1230,7 +1232,7 @@ static void s_formatNumericPicture(UT_UTF8String & sVal, double d,
 			pct++;
 	while(pct-- > 0)
 		d *= 100.0;
-	char buf[128];
+	char buf[512];
 	snprintf(buf, sizeof(buf), "%.*f", decimals, fabs(d));
 	std::string num = buf;
 	if(bGroup)
@@ -1259,7 +1261,7 @@ bool fp_FieldTableFormulaRun::calculateValue(void)
 	UT_UTF8String sValF;
 	pf_Frag_Strux* sdh = getBlock()->getStruxDocHandle();
 	PD_Document * pDoc = getBlock()->getDocument();
-	if(pDoc->isPieceTableChanging())
+	if(pDoc->isPieceTableChanging() || !pView)
 	{
 		return false;
 	}

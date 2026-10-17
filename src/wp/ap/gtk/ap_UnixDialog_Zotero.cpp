@@ -65,6 +65,7 @@ void AP_UnixDialog_Zotero::runModal(XAP_Frame * pFrame)
 	gint rc = abiRunModalDialog(GTK_DIALOG(mainWindow),
 							  pFrame, this, BUTTON_CLOSE, false);
 	UT_DEBUGMSG(("AP_UnixDialog_Zotero::runModal() rc:%d\n", rc));
+	UT_UNUSED(rc);
 
 	m_answer = AP_Dialog_Zotero::a_CANCEL;
 	abiDestroyWidget(mainWindow);
