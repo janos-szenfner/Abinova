@@ -97,6 +97,8 @@ OXMLi_ListenerState_Common::OXMLi_ListenerState_Common() :
 	m_pendingSectBreak(false),
 	m_eqField(false),
 	m_pageNumberField(false),
+	m_formulaField(false),
+	m_formulaEmitted(false),
 	m_fldChar(false),
 	m_fieldDepth(0),
 	m_tocFieldDepth(0),
@@ -109,6 +111,33 @@ OXMLi_ListenerState_Common::OXMLi_ListenerState_Common() :
 
 OXMLi_ListenerState_Common::~OXMLi_ListenerState_Common()
 {
+}
+
+/* emit an OXML_Element_Field for a completed =expression field
+ * instruction (m_fieldInstr).  The field is appended to the marker
+ * run's parent so it lands in document order, while the marker run
+ * stays on the stack for its own close. */
+void OXMLi_ListenerState_Common::emitFormulaField(OXMLi_ElementStack * stck)
+{
+	if(!stck || stck->empty())
+		return;
+	OXML_SharedElement fieldElem(
+		new OXML_Element_Field("", m_fieldInstr, ""));
+	OXML_SharedElement top = OXMLi_elemTop(stck);
+	if(top)
+		fieldElem->inheritProperties(top.get());
+	if(stck->size() >= 2)
+	{
+		stck->pop();
+		OXML_SharedElement parent = OXMLi_elemTop(stck);
+		if(parent)
+			parent->appendElement(fieldElem);
+		stck->push(top);
+	}
+	else
+	{
+		stck->push(fieldElem);
+	}
 }
 
 /* Resolves an OOXML <w:themeColor> name (accent1, dark1, ...) to a
@@ -171,6 +200,8 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		{
 			m_eqField = false;
 			m_pageNumberField = false;
+			m_formulaField = false;
+			m_formulaEmitted = false;
 			m_fldChar = true;
 			m_fieldDepth++;
 			m_fieldInstr.clear();
@@ -193,6 +224,15 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				m_tocFieldDepth = m_fieldDepth;
 				m_tocInstr = instr;
 			}
+			else if(!instr.empty() && instr.front() == '=')
+			{
+				/* =expression field (Word table formula): emit a real
+				 * field object; the cached result runs until fldChar
+				 * end are swallowed like the page-number path */
+				m_formulaField = true;
+				emitFormulaField(rqst->stck);
+				m_formulaEmitted = true;
+			}
 		}
 		else if(!strcmp(fldCharType, "end"))
 		{
@@ -200,6 +240,14 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				m_tocFieldEnd = true;
 			if(m_fieldDepth > 0)
 				m_fieldDepth--;
+			if(m_formulaField && !m_formulaEmitted)
+			{
+				/* formula field without a separate marker — emit it at
+				 * the close */
+				emitFormulaField(rqst->stck);
+				m_formulaEmitted = true;
+			}
+			m_formulaField = false;
 			m_eqField = false;
 			m_pageNumberField = false;
 			m_fldChar = false;
@@ -339,7 +387,7 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		rqst->handled = true;
 
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "t")) {
-		if(m_fldChar && m_pageNumberField) // page number is already set with field element correctly.
+		if(m_fldChar && (m_pageNumberField || m_formulaField)) // field object replaces the cached result runs
 		{
 			rqst->handled = true;
 			return;
@@ -1745,7 +1793,7 @@ void OXMLi_ListenerState_Common::endElement (OXMLi_EndElementRequest * rqst)
 		UT_return_if_fail( this->_error_if_fail( UT_OK == _flushTopLevel(rqst->stck, rqst->sect_stck) ) );
 		rqst->handled = true;
 	} else if (nameMatches(rqst->pName, NS_W_KEY, "t")) {
-		if(m_fldChar && m_pageNumberField) // page number is already set with field element correctly.
+		if(m_fldChar && (m_pageNumberField || m_formulaField)) // field object replaces the cached result runs
 		{
 			rqst->handled = true;
 			return;

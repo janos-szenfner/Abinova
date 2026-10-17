@@ -77,6 +77,46 @@ struct SumView
 		return layout->countPages() > 0;
 	}
 
+	/* run the field-update pass over every block, twice, so formulas
+	 * whose inputs are other computed fields settle */
+	void recalcFields()
+	{
+		for (int pass = 0; pass < 2; ++pass)
+		{
+			for (fl_BlockLayout *pBlock = layout->findBlockAtPosition(2);
+				 pBlock; pBlock = pBlock->getNextBlockInDocument())
+				pBlock->recalculateFields(0);
+		}
+	}
+
+	/* position just past the last character of the block whose entire
+	 * text is `txt`; 0 when no block matches */
+	PT_DocPosition endOfTextBlock(const char *txt) const
+	{
+		const size_t want = strlen(txt);
+		for (fl_BlockLayout *pBlock = layout->findBlockAtPosition(2);
+			 pBlock; pBlock = pBlock->getNextBlockInDocument())
+		{
+			UT_GrowBuf buf;
+			if (!pBlock->getBlockBuf(&buf) ||
+				buf.getLength() != want)
+				continue;
+			const UT_UCS4Char *p =
+				reinterpret_cast<const UT_UCS4Char *>(
+					buf.getPointer(0));
+			bool match = true;
+			for (size_t i = 0; i < want; ++i)
+				if (p[i] != static_cast<UT_UCS4Char>(txt[i]))
+					match = false;
+			if (match)
+				/* getPosition() already points at the first content
+				 * char (strux offset included) */
+				return pBlock->getPosition() +
+					static_cast<PT_DocPosition>(buf.getLength());
+		}
+		return 0;
+	}
+
 	/* collected field values, in document order */
 	std::string fieldValues() const
 	{
@@ -138,4 +178,61 @@ TFTEST_MAIN("table sum fields compute laid out")
 	TFPASS(fields.find("[???]") != std::string::npos);
 	TFPASS(fields.find("[5]") != std::string::npos);
 	TFPASS(fields.find("[12]") != std::string::npos);
+}
+
+TFTEST_MAIN("table formula fields evaluate and update")
+{
+	SumView v;
+	{
+		tf_guard::call([&] {
+			TFPASS(v.load("/test/wp/cov15/tableformula.abw"));
+		}, 20000);
+	}
+	if (!v.doc)
+		return;
+
+	v.recalcFields();
+	/* the \# picture format follows the locale's decimal separator
+	 * (like sFormatDouble/Word) — normalize ',' to '.' so the
+	 * expected strings are locale-independent; no fixture value
+	 * legitimately contains a ',' */
+	auto deLocale = [](std::string s) {
+		for (char &c : s)
+			if (c == ',')
+				c = '.';
+		return s;
+	};
+	const std::string fields = deLocale(v.fieldValues());
+	fprintf(stderr, "tableformula fields: %s\n", fields.c_str());
+	/* fixture expectations, in document order:
+	 *   [???]   =SUM(ABOVE) outside a table
+	 *   [30]    =SUM(ABOVE) in C2: cell above is 30
+	 *   [50]    =SUM(ABOVE) in A3: contiguous 40+10
+	 *   [30]    =SUM(A1:B1) = 10+20
+	 *   [40]    =AVERAGE(LEFT): the two computed cells 50,30 -> 40
+	 *   [50.00] =SUM(A1:A2) \# 0.00
+	 *   [10]    =MIN(A1:C1)
+	 *   [50]    =B1*2+C1/3
+	 */
+	const std::string want =
+		"[???][30][50][30][40][50.00][10][50]";
+	TFPASS(fields == want);
+
+	/* change A1 "10" -> "100" and confirm the formulas recalculate */
+	const PT_DocPosition pos = v.endOfTextBlock("10");
+	TFPASS(pos != 0);
+	if (pos == 0)
+		return;
+	TFPASS(v.doc->insertSpan(pos, std::string("0")));
+	v.recalcFields();
+
+	const std::string fields2 = deLocale(v.fieldValues());
+	fprintf(stderr, "tableformula after edit: %s\n", fields2.c_str());
+	/* A1=100 -> SUM(ABOVE)@A3=140, SUM(A1:B1)=120,
+	 * AVERAGE(LEFT)@C3=130, SUM(A1:A2) \# 0.00=140.00,
+	 * MIN(A1:C1)=20; =B1*2+C1/3 (50) and C2's SUM(ABOVE)
+	 * (30) unchanged */
+	const std::string want2 =
+		"[???][30][140][120][130][140.00][20][50]";
+	TFPASS(fields2 == want2);
 }

@@ -50,6 +50,8 @@ private:
 	virtual UT_Error serializeProperties(IE_Exp_OpenXML* exporter);
 	fd_Field::FieldType fieldType;
 	std::string fieldValue;
+	//! raw field instruction for types that carry it (FD_Table_formula)
+	std::string m_instruction;
 };
 
 #endif //_OXML_ELEMENT_FIELD_H_

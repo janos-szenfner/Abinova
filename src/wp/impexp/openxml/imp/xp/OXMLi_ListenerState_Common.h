@@ -45,6 +45,8 @@ private:
 	bool m_pendingSectBreak;
 	bool m_eqField;
 	bool m_pageNumberField;
+	bool m_formulaField;
+	bool m_formulaEmitted;
 	bool m_fldChar;
 	int m_fieldDepth;
 	int m_tocFieldDepth;
@@ -53,6 +55,7 @@ private:
 	bool m_tocFirst;
 	std::string m_fieldInstr;
 	std::string m_tocInstr;
+	void emitFormulaField(OXMLi_ElementStack * stck);
 	/* open w:pPrChange/w:rPrChange/w:numberingChange/w:sectPrChange
 	 * scopes — inner *Pr subtrees collect onto dummy targets */
 	std::vector<OXMLi_ChangeScope> m_changeScopes;

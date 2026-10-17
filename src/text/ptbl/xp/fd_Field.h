@@ -65,6 +65,7 @@ class ABI_EXPORT fd_Field
 
         FD_Table_sum_rows,
         FD_Table_sum_cols,
+        FD_Table_formula,
 
         FD_DateTime_Custom,
 

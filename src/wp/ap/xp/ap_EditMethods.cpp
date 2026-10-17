@@ -905,6 +905,7 @@ public:
 
 	
 	static EV_EditMethod_Fn insertTable;
+	static EV_EditMethod_Fn insertTableFormula;
 	static EV_EditMethod_Fn insertTableGrid;
 
 #ifdef DEBUG
@@ -1304,6 +1305,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(insertTabCTL),			0,	""),
 	EV_EditMethod(NF(insertTabShift),			0,	""),
 	EV_EditMethod(NF(insertTable),          0,  ""),
+	EV_EditMethod(NF(insertTableFormula),   0,  ""),
 	EV_EditMethod(NF(insertTableGrid),      0,  ""),
 	EV_EditMethod(NF(insertTildeData),		_D_,	""),
 	EV_EditMethod(NF(insertTrademark),		0,	""),
@@ -14441,6 +14443,31 @@ Defun1(insertSumCols)
 		"param", ""
 	};
 	pView->cmdInsertField("sum_cols", atts, PP_NOPROPS);
+	return true;
+}
+
+// "insertTableFormula": Word-style =field formula in a table cell.
+// The formula text comes from call data (e.g. "=SUM(ABOVE)"); when no
+// data is given the Formula dialog default =SUM(ABOVE) is used.
+Defun(insertTableFormula)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	std::string sFormula;
+	if(pCallData && pCallData->m_pData && pCallData->m_dataLength)
+	{
+		UT_UCS4String sData(pCallData->m_pData, pCallData->m_dataLength);
+		sFormula = sData.utf8_str();
+	}
+	if(sFormula.empty())
+	{
+		sFormula = "=SUM(ABOVE)";
+	}
+	PP_PropertyVector atts = {
+		"param", sFormula.c_str()
+	};
+	pView->cmdInsertField("table_formula", atts, PP_NOPROPS);
 	return true;
 }
 

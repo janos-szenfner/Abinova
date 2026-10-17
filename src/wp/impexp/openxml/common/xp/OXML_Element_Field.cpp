@@ -228,6 +228,24 @@ UT_Error OXML_Element_Field::serialize(IE_Exp_OpenXML* exporter)
 			format = "COMMENTS \\* MERGEFORMAT";
 			break;
 		}
+		case fd_Field::FD_Table_formula:
+		{
+			/* the stored field param holds the formula instruction
+			 * ("=SUM(ABOVE)"); emit it as a simple field so Word
+			 * recalculates on open */
+			const gchar* pParam = nullptr;
+			if(getAttribute("param", pParam) == UT_OK && pParam && *pParam)
+			{
+				format = pParam;
+				if(format[0] != '=')
+					format = std::string("=") + format;
+			}
+			else
+			{
+				format = "=SUM(ABOVE)";
+			}
+			break;
+		}
 		case fd_Field::FD_App_ID:
 		{
 			format = "NAMEOFAPPLICATION \\* MERGEFORMAT";
@@ -550,6 +568,12 @@ UT_Error OXML_Element_Field::addToPT(PD_Document * pDocument)
 			break;
 		}
 
+		case fd_Field::FD_Table_formula:
+		{
+			format = "table_formula";
+			break;
+		}
+
 		//TODO: more to come here	
 		default:
 		{ 
@@ -564,6 +588,11 @@ UT_Error OXML_Element_Field::addToPT(PD_Document * pDocument)
 	PP_PropertyVector field_fmt = getAttributesWithProps();
 	field_fmt.push_back("type");
 	field_fmt.push_back(format);
+	if(fieldType == fd_Field::FD_Table_formula)
+	{
+		field_fmt.push_back("param");
+		field_fmt.push_back(m_instruction.c_str());
+	}
 
 	if(fieldType == fd_Field::FD_Footnote_Ref)
 	{
@@ -615,7 +644,21 @@ void OXML_Element_Field::setFieldType(const std::string & typ)
 	std::string type = removeExtraSpaces(typ);
 
 	fieldType = fd_Field::FD_None;
-	
+
+	/* table formulas arrive as a bare expression instruction
+	 * ("=SUM(ABOVE)", " =A1+B2 \# "0.00" " etc.) — keep the
+	 * whitespace-trimmed raw instruction (space collapsing would
+	 * corrupt quoted picture formats) as the field's param */
+	if(!type.empty() && type.front() == '=')
+	{
+		size_t first = typ.find_first_not_of(" \t\r\n");
+		size_t last = typ.find_last_not_of(" \t\r\n");
+		fieldType = fd_Field::FD_Table_formula;
+		m_instruction = (first == std::string::npos) ? std::string() :
+			typ.substr(first, last - first + 1);
+		return;
+	}
+
 	if(!type.compare("DATE"))
 		fieldType = fd_Field::FD_Date;
 	else if(!type.compare("TIME"))

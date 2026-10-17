@@ -1223,6 +1223,20 @@ public:
 	virtual UT_uint32		needsFrequentUpdates() override {return FIELD_UPDATE_WORD_COUNT;};
 };
 
+// Word-style table formula (=SUM(ABOVE), =AVERAGE(A1:B2), ...) — the
+// formula text is the field's "param" attribute
+class ABI_EXPORT fp_FieldTableFormulaRun : public fp_FieldRun
+{
+public:
+	fp_FieldTableFormulaRun(fl_BlockLayout* pBL, UT_uint32 iOffsetFirst, UT_uint32 iLen);
+
+	virtual ~fp_FieldTableFormulaRun(){}
+
+	virtual bool			calculateValue(void) override;
+	virtual void			_draw(dg_DrawArgs* pDA) override { _defaultDraw(pDA); }
+	virtual UT_uint32		needsFrequentUpdates() override {return FIELD_UPDATE_WORD_COUNT;};
+};
+
 // count of the #para in the document
 class ABI_EXPORT fp_FieldParaCountRun : public fp_FieldRun
 {

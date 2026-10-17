@@ -3618,7 +3618,9 @@ bool FV_View::_insertField(const char* szName,
 						   const PP_PropertyVector & extra_props)
 {
 	bool bResult = false;
-	if(szName && ((strcmp(szName,"sum_rows") == 0) || (strcmp(szName,"sum_cols") == 0)))
+	if(szName && ((strcmp(szName,"sum_rows") == 0) ||
+				  (strcmp(szName,"sum_cols") == 0) ||
+				  (strcmp(szName,"table_formula") == 0)))
 	{
 	     if(!isInTable())
 	     {

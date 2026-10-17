@@ -317,6 +317,10 @@ pf_Frag_Object::pf_Frag_Object(pt_PieceTable * pPT,
         		{
 		            fieldType = fd_Field::FD_Test;
         		}
+				else if (0 == strcmp(pszType, "table_formula"))
+				{
+					fieldType = fd_Field::FD_Table_formula;
+				}
 		        else if (0 == strcmp(pszType, "time"))
         		{
 		            fieldType = fd_Field::FD_Time;

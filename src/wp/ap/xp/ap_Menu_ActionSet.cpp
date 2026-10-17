@@ -347,6 +347,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_TABLE_INSERT_CELLS,0,0,0,0, nullptr, ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_INSERT_SUMROWS,0,0,0,0, "insertSumRows", ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_INSERT_SUMCOLS,0,0,0,0, "insertSumCols", ap_GetState_InTable, nullptr);
+	_s(AP_MENU_ID_TABLE_INSERT_FORMULA,0,0,0,0, "insertTableFormula", ap_GetState_InTable, nullptr);
 	_s(AP_MENU_ID_TABLE_DELETE,1,0,0,0, nullptr, ap_GetState_PointOrAnchorInTable, nullptr);
 	_s(AP_MENU_ID_TABLE_DELETE_TABLE,0,0,0,0, "deleteTable", ap_GetState_PointOrAnchorInTable, nullptr);
 	_s(AP_MENU_ID_TABLE_DELETETABLE,0,0,0,0, "deleteTable", ap_GetState_PointOrAnchorInTable, nullptr);

@@ -100,6 +100,19 @@ responsibility** — see `README.md`.
   paragraphs / 99 sentences, case-insensitive). `=rand()` fills with
   the quick-brown-fox pangram, `=lorem()` cycles lorem-ipsum
   sentences, and the whole expansion is a single undo step.
+- **Table formulas** — table cells can now hold Word-style
+  `=expression` fields: cell refs (`A1`) and ranges (`A1:B2`), the
+  positional keywords `ABOVE`/`BELOW`/`LEFT`/`RIGHT` (contiguous
+  numeric run, like Word), the Word function set (`SUM`, `AVERAGE`,
+  `PRODUCT`, `MIN`, `MAX`, `COUNT`, `ABS`, `INT`, `ROUND`, `MOD`,
+  `SIGN`, `IF`, `AND`, `OR`, `NOT`, `TRUE`, `FALSE`), the arithmetic
+  and comparison operators, and `\#` numeric picture formats. Results
+  recalculate on field update (F9 / redraw) and formulas referencing
+  computed cells see the displayed values. `insertTableFormula`
+  inserts `=SUM(ABOVE)` by default (formula text can be passed as
+  call data) and is only active inside a table; `.docx` files
+  round-trip the formulas via both `w:fldSimple` and complex
+  `fldChar`/`instrText` fields so Word recalculates them on open.
 
 ### User interface
 

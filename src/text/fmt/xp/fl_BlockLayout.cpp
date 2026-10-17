@@ -5961,6 +5961,10 @@ bool	fl_BlockLayout::_doInsertFieldRun(PT_BlockOffset blockOffset, const PX_Chan
 	  {
 	    pNewRun = new fp_FieldTableSumCols(this,   blockOffset, 1);
 	  }
+	else if(strcmp(pszType, "table_formula") == 0)
+	  {
+	    pNewRun = new fp_FieldTableFormulaRun(this,   blockOffset, 1);
+	  }
 	else
 	{
 		UT_ASSERT_NOT_REACHED ();
