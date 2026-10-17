@@ -415,12 +415,14 @@ static const AP_RibbonGroup s_ribbon_insert_groups[] =
 
 /* ------------------------------------------------------------- Design --- */
 
-/* Word's Design tab: a coordinated style-set gallery plus the theme
+/* Word's Design tab: the Themes umbrella (font pair + palette in one
+ * step) leads a coordinated style-set gallery plus the theme
  * colour/font pair dropdowns; the second group covers the page
  * background (watermark, page borders, page colour - the last is
  * shared with the Layout tab's background group) */
 static const AP_RibbonItem s_ribbon_design_docfmt[] =
 {
+	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_THEMES),
 	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_STYLESETS),
 	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_THEMECOLORS),
 	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_THEMEFONTS),

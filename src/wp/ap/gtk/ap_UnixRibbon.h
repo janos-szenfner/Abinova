@@ -107,6 +107,7 @@ private:
 	GtkWidget *		_makeBreaksPopover();
 	GtkWidget *		_makeLineNumbersPopover();
 	GtkWidget *		_makeHyphenationPopover();
+	GtkWidget *		_makeThemesPopover();
 	GtkWidget *		_makeStyleSetsPopover();
 	GtkWidget *		_makeThemeColorsPopover();
 	GtkWidget *		_makeThemeFontsPopover();

@@ -161,6 +161,13 @@ responsibility** — see `README.md`.
   Borders draws rules around the text area or the page edge,
   sharing the `page-border-*`/`page-watermark-*` section
   properties with `.docx` import so everything round-trips.
+- **Themes gallery** — a Themes dropdown now leads the Design
+  tab's Document Formatting group: six named themes (Craft,
+  Studio, Gallery, Atelier, Darkroom, Sketchbook) each apply a
+  coordinated heading/body font pair and accent palette to the
+  named styles in one step — the same change the Colors and
+  Fonts dropdowns make separately. Also scriptable as the
+  `designTheme` edit method (`studio`, `darkroom`, …).
 - **Design tab drawn icons** — every button on the Design ribbon
   tab now shows a distinct procedurally drawn icon (the shared
   20x20 pen-glyph set): Document Formatting gets an "A" set mark,

@@ -882,6 +882,7 @@ public:
 	static EV_EditMethod_Fn attachTemplate;
 	static EV_EditMethod_Fn updateStyles;
 	static EV_EditMethod_Fn styleSetApply;
+	static EV_EditMethod_Fn designTheme;
 	static EV_EditMethod_Fn themeColorsApply;
 	static EV_EditMethod_Fn themeFontsApply;
 	static EV_EditMethod_Fn pageWatermark;
@@ -1112,6 +1113,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(deleteRows),   		0,	""),
 	EV_EditMethod(NF(deleteTable),   		0,	""),
 	EV_EditMethod(NF(deleteXMLID),  		0,	""),
+	EV_EditMethod(NF(designTheme),		0,		""),
 	EV_EditMethod(NF(differentFirstPage),	0,		""),
 	EV_EditMethod(NF(differentOddEven),		0,		""),
 	EV_EditMethod(NF(distributeTableCols),	0,	""),
@@ -7819,6 +7821,66 @@ Defun(themeFontsApply)
 				{ "Heading 1", "font-family", t.heading },
 				{ "Heading 2", "font-family", t.heading },
 				{ "Heading 3", "font-family", t.heading },
+			};
+			s_mergeStyleProps(pView, patches, G_N_ELEMENTS(patches));
+			return true;
+		}
+	}
+	return false;
+}
+
+/* Word's Design > Themes gallery: a named theme applies the heading /
+ * body font pair and the accent palette in one step (wordcraft's own
+ * THEMES table: Craft/Studio/Gallery/Atelier/Darkroom/Sketchbook).
+ * accent heads the title/headings, accent2 mutes the subtitle. */
+struct _DesignTheme
+{
+	const char * key;
+	const char * heading;
+	const char * body;
+	const char * accent;
+	const char * accent2;
+};
+
+static const _DesignTheme s_design_themes[] = {
+	{ "craft",      "Aptos Display",  "Aptos",          "156082", "E97132" },
+	{ "studio",     "Georgia",        "Georgia",        "8C2F39", "C98B2E" },
+	{ "gallery",    "Helvetica Neue", "Helvetica Neue", "222222", "E63946" },
+	{ "atelier",    "Palatino",       "Palatino",       "6D597A", "B56576" },
+	{ "darkroom",   "Futura",         "Avenir Next",    "264653", "2A9D8F" },
+	{ "sketchbook", "Gill Sans",      "Gill Sans",      "588157", "3A5A40" },
+};
+
+/*
+ * callData is the theme key (case-insensitive); unknown keys fail.
+ */
+Defun(designTheme)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const char * szKey = s.utf8_str();
+	for (const _DesignTheme & t : s_design_themes)
+	{
+		if (!g_ascii_strcasecmp(t.key, szKey))
+		{
+			const _PropPatch patches[] = {
+				{ "Normal",    "font-family", t.body    },
+				{ "Normal",    "color",       "000000"  },
+				{ "Title",     "font-family", t.heading },
+				{ "Title",     "color",       t.accent  },
+				{ "Subtitle",  "font-family", t.heading },
+				{ "Subtitle",  "color",       t.accent2 },
+				{ "Heading 1", "font-family", t.heading },
+				{ "Heading 1", "color",       t.accent  },
+				{ "Heading 2", "font-family", t.heading },
+				{ "Heading 2", "color",       t.accent  },
+				{ "Heading 3", "font-family", t.heading },
+				{ "Heading 3", "color",       t.accent  },
+				{ "Subtle Emphasis",  "color", t.accent2 },
+				{ "Intense Emphasis", "color", t.accent  },
+				{ "Intense Reference","color", t.accent  },
 			};
 			s_mergeStyleProps(pView, patches, G_N_ELEMENTS(patches));
 			return true;

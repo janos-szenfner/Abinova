@@ -2402,6 +2402,9 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_HYPHENATION):
 		popover = _makeHyphenationPopover();
 		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_THEMES):
+		popover = _makeThemesPopover();
+		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_STYLESETS):
 		popover = _makeStyleSetsPopover();
 		break;
@@ -5971,6 +5974,29 @@ GtkWidget * AP_UnixRibbon::_makeHyphenationPopover()
 	g_signal_connect(opt, "clicked",
 					 G_CALLBACK(_s_hyphdlg_clicked), this);
 	gtk_box_append(GTK_BOX(box), opt);
+	return popover;
+}
+
+/* Themes gallery: a named theme applies the heading/body font pair
+ * and the accent palette in one go (designTheme) */
+GtkWidget * AP_UnixRibbon::_makeThemesPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * det;
+						  const char * key; } themes[] = {
+		{ "Craft",      "Aptos headings, teal and orange accents",  "craft"      },
+		{ "Studio",     "Georgia throughout, wine accent",        "studio"     },
+		{ "Gallery",    "Helvetica Neue, near-black and red",     "gallery"    },
+		{ "Atelier",    "Palatino, dusty purple accent",          "atelier"    },
+		{ "Darkroom",   "Futura headings, deep-teal accent",      "darkroom"   },
+		{ "Sketchbook", "Gill Sans, forest greens",               "sketchbook" },
+	};
+	for (const auto & t : themes)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(t.name, t.det, nullptr,
+								  "designTheme", t.key));
 	return popover;
 }
 

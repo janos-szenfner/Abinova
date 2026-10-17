@@ -252,6 +252,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_LAYOUT_ALIGNOBJECTS,	0,1,0,0,	"arrangePosition",	ap_GetState_InImage,		nullptr);
 	_s(AP_MENU_ID_LAYOUT_GROUPOBJECTS,	0,0,0,0,	"frameGroup",		ap_GetState_Groupable,		nullptr);
 	_s(AP_MENU_ID_LAYOUT_ROTATE,		0,0,0,0,	"frameRotateRight", ap_GetState_ObjSelected,	nullptr);
+	_s(AP_MENU_ID_DESIGN_THEMES,	0,0,0,0,	nullptr,		nullptr,					nullptr);
 	_s(AP_MENU_ID_DESIGN_STYLESETS,	0,0,0,0,	nullptr,		nullptr,					nullptr);
 	_s(AP_MENU_ID_DESIGN_THEMECOLORS,	0,0,0,0,	nullptr,		nullptr,					nullptr);
 	_s(AP_MENU_ID_DESIGN_THEMEFONTS,	0,0,0,0,	nullptr,		nullptr,					nullptr);
