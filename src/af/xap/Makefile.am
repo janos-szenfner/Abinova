@@ -147,6 +147,8 @@ libxap_la_SOURCES += \
 	gtk/xap_UnixApp.h \
 	gtk/xap_UnixAppImpl.cpp \
 	gtk/xap_UnixAppImpl.h \
+	gtk/xap_UnixControlSocket.cpp \
+	gtk/xap_UnixControlSocket.h \
 	gtk/xap_UnixClipboard.cpp \
 	gtk/xap_UnixClipboard.h \
 	gtk/xap_UnixCustomWidget.cpp \

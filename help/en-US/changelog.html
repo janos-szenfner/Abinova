@@ -4,6 +4,32 @@
 <h1>Changelog</h1>
 <p>All notable changes in this experimental Abinova GTK4 fork, grouped by category. Based on upstream Abiword 3.1.90 (<code>5e3e1cc</code> import).</p>
 <p>This project is experimental and supplied <b>without any warranty or responsibility</b> — see <code>README.md</code>.</p>
+<h2>[4.0.1] — 2026-10-16</h2>
+<h3>User interface</h3>
+<ul>
+<li><b>Font size field is now a real combo box</b> — the Home tab (and the   classic toolbar) previously showed the size as two adjacent boxes:   a plain entry plus a separate <code>GtkDropDown</code> echoing the same value.   It is now a single editable field with an attached drop-down arrow,   the same widget style as the font name combo (<code>AbiSizeCombo</code>,   <code>src/af/ev/gtk/ev_UnixSizeCombo.{h,cpp}</code>): type a size and press   &lt;enter&gt;, or open the list and pick one. Typing filters the list,   the arrow preselects/scrolls to the current size, and sizes that   are not in the list (e.g. <code>10.5</code> or a stray <code>3pt</code> run) can be typed   without leaking into the list. Digits and one decimal point are   accepted; commit happens on &lt;enter&gt;, on a list pick, or when the   field loses focus.</li>
+</ul>
+<h3>Icons</h3>
+<ul>
+<li><b>macOS: missing action icons fixed</b> — the Editing group buttons   (Search, Replace, Select All, Go To, Undo, Redo) and several menu   items resolved to freedesktop names (<code>edit-find</code>, <code>edit-undo</code>,   <code>go-jump</code>, <code>edit-select-all</code>, …) that modern Adwaita ships only as   <code>*-symbolic</code>. On Linux these names come from the distro theme, but   the macOS bundle's vanilla Adwaita has only the <code>-symbolic</code>   variants, so the buttons degraded to plain text. Icon lookup now   falls back to the <code>-symbolic</code> name when the plain name is absent   (<code>abi_stock_pick_icon()</code> in <code>ap_UnixStockIcons</code>), applied to ribbon   buttons, popup-menu icons and classic-toolbar icons alike.</li>
+</ul>
+<h3>Packaging</h3>
+<ul>
+<li><b>Linux <code>.deb</code> registers with the desktop properly</b> — the CI-built   package installed files owned by the build user, rewrote nothing in   the <code>.desktop</code> file (<code>Exec=abinova</code> relied on <code>PATH</code>) and shipped   no maintainer scripts, so <code>update-desktop-database</code>,   <code>gtk-update-icon-cache</code> and <code>update-mime-database</code> never ran and   the app could be invisible to menus and GUI installers (no Launch   button). The release workflow now builds the package via   <code>dist/make-deb.sh</code>: root-owned payload, <code>Exec=/usr/bin/abinova</code>,   and <code>postinst</code>/<code>postrm</code> that refresh the desktop, icon and MIME   caches. The RPM gains the same <code>%post</code>/<code>%postun</code> cache refreshes   and the absolute <code>Exec</code> path.</li>
+</ul>
+<h3>Ribbon</h3>
+<ul>
+<li><b>Drawn vector icons</b> — a new procedural icon module   (<code>ap_UnixGlyphIcons</code>) renders ~29 core action icons (undo/redo,   find/replace, select-all, go-to, cut/copy/paste, formatting,   alignment, indent, zoom, table, image…) as two-color Cairo   vectors on a 20×20 grid. Used when the icon theme lacks the name   (or with <code>ABINOVA_GLYPH_ICONS=1</code>), on ribbon buttons,   classic-toolbar buttons and popup-menu items — so icons no longer   depend on what a given distro/macOS theme happens to ship.</li>
+<li><b>Unified action-icon catalog</b> (<code>ap_UnixActionIcons</code>) — one   resolution path from menu id / edit-method / toolbar id to icon,   shared by the ribbon, classic toolbar and menus; replaces five   drifting per-caller mappings.</li>
+<li><b>Tab overflow and collapse</b> — when the tab strip doesn't fit,   trailing tabs move into a <code>»</code> menu (File and the   active/contextual tabs stay pinned); double-click a tab to fold   the ribbon to just the tab strip, single-click a tab to peek,   double-click again to expand.</li>
+<li><b>Keytips</b> — pressing and releasing Alt alone shows letter   badges over the tabs; typing a letter selects the tab and shows   badges over its commands; a further letter activates the command.   Digits <code>1</code>–<code>9</code> reach the Quick Access   Toolbar. Esc, Alt or any click dismisses.</li>
+<li><b>Focus return</b> — after a ribbon command completes (and no   dialog or popover grabbed focus), keyboard focus returns to the   document so typing continues without an extra click.</li>
+<li><b>Customizable ribbon + Quick Access Toolbar</b> — right-click a   ribbon command for "Add/Remove from Quick Access Toolbar";   right-click a tab for "Hide tab" / "Reset ribbon layout". The   layout persists to <code>~/.config/abinova/ribbon.json</code>.</li>
+</ul>
+<h3>Automation</h3>
+<ul>
+<li><b>Runtime control channel</b> — <code>--control PORT</code> (or   <code>ABINOVA_CONTROL_PORT</code>) opens a JSON-lines TCP listener on   <code>127.0.0.1</code> for tests and scripting. Requests authenticate   with a per-instance key written to   <code>~/.config/abinova/control-key.local-PORT</code>; methods include   <code>ping</code>, <code>engine.execute</code> (dispatch any   edit method by name) and <code>ui.screenshot</code> (render a   live window to PNG).</li>
+</ul>
 <h2>[4.0.0] — 2026-10-12</h2>
 <h3>Built-in file-format support (formerly plugins)</h3>
 <ul>

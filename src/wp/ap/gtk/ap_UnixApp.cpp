@@ -86,6 +86,7 @@ static void s_installWinCrashHandler();
 #include "ut_files.h"
 
 #include "xap_Args.h"
+#include "xap_UnixControlSocket.h"
 #include "ap_Args.h"
 #include "ap_Convert.h"
 #include "ap_UnixFrame.h"
@@ -311,6 +312,15 @@ bool AP_UnixApp::initialize(bool has_display)
 
 	if(m_pClipboard)
 		m_pClipboard->initialize();
+
+	/* runtime control channel (tests/automation): --control=<port>
+	 * or ABINOVA_CONTROL_PORT; loopback only, off by default */
+	int ctlPort = AP_Args::m_iControlPort;
+	const char * ctlEnv = g_getenv("ABINOVA_CONTROL_PORT");
+	if (ctlEnv && *ctlEnv)
+		ctlPort = atoi(ctlEnv);
+	if (ctlPort > 0)
+		abi_control_start(this, ctlPort);
 
     return true;
 }

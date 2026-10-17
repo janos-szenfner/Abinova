@@ -71,7 +71,8 @@
 #include "ev_Toolbar_Labels.h"
 #include "xap_Toolbar_LabelSet.h"
 #include "ap_Prefs_SchemeIds.h"
-#include "ap_UnixStockIcons.h"
+#include "ap_UnixActionIcons.h"
+#include "ap_UnixGlyphIcons.h"
 
 /*****************************************************************/
 
@@ -580,12 +581,15 @@ GMenuItem * EV_UnixMenu::_createMenuItem(XAP_Menu_Id id,
 			const char * szIcon = pTBLabel ? pTBLabel->getIconName() : nullptr;
 			if (szIcon && *szIcon && g_ascii_strcasecmp(szIcon, "NoIcon"))
 			{
-				gchar * szStock = abi_stock_from_toolbar_id(szIcon);
-				GIcon * icon = g_themed_icon_new(
-					abi_stock_pick_icon(szStock));
-				g_menu_item_set_icon(item, icon);
-				g_object_unref(icon);
-				g_free(szStock);
+				const char * szPicked =
+					abi_action_icon_for_toolbar(szIcon);
+				/* a drawn glyph beats a name the theme cannot render */
+				GIcon * icon = abi_action_gicon(szPicked, 16);
+				if (icon)
+				{
+					g_menu_item_set_icon(item, icon);
+					g_object_unref(icon);
+				}
 			}
 		}
 	}

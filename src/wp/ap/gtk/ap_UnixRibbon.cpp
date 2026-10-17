@@ -63,6 +63,8 @@
 #include "ap_Toolbar_Id.h"
 #include "ap_Prefs_SchemeIds.h"
 #include "ap_UnixStockIcons.h"
+#include "ap_UnixGlyphIcons.h"
+#include "ap_UnixActionIcons.h"
 #include "ap_UnixStylesPane.h"
 #include "ap_UnixFrameImpl.h"
 #include "ap_Ribbon_Layouts.h"
@@ -259,6 +261,14 @@ static void s_widget_weak_notify(gpointer data, GObject * /*where_dead*/)
 static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h);
 static bool _has_drawn_icon(XAP_Menu_Id id);
 
+/* theme icon, falling back to a drawn glyph when the theme lacks the
+ * name (ABINOVA_GLYPH_ICONS=1 forces the drawn set for previewing) */
+static GtkWidget * _icon_widget_for(const char * szIcon, int px)
+{
+	GtkWidget * w = abi_action_icon_widget(szIcon, px);
+	return w ? w : gtk_image_new_from_icon_name(szIcon);
+}
+
 AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 	: m_pFrame(pFrame)
 	, m_pMenu(pMenu)
@@ -268,7 +278,6 @@ AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 	, m_wStyleScroll(nullptr)
 	, m_wStylePrev(nullptr)
 	, m_wStyleNext(nullptr)
-	, m_pIconMap(nullptr)
 	, m_pMarkupLabel(nullptr)
 	, m_bSpinUpdating(false)
 {
@@ -291,7 +300,8 @@ AP_UnixRibbon::~AP_UnixRibbon()
 	}
 	if (m_iStyleBtnIdle)
 		g_source_remove(m_iStyleBtnIdle);
-	g_clear_pointer(&m_pIconMap, g_hash_table_unref);
+	if (m_iCollapseIdle)
+		g_source_remove(m_iCollapseIdle);
 	DELETEP(m_pTBLabels);
 	for (_SpinField * _utv_p : m_vecSpins)
 	{
@@ -342,46 +352,20 @@ AP_UnixRibbon::~AP_UnixRibbon()
  */
 void AP_UnixRibbon::_buildIconMap()
 {
-	if (m_pIconMap)
+	/* the toolbar label set is still needed for button labels and
+	 * tooltips; icon resolution itself now lives in the shared
+	 * action-icon catalog (ap_UnixActionIcons) */
+	if (m_pTBLabels)
 		return;
-	m_pIconMap = g_hash_table_new_full(g_str_hash, g_str_equal,
-									   g_free, g_free);
-
-	const EV_Toolbar_ActionSet * pTBActions =
-		XAP_App::getApp()->getToolbarActionSet();
-	if (!pTBActions)
-		return;
-
 	m_pTBLabels = AP_CreateToolbarLabelSet(AP_PREF_DEFAULT_StringSet);
-	if (!m_pTBLabels)
-		return;
-
-	for (UT_uint32 tid = 1; tid < static_cast<UT_uint32>(AP_TOOLBAR_ID__BOGUS2__); ++tid)
-	{
-		EV_Toolbar_Action * pTBAction =
-			pTBActions->getAction(static_cast<XAP_Toolbar_Id>(tid));
-		EV_Toolbar_Label * pTBLabel =
-			m_pTBLabels->getLabel(static_cast<XAP_Toolbar_Id>(tid));
-		if (!pTBAction || !pTBLabel)
-			continue;
-		const char * szMethod = pTBAction->getMethodName();
-		const char * szIcon = pTBLabel->getIconName();
-		if (!szMethod || !*szMethod || !szIcon ||
-			g_ascii_strcasecmp(szIcon, "NoIcon") == 0)
-			continue;
-		if (!g_hash_table_contains(m_pIconMap, szMethod))
-		{
-			gchar * szStock = abi_stock_from_toolbar_id(szIcon);
-			g_hash_table_insert(m_pIconMap, g_strdup(szMethod),
-								g_strdup(abi_stock_pick_icon(szStock)));
-			g_free(szStock);
-		}
-	}
 }
 
 GtkWidget * AP_UnixRibbon::createWidget()
 {
 	m_wNotebook = gtk_notebook_new();
+	/* scrollable stays on so the header can shrink below the full
+	 * tab strip; _reflowTabs preempts its arrows by moving
+	 * overflowing tabs into the » menu before they are needed */
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(m_wNotebook), TRUE);
 	gtk_widget_add_css_class(m_wNotebook, "abinova-ribbon");
 	{
@@ -460,6 +444,12 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		"  border: 2px solid @theme_selected_bg_color;"
 		"  border-radius: 4px;"
 		"  padding: 1px 8px;"
+		"}"
+		/* keytip badges - Word's dark floating letter chips */
+		".abinova-ribbon .keytip {"
+		"  background: #3c3c3c; color: #fff; border: 1px solid #555;"
+		"  border-radius: 3px; padding: 0 4px;"
+		"  font-size: 0.72em; font-weight: bold;"
 		"}";
 	GtkCssProvider * css = gtk_css_provider_new();
 	gtk_css_provider_load_from_data(css, ribbon_css, -1);
@@ -582,6 +572,13 @@ GtkWidget * AP_UnixRibbon::createWidget()
 					w = _makeButton(static_cast<XAP_Menu_Id>(item->id), item->flags);
 				if (!w)
 					continue;
+				/* right-click a ribbon command -> Add/Remove on the
+				 * Quick Access Toolbar; the notebook-level capture
+				 * gesture resolves this marker (a per-button gesture
+				 * starves behind the scrolled window's drag claim) */
+				if (item->kind == AP_RIBBON_ITEM_MENU)
+					g_object_set_data(G_OBJECT(w), "abi-menu-id",
+									  GUINT_TO_POINTER(item->id));
 				/* FMT_STYLE stays registered for toolbar-state updates
 				 * (gallery highlight + Styles pane) but is not shown */
 				if (item->kind == AP_RIBBON_ITEM_TOOLBAR &&
@@ -709,6 +706,11 @@ GtkWidget * AP_UnixRibbon::createWidget()
 
 		GtkWidget * tabLabel = gtk_label_new(_ribbon_label(tab->szTabKey,
 														 s_ribbon_tab_labels));
+		/* right-click on a tab offers hide/reset (resolved by the
+		 * notebook-level button-3 capture gesture below) */
+		g_object_set_data(G_OBJECT(tabLabel), "abi-tab-key",
+						  const_cast<gpointer>(static_cast<const void *>(
+							  tab->szTabKey)));
 		/* let a tab page shrink below its content width: the widest
 		 * page (Home) otherwise forces a window minimum wider than
 		 * small screens, which breaks resize and maximize */
@@ -718,6 +720,10 @@ GtkWidget * AP_UnixRibbon::createWidget()
 									   GTK_POLICY_NEVER);
 		gtk_scrolled_window_set_propagate_natural_height(
 			GTK_SCROLLED_WINDOW(scroll), TRUE);
+		/* collapse hides the inner box - a zero floor lets the
+		 * ribbon shrink to just the tab strip */
+		gtk_scrolled_window_set_min_content_height(
+			GTK_SCROLLED_WINDOW(scroll), 0);
 		gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroll), page);
 		gtk_notebook_append_page(GTK_NOTEBOOK(m_wNotebook), scroll, tabLabel);
 		g_object_set_data(G_OBJECT(scroll), "abi-tab-key",
@@ -733,9 +739,66 @@ GtkWidget * AP_UnixRibbon::createWidget()
 			m_vecContextualPages.push_back(scroll);
 			g_object_set_data(G_OBJECT(scroll), "abi-ctx-key",
 							  const_cast<gpointer>(static_cast<const void *>(tab->szTabKey)));
+			g_object_set_data(G_OBJECT(scroll), "abi-ctx-want",
+							  GINT_TO_POINTER(FALSE));
 			gtk_widget_set_visible(scroll, FALSE);
 		}
 	}
+
+	/* persisted layout: hidden/ordered tabs + Quick Access Toolbar */
+	_loadLayout();
+	_applyLayout();
+
+	/* Quick Access Toolbar at the left of the tab strip - the
+	 * PACK_START action slot mirrors Word's top-left QAT row */
+	m_wQat = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_add_css_class(m_wQat, "qat");
+	gtk_widget_set_valign(m_wQat, GTK_ALIGN_CENTER);
+	gtk_notebook_set_action_widget(GTK_NOTEBOOK(m_wNotebook), m_wQat,
+								   GTK_PACK_START);
+	_rebuildQat();
+
+	/* » menu for tabs that do not fit; lives in the header's
+	 * action corner, appears only when tabs overflow */
+	m_wMoreBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+	GtkWidget * mp = gtk_popover_new();
+	gtk_popover_set_child(GTK_POPOVER(mp), m_wMoreBox);
+	m_wMore = gtk_menu_button_new();
+	gtk_menu_button_set_label(GTK_MENU_BUTTON(m_wMore), "»");
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(m_wMore), mp);
+	gtk_widget_set_visible(m_wMore, FALSE);
+	gtk_widget_set_valign(m_wMore, GTK_ALIGN_CENTER);
+	gtk_notebook_set_action_widget(GTK_NOTEBOOK(m_wNotebook), m_wMore,
+								   GTK_PACK_END);
+
+	/* one capture-phase click controller handles both the
+	 * double-click-to-collapse on a tab and the Word-style
+	 * "peek then re-collapse" of a collapsed ribbon */
+	GtkGesture * tclick = gtk_gesture_click_new();
+	/* left button only: it must not claim right-clicks bound for
+	 * the per-button context gestures below */
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(tclick), 1);
+	gtk_event_controller_set_propagation_phase(
+		GTK_EVENT_CONTROLLER(tclick), GTK_PHASE_CAPTURE);
+	g_signal_connect(tclick, "pressed",
+					 G_CALLBACK(_s_tab_pressed), this);
+	g_signal_connect(tclick, "released",
+					 G_CALLBACK(_s_tab_released), this);
+	gtk_widget_add_controller(m_wNotebook, GTK_EVENT_CONTROLLER(tclick));
+
+	/* one capture-phase button-3 gesture serves every context menu:
+	 * pick the widget under the press and walk its ancestors for a
+	 * QAT command marker or a tab key */
+	GtkGesture * rclick = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(rclick), 3);
+	gtk_event_controller_set_propagation_phase(
+		GTK_EVENT_CONTROLLER(rclick), GTK_PHASE_CAPTURE);
+	g_signal_connect(rclick, "pressed",
+					 G_CALLBACK(_s_nb_rclick), this);
+	gtk_widget_add_controller(m_wNotebook, GTK_EVENT_CONTROLLER(rclick));
+
+	gtk_widget_add_tick_callback(m_wNotebook, _s_reflow_tick, this,
+								 nullptr);
 
 	g_signal_connect(m_wNotebook, "switch-page",
 					 G_CALLBACK(_s_switch_page), this);
@@ -750,7 +813,17 @@ GtkWidget * AP_UnixRibbon::createWidget()
 	g_signal_connect(motion, "enter", G_CALLBACK(_s_motion_enter), this);
 	gtk_widget_add_controller(m_wNotebook, motion);
 
-	return m_wNotebook;
+	/* GtkOverlay root: the keytip badge layer floats above the
+	 * notebook without taking part in layout or input */
+	GtkWidget * overlay = gtk_overlay_new();
+	gtk_overlay_set_child(GTK_OVERLAY(overlay), m_wNotebook);
+	gtk_widget_add_css_class(overlay, "abinova-ribbon");
+	m_wOverlay = overlay;
+	/* the window-level key controller is attached once the overlay
+	 * is mapped and its root toplevel exists */
+	g_signal_connect(overlay, "map", G_CALLBACK(_s_kt_mapped), this);
+
+	return overlay;
 }
 
 /* shared CSS removing the theme's wide default button padding so
@@ -834,15 +907,9 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 
 
 
-	/* reuse the classic toolbar's icon for this edit method, if any;
-	 * fall back to the menu action's own stock-icon mapping */
-	const char * szMethod = pAction->getMethodName();
-	const char * szIcon = (szMethod && m_pIconMap)
-		? static_cast<const char *>(g_hash_table_lookup(m_pIconMap,
-														szMethod))
-		: nullptr;
-	if (!szIcon || !*szIcon)
-		szIcon = abi_stock_pick_icon(abi_stock_from_menu_id(id));
+	/* one catalog resolves the icon: the toolbar icon bound to the
+	 * same edit method, else the menu action's stock mapping */
+	const char * szIcon = abi_action_icon_for_menu(id);
 	/* ids with a drawn ribbon glyph (References tab) still get an
 	 * icon when the theme provides none */
 	bool bDrawnIcon = (!szIcon || !*szIcon) && _has_drawn_icon(id);
@@ -901,6 +968,7 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 	}
 
 	if (szIcon && *szIcon && (flags & AP_RIBBON_FLAG_ICONONLY) &&
+		!abi_action_prefers_glyph(szIcon) &&
 		!gtk_icon_theme_has_icon(
 			gtk_icon_theme_get_for_display(gdk_display_get_default()),
 			szIcon))
@@ -916,7 +984,7 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		 * in the tooltip */
 		GtkWidget * image = bDrawnIcon
 			? _layout_icon(id, 18, 18)
-			: gtk_image_new_from_icon_name(szIcon);
+			: _icon_widget_for(szIcon, 18);
 		gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
 		gtk_button_set_child(GTK_BUTTON(btn), image);
 	}
@@ -939,8 +1007,9 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 		}
 		else
 		{
-			image = gtk_image_new_from_icon_name(szIcon);
-			gtk_image_set_pixel_size(GTK_IMAGE(image), iIconPx);
+			image = _icon_widget_for(szIcon, iIconPx);
+			if (GTK_IS_IMAGE(image))
+				gtk_image_set_pixel_size(GTK_IMAGE(image), iIconPx);
 		}
 		gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
 		/* Close: red icon only, button face and label stay normal */
@@ -1033,7 +1102,7 @@ GtkWidget * AP_UnixRibbon::_makeButton(XAP_Menu_Id id, uint8_t flags)
 			GtkWidget * box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
 			GtkWidget * image = bDrawnIcon
 				? _layout_icon(id, 16, 16)
-				: gtk_image_new_from_icon_name(szIcon);
+				: _icon_widget_for(szIcon, 16);
 			gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
 			gtk_box_append(GTK_BOX(box), image);
 			gtk_box_append(GTK_BOX(box), wLabel);
@@ -1116,6 +1185,33 @@ void AP_UnixRibbon::_invokeToolbarItem(XAP_Toolbar_Id id,
 
 	EV_EditMethodCallData emcd(pData, dataLength);
 	pEM->Fn(pView, &emcd);
+	_maybeReturnFocus();
+}
+
+/* Word/wordcraft run_from_ribbon behaviour: hand keyboard focus
+ * back to the document so typing continues without a click - but
+ * only when focus is still parked inside the ribbon. If the command
+ * opened a dialog or a popover (not a ribbon descendant) or another
+ * window became active, leave it alone. */
+void AP_UnixRibbon::_maybeReturnFocus()
+{
+	GtkRoot * root = m_wOverlay
+		? gtk_widget_get_root(m_wOverlay) : nullptr;
+	GtkWidget * focus = root ? gtk_root_get_focus(root) : nullptr;
+	if (!focus || !m_wOverlay || !GTK_IS_WINDOW(root) ||
+		!gtk_window_is_active(GTK_WINDOW(root)) ||
+		(focus != m_wOverlay &&
+		 !gtk_widget_is_ancestor(focus, m_wOverlay)))
+		return;
+
+	XAP_UnixFrameImpl * impl = m_pFrame
+		? static_cast<XAP_UnixFrameImpl *>(m_pFrame->getFrameImpl())
+		: nullptr;
+	GtkWidget * area = impl
+		? static_cast<AP_UnixFrameImpl *>(impl)->getDrawingArea()
+		: nullptr;
+	if (area)
+		gtk_widget_grab_focus(area);
 }
 
 void AP_UnixRibbon::_s_tb_clicked(GtkWidget * w, gpointer data)
@@ -1398,6 +1494,9 @@ GtkWidget * AP_UnixRibbon::_tb_color_button_new(const gchar * icon_name,
 		gtk_label_set_markup(GTK_LABEL(gl), szMarkup);
 		gtk_menu_button_set_child(GTK_MENU_BUTTON(button), gl);
 	}
+	else if (abi_action_prefers_glyph(icon_name))
+		gtk_menu_button_set_child(GTK_MENU_BUTTON(button),
+								  abi_glyph_icon_widget(icon_name, 16));
 	else
 		gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(button), icon_name);
 	gtk_menu_button_set_direction(GTK_MENU_BUTTON(button), GTK_ARROW_DOWN);
@@ -1470,6 +1569,7 @@ void AP_UnixRibbon::_s_popover_menu_clicked(GtkWidget * w, gpointer data)
 		self->m_pMenu ? self->m_pMenu->getActionGroup() : nullptr;
 	if (group)
 		g_action_group_activate_action(group, pAction->c_str(), nullptr);
+	self->_maybeReturnFocus();
 }
 
 /* flat labelled button inside a split popover, wired to a menu action */
@@ -2430,9 +2530,16 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	GtkWidget * mb = gtk_menu_button_new();
 	if (id == static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BORDERS))
 	{
-		const gchar * szIcon = abi_stock_pick_icon(abi_stock_from_menu_id(id));
+		const gchar * szIcon = abi_action_icon_for_menu(id);
 		if (szIcon && *szIcon)
-			gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(mb), szIcon);
+		{
+			if (abi_action_prefers_glyph(szIcon))
+				gtk_menu_button_set_child(
+					GTK_MENU_BUTTON(mb),
+					abi_glyph_icon_widget(szIcon, 16));
+			else
+				gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(mb), szIcon);
+		}
 		gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
 									  GTK_ARROW_DOWN);
 	}
@@ -11021,13 +11128,7 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 
 	GtkWidget * w = nullptr;
 	const char * szIcon = pLabel->getIconName();
-	gchar * szThemeIcon = nullptr;
-	if (szIcon && g_ascii_strcasecmp(szIcon, "NoIcon") != 0)
-	{
-		gchar * szStock = abi_stock_from_toolbar_id(szIcon);
-		szThemeIcon = g_strdup(abi_stock_pick_icon(szStock));
-		g_free(szStock);
-	}
+	const char * szThemeIcon = abi_action_icon_for_toolbar(szIcon);
 
 	switch (pAction->getItemType())
 	{
@@ -11045,8 +11146,10 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 		{
 			/* Word-style large button: big icon, caption beneath it */
 			GtkWidget * vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
-			GtkWidget * image = gtk_image_new_from_icon_name(szThemeIcon);
-			gtk_image_set_icon_size(GTK_IMAGE(image), GTK_ICON_SIZE_LARGE);
+			GtkWidget * image = _icon_widget_for(szThemeIcon, 24);
+			if (GTK_IS_IMAGE(image))
+				gtk_image_set_icon_size(GTK_IMAGE(image),
+										GTK_ICON_SIZE_LARGE);
 			GtkWidget * caption = gtk_label_new(szTip);
 			gtk_label_set_ellipsize(GTK_LABEL(caption), PANGO_ELLIPSIZE_END);
 			gtk_label_set_max_width_chars(GTK_LABEL(caption), 14);
@@ -11056,10 +11159,9 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 		}
 		else if (szThemeIcon)
 		{
-			if (bToggle)
+			if (bToggle || abi_action_prefers_glyph(szThemeIcon))
 			{
-				GtkWidget * image =
-					gtk_image_new_from_icon_name(szThemeIcon);
+				GtkWidget * image = _icon_widget_for(szThemeIcon, 16);
 				gtk_button_set_child(GTK_BUTTON(w), image);
 			}
 			else
@@ -11135,7 +11237,7 @@ GtkWidget * AP_UnixRibbon::_makeToolbarWidget(XAP_Toolbar_Id id,
 	const char * szToolTip = pLabel->getToolTip();
 	if (szToolTip && *szToolTip)
 		gtk_widget_set_tooltip_text(w, szToolTip);
-	g_free(szThemeIcon);
+
 
 	gtk_widget_set_hexpand(w, FALSE);
 	gtk_widget_set_valign(w, GTK_ALIGN_CENTER);
@@ -11715,6 +11817,10 @@ void AP_UnixRibbon::_refreshContextualTabs()
 		const bool curIsCtx = (curKey != nullptr);
 		const bool wasVisible = gtk_widget_get_visible(page);
 
+		/* intended visibility; _reflowTabs applies it together with
+		 * the » overflow hiding */
+		g_object_set_data(G_OBJECT(page), "abi-ctx-want",
+						  GINT_TO_POINTER(vis));
 		gtk_widget_set_visible(page, vis);
 
 		if (vis && !wasVisible && !curIsCtx)
@@ -11753,6 +11859,9 @@ void AP_UnixRibbon::_refreshContextualTabs()
 			}
 		}
 	}
+	/* contextual tabs appearing/hiding changes the tab count -
+	 * re-fit against the current width */
+	_reflowTabs();
 }
 
 void AP_UnixRibbon::_s_switch_page(GtkNotebook * /*book*/,
@@ -11771,8 +11880,1099 @@ void AP_UnixRibbon::_s_motion_enter(GtkEventControllerMotion * /*ctrl*/,
 {
 	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
 	if (self)
+	{
+		self->_applyCollapsedPage();
 		self->refresh();
+	}
 }
+
+/* ================================================================
+ * Tab overflow (» menu) and double-click collapse
+ * ================================================================ */
+
+/* expanded: every page content visible; collapsed + peek: only the
+ * current tab's content shows (Word shows the clicked tab until the
+ * command runs or the tab is clicked again) */
+void AP_UnixRibbon::_applyCollapsedPage()
+{
+	if (!m_wNotebook || gtk_widget_in_destruction(m_wNotebook))
+		return;
+	GtkNotebook * nb = GTK_NOTEBOOK(m_wNotebook);
+	const int n = gtk_notebook_get_n_pages(nb);
+	const int cur = gtk_notebook_get_current_page(nb);
+	for (int i = 0; i < n; ++i)
+	{
+		GtkWidget * page = gtk_notebook_get_nth_page(nb, i);
+		GtkWidget * inner = page
+			? gtk_scrolled_window_get_child(GTK_SCROLLED_WINDOW(page))
+			: nullptr;
+		if (inner)
+			gtk_widget_set_visible(inner, !m_bCollapsed || i == cur);
+	}
+}
+
+/* fold back to the bare tab strip - the peeked page goes away too */
+void AP_UnixRibbon::_foldBody()
+{
+	if (!m_wNotebook || gtk_widget_in_destruction(m_wNotebook))
+		return;
+	GtkNotebook * nb = GTK_NOTEBOOK(m_wNotebook);
+	const int n = gtk_notebook_get_n_pages(nb);
+	for (int i = 0; i < n; ++i)
+	{
+		GtkWidget * page = gtk_notebook_get_nth_page(nb, i);
+		GtkWidget * inner = page
+			? gtk_scrolled_window_get_child(GTK_SCROLLED_WINDOW(page))
+			: nullptr;
+		if (inner)
+			gtk_widget_set_visible(inner, FALSE);
+	}
+}
+
+void AP_UnixRibbon::_setCollapsed(bool bCollapsed)
+{
+	if (m_bCollapsed == bCollapsed)
+		return;
+	m_bCollapsed = bCollapsed;
+	if (bCollapsed)
+		_foldBody();
+	else
+		_applyCollapsedPage();
+}
+
+gboolean AP_UnixRibbon::_s_collapse_idle(gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	self->m_iCollapseIdle = 0;
+	self->_foldBody();
+	return G_SOURCE_REMOVE;
+}
+
+/* true when widget or an ancestor up to (excl.) notebook is the tab
+ * label / a page scrolled window / a popover-opening control */
+static GtkWidget * _pick_ancestor(GtkWidget * w, GtkWidget * stop,
+								  gboolean (*match)(GtkWidget *))
+{
+	for (GtkWidget * p = w; p && p != stop;
+		 p = gtk_widget_get_parent(p))
+	{
+		if (match(p))
+			return p;
+	}
+	return nullptr;
+}
+
+static gboolean _match_page_scroll(GtkWidget * w)
+{
+	return GTK_IS_SCROLLED_WINDOW(w);
+}
+
+static gboolean _match_button(GtkWidget * w)
+{
+	/* plain/toggle buttons re-collapse the peeked ribbon after the
+	 * command runs; GtkMenuButton is NOT a GtkButton subclass, so
+	 * popover openers, combos and spin fields keep it up */
+	return GTK_IS_BUTTON(w);
+}
+
+void AP_UnixRibbon::_s_tab_pressed(GtkGestureClick * /*g*/, gint n_press,
+								   gdouble x, gdouble y, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (!self || !self->m_wNotebook)
+		return;
+	if (self->m_iKtMode)
+		self->_ktDismiss();
+	GtkWidget * hit = gtk_widget_pick(self->m_wNotebook, x, y,
+									  GTK_PICK_DEFAULT);
+	const bool inPage = hit &&
+		_pick_ancestor(hit, self->m_wNotebook, _match_page_scroll);
+	if (n_press == 1 && self->m_bCollapsed && !inPage)
+		/* remember where the press landed so the release can tell a
+		 * re-click on the current tab (fold again) from a switch */
+		self->m_iTabPressPage = gtk_notebook_get_current_page(
+			GTK_NOTEBOOK(self->m_wNotebook));
+	else
+		self->m_iTabPressPage = -1;
+	if (n_press != 2 || inPage)
+		return;
+	if (!hit || hit == self->m_wMore ||
+		gtk_widget_is_ancestor(hit, self->m_wMore))
+		return;
+	/* a double-click lands on the tab strip when it is not inside a
+	 * page (the header wraps tab labels in internal widgets, so
+	 * "not in a page" is the reliable test) */
+	self->_setCollapsed(!self->m_bCollapsed);
+}
+
+void AP_UnixRibbon::_s_tab_released(GtkGestureClick * /*g*/,
+									gint /*n_press*/,
+									gdouble x, gdouble y, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (!self || !self->m_wNotebook || !self->m_bCollapsed ||
+		self->m_iCollapseIdle)
+		return;
+	GtkWidget * hit = gtk_widget_pick(self->m_wNotebook, x, y,
+									  GTK_PICK_DEFAULT);
+	if (!hit)
+		return;
+	if (_pick_ancestor(hit, self->m_wNotebook, _match_page_scroll))
+	{
+		/* a plain button inside the peeked body: let the click
+		 * finish, then fold back to the tab strip */
+		if (_pick_ancestor(hit, self->m_wNotebook, _match_button))
+			self->m_iCollapseIdle = g_idle_add(_s_collapse_idle, self);
+	}
+	else
+	{
+		/* click on the tab strip: re-clicking the current tab folds
+		 * the peeked body back (switching tabs already peeked the
+		 * new page via switch-page) */
+		const int cur = gtk_notebook_get_current_page(
+			GTK_NOTEBOOK(self->m_wNotebook));
+		if (cur == self->m_iTabPressPage && cur >= 0)
+			self->_foldBody();
+	}
+}
+
+/* ---------------- overflow ---------------- */
+
+gboolean AP_UnixRibbon::_s_reflow_tick(GtkWidget * /*w*/,
+									   GdkFrameClock * /*clock*/,
+									   gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (!self || !self->m_wNotebook)
+		return G_SOURCE_REMOVE;
+	const int w = gtk_widget_get_width(self->m_wNotebook);
+	if (w != self->m_iReflowWidth)
+	{
+		self->m_iReflowWidth = w;
+		self->_reflowTabs();
+	}
+	return G_SOURCE_CONTINUE;
+}
+
+void AP_UnixRibbon::_reflowTabs()
+{
+	if (!m_wNotebook || gtk_widget_in_destruction(m_wNotebook))
+		return;
+	GtkNotebook * nb = GTK_NOTEBOOK(m_wNotebook);
+	const int n = gtk_notebook_get_n_pages(nb);
+	if (!n)
+		return;
+	int avail = gtk_widget_get_width(m_wNotebook);
+	/* test hook: pretend the strip is narrower (ABINOVA_RIBBON_W) */
+	const char * szFake = g_getenv("ABINOVA_RIBBON_W");
+	if (szFake && *szFake)
+		avail = atoi(szFake);
+	if (avail < 40)
+		return;
+	const int cur = gtk_notebook_get_current_page(nb);
+
+	/* eligible = tabs that want to be shown.  Contextual tabs defer
+	 * to the abi-ctx-want flag the refresh pass maintains; normal
+	 * tabs are eligible when visible or merely overflow-hidden */
+	std::vector<int> cand;
+	for (int i = 0; i < n; ++i)
+	{
+		GtkWidget * page = gtk_notebook_get_nth_page(nb, i);
+		bool elig;
+		if (g_object_get_data(G_OBJECT(page), "abi-ctx-key"))
+			elig = GPOINTER_TO_INT(
+				g_object_get_data(G_OBJECT(page), "abi-ctx-want"));
+		else
+			elig = gtk_widget_get_visible(page) ||
+				std::find(m_vecOverflowPages.begin(),
+						  m_vecOverflowPages.end(),
+						  page) != m_vecOverflowPages.end();
+		if (elig)
+			cand.push_back(i);
+	}
+
+	/* measured tab widths (label + header padding slack) */
+	std::vector<int> widths(cand.size(), 0);
+	for (size_t k = 0; k < cand.size(); ++k)
+	{
+		GtkWidget * page = gtk_notebook_get_nth_page(nb, cand[k]);
+		GtkWidget * lab = gtk_notebook_get_tab_label(nb, page);
+		int nat = 0;
+		if (lab)
+			gtk_widget_measure(lab, GTK_ORIENTATION_HORIZONTAL, -1,
+							   nullptr, &nat, nullptr, nullptr);
+		widths[k] = nat + 28;
+	}
+
+	int total = 0;
+	for (int w : widths)
+		total += w;
+
+	std::vector<bool> keep(cand.size(), true);
+	bool overflow = total > avail;
+	if (overflow)
+	{
+		int moreW = 40;
+		gtk_widget_measure(m_wMore, GTK_ORIENTATION_HORIZONTAL, -1,
+						   nullptr, &moreW, nullptr, nullptr);
+		int budget = avail - moreW - 8;
+
+		/* always keep the first tab (File) and the current one */
+		int spend = 0;
+		for (size_t k = 0; k < cand.size(); ++k)
+		{
+			if (k == 0 || cand[k] == cur)
+				continue;
+			if (spend + widths[k] <= budget - widths[0])
+				spend += widths[k];
+			else
+				keep[k] = false;
+		}
+		/* if the current tab itself overflowed, swap it in for the
+		 * last kept non-pinned tab */
+		bool curKept = true;
+		for (size_t k = 0; k < cand.size(); ++k)
+			if (cand[k] == cur)
+				curKept = keep[k];
+		if (!curKept)
+		{
+			for (size_t k = cand.size(); k-- > 1; )
+				if (keep[k] && cand[k] != cur)
+				{
+					keep[k] = false;
+					break;
+				}
+			for (size_t k = 0; k < cand.size(); ++k)
+				if (cand[k] == cur)
+					keep[k] = true;
+		}
+	}
+
+	/* apply visibility + rebuild the overflow set and » list */
+	m_vecOverflowPages.clear();
+	GtkWidget * first = gtk_widget_get_first_child(
+		GTK_WIDGET(m_wMoreBox));
+	while (first)
+	{
+		GtkWidget * next = gtk_widget_get_next_sibling(first);
+		gtk_box_remove(GTK_BOX(m_wMoreBox), first);
+		first = next;
+	}
+	for (size_t k = 0; k < cand.size(); ++k)
+	{
+		GtkWidget * page = gtk_notebook_get_nth_page(nb, cand[k]);
+		if (keep[k])
+			gtk_widget_set_visible(page, TRUE);
+		else
+		{
+			gtk_widget_set_visible(page, FALSE);
+			m_vecOverflowPages.push_back(page);
+
+			GtkWidget * lab = gtk_notebook_get_tab_label(nb, page);
+			GtkWidget * mi = gtk_button_new_with_label(
+				lab ? gtk_label_get_text(GTK_LABEL(lab)) : "?");
+			gtk_widget_add_css_class(mi, "flat");
+			g_object_set_data(G_OBJECT(mi), "abi-page",
+							  GINT_TO_POINTER(cand[k]));
+			g_signal_connect(mi, "clicked",
+							 G_CALLBACK(_s_overflow_tab_clicked), this);
+			gtk_box_append(GTK_BOX(m_wMoreBox), mi);
+		}
+	}
+	gtk_widget_set_visible(m_wMore, overflow);
+}
+
+void AP_UnixRibbon::_s_overflow_tab_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (!self || !self->m_wNotebook)
+		return;
+	GtkNotebook * nb = GTK_NOTEBOOK(self->m_wNotebook);
+	const int idx = GPOINTER_TO_INT(
+		g_object_get_data(G_OBJECT(w), "abi-page"));
+	GtkWidget * page = gtk_notebook_get_nth_page(nb, idx);
+	if (!page)
+		return;
+	/* pull the picked tab back: it is pinned by virtue of being
+	 * current, so the reflow evicts a different tab instead */
+	self->m_vecOverflowPages.erase(
+		std::remove(self->m_vecOverflowPages.begin(),
+					self->m_vecOverflowPages.end(), page),
+		self->m_vecOverflowPages.end());
+	gtk_widget_set_visible(page, TRUE);
+	gtk_notebook_set_current_page(nb, idx);
+	GtkPopover * pop = gtk_menu_button_get_popover(
+		GTK_MENU_BUTTON(self->m_wMore));
+	if (pop)
+		gtk_popover_popdown(pop);
+	self->_reflowTabs();
+}
+
+/* ================================================================
+ * Keytips - Alt shows badges over tabs, a letter drills into
+ * commands (Word's Alt-H-F etc.)
+ * ================================================================ */
+
+/* Word's tab letters: single letter per permanent tab, J* for the
+ * contextual tool tabs like Word's "Table Tools" pair */
+static const struct { const char * key; const char * tab; }
+_kt_tab_keys[] =
+{
+	{ "F",  "file" },
+	{ "H",  "home" },
+	{ "N",  "insert" },
+	{ "S",  "references" },
+	{ "P",  "layout" },
+	{ "R",  "review" },
+	{ "W",  "view" },
+	{ "JD", "tabledesign" },
+	{ "JT", "table" },
+	{ "JE", "equation" },
+	{ "Y",  "help" },
+	{ nullptr, nullptr }
+};
+
+/* badge over widget w at its top-left corner: a label set as an
+ * overlay child, positioned with start/top margins */
+static GtkWidget * _kt_badge_for(GtkWidget * overlay, GtkWidget * target,
+								 const char * key)
+{
+	const graphene_point_t origin = { 0, 0 };
+	graphene_point_t p;
+	if (!gtk_widget_compute_point(target, overlay, &origin, &p))
+		return nullptr;
+	GtkWidget * b = gtk_label_new(key);
+	gtk_widget_add_css_class(b, "keytip");
+	gtk_widget_set_can_target(b, FALSE);
+	gtk_widget_set_halign(b, GTK_ALIGN_START);
+	gtk_widget_set_valign(b, GTK_ALIGN_START);
+	gtk_widget_set_margin_start(b, (int) MAX(0.0, p.x - 6.0));
+	gtk_widget_set_margin_top(b, (int) MAX(0.0, p.y - 8.0));
+	gtk_overlay_add_overlay(GTK_OVERLAY(overlay), b);
+	return b;
+}
+
+/* collect the clickable command widgets of the current tab, in
+ * left-to-right order */
+static void _kt_collect(GtkWidget * w, std::vector<GtkWidget*> & out)
+{
+	if (!gtk_widget_get_visible(w) || !gtk_widget_get_sensitive(w))
+		return;
+	if (GTK_IS_BUTTON(w) || GTK_IS_MENU_BUTTON(w) ||
+		GTK_IS_DROP_DOWN(w))
+		out.push_back(w);
+	for (GtkWidget * c = gtk_widget_get_first_child(w); c;
+		 c = gtk_widget_get_next_sibling(c))
+		_kt_collect(c, out);
+}
+
+void AP_UnixRibbon::_ktClear()
+{
+	if (m_wOverlay)
+		for (const _KtEntry & e : m_vecKt)
+			if (e.badge)
+				gtk_overlay_remove_overlay(GTK_OVERLAY(m_wOverlay),
+										   e.badge);
+	m_vecKt.clear();
+	m_strKtPrefix.clear();
+}
+
+void AP_UnixRibbon::_ktDismiss()
+{
+	_ktClear();
+	m_iKtMode = 0;
+}
+
+void AP_UnixRibbon::_ktShowTabs()
+{
+	if (!m_wNotebook || !m_wOverlay)
+		return;
+	_ktClear();
+	m_iKtMode = 1;
+
+	GtkNotebook * nb = GTK_NOTEBOOK(m_wNotebook);
+	const int n = gtk_notebook_get_n_pages(nb);
+	for (int i = 0; i < n; ++i)
+	{
+		GtkWidget * page = gtk_notebook_get_nth_page(nb, i);
+		if (!gtk_widget_get_visible(page))
+			continue;
+		const char * key = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(page), "abi-tab-key"));
+		const char * kt = nullptr;
+		for (int t = 0; _kt_tab_keys[t].key; ++t)
+			if (key && 0 == strcmp(_kt_tab_keys[t].tab, key))
+				kt = _kt_tab_keys[t].key;
+		if (!kt)
+			continue;
+		GtkWidget * lab = gtk_notebook_get_tab_label(nb, page);
+		if (!lab)
+			continue;
+		_KtEntry e;
+		e.key = kt;
+		e.target = lab;
+		e.badge = _kt_badge_for(m_wOverlay, lab, kt);
+		e.page = i;
+		m_vecKt.push_back(e);
+	}
+
+	/* Quick Access Toolbar gets number badges like Word */
+	if (m_wQat)
+	{
+		int n = 0;
+		for (GtkWidget * b = gtk_widget_get_first_child(m_wQat);
+			 b && n < 9; b = gtk_widget_get_next_sibling(b), ++n)
+		{
+			char k[2] = { (char)('1' + n), 0 };
+			_KtEntry e;
+			e.key = k;
+			e.target = b;
+			e.badge = _kt_badge_for(m_wOverlay, b, k);
+			e.page = -1;
+			m_vecKt.push_back(e);
+		}
+	}
+}
+
+void AP_UnixRibbon::_ktShowCommands()
+{
+	if (!m_wNotebook || !m_wOverlay)
+		return;
+	_ktClear();
+	m_iKtMode = 2;
+
+	GtkNotebook * nb = GTK_NOTEBOOK(m_wNotebook);
+	GtkWidget * page = gtk_notebook_get_nth_page(
+		nb, gtk_notebook_get_current_page(nb));
+	if (!page)
+		return;
+
+	std::vector<GtkWidget*> cmds;
+	_kt_collect(page, cmds);
+	/* Word letters commands A..Z first, then AA.. - a-z is enough
+	 * for one badge row; anything beyond just gets no keytip */
+	static const char * letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	const size_t m = MIN(cmds.size(), size_t(26));
+	for (size_t i = 0; i < m; ++i)
+	{
+		char k[2] = { letters[i], 0 };
+		_KtEntry e;
+		e.key = k;
+		e.target = cmds[i];
+		e.badge = _kt_badge_for(m_wOverlay, cmds[i], k);
+		e.page = -1;
+		m_vecKt.push_back(e);
+	}
+}
+
+gboolean AP_UnixRibbon::_s_kt_key(GtkEventControllerKey * /*c*/,
+								  guint keyval, guint /*keycode*/,
+								  GdkModifierType state, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (!self)
+		return FALSE;
+
+	if (self->m_iKtMode == 0)
+	{
+		/* bare Alt press (not part of a chord) arms the badges */
+		if ((keyval == GDK_KEY_Alt_L || keyval == GDK_KEY_Alt_R) &&
+			!(state & (GDK_CONTROL_MASK | GDK_SHIFT_MASK |
+					   GDK_SUPER_MASK)))
+		{
+			self->_ktShowTabs();
+			return TRUE;
+		}
+		return FALSE;
+	}
+
+	/* keytips live: every key is ours */
+	if (keyval == GDK_KEY_Escape ||
+		keyval == GDK_KEY_Alt_L || keyval == GDK_KEY_Alt_R)
+	{
+		self->_ktDismiss();
+		return TRUE;
+	}
+
+	const guint32 wc = gdk_keyval_to_unicode(keyval);
+	if (!wc)
+	{
+		self->_ktDismiss();
+		return TRUE;
+	}
+	const char up = g_ascii_toupper((char) wc);
+	const std::string want = self->m_strKtPrefix + up;
+
+	/* filter the badge list to keys still reachable */
+	std::vector<_KtEntry> alive;
+	const _KtEntry * hit = nullptr;
+	for (const _KtEntry & e : self->m_vecKt)
+	{
+		if (e.key == want && !hit)
+			hit = &e;
+		if (e.key.compare(0, want.size(), want) == 0)
+			alive.push_back(e);
+	}
+
+	if (!hit && alive.empty())
+	{
+		/* no such keytip - cancel the mode silently */
+		self->_ktDismiss();
+		return TRUE;
+	}
+	if (hit)
+	{
+		const int page = hit->page;
+		GtkWidget * target = hit->target;
+		self->_ktDismiss();
+		if (page >= 0)
+		{
+			/* an overflowed tab's keytip still works: the reflow
+			 * swaps it in for the last kept tab */
+			gtk_widget_set_visible(
+				gtk_notebook_get_nth_page(
+					GTK_NOTEBOOK(self->m_wNotebook), page), TRUE);
+			self->m_vecOverflowPages.clear();
+			gtk_notebook_set_current_page(
+				GTK_NOTEBOOK(self->m_wNotebook), page);
+			self->_reflowTabs();
+			self->_ktShowCommands();
+		}
+		else if (target)
+			gtk_widget_activate(target);
+		return TRUE;
+	}
+
+	/* prefix match only - keep the matching badges, drop the rest */
+	self->m_strKtPrefix = want;
+	for (const _KtEntry & e : self->m_vecKt)
+	{
+		bool keep = false;
+		for (const _KtEntry & a : alive)
+			if (a.badge == e.badge)
+				keep = true;
+		if (!keep && e.badge)
+			gtk_overlay_remove_overlay(GTK_OVERLAY(self->m_wOverlay),
+									   e.badge);
+	}
+	self->m_vecKt = alive;
+	return TRUE;
+}
+
+void AP_UnixRibbon::_s_kt_mapped(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (!self)
+		return;
+	GtkRoot * root = gtk_widget_get_root(w);
+	if (!root)
+		return;
+	GtkEventController * keys = gtk_event_controller_key_new();
+	gtk_event_controller_set_propagation_phase(keys, GTK_PHASE_CAPTURE);
+	g_signal_connect(keys, "key-pressed", G_CALLBACK(_s_kt_key), self);
+	gtk_widget_add_controller(GTK_WIDGET(root), keys);
+	/* any click anywhere dismisses the badges (Word behaviour);
+	 * left button only so right-click context gestures still see
+	 * their presses */
+	GtkGesture * click = gtk_gesture_click_new();
+	gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(click), 1);
+	gtk_event_controller_set_propagation_phase(
+		GTK_EVENT_CONTROLLER(click), GTK_PHASE_CAPTURE);
+	g_signal_connect(click, "pressed",
+					 G_CALLBACK(+[](GtkGestureClick *, int, double, double,
+									gpointer p) {
+						 AP_UnixRibbon * s =
+							 static_cast<AP_UnixRibbon *>(p);
+						 if (s->m_iKtMode)
+							 s->_ktDismiss();
+					 }), self);
+	gtk_widget_add_controller(GTK_WIDGET(root),
+							  GTK_EVENT_CONTROLLER(click));
+	g_signal_handlers_disconnect_by_func(
+		w, (gpointer) _s_kt_mapped, data);
+}
+
+/* ================================================================
+ * Customizable ribbon: hidden/ordered tabs + Quick Access Toolbar,
+ * persisted as JSON in the user config dir (ribbon.json)
+ * ================================================================ */
+
+static std::string _layout_path()
+{
+	const char * dir = XAP_App::getApp()->getUserPrivateDirectory();
+	std::string p = dir ? dir : "";
+	p += "/ribbon.json";
+	return p;
+}
+
+/* minimal JSON extraction for our own small file: "key":[ strings ] */
+static void _json_str_arr(const std::string & j, const char * key,
+						  std::vector<std::string> & out)
+{
+	char pat[40];
+	g_snprintf(pat, sizeof(pat), "\"%s\"", key);
+	size_t at = j.find(pat);
+	if (at == std::string::npos)
+		return;
+	at = j.find('[', at);
+	if (at == std::string::npos)
+		return;
+	size_t end = j.find(']', at);
+	if (end == std::string::npos)
+		return;
+	for (size_t i = at + 1; i < end; ++i)
+	{
+		if (j[i] != '"')
+			continue;
+		size_t close = j.find('"', i + 1);
+		if (close == std::string::npos || close > end)
+			break;
+		out.push_back(j.substr(i + 1, close - i - 1));
+		i = close;
+	}
+}
+
+static void _json_num_arr(const std::string & j, const char * key,
+						  std::vector<UT_uint32> & out)
+{
+	char pat[40];
+	g_snprintf(pat, sizeof(pat), "\"%s\"", key);
+	size_t at = j.find(pat);
+	if (at == std::string::npos)
+		return;
+	at = j.find('[', at);
+	if (at == std::string::npos)
+		return;
+	size_t end = j.find(']', at);
+	if (end == std::string::npos)
+		return;
+	std::string body = j.substr(at + 1, end - at - 1);
+	const char * s = body.c_str();
+	while (*s)
+	{
+		while (*s && (isspace((unsigned char)*s) || *s == ','))
+			++s;
+		if (!*s)
+			break;
+		char * e = nullptr;
+		unsigned long v = strtoul(s, &e, 10);
+		if (e == s)
+			break;
+		out.push_back((UT_uint32) v);
+		s = e;
+	}
+}
+
+void AP_UnixRibbon::_loadLayout()
+{
+	m_layout.hidden.clear();
+	m_layout.order.clear();
+	m_layout.qat.clear();
+
+	gchar * contents = nullptr;
+	if (!g_file_get_contents(_layout_path().c_str(), &contents,
+							 nullptr, nullptr))
+	{
+		/* defaults before the first save: Word's stock QAT trio */
+		m_layout.qat = {
+			static_cast<UT_uint32>(AP_MENU_ID_FILE_SAVE),
+			static_cast<UT_uint32>(AP_MENU_ID_EDIT_UNDO),
+			static_cast<UT_uint32>(AP_MENU_ID_EDIT_REDO) };
+		return;
+	}
+	std::string j(contents);
+	g_free(contents);
+	_json_str_arr(j, "hidden", m_layout.hidden);
+	_json_str_arr(j, "order", m_layout.order);
+	_json_num_arr(j, "qat", m_layout.qat);
+}
+
+void AP_UnixRibbon::_saveLayout() const
+{
+	std::string j = "{ \"hidden\":[";
+	for (size_t i = 0; i < m_layout.hidden.size(); ++i)
+	{
+		if (i)
+			j += ",";
+		j += "\"" + m_layout.hidden[i] + "\"";
+	}
+	j += "], \"order\":[";
+	for (size_t i = 0; i < m_layout.order.size(); ++i)
+	{
+		if (i)
+			j += ",";
+		j += "\"" + m_layout.order[i] + "\"";
+	}
+	j += "], \"qat\":[";
+	for (size_t i = 0; i < m_layout.qat.size(); ++i)
+	{
+		if (i)
+			j += ",";
+		char num[16];
+		g_snprintf(num, sizeof(num), "%u", m_layout.qat[i]);
+		j += num;
+	}
+	j += "] }";
+	gchar * dir = g_path_get_dirname(_layout_path().c_str());
+	g_mkdir_with_parents(dir, 0700);
+	g_free(dir);
+	g_file_set_contents(_layout_path().c_str(), j.c_str(), -1, nullptr);
+}
+
+bool AP_UnixRibbon::_tabHidden(const char * key) const
+{
+	return std::find(m_layout.hidden.begin(), m_layout.hidden.end(),
+					 key) != m_layout.hidden.end();
+}
+
+/* apply the loaded layout: mark hidden tabs, reorder pages */
+void AP_UnixRibbon::_applyLayout()
+{
+	if (!m_wNotebook)
+		return;
+	GtkNotebook * nb = GTK_NOTEBOOK(m_wNotebook);
+	const int n = gtk_notebook_get_n_pages(nb);
+	for (int i = 0; i < n; ++i)
+	{
+		GtkWidget * page = gtk_notebook_get_nth_page(nb, i);
+		const char * key = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(page), "abi-tab-key"));
+		if (key && _tabHidden(key) && strcmp(key, "file"))
+		{
+			g_object_set_data(G_OBJECT(page), "abi-user-hidden",
+							  GINT_TO_POINTER(TRUE));
+			gtk_widget_set_visible(page, FALSE);
+		}
+	}
+	/* reorder: listed keys first in saved order, the rest keep
+	 * their declared positions (gtk_notebook_reorder_child) */
+	for (size_t k = 0; k < m_layout.order.size(); ++k)
+	{
+		for (int i = 0; i < n; ++i)
+		{
+			GtkWidget * page = gtk_notebook_get_nth_page(nb, i);
+			const char * key = static_cast<const char *>(
+				g_object_get_data(G_OBJECT(page), "abi-tab-key"));
+			if (key && key == m_layout.order[k])
+			{
+				gtk_notebook_reorder_child(nb, page, (int) k);
+				break;
+			}
+		}
+	}
+}
+
+bool AP_UnixRibbon::_qatHas(XAP_Menu_Id id) const
+{
+	return std::find(m_layout.qat.begin(), m_layout.qat.end(),
+					 static_cast<UT_uint32>(id)) != m_layout.qat.end();
+}
+
+void AP_UnixRibbon::_qatToggle(XAP_Menu_Id id)
+{
+	const UT_uint32 u = static_cast<UT_uint32>(id);
+	std::vector<UT_uint32>::iterator it =
+		std::find(m_layout.qat.begin(), m_layout.qat.end(), u);
+	if (it == m_layout.qat.end())
+		m_layout.qat.push_back(u);
+	else
+		m_layout.qat.erase(it);
+	_rebuildQat();
+	_saveLayout();
+}
+
+void AP_UnixRibbon::_rebuildQat()
+{
+	if (!m_wQat)
+		return;
+	GtkWidget * c;
+	while ((c = gtk_widget_get_first_child(m_wQat)))
+		gtk_box_remove(GTK_BOX(m_wQat), c);
+
+	for (UT_uint32 u : m_layout.qat)
+	{
+		XAP_Menu_Id id = static_cast<XAP_Menu_Id>(u);
+		GAction * a = m_pMenu ? m_pMenu->lookupAction(id) : nullptr;
+		if (!a && m_pMenu)
+			a = m_pMenu->ensureAction(id);
+		if (!a)
+			continue;
+
+		GtkWidget * b = gtk_button_new();
+		gtk_widget_add_css_class(b, "flat");
+		gtk_widget_add_css_class(b, "qat-button");
+		const char * icon = abi_action_icon_for_menu(id);
+		if (icon)
+		{
+			GtkWidget * img = abi_action_icon_widget(icon, 16);
+			if (img)
+				gtk_button_set_child(GTK_BUTTON(b), img);
+			else
+				gtk_button_set_icon_name(GTK_BUTTON(b), icon);
+		}
+		const EV_Menu_Label * pLabel =
+			m_pMenu->getLabelSet()->getLabel(id);
+		if (pLabel && pLabel->getMenuLabel() &&
+			*pLabel->getMenuLabel())
+		{
+			char tip[256];
+			_ribbon_strip_mnemonic(pLabel->getMenuLabel(),
+								   tip, sizeof(tip));
+			gtk_widget_set_tooltip_text(b, tip);
+		}
+		char detailed[64];
+		g_snprintf(detailed, sizeof(detailed), "menu.%s",
+				   g_action_get_name(a));
+		gtk_actionable_set_action_name(GTK_ACTIONABLE(b), detailed);
+
+		/* notebook-level button-3 gesture offers removal */
+		g_object_set_data(G_OBJECT(b), "abi-menu-id",
+						  GUINT_TO_POINTER(u));
+
+		gtk_box_append(GTK_BOX(m_wQat), b);
+	}
+	gtk_widget_set_visible(m_wQat, !m_layout.qat.empty());
+}
+
+/* shared context popover on a command button: one item whose label
+ * flips between Add to / Remove from the Quick Access Toolbar */
+static GtkWidget * _ctx_popover(GtkWidget * anchor, const char * label,
+								GCallback cb, gpointer data)
+{
+	GtkWidget * pop = gtk_popover_new();
+	GtkWidget * b = gtk_button_new_with_label(label);
+	gtk_widget_add_css_class(b, "flat");
+	gtk_popover_set_child(GTK_POPOVER(pop), b);
+	g_signal_connect(b, "clicked", cb, data);
+	g_object_set_data(G_OBJECT(b), "pop", pop);
+	gtk_widget_set_parent(pop, anchor);
+	/* freed with the anchor or when closed */
+	g_signal_connect_swapped(pop, "closed",
+							 G_CALLBACK(gtk_widget_unparent), pop);
+	return pop;
+}
+
+/* single button-3 handler for the whole notebook: pick the widget
+ * under the press and find its ribbon-command or tab context */
+void AP_UnixRibbon::_s_nb_rclick(GtkGestureClick * /*g*/,
+								 int /*n_press*/, double x, double y,
+								 gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (!self || !self->m_wNotebook)
+		return;
+	GtkNotebook * nb = GTK_NOTEBOOK(self->m_wNotebook);
+
+	GtkWidget * hit = gtk_widget_pick(self->m_wNotebook, x, y,
+									  GTK_PICK_INSENSITIVE);
+	for (GtkWidget * w = hit; w && w != self->m_wNotebook;
+		 w = gtk_widget_get_parent(w))
+	{
+		const UT_uint32 u = GPOINTER_TO_UINT(
+			g_object_get_data(G_OBJECT(w), "abi-menu-id"));
+		if (!u)
+			continue;
+		/* popups must not be born mid-press: the capture gesture
+		 * still owns the sequence, so defer to idle */
+		struct _PopJob { AP_UnixRibbon * s; UT_uint32 id;
+						 double x, y; };
+		_PopJob * job = new _PopJob { self, u, x, y };
+		g_idle_add([](gpointer p) -> gboolean {
+			_PopJob * j = static_cast<_PopJob *>(p);
+			AP_UnixRibbon * self = j->s;
+			if (self->m_wNotebook)
+			{
+				GtkWidget * pop = _ctx_popover(
+					self->m_wNotebook,
+					self->_qatHas(static_cast<XAP_Menu_Id>(j->id))
+						? "Remove from Quick Access Toolbar"
+						: "Add to Quick Access Toolbar",
+					G_CALLBACK(_s_qat_pop_clicked), self);
+				g_object_set_data(G_OBJECT(pop), "abi-menu-id",
+								  GUINT_TO_POINTER(j->id));
+				const GdkRectangle r = { (int) j->x - 4,
+										 (int) j->y - 4, 8, 8 };
+				gtk_popover_set_pointing_to(GTK_POPOVER(pop), &r);
+				gtk_popover_popup(GTK_POPOVER(pop));
+			}
+			delete j;
+			return G_SOURCE_REMOVE;
+		}, job);
+		return;
+	}
+
+	/* tab labels are not pick targets - test their rects instead */
+	const int n = gtk_notebook_get_n_pages(nb);
+	for (int i = 0; i < n; ++i)
+	{
+		GtkWidget * page = gtk_notebook_get_nth_page(nb, i);
+		GtkWidget * lab = gtk_notebook_get_tab_label(nb, page);
+		if (!lab)
+			continue;
+		/* the visible tab is the label's internal gizmo wrapper -
+		 * use its bounds so padding clicks count too */
+		GtkWidget * tabw = gtk_widget_get_parent(lab);
+		if (!tabw || tabw == self->m_wNotebook)
+			tabw = lab;
+		graphene_rect_t b;
+		if (!gtk_widget_compute_bounds(tabw, self->m_wNotebook, &b))
+			continue;
+		const graphene_point_t pt =
+			GRAPHENE_POINT_INIT((float) x, (float) y);
+		if (!graphene_rect_contains_point(&b, &pt))
+			continue;
+		const char * key = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(lab), "abi-tab-key"));
+		if (key)
+		{
+			/* defer: popups cannot be born inside the press */
+			struct _TJob { AP_UnixRibbon * s; GtkWidget * lab;
+						   std::string key; };
+			_TJob * j = new _TJob { self, lab, key };
+			g_idle_add([](gpointer p) -> gboolean {
+				_TJob * t = static_cast<_TJob *>(p);
+				if (t->s->m_wNotebook &&
+					gtk_widget_get_root(t->lab))
+					t->s->_tabContext(t->lab, t->key.c_str());
+				delete t;
+				return G_SOURCE_REMOVE;
+			}, j);
+		}
+		return;
+	}
+}
+
+void AP_UnixRibbon::_tabContext(GtkWidget * lab, const char * key)
+{
+	GtkWidget * pop = gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_popover_set_child(GTK_POPOVER(pop), box);
+	gtk_widget_set_parent(pop, lab);
+	g_signal_connect_swapped(pop, "closed",
+							 G_CALLBACK(gtk_widget_unparent), pop);
+
+	/* File stays - the app needs its commands reachable */
+	if (strcmp(key, "file"))
+	{
+		char label[160];
+		g_snprintf(label, sizeof(label), "Hide \"%s\" tab",
+				   gtk_label_get_text(GTK_LABEL(lab)));
+		GtkWidget * hb = gtk_button_new_with_label(label);
+		gtk_widget_add_css_class(hb, "flat");
+		g_signal_connect(hb, "clicked",
+						 G_CALLBACK(_s_hide_tab_clicked), this);
+		g_object_set_data_full(G_OBJECT(hb), "abi-tab-key",
+							   g_strdup(key), g_free);
+		g_object_set_data(G_OBJECT(hb), "pop", pop);
+		gtk_box_append(GTK_BOX(box), hb);
+	}
+	GtkWidget * rb = gtk_button_new_with_label("Reset ribbon layout");
+	gtk_widget_add_css_class(rb, "flat");
+	g_signal_connect(rb, "clicked",
+					 G_CALLBACK(_s_reset_layout_clicked), this);
+	g_object_set_data(G_OBJECT(rb), "pop", pop);
+	gtk_box_append(GTK_BOX(box), rb);
+	gtk_popover_popup(GTK_POPOVER(pop));
+}
+
+void AP_UnixRibbon::_s_qat_pop_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	GtkWidget * pop = GTK_WIDGET(
+		g_object_get_data(G_OBJECT(w), "pop"));
+	const UT_uint32 u = pop
+		? GPOINTER_TO_UINT(g_object_get_data(G_OBJECT(pop),
+											 "abi-menu-id")) : 0;
+	if (pop)
+		gtk_popover_popdown(GTK_POPOVER(pop));
+	if (self && u)
+		self->_qatToggle(static_cast<XAP_Menu_Id>(u));
+}
+
+void AP_UnixRibbon::_s_hide_tab_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	const char * key = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(w), "abi-tab-key"));
+	GtkWidget * pop = GTK_WIDGET(
+		g_object_get_data(G_OBJECT(w), "pop"));
+	if (pop)
+		gtk_popover_popdown(GTK_POPOVER(pop));
+	if (!self || !key || !self->m_wNotebook)
+		return;
+
+	self->m_layout.hidden.push_back(key);
+	GtkNotebook * nb = GTK_NOTEBOOK(self->m_wNotebook);
+	const int n = gtk_notebook_get_n_pages(nb);
+	for (int i = 0; i < n; ++i)
+	{
+		GtkWidget * page = gtk_notebook_get_nth_page(nb, i);
+		const char * k = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(page), "abi-tab-key"));
+		if (k && 0 == strcmp(k, key))
+		{
+			g_object_set_data(G_OBJECT(page), "abi-user-hidden",
+							  GINT_TO_POINTER(TRUE));
+			gtk_widget_set_visible(page, FALSE);
+			if (gtk_notebook_get_current_page(nb) == i)
+				gtk_notebook_set_current_page(nb, 0);
+			break;
+		}
+	}
+	self->_saveLayout();
+	self->_reflowTabs();
+}
+
+void AP_UnixRibbon::_s_reset_layout_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	GtkWidget * pop = GTK_WIDGET(
+		g_object_get_data(G_OBJECT(w), "pop"));
+	if (pop)
+		gtk_popover_popdown(GTK_POPOVER(pop));
+	if (!self || !self->m_wNotebook)
+		return;
+
+	self->m_layout.hidden.clear();
+	self->m_layout.order.clear();
+	self->m_layout.qat = {
+		static_cast<UT_uint32>(AP_MENU_ID_FILE_SAVE),
+		static_cast<UT_uint32>(AP_MENU_ID_EDIT_UNDO),
+		static_cast<UT_uint32>(AP_MENU_ID_EDIT_REDO) };
+	self->_saveLayout();
+
+	/* unhide everything (contextual tabs still defer to
+	 * abi-ctx-want via the reflow) and restore declared order */
+	GtkNotebook * nb = GTK_NOTEBOOK(self->m_wNotebook);
+	const int n = gtk_notebook_get_n_pages(nb);
+	for (int i = 0; i < n; ++i)
+	{
+		GtkWidget * page = gtk_notebook_get_nth_page(nb, i);
+		g_object_set_data(G_OBJECT(page), "abi-user-hidden",
+						  GINT_TO_POINTER(FALSE));
+		if (!g_object_get_data(G_OBJECT(page), "abi-ctx-key"))
+			gtk_widget_set_visible(page, TRUE);
+	}
+	int pos = 0;
+	for (const AP_RibbonTab * tab = s_ribbon_tabs;
+		 tab->szTabKey; ++tab, ++pos)
+	{
+		for (int i = 0; i < n; ++i)
+		{
+			GtkWidget * page = gtk_notebook_get_nth_page(nb, i);
+			const char * k = static_cast<const char *>(
+				g_object_get_data(G_OBJECT(page), "abi-tab-key"));
+			if (k && 0 == strcmp(k, tab->szTabKey))
+			{
+				gtk_notebook_reorder_child(nb, page, pos);
+				break;
+			}
+		}
+	}
+	self->_rebuildQat();
+	self->_reflowTabs();
+}
+
 
 /* ================================================================
  * Table Design tab (fl_TableStyles recipes)

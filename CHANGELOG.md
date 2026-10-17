@@ -50,6 +50,49 @@ responsibility** — see `README.md`.
   caches. The RPM gains the same `%post`/`%postun` cache refreshes
   and the absolute `Exec` path.
 
+### Ribbon
+
+- **Drawn vector icons** — a new procedural icon module
+  (`ap_UnixGlyphIcons`) renders ~29 core action icons (undo/redo,
+  find/replace, select-all, go-to, cut/copy/paste, formatting,
+  alignment, indent, zoom, table, image…) as two-color Cairo vectors
+  on a 20×20 grid. Used when the icon theme lacks the name (or with
+  `ABINOVA_GLYPH_ICONS=1`), on ribbon buttons, classic-toolbar
+  buttons and popup-menu items — so icons no longer depend on what a
+  given distro/macOS theme happens to ship.
+- **Unified action-icon catalog** (`ap_UnixActionIcons`) — one
+  resolution path from menu id / edit-method / toolbar id to icon,
+  shared by the ribbon, classic toolbar and menus; replaces five
+  drifting per-caller mappings.
+- **Tab overflow and collapse** — when the tab strip doesn't fit,
+  trailing tabs move into a `»` menu (File and the active/contextual
+  tabs stay pinned); double-click a tab to fold the ribbon to just
+  the tab strip, single-click a tab to peek, double-click again to
+  expand.
+- **Keytips** — pressing and releasing Alt alone shows letter badges
+  over the tabs (`F`, `H`, `N`, `S`, `P`, `R`, `W`, `Y`, `JD`/`JT`/`JE`
+  for contextual tabs); typing a letter selects the tab and shows
+  badges over its commands; a further letter activates the command.
+  Digits `1`–`9` reach the Quick Access Toolbar. Esc, Alt or any
+  click dismisses.
+- **Focus return** — after a ribbon command completes (and no dialog
+  or popover grabbed focus), keyboard focus returns to the document
+  so typing continues without an extra click.
+- **Customizable ribbon + Quick Access Toolbar** — right-click a
+  ribbon command for "Add/Remove from Quick Access Toolbar";
+  right-click a tab for "Hide tab" / "Reset ribbon layout". The
+  layout persists to `~/.config/abinova/ribbon.json`.
+
+### Automation
+
+- **Runtime control channel** — `--control PORT` (or
+  `ABINOVA_CONTROL_PORT`) opens a JSON-lines TCP listener on
+  `127.0.0.1` for tests and scripting. Requests authenticate with a
+  per-instance key written to
+  `~/.config/abinova/control-key.local-PORT`; methods include
+  `ping`, `engine.execute` (dispatch any edit method by name) and
+  `ui.screenshot` (render a live window to PNG).
+
 ## [4.0.0] — 2026-10-12
 
 ### Built-in file-format support (formerly plugins)

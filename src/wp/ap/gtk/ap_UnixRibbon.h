@@ -290,6 +290,60 @@ private:
 	static void		_s_motion_enter(GtkEventControllerMotion * ctrl,
 									gdouble x, gdouble y, gpointer data);
 
+	/* tab overflow (» menu) + collapse (double-click tab) */
+	void			_maybeReturnFocus();	/* Word: hand focus back
+											 * to the doc after a
+											 * ribbon command */
+
+	/* persisted ribbon customization (Word's RibbonLayout
+	 * equivalent): hidden/ordered tabs + Quick Access Toolbar */
+	struct _RibbonLayout
+	{
+		std::vector<std::string>	hidden;		/* tab keys */
+		std::vector<std::string>	order;		/* tab keys */
+		std::vector<UT_uint32>		qat;		/* XAP_Menu_Id */
+	};
+	_RibbonLayout			m_layout;
+	GtkWidget *				m_wQat = nullptr;
+
+	void			_loadLayout();
+	void			_saveLayout() const;
+	void			_applyLayout();
+	void			_rebuildQat();
+	void			_qatToggle(XAP_Menu_Id id);
+	bool			_qatHas(XAP_Menu_Id id) const;
+	bool			_tabHidden(const char * key) const;
+	static void		_s_nb_rclick(GtkGestureClick * g, int n_press,
+								 double x, double y, gpointer data);
+	void			_tabContext(GtkWidget * lab, const char * key);
+	static void		_s_qat_pop_clicked(GtkWidget * w, gpointer data);
+	static void		_s_hide_tab_clicked(GtkWidget * w, gpointer data);
+	static void		_s_reset_layout_clicked(GtkWidget * w, gpointer data);
+
+	void			_reflowTabs();
+	void			_setCollapsed(bool bCollapsed);
+	void			_applyCollapsedPage();
+	void			_foldBody();
+
+	/* keytips: Alt shows letter badges over the tabs, a letter
+	 * switches tab and shows badges over its commands */
+	void			_ktShowTabs();
+	void			_ktShowCommands();
+	void			_ktDismiss();
+	void			_ktClear();
+	static gboolean	_s_kt_key(GtkEventControllerKey * c, guint keyval,
+							  guint keycode, GdkModifierType state,
+							  gpointer data);
+	static void		_s_kt_mapped(GtkWidget * w, gpointer data);
+	static gboolean	_s_reflow_tick(GtkWidget * w, GdkFrameClock * clock,
+								   gpointer data);
+	static void		_s_tab_pressed(GtkGestureClick * g, gint n_press,
+								   gdouble x, gdouble y, gpointer data);
+	static void		_s_tab_released(GtkGestureClick * g, gint n_press,
+									gdouble x, gdouble y, gpointer data);
+	static void		_s_overflow_tab_clicked(GtkWidget * w, gpointer data);
+	static gboolean	_s_collapse_idle(gpointer data);
+
 	/* per-toolbar-item callback context; owned by m_vecTbCtx */
 	struct _TbCtx;
 
@@ -349,10 +403,32 @@ private:
 	XAP_Frame *			m_pFrame;
 	EV_UnixMenuBar *	m_pMenu;
 	GtkWidget *			m_wNotebook;
+	GtkWidget *			m_wMore;		/* » tab-overflow menu button */
+	GtkWidget *			m_wMoreBox;		/* its popover content */
 	bool				m_bRefreshing = false;
 	bool				m_bRefreshAgain = false;
+	bool				m_bCollapsed = false;
+	int					m_iReflowWidth = -1;
+	guint				m_iCollapseIdle = 0;
+	int					m_iTabPressPage = -1;	/* current page at press
+												 * time while collapsed */
+
+	/* keytip state: 0 off, 1 tab badges, 2 command badges */
+	int					m_iKtMode = 0;
+	GtkWidget *			m_wOverlay = nullptr;	/* GtkOverlay root the
+												 * badges sit on */
+	struct _KtEntry
+	{
+		std::string		key;		/* badge letters, e.g. "H", "JT" */
+		GtkWidget *		target;		/* command widget (commands) */
+		GtkWidget *		badge;		/* the overlay badge label */
+		int				page;		/* notebook page (tabs) or -1 */
+	};
+	std::vector<_KtEntry>	m_vecKt;
+	std::string				m_strKtPrefix;	/* letters typed so far */
 	EV_Toolbar_LabelSet *	m_pTBLabels;
 	std::vector<GtkWidget*>	m_vecContextualPages;
+	std::vector<GtkWidget*>	m_vecOverflowPages;	/* pages hidden to fit tabs */
 
 	/* Table Design tab widgets */
 	GtkWidget *			m_wTblOptChecks[6] = { nullptr, nullptr, nullptr,
@@ -369,7 +445,7 @@ private:
 												 * the Pen Colour icon */
 	GtkWidget *			m_wTblPainter = nullptr;	/* Border Painter
 												 * toggle button */
-	GHashTable *		m_pIconMap; /* edit-method name -> icon name */
+
 	GtkWidget *			m_pMarkupLabel; /* caption of the Display-for-
 										 * Review dropdown, shows the
 										 * active markup mode */

@@ -60,6 +60,7 @@ public:
 	static int	  m_iShow;
 	static const char ** m_sFiles;
 	static int    m_iVersion;
+	static int    m_iControlPort;
 	static int    m_iHelp;
 
 	static const char * m_impProps;

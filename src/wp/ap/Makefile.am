@@ -382,6 +382,10 @@ libap_la_SOURCES += \
 	gtk/ap_UnixStatusBar.h \
 	gtk/ap_UnixStockIcons.cpp \
 	gtk/ap_UnixStockIcons.h \
+	gtk/ap_UnixGlyphIcons.cpp \
+	gtk/ap_UnixGlyphIcons.h \
+	gtk/ap_UnixActionIcons.cpp \
+	gtk/ap_UnixActionIcons.h \
 	gtk/ap_UnixStylesPane.cpp \
 	gtk/ap_UnixStylesPane.h \
 	gtk/ap_Unix_TB_CFactory.cpp \

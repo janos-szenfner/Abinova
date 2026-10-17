@@ -45,6 +45,7 @@ const char * AP_Args::m_sPrintTo = nullptr;
 int AP_Args::m_iVerbose = 1;
 const char ** AP_Args::m_sFiles = nullptr;
 int AP_Args::m_iVersion = 0;
+int AP_Args::m_iControlPort = 0;
 int AP_Args::m_iHelp = 0;
 const char * AP_Args::m_impProps=nullptr;
 const char * AP_Args::m_expProps=nullptr;
@@ -68,6 +69,7 @@ static GOptionEntry _entries[] = {
         {"import-extension", '\0', 0, G_OPTION_ARG_STRING, &AP_Args::m_sFileExtension, "Override document type detection by specifying a file extension", nullptr},
         {"userprofile", 'u', 0, G_OPTION_ARG_STRING, &AP_Args::m_sUserProfile, "Use specified user profile.",nullptr},
         {"version", '\0', 0, G_OPTION_ARG_NONE, &AP_Args::m_iVersion, "Print Abinova version", nullptr},
+        {"control", '\0', 0, G_OPTION_ARG_INT, &AP_Args::m_iControlPort, "Listen for JSON-lines control commands on 127.0.0.1:PORT (tests/automation)", "PORT"},
         { G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &AP_Args::m_sFiles, nullptr,  "[FILE...]" },
 #ifdef DEBUG
 #endif

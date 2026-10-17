@@ -66,6 +66,8 @@
 #include "pt_PieceTable.h"
 #include "ap_Toolbar_Id.h"
 #include "ap_UnixStockIcons.h"
+#include "ap_UnixActionIcons.h"
+#include "ap_UnixGlyphIcons.h"
 #include "ev_UnixFontCombo.h"
 #include "ev_UnixSizeCombo.h"
 #include "xap_GtkUtils.h"
@@ -111,11 +113,16 @@ toolbar_append_button (GtkBox 	*toolbar,
 					   gpointer		 data,
 					   gulong		*handler_id)
 {
-	gchar* stock_id = abi_stock_from_toolbar_id(icon_name);
-	GtkWidget* item = gtk_button_new_from_icon_name(
-		abi_stock_pick_icon(stock_id));
-	g_free(stock_id);
-	stock_id = nullptr;
+	const gchar* picked = abi_action_icon_for_toolbar(icon_name);
+	GtkWidget* item;
+	if (abi_action_prefers_glyph(picked))
+	{
+		item = gtk_button_new();
+		gtk_button_set_child(GTK_BUTTON(item),
+							 abi_glyph_icon_widget(picked, 16));
+	}
+	else
+		item = gtk_button_new_from_icon_name(picked);
 	*handler_id = g_signal_connect(G_OBJECT(item), "clicked", handler, data);
 
 	return toolbar_append_item(toolbar, GTK_WIDGET(item), tooltip, TRUE);
@@ -133,13 +140,14 @@ toolbar_append_toggle (GtkBox 	*toolbar,
 					   gboolean		 show,
 					   gulong		*handler_id)
 {
-	gchar* stock_id = abi_stock_from_toolbar_id(icon_name);
-	GtkWidget* icon = gtk_image_new_from_icon_name(
-		abi_stock_pick_icon(stock_id));
+	const gchar* picked = abi_action_icon_for_toolbar(icon_name);
+	GtkWidget* icon;
+	if (abi_action_prefers_glyph(picked))
+		icon = abi_glyph_icon_widget(picked, 16);
+	else
+		icon = gtk_image_new_from_icon_name(picked);
 	GtkWidget* item = gtk_toggle_button_new();
 	gtk_button_set_child(GTK_BUTTON(item), icon);
-	g_free (stock_id);
-	stock_id = nullptr;
 	*handler_id = g_signal_connect (G_OBJECT (item), "toggled", handler, data);
 
 	return toolbar_append_item (toolbar, item, tooltip, show);
