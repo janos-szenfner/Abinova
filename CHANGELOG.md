@@ -57,6 +57,17 @@ responsibility** — see `README.md`.
   single word, plus hardening in call-data widening, text
   itemization, character insertion, annotation editing, the spell
   dialog's teardown, TOC layout purging and autosave recovery.
+- **Typing-parity test matrix** — `tools/typing-parity.py` pins 20
+  Word-parity typing behaviours against a live instance over the
+  control channel (22 cases, 42 assertions, one fresh app launch per
+  case): Enter/BackSpace/Delete/Tab at paragraph and document
+  boundaries, real-XTest letter input, select-then-type replacement
+  and its single-undo atomicity, keystroke-run undo coalescing,
+  smart-quote promotion, list Enter continue/stop and Tab demote,
+  `+---+---+` auto-table and `=rand()` expansion. Behaviours Word
+  has that Abinova lacks (Shift+Tab list promote, auto-capitalise,
+  autocorrect) are pinned as deliberate documented gaps. The matrix
+  lives in `docs/typing-parity.md`.
 
 ### Documents
 
