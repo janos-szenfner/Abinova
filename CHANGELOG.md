@@ -156,6 +156,18 @@ responsibility** — see `README.md`.
   inspect, and layout context — list membership (listid/level),
   table cell coordinates, text frames, headers/footers, footnotes,
   comments, and TOC. The pane refreshes live as the caret moves.
+- **Document Inspector** — a Word-style privacy inspector (File →
+  Inspect Document, also on the File ribbon tab). It reports four
+  categories — document properties and personal information (author,
+  last-saved-by, company, title and the other Dublin Core/abiword
+  properties), comments and their authors, hidden text
+  (`display:none` runs), and tracked-change marks — each with a
+  checkbox, and Remove Selected strips the checked categories in a
+  single undoable step. The `removePersonalInfo` edit method does
+  the same dialog-free (optional `data` = a comma-separated category
+  subset), and the control channel serves the report as
+  `document.privacyinspect`. Stripped values are gone from the
+  saved file, not just hidden.
 
 ## [4.0.2] — 2026-10-17
 

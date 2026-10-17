@@ -85,6 +85,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_FILE_IMPORT, 0,1,0,0, "fileImport", nullptr, nullptr);
 	_s(AP_MENU_ID_FILE_EXPORT, 0,1,0,0, "fileExport", nullptr, nullptr);
 	_s(AP_MENU_ID_FILE_PROPERTIES, 0,1,0,0, "dlgMetaData", nullptr, nullptr);
+	_s(AP_MENU_ID_FILE_INSPECTDOC, 0,1,0,0, "fileInspectDoc", nullptr, nullptr);
 	_s(AP_MENU_ID_FILE_CLOSE,		0,0,0,0,	"closeWindow",		nullptr,					nullptr);
 	_s(AP_MENU_ID_FILE_PAGESETUP,	0,1,0,0,	"pageSetup",		nullptr,					nullptr);
 	_s(AP_MENU_ID_FILE_PRINT,  0,1,0,0,	"cairoPrint",nullptr,nullptr);

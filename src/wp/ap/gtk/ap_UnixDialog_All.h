@@ -102,6 +102,7 @@
 
 #include "ap_UnixDialog_RDFQuery.h"
 #include "ap_UnixDialog_RDFEditor.h"
+#include "ap_UnixDialog_DocInspector.h"
 
 
 #   include "xap_UnixDlg_FontChooser.h"
@@ -186,4 +187,5 @@
 
     DeclareDialog(AP_DIALOG_ID_RDF_QUERY,			AP_UnixDialog_RDFQuery)
     DeclareDialog(AP_DIALOG_ID_RDF_EDITOR,			AP_UnixDialog_RDFEditor)
+	DeclareDialog(AP_DIALOG_ID_DOC_INSPECTOR,		AP_UnixDialog_DocInspector)
 #endif /* AP_UNIXDIALOG_ALL_H */

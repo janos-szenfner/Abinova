@@ -485,6 +485,12 @@ are separated by a visible 1 px rule.
 
 - New / Open / Save / Print / Export as large icon buttons,
   plus a Word-style **Document Properties** dialog.
+- **Inspect Document** opens a Word-style **Document Inspector**:
+  a checkbox dialog reporting identifying/hidden content —
+  document properties and personal information, comments and
+  their authors, hidden text, and tracked-change marks — where
+  Remove Selected strips the checked categories (also available
+  as the `removePersonalInfo` edit method for automation).
 - **Recent Files** dropdown in the Document group: the most
   recently used documents (persisted across sessions), each row
   reopening the file; a Clear Recent Files row empties the list.

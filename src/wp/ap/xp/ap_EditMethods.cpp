@@ -128,6 +128,8 @@
 #include "ap_Dialog_FormatTOC.h"
 #include "ap_Dialog_Latex.h"
 #include "ap_Dialog_Document.h"
+#include "ap_Dialog_DocInspector.h"
+#include "ap_DocInspect.h"
 #include "fv_FrameEdit.h"
 #include "fl_FootnoteLayout.h"
 #include "gr_EmbedManager.h"
@@ -531,6 +533,8 @@ public:
 	static EV_EditMethod_Fn fileSaveEmbed;
 	static EV_EditMethod_Fn fileExport;
 	static EV_EditMethod_Fn fileImport;
+	static EV_EditMethod_Fn fileInspectDoc;
+	static EV_EditMethod_Fn removePersonalInfo;
 	static EV_EditMethod_Fn importStyles;
 	static EV_EditMethod_Fn formatPainter;
 	static EV_EditMethod_Fn pageSetup;
@@ -1181,6 +1185,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(fileInsertGraphic),	0,	""),
 	EV_EditMethod(NF(fileInsertPageBackgroundGraphic),	0,	""),
 	EV_EditMethod(NF(fileInsertPositionedGraphic),	0,	""),
+	EV_EditMethod(NF(fileInspectDoc),	0,	""),
 	EV_EditMethod(NF(fileNew),				_A_,	""),
 	EV_EditMethod(NF(fileNewUsingTemplate),				_A_,	""),
 	EV_EditMethod(NF(fileOpen), 			_A_,	""),
@@ -1429,6 +1434,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(releaseInlineImage), 		0,	""),
 	EV_EditMethod(NF(removeFooter), 		0,	""),
 	EV_EditMethod(NF(removeHeader), 		0,	""),
+	EV_EditMethod(NF(removePersonalInfo),	0,	""),
 	EV_EditMethod(NF(removeThisRowRepeat), 		0,	""),
 	EV_EditMethod(NF(repeatHeaderRows),		0,	""),
 	EV_EditMethod(NF(repeatThisRow),		0,	""),
@@ -3838,6 +3844,57 @@ Defun1(dlgMetaData)
   pDialogFactory->releaseDialog(pDialog);
 
   return true ;
+}
+
+/*! fileInspectDoc — Word's Document Inspector: a checkbox dialog over
+ * the four privacy categories (document properties/personal info,
+ * comments, hidden text, tracked changes) that AP_DocInspect reports;
+ * Remove Selected strips the checked categories. */
+Defun1(fileInspectDoc)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail (pAV_View, false);
+	FV_View * pView = static_cast<FV_View *>(pAV_View);
+
+	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	pFrame->raise();
+
+	XAP_DialogFactory * pDialogFactory
+		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+
+	AP_Dialog_DocInspector * pDialog
+		= static_cast<AP_Dialog_DocInspector *>(
+			pDialogFactory->requestDialog(
+				static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_DOC_INSPECTOR)));
+	UT_return_val_if_fail (pDialog, false);
+
+	pDialog->setView(pView);
+	pDialog->runModal(pFrame);
+
+	pDialogFactory->releaseDialog(pDialog);
+
+	return true;
+}
+
+/*! removePersonalInfo — dialog-free strip of identifying/hidden
+ * content: callData may carry a comma-separated category subset
+ * ("meta,comments,hidden,revisions"); empty means all. */
+Defun(removePersonalInfo)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+
+	std::string sMask;
+	if (pCallData && pCallData->m_pData && pCallData->m_dataLength)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		sMask = s.utf8_str();
+	}
+	AP_DocInspect::scrub(pView, AP_DocInspect::maskFromString(sMask.c_str()));
+	return true;
 }
 
 Defun1(fileNewUsingTemplate)

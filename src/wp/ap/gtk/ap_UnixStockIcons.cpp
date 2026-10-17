@@ -169,6 +169,7 @@ static struct AbiStockMapping {
   { ABIWORD_FILE_CLOSE,				AP_MENU_ID_FILE_CLOSE,			"window-close-symbolic" },
   { ABIWORD_FILE_REVERT,			AP_MENU_ID_FILE_REVERT,			"document-revert" },
   { ABIWORD_FILE_PROPERTIES,		AP_MENU_ID_FILE_PROPERTIES,		"dialog-information-symbolic" },
+  { "abinova-file-inspectdoc",	AP_MENU_ID_FILE_INSPECTDOC,		"find-location-symbolic" },
   { ABIWORD_FILE_EXIT,				AP_MENU_ID_FILE_EXIT,			"application-exit" },
   { "abinova-file-pagesetup",		AP_MENU_ID_FILE_PAGESETUP,		"document-page-setup" },
   { ABIWORD_SPELLCHECK,				AP_MENU_ID_TOOLS_SPELL,			"tools-check-spelling" },

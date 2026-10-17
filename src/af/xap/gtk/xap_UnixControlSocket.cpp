@@ -32,6 +32,7 @@
 #include "fv_View.h"
 #include "pd_Document.h"
 #include "ap_FmtInspect.h"
+#include "ap_DocInspect.h"
 #include "ie_types.h"
 #include "ie_exp.h"
 #include "pt_PieceTable.h"
@@ -620,6 +621,23 @@ static bool _m_doc_fmtinspect(std::string & out, std::string & err)
 	return true;
 }
 
+/* Document Inspector report — the same sectioned text the
+ * fileInspectDoc dialog summarizes (W12) */
+static bool _m_doc_privacyinspect(std::string & out, std::string & err)
+{
+	FV_View * view = _first_view();
+	if (!view || !view->getDocument())
+	{
+		err = "no view";
+		return false;
+	}
+	AP_PrivacyReport rep;
+	AP_DocInspect::inspect(view->getDocument(), rep);
+	out = "{\"report\":\"" + _json_escape(AP_DocInspect::toText(rep)) +
+		  "\"}";
+	return true;
+}
+
 /* dialog-free save: params.path is the target file; honours the
  * automation write root when configured */
 static bool _m_file_save(const std::string & j, std::string & err)
@@ -1132,6 +1150,15 @@ static bool _dispatch(_Conn * c, const std::string & line)
 	{
 		std::string out;
 		if (_m_doc_fmtinspect(out, err))
+			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "document.privacyinspect")
+	{
+		std::string out;
+		if (_m_doc_privacyinspect(out, err))
 			_conn_send(c, id, out.c_str(), nullptr);
 		else
 			_conn_send(c, id, nullptr, err.c_str());

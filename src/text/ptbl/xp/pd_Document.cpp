@@ -298,6 +298,24 @@ UT_sint32 PD_Document::getNextCRNumber(void) const
 	return m_iCRCounter;
 }
 
+/* Remove a meta-data key outright — setMetaDataProp(key,"") would leave
+ * the key in the map with an empty value.  The emitted doc-prop CR
+ * carries an empty value so listeners see the clearing. */
+bool PD_Document::removeMetaDataProp (const std::string & key)
+{
+	if (m_metaDataMap.erase(key) == 0)
+		return false;
+
+	const PP_PropertyVector atts = {
+		PT_DOCPROP_ATTRIBUTE_NAME,"metadata"
+	};
+	const PP_PropertyVector props = {
+		key, ""
+	};
+	createAndSendDocPropCR(atts,props);
+	return true;
+}
+
 bool PD_Document::getMetaDataProp (const std::string & key, std::string & outProp) const
 {
 	auto iter = m_metaDataMap.find(key);

@@ -744,6 +744,7 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 
 	virtual void setMetaDataProp (const std::string & key, const std::string & value) override;
 	virtual bool getMetaDataProp (const std::string & key, std::string & outProp) const override;
+	bool                    removeMetaDataProp (const std::string & key);
 
 	// RIVERA TODO not working and may not be needed
 	virtual void setAnnotationProp (const std::string & key, const std::string & value) override;

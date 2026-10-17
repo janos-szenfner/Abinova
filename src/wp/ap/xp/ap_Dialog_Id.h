@@ -72,6 +72,7 @@ enum AP_Dialog_Id: uint16_t
 	AP_DIALOG_ID_BORDER_SHADING,
 	AP_DIALOG_ID_RDF_QUERY,
 	AP_DIALOG_ID_RDF_EDITOR,
+	AP_DIALOG_ID_DOC_INSPECTOR, /* privacy inspector: strip personal/hidden data */
 
 	/* ... add others here ... */
 
