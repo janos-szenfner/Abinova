@@ -25,6 +25,8 @@ libutil_la_SOURCES = \
 	xp/ut_AdobeEncoding.cpp \
 	xp/ut_AdobeEncoding.h \
 	xp/ut_assert.h \
+	xp/ut_asyncwrite.cpp \
+	xp/ut_asyncwrite.h \
 	xp/ut_base64.cpp \
 	xp/ut_base64.h \
 	xp/ut_base64_TestRoutines.cpp \
@@ -145,6 +147,7 @@ libutil_la_SOURCES += \
 
 EXTRA_DIST = \
 	unix/t/ut_unix.t.cpp \
+	xp/t/ut_asyncwrite.t.cpp \
 	xp/t/ut_base64.t.cpp \
 	xp/t/ut_bijection.t.cpp \
 	xp/t/ut_bytebuf.t.cpp \

@@ -6298,7 +6298,11 @@ UT_Error FV_View::cmdSave(void)
 	m_pDoc->setProperties(ppProps);
 	_updateDatesBeforeSave(false);
 
-	UT_Error error = m_pDoc->save();
+	/* the document is encoded here on the UI thread but the file
+	 * write-out is handed to the background writer — the returned
+	 * error only covers the encode; a failed disk write is reported
+	 * asynchronously by the document (PD_Document::_asyncSaveFinished) */
+	UT_Error error = m_pDoc->saveAsync();
 	if (!error)
 	{
 		notifyListeners(AV_CHG_SAVE);
@@ -6313,7 +6317,7 @@ UT_Error FV_View::cmdSaveAs(const char * szFilename, int ieft, bool cpy)
 	m_pDoc->setProperties(ppProps);
 	_updateDatesBeforeSave(true);
 
-	UT_Error error = static_cast<AD_Document*>(m_pDoc)->saveAs(szFilename, ieft, cpy);
+	UT_Error error = static_cast<AD_Document*>(m_pDoc)->saveAsAsync(szFilename, ieft, cpy);
 	if (!error && cpy)
 	{
 		notifyListeners(AV_CHG_SAVE);

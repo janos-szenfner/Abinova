@@ -36,6 +36,7 @@
 #include <glib/gstdio.h>
 
 #include "ut_assert.h"
+#include "ut_asyncwrite.h"
 #include "ut_types.h"
 #include "ut_misc.h"
 #include "ut_path.h"
@@ -312,6 +313,12 @@ UT_Error IE_Exp::writeFile(const char * szFilename)
 {
 	UT_return_val_if_fail(m_pDocument, UT_IE_COULDNOTWRITE);
 	UT_return_val_if_fail(szFilename && *szFilename, UT_IE_COULDNOTWRITE);
+
+	/* a queued async save to the same target must land first — our
+	 * ".part" staging and its atomic replace cannot interleave with
+	 * the background writer's without risking last-writer-wins on a
+	 * stale snapshot */
+	UT_AsyncWrite_waitForTarget(szFilename);
 
 	m_bCancelled = false;
 

@@ -31,6 +31,7 @@
 #include <unistd.h>
 #endif
 
+#include <algorithm>
 #include <string>
 #include "ut_types.h"
 #include "ut_assert.h"
@@ -66,6 +67,9 @@
 #include "xap_Dlg_Zoom.h"
 #include "xap_Toolbar_Layouts.h"
 #include "ut_sleep.h"
+#include "ut_asyncwrite.h"
+#include <gsf/gsf-input-memory.h>
+#include <gsf/gsf-input.h>
 #include "../../../wp/impexp/xp/ie_exp.h"
 
 #ifdef _MSC_VER
@@ -94,6 +98,7 @@ XAP_Frame::XAP_Frame(XAP_FrameImpl *pFrameImpl)
 	  m_pBackupDoc(nullptr),
 	  m_iBackupSerial(0),
 	  m_tBackupTime(0),
+	  m_pLastBackupPayload(nullptr),
 	  m_isrcId(static_cast<XAP_Toolbar_Id>(0)),
 	  m_isrcTBNr(0),
 	  m_idestId(static_cast<XAP_Toolbar_Id>(0)),
@@ -133,6 +138,7 @@ XAP_Frame::XAP_Frame(XAP_Frame * f)
 	m_pBackupDoc(nullptr),
 	m_iBackupSerial(0),
 	m_tBackupTime(0),
+	m_pLastBackupPayload(nullptr),
 	m_isrcId(static_cast<XAP_Toolbar_Id>(0)),
 	m_isrcTBNr(0),
 	m_idestId(static_cast<XAP_Toolbar_Id>(0)),
@@ -154,11 +160,18 @@ XAP_Frame::XAP_Frame(XAP_Frame * f)
 XAP_Frame::~XAP_Frame(void)
 {
 	/* if we're auto-saving files and now we're exiting normally
-	 * delete/unlink the file
+	 * delete/unlink the file — including any recovery write still in
+	 * flight on the background writer
 	 */
+	_discardPendingBackups();
 	if (!m_stAutoSaveNamePrevious.empty())
 	{
 		_removeAutoSaveFile();
+	}
+	if (m_pLastBackupPayload)
+	{
+		g_bytes_unref(m_pLastBackupPayload);
+		m_pLastBackupPayload = nullptr;
 	}
 
 	// only delete the things that we created...
@@ -532,6 +545,9 @@ std::string XAP_Frame::getAutosaveDirectory()
 
 void XAP_Frame::_removeAutoSaveFile()
 {
+	/* a queued recovery write must not land after this unlink —
+	 * disarm it and wait the worker out first */
+	_discardPendingBackups();
 	if (m_stAutoSaveNamePrevious.empty())
 		return;
 
@@ -1057,24 +1073,8 @@ public:
 	virtual void charData(const gchar * /*buffer*/, int /*length*/) override {}
 };
 
-bool s_decodeRecoveryFile(const char * path, std::string & plain)
+bool s_validateRecoveryPlain(const std::string & plain)
 {
-	plain.clear();
-	gchar * uri = UT_go_filename_to_uri(path);
-	if (!uri)
-		return false;
-	GsfInput * in = UT_go_file_open(uri, nullptr);
-	g_free(uri);
-	if (!in)
-		return false;
-	const gsf_off_t size = gsf_input_size(in);
-	const guint8 * bytes = size > 0
-		? gsf_input_read(in, static_cast<size_t>(size), nullptr)
-		: nullptr;
-	if (bytes)
-		plain.assign(reinterpret_cast<const char *>(bytes),
-					 static_cast<size_t>(size));
-	g_object_unref(in);
 	if (plain.empty())
 		return false;
 
@@ -1087,7 +1087,75 @@ bool s_decodeRecoveryFile(const char * path, std::string & plain)
 	return listener.m_bSawRoot && listener.m_bGoodRoot;
 }
 
+bool s_decodeRecoveryInput(GsfInput * in, std::string & plain)
+{
+	plain.clear();
+	if (!in)
+		return false;
+	/* chunked read: a decompressing input may not know its decoded
+	 * size up front, so a single full-size read is not reliable */
+	for (;;)
+	{
+		const gsf_off_t before = gsf_input_remaining(in);
+		if (before <= 0)
+			break;
+		const guint8 * bytes = gsf_input_read(in, before < 65536 ? before : 65536, nullptr);
+		if (!bytes)
+			break;
+		plain.append(reinterpret_cast<const char *>(bytes),
+					 static_cast<size_t>(before < 65536 ? before : 65536));
+	}
+	g_object_unref(in);
+	return s_validateRecoveryPlain(plain);
+}
+
+bool s_decodeRecoveryFile(const char * path, std::string & plain)
+{
+	gchar * uri = UT_go_filename_to_uri(path);
+	if (!uri)
+		return false;
+	GsfInput * in = UT_go_file_open(uri, nullptr);
+	g_free(uri);
+	return s_decodeRecoveryInput(in, plain);
+}
+
+/*! Same decode gate as s_decodeRecoveryFile, but run against the
+ * freshly encoded payload in memory — no disk round-trip needed for
+ * the async autosave path. */
+bool s_decodeRecoveryBytes(GBytes * payload)
+{
+	gsize iLen = 0;
+	const guint8 * pData = static_cast<const guint8 *>(
+		g_bytes_get_data(payload, &iLen));
+	if (!pData || !iLen)
+		return false;
+	GsfInput * mem = gsf_input_memory_new(pData, iLen, FALSE);
+	if (!mem)
+		return false;
+	/* uncompress hands back src itself (no extra ref) when the bytes
+	 * are not compressed — only drop our ref when it wrapped it */
+	GsfInput * in = gsf_input_uncompress(mem);
+	if (in != mem)
+		g_object_unref(mem);
+	std::string plain;
+	return s_decodeRecoveryInput(in, plain);
+}
+
 } // anonymous namespace
+
+/*! State shared between a frame and one queued recovery write — this
+ * is the struct forward-declared in xap_Frame.h, kept file-local here.
+ * All fields are only touched on the main thread (the write itself
+ * runs on the UT_AsyncWrite worker; its completion is delivered back
+ * on the main context) so no locking is needed. */
+struct XAP_AsyncBackup
+{
+	XAP_Frame *	frame = nullptr;	// nullptr once the frame is gone
+	bool		discard = false;	// teardown: completion must do nothing
+	bool		done = false;		// completion was delivered
+	std::string	target;				// final recovery path being written
+	std::unique_ptr<s_AutosaveLock> lock;	// inter-instance write lock
+};
 
 bool XAP_Frame::isValidRecoveryCopy(const char * path)
 {
@@ -1198,10 +1266,14 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 	 * unprotected behaviour rather than disabling recovery.  The
 	 * crash-recovery child skips this entirely — the only other
 	 * contender is the dying parent itself. */
-	s_AutosaveLock instLock;
+	/* heap-allocated: when the write goes to the background worker the
+	 * lock must stay held until it lands — ownership moves into the
+	 * job's shared state and is released when the write completes */
+	s_AutosaveLock * pInstLock = new s_AutosaveLock;
 	if (!bSkipInstanceLock &&
-		instLock.tryLock(backupPath + ".lock") == s_LockBusy)
+		pInstLock->tryLock(backupPath + ".lock") == s_LockBusy)
 	{
+		delete pInstLock;
 		m_bBackupInProgress = false;
 		return UT_SAVE_LOCKED;
 	}
@@ -1218,62 +1290,157 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 	if (iEFT < 0)
 		iEFT = IE_Exp::fileTypeForSuffix(".abwn");
 
-	// write beside the final name under a temporary name, then rename
-	std::string partPath = backupPath + ".part";
-	gchar *partUri = UT_go_filename_to_uri(partPath.c_str());
-	if (!partUri)
-	{
-		m_bBackupInProgress = false;
-		return UT_SAVE_NAMEERROR;
-	}
-
 //
 // Don't put this auto-save in the most recent list.
 //
 	XAP_App::getApp()->getPrefs()->setIgnoreNextRecent();
 
-	UT_Error error = m_pDoc->saveAs(partUri, iEFT, false);
-	g_free(partUri);
-
-	if (error == UT_OK)
+	/* The document is encoded here on the UI thread — piece-table
+	 * access is not thread-safe — then the finished payload is handed
+	 * to the serialized UT_AsyncWrite worker, which stages it through a
+	 * sibling temp file and atomically renames it over backupPath.
+	 * Only the encode stalls the UI; the disk write never does. */
+	GBytes * payload = nullptr;
+	UT_Error error = m_pDoc->encodeToBytes(backupPath.c_str(), iEFT,
+										   nullptr, &payload);
+	if (error == UT_OK && !s_decodeRecoveryBytes(payload))
 	{
-		std::string newPlain, oldPlain;
-		if (!s_decodeRecoveryFile(partPath.c_str(), newPlain))
-		{
-			/* decode-and-compare gate: the freshly written bytes must
-			 * re-read and parse as a well-formed document before they
-			 * are allowed to replace the last good copy */
-			UT_DEBUGMSG(("autosave: %s failed decode validation, "
-						 "keeping previous copy\n", partPath.c_str()));
-			error = UT_SAVE_WRITEERROR;
-		}
-		else if (s_decodeRecoveryFile(backupPath.c_str(), oldPlain) &&
-				 oldPlain == newPlain)
-		{
-			/* decoded content identical to the last good copy —
-			 * keep it in place instead of churning the file */
-			g_unlink(partPath.c_str());
-		}
-		else if (g_rename(partPath.c_str(), backupPath.c_str()) != 0)
-		{
-			UT_DEBUGMSG(("autosave: rename %s -> %s failed\n", partPath.c_str(), backupPath.c_str()));
-			error = UT_SAVE_WRITEERROR;
-		}
+		/* encode-and-parse gate: the serialized bytes must re-read
+		 * (gzip-transparent) and parse as a well-formed document before
+		 * they are allowed to replace the last good copy — the same
+		 * check the synchronous path ran on the written .part file */
+		UT_DEBUGMSG(("autosave: encoded payload failed recovery "
+					 "validation, keeping previous copy\n"));
+		error = UT_SAVE_WRITEERROR;
 	}
+	/* _saveAs used to spend the one-shot above via its addRecent()
+	 * call; the queued write never reaches it, so consume the flag
+	 * here or it bleeds into the user's next real save */
+	XAP_App::getApp()->getPrefs()->addRecent(backupPath.c_str());
 
 	if (error != UT_OK)
 	{
-		g_unlink(partPath.c_str());
+		if (payload)
+			g_bytes_unref(payload);
+		delete pInstLock;
+		m_bBackupInProgress = false;
 		UT_DEBUGMSG(("File backup failed.\n"));
+		return error;
+	}
+
+	if (m_pLastBackupPayload &&
+		m_lastBackupPath == backupPath &&
+		g_bytes_equal(m_pLastBackupPayload, payload))
+	{
+		/* byte-identical to the payload last queued for this target —
+		 * the on-disk copy is already current (or is landing now);
+		 * replaces the old decode-and-compare of the on-disk file */
+		g_bytes_unref(payload);
+		delete pInstLock;
+		m_bBackupInProgress = false;
+		return UT_OK;
+	}
+	if (m_pLastBackupPayload)
+		g_bytes_unref(m_pLastBackupPayload);
+	m_pLastBackupPayload = g_bytes_ref(payload);
+	m_lastBackupPath = backupPath;
+
+	if (bSkipInstanceLock)
+	{
+		/* crash-recovery child — a fork of the dying process: no main
+		 * context is spinning and the write queue's lock may be frozen
+		 * mid-hold, so the payload is written inline here instead of
+		 * being queued */
+		error = UT_AsyncWrite_syncWrite(backupPath.c_str(), payload);
+		if (error == UT_OK)
+		{
+			_writeBackupInfo(backupPath);
+			UT_DEBUGMSG(("File %s saved.\n", backupPath.c_str()));
+		}
+		else
+		{
+			UT_DEBUGMSG(("File backup failed.\n"));
+		}
+		g_bytes_unref(payload);
+		delete pInstLock;
+		m_bBackupInProgress = false;
+		return error;
+	}
+
+	auto st = std::make_shared<XAP_AsyncBackup>();
+	st->frame = this;
+	st->target = backupPath;
+	st->lock.reset(pInstLock);
+	m_pendingBackups.erase(
+		std::remove_if(m_pendingBackups.begin(), m_pendingBackups.end(),
+					   [](const std::shared_ptr<XAP_AsyncBackup> & s) {
+						   return s->done; }),
+		m_pendingBackups.end());
+	m_pendingBackups.push_back(st);
+
+	UT_AsyncWrite_enqueue(backupPath.c_str(), payload,
+						  _backupWriteDone,
+						  new std::shared_ptr<XAP_AsyncBackup>(st),
+						  _backupJobFree);
+	g_bytes_unref(payload);
+	m_bBackupInProgress = false;
+	return UT_OK;
+}
+
+/*! Delivered on the main thread when a queued recovery write has
+ * landed (or failed).  See XAP_AsyncBackup for the lifetime rules. */
+/* static */ void XAP_Frame::_backupWriteDone(void * userData, UT_Error result)
+{
+	auto pState =
+		static_cast<std::shared_ptr<XAP_AsyncBackup> *>(userData);
+	XAP_AsyncBackup * st = pState->get();
+	st->done = true;
+	if (st->discard || !st->frame)
+		return;
+
+	XAP_Frame * frame = st->frame;
+	if (result == UT_OK)
+	{
+		frame->_writeBackupInfo(st->target);
+		UT_DEBUGMSG(("File %s saved.\n", st->target.c_str()));
 	}
 	else
 	{
-		UT_DEBUGMSG(("File %s saved.\n", backupPath.c_str()));
-		_writeBackupInfo(backupPath);
+		UT_DEBUGMSG(("autosave: background recovery write to %s "
+					 "failed [%d]\n", st->target.c_str(), result));
+		/* the token bookkeeping in autosaveTick assumed this write
+		 * would land — reset it (and the payload skip) so the next
+		 * tick re-encodes instead of trusting a copy that isn't
+		 * there */
+		frame->m_pBackupDoc = nullptr;
+		frame->m_iBackupSerial = 0;
+		frame->m_tBackupTime = 0;
+		if (frame->m_pLastBackupPayload)
+		{
+			g_bytes_unref(frame->m_pLastBackupPayload);
+			frame->m_pLastBackupPayload = nullptr;
+			frame->m_lastBackupPath.clear();
+		}
 	}
+}
 
-	m_bBackupInProgress = false;
-	return error;
+/* static */ void XAP_Frame::_backupJobFree(void * userData)
+{
+	delete static_cast<std::shared_ptr<XAP_AsyncBackup> *>(userData);
+}
+
+/*! Wait out and disarm every queued recovery write, so teardown can
+ * unlink the recovery files without a late write resurrecting them. */
+void XAP_Frame::_discardPendingBackups()
+{
+	for (auto & st : m_pendingBackups)
+	{
+		st->frame = nullptr;
+		st->discard = true;
+		if (!st->done)
+			UT_AsyncWrite_waitForTarget(st->target.c_str());
+	}
+	m_pendingBackups.clear();
 }
 
 void XAP_Frame::_writeBackupInfo(const std::string &backupPath)

@@ -46,6 +46,7 @@
 
 #include <fontconfig/fontconfig.h>
 
+#include "ut_asyncwrite.h"
 #include "ut_debugmsg.h"
 #include "ut_go_file.h"
 #include "ut_path.h"
@@ -269,6 +270,10 @@ bool XAP_UnixApp::initialize(const char * szKeyBindingsKey, const char * szKeyBi
 
 void XAP_UnixApp::shutdown()
 {
+	/* any save still being written by the background writer must reach
+	 * the disk before the process goes away — the queued completions
+	 * are delivered inline on this (main) thread */
+	UT_AsyncWrite_waitAll();
 }
 
 void XAP_UnixApp::reallyExit()

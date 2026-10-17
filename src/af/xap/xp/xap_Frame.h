@@ -21,7 +21,9 @@
 
 #pragma once
 
+#include <memory>
 #include <string>
+#include <vector>
 
 #include "ut_types.h"
 #include "ut_string_class.h"
@@ -264,9 +266,12 @@ protected:
 
 private:
 	void						_removeAutoSaveFile();
+	void						_discardPendingBackups();
 	void						_writeBackupInfo(const std::string &backupPath);
 	void						_armAutosaveRetry();
 	void						_restoreAutosavePeriod();
+	static void					_backupWriteDone(void * userData, UT_Error result);
+	static void					_backupJobFree(void * userData);
 
 	std::string					m_sTitle;
 	std::string					m_sNonDecoratedTitle;
@@ -284,6 +289,15 @@ private:
 	AD_Document *				m_pBackupDoc;
 	UT_sint64					m_iBackupSerial;
 	time_t						m_tBackupTime;
+	/* recovery writes in flight on the async-write worker: shared
+	 * state objects keep each write's target so teardown can wait for
+	 * it and late completions can tell the frame is gone */
+	std::vector<std::shared_ptr<struct XAP_AsyncBackup>> m_pendingBackups;
+	/* the payload most recently queued as the recovery copy, and the
+	 * target it went to — a byte-identical re-encode is skipped
+	 * without touching the disk */
+	GBytes *					m_pLastBackupPayload;
+	std::string					m_lastBackupPath;
 
 	static int					s_iUntitled;
 

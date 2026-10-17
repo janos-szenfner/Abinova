@@ -27,8 +27,12 @@
 #include <string.h>
 
 #include <algorithm>
+#include <atomic>
 #include <memory>
 #include <unordered_set>
+
+#include <gsf/gsf.h>
+#include <gsf/gsf-output-memory.h>
 
 #include "ut_types.h"
 #include "ut_string.h"
@@ -64,6 +68,8 @@
 #include "po_Bookmark.h"
 #include "fl_AutoNum.h"
 #include "xap_Frame.h"
+#include "xav_Listener.h"
+#include "xav_View.h"
 #include "xap_App.h"
 #include "xap_Prefs.h"
 #include "ap_Prefs.h"
@@ -72,6 +78,7 @@
 #include "ut_string_class.h"
 #include "ut_path.h"
 #include "ut_locale.h"
+#include "ut_asyncwrite.h"
 #include "pp_Author.h"
 
 // these are needed because of the exportGetVisDirectionAtPosition() mechanism
@@ -176,6 +183,64 @@ struct _dataItemPair
 
 //////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////
+// Async save (W15)
+//
+// The piece table is not thread-safe, so the document is still
+// *encoded* on the UI thread — into a GsfOutputMemory sink.  The
+// encoded payload (a GBytes) is then handed to the serial
+// UT_AsyncWrite worker which performs the actual file I/O; the UI
+// thread is only ever stalled by the encode, never by the disk.
+// Everything below the state struct runs on the main thread: the job
+// completion is delivered through the async-writer's done queue, which
+// only ever runs on the default main context (or inline inside
+// UT_AsyncWrite_waitAll on the main thread).
+
+// shared by every queued write of one document; outlives the document
+// when a save is still in flight at destruction
+struct PD_AsyncSaveState
+{
+	explicit PD_AsyncSaveState(PD_Document * d) : doc(d) {}
+
+	std::atomic<PD_Document *> doc;
+	std::atomic<UT_uint32> pending{0};
+	// result of the most recently *delivered* write (UT_OK before the
+	// first one lands)
+	std::atomic<int> lastResult{static_cast<int>(UT_OK)};
+};
+
+// one queued write = one encoded payload
+struct PD_AsyncSaveJob
+{
+	std::shared_ptr<PD_AsyncSaveState> state;
+	std::string	target;
+	UT_sint64	serial = 0;			// content serial at encode time
+	UT_uint32	dirtyGen = 0;		// forced-dirty generation at encode
+	bool		markClean = false;	// clear dirty on success
+	bool		setFilename = false;// adopt target as the doc filename
+	bool		addRecent = false;
+	bool		restoreTypeOnFail = false;
+	IEFileType	oldSavedAsType = IEFT_Unknown;
+};
+
+// delivered on the main thread via UT_AsyncWrite's done queue
+// (external linkage: PD_Document declares this a friend)
+void s_asyncSaveDone(void * userData, UT_Error result)
+{
+	PD_AsyncSaveJob * job = static_cast<PD_AsyncSaveJob *>(userData);
+	job->state->pending--;
+	job->state->lastResult = static_cast<int>(result);
+	PD_Document * doc = job->state->doc.load();
+	if (doc)
+		doc->_asyncSaveFinished(job, result);
+}
+
+static void s_asyncSaveJobFree(void * userData)
+{
+	delete static_cast<PD_AsyncSaveJob *>(userData);
+}
+
+//////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
 
 // perhaps this should be a magic "unknown" or "NULL" value,
 // but now we just depend on save() never being called without
@@ -206,6 +271,7 @@ PD_Document::PD_Document()
 	  m_iCRCounter(0),
 	  m_iUpdateCount(0),
 	  m_bIgnoreSignals(false),
+	  m_pAsyncSaveState(new PD_AsyncSaveState(this)),
 	  m_bCoalescingMask(false),
 	  m_bShowAuthors(true),
 	  m_bExportAuthorAtts(false), //should be false by default. Set true to test
@@ -249,6 +315,12 @@ const std::string & PD_Document::getRevisionUserName() const
 
 PD_Document::~PD_Document()
 {
+	/* a queued async-save completion may still arrive after we are
+	 * gone — the payload is self-contained so the write itself is
+	 * unaffected; just stop completions from touching the dead doc */
+	if (m_pAsyncSaveState)
+		m_pAsyncSaveState->doc.store(nullptr);
+
 	// ideally all connections would have been removed BEFORE
 	// we ever reach this destructor (for example by disconnecting
 	// listeners in the frame before deleting the document); this
@@ -1268,6 +1340,354 @@ UT_Error PD_Document::_save(void)
 
 	_setClean();
 	return UT_OK;
+}
+
+//////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
+// Async save — see the PD_AsyncSaveState block near the top of this
+// file for the design.  These mirror _save()/_saveAs(): everything up
+// to and including the encode runs on the calling thread; only the
+// finished payload is queued for the worker.
+
+/* Construct the exporter for szFilename/ieft and write the document
+ * into the already-named memory sink.  Only encodes — preamble
+ * bookkeeping (file-type sync, history, revision purge) stays with the
+ * callers, since _save/_saveAs/autosave each apply a different set. */
+UT_Error PD_Document::_encodeToSink(GsfOutputMemory * sink,
+									const char * szFilename,
+									IEFileType ieft,
+									const char * expProps,
+									IEFileType * pNewFileType)
+{
+	IE_Exp * pie = nullptr;
+	IEFileType newFileType = IEFT_Unknown;
+	UT_Error errorCode =
+		IE_Exp::constructExporter(this, szFilename, ieft, &pie, &newFileType);
+	if (errorCode)
+	{
+		UT_DEBUGMSG(("PD_Document::_encodeToSink -- could not construct exporter\n"));
+		return UT_SAVE_EXPORTERROR;
+	}
+	if (expProps && *expProps)
+		pie->setProps (expProps);
+
+	errorCode = pie->writeFile(GSF_OUTPUT(sink));
+	delete pie;
+	if (errorCode)
+		return (errorCode == UT_SAVE_CANCELLED) ? UT_SAVE_CANCELLED
+												: UT_SAVE_WRITEERROR;
+	if (pNewFileType)
+		*pNewFileType = newFileType;
+	return UT_OK;
+}
+
+/* Close the sink and detach its buffer into a refcounted payload.
+ * Consumes the sink either way. */
+UT_Error PD_Document::_sinkToBytes(GsfOutputMemory * sink, GBytes ** ppBytes)
+{
+	if (!gsf_output_is_closed(GSF_OUTPUT(sink)))
+		gsf_output_close(GSF_OUTPUT(sink));
+
+	const gsize iLen = gsf_output_size(GSF_OUTPUT(sink));
+	const guint8 * pBytes =
+		gsf_output_memory_get_bytes(sink);
+	/* get_bytes hands back the sink's internal buffer — copy it into a
+	 * refcounted payload so the bytes stay immutable and self-owned */
+	*ppBytes = (iLen && pBytes) ? g_bytes_new(pBytes, iLen)
+							  : g_bytes_new(nullptr, 0);
+	g_object_unref(G_OBJECT(sink));
+	return UT_OK;
+}
+
+/* Serialize the document the way a saveAs() to szFilename/ieft would,
+ * without touching the filesystem — see AD_Document::encodeToBytes. */
+UT_Error PD_Document::encodeToBytes(const char * szFilename, int ieft,
+									const char * expProps,
+									GBytes ** ppBytes)
+{
+	UT_return_val_if_fail(szFilename && *szFilename, UT_SAVE_NAMEERROR);
+	UT_return_val_if_fail(ppBytes, UT_ERROR);
+	UT_return_val_if_fail(!isPieceTableChanging(), UT_ERROR);
+	*ppBytes = nullptr;
+
+	GsfOutputMemory * sink =
+		GSF_OUTPUT_MEMORY(gsf_output_memory_new());
+	gsf_output_set_name(GSF_OUTPUT(sink), szFilename);
+
+	/* the same bookkeeping _saveAs performs for a non-adopting export
+	 * (the autosave path goes through here) */
+	if (!XAP_App::getApp()->getPrefs()->isIgnoreRecent())
+	{
+		// order of these calls matters
+		_adjustHistoryOnSave();
+
+		// see if revisions table is still needed ...
+		purgeRevisionTable();
+	}
+
+	UT_Error errorCode = _encodeToSink(sink, szFilename,
+									   static_cast<IEFileType>(ieft),
+									   expProps, nullptr);
+	if (errorCode)
+	{
+		g_object_unref(G_OBJECT(sink));
+		return errorCode;
+	}
+	return _sinkToBytes(sink, ppBytes);
+}
+
+/* Encode into an in-memory sink and queue the payload for background
+ * write-out.  The sink must already carry the logical target name so
+ * exporters that derive sibling output names (HTML _files dirs,
+ * split chapters) see it.  Takes the sink on success; leaves it to the
+ * caller on failure. */
+UT_Error PD_Document::_queueAsyncWrite(GsfOutputMemory * sink,
+									   const char * szFilename,
+									   void * asyncJob)
+{
+	PD_AsyncSaveJob * job = static_cast<PD_AsyncSaveJob *>(asyncJob);
+	GBytes * payload = nullptr;
+	UT_Error errorCode = _sinkToBytes(sink, &payload);
+	if (errorCode)
+		return errorCode;
+
+	/* the serial must be captured after the encode — exporters can
+	 * mutate the document themselves (populateFields) */
+	job->serial = getContentSerial();
+	job->dirtyGen = getForceDirtyGen();
+
+	m_pAsyncSaveState->pending++;
+	UT_AsyncWrite_enqueue(szFilename, payload,
+						  s_asyncSaveDone, job, s_asyncSaveJobFree);
+	g_bytes_unref(payload);
+	return UT_OK;
+}
+
+UT_Error PD_Document::_saveAsync(void)
+{
+	if (getFilename().empty())
+		return UT_SAVE_NAMEERROR;
+	if (m_lastSavedAsType == IEFT_Unknown)
+		return UT_EXTENSIONERROR;
+
+	UT_return_val_if_fail(!isPieceTableChanging(), UT_ERROR);
+	UT_return_val_if_fail(m_pAsyncSaveState, UT_ERROR);
+
+	GsfOutputMemory * sink =
+		GSF_OUTPUT_MEMORY(gsf_output_memory_new());
+	gsf_output_set_name(GSF_OUTPUT(sink), getFilename().c_str());
+
+	IE_Exp * pie = nullptr;
+	UT_Error errorCode =
+		IE_Exp::constructExporter(this, getFilename().c_str(),
+								  m_lastSavedAsType, &pie);
+	if (errorCode)
+	{
+		g_object_unref(G_OBJECT(sink));
+		UT_DEBUGMSG(("PD_Document::saveAsync -- could not construct exporter\n"));
+		return UT_SAVE_EXPORTERROR;
+	}
+
+	_syncFileTypes(true);
+	_adjustHistoryOnSave();
+	purgeRevisionTable();
+
+	errorCode = pie->writeFile(GSF_OUTPUT(sink));
+	delete pie;
+	if (errorCode)
+	{
+		g_object_unref(G_OBJECT(sink));
+		UT_DEBUGMSG(("PD_Document::saveAsync -- could not encode document\n"));
+		return (errorCode == UT_SAVE_CANCELLED) ? UT_SAVE_CANCELLED
+												: UT_SAVE_WRITEERROR;
+	}
+
+	PD_AsyncSaveJob * job = new PD_AsyncSaveJob;
+	job->state = m_pAsyncSaveState;
+	job->target = getFilename();
+	job->markClean = true;
+
+	errorCode = _queueAsyncWrite(sink, getFilename().c_str(), job);
+	if (errorCode)
+	{
+		delete job;
+		return errorCode;
+	}
+	return UT_OK;
+}
+
+UT_Error PD_Document::_saveAsAsync(const char * szFilename, int ieft,
+								   bool cpy, const char * expProps)
+{
+	UT_return_val_if_fail(szFilename && *szFilename, UT_SAVE_NAMEERROR);
+	UT_return_val_if_fail(!isPieceTableChanging(), UT_ERROR);
+	UT_return_val_if_fail(m_pAsyncSaveState, UT_ERROR);
+
+	GsfOutputMemory * sink =
+		GSF_OUTPUT_MEMORY(gsf_output_memory_new());
+	gsf_output_set_name(GSF_OUTPUT(sink), szFilename);
+
+	IE_Exp * pie = nullptr;
+	IEFileType newFileType;
+	UT_Error errorCode =
+		IE_Exp::constructExporter(this, szFilename,
+								  static_cast<IEFileType>(ieft), &pie,
+								  &newFileType);
+	if (errorCode)
+	{
+		g_object_unref(G_OBJECT(sink));
+		UT_DEBUGMSG(("PD_Document::saveAsAsync -- could not construct exporter\n"));
+		return UT_SAVE_EXPORTERROR;
+	}
+	if (expProps && strlen(expProps))
+		pie->setProps (expProps);
+
+	const IEFileType oldSavedAsType = m_lastSavedAsType;
+	const bool bRecents =
+		!XAP_App::getApp()->getPrefs()->isIgnoreRecent();
+	if (cpy && bRecents)
+	{
+		m_lastSavedAsType = newFileType;
+		_syncFileTypes(true);
+	}
+	if (bRecents)
+	{
+		// order of these calls matters
+		_adjustHistoryOnSave();
+
+		// see if revisions table is still needed ...
+		purgeRevisionTable();
+	}
+
+	errorCode = pie->writeFile(GSF_OUTPUT(sink));
+	delete pie;
+	if (errorCode)
+	{
+		g_object_unref(G_OBJECT(sink));
+		m_lastSavedAsType = oldSavedAsType;
+		UT_DEBUGMSG(("PD_Document::saveAsAsync -- could not encode document\n"));
+		return (errorCode == UT_SAVE_CANCELLED) ? UT_SAVE_CANCELLED
+												: UT_SAVE_WRITEERROR;
+	}
+
+	PD_AsyncSaveJob * job = new PD_AsyncSaveJob;
+	job->state = m_pAsyncSaveState;
+	job->target = szFilename;
+	job->markClean = cpy && bRecents;
+	job->setFilename = cpy && bRecents;
+	job->addRecent = true;
+	job->restoreTypeOnFail = cpy && bRecents;
+	job->oldSavedAsType = oldSavedAsType;
+
+	errorCode = _queueAsyncWrite(sink, szFilename, job);
+	if (errorCode)
+	{
+		delete job;
+		m_lastSavedAsType = oldSavedAsType;
+		return errorCode;
+	}
+	return UT_OK;
+}
+
+/* Runs on the main thread once the background write has finished (see
+ * s_asyncSaveDone).  Applies the post-write bookkeeping that _save()/
+ * _saveAs() do synchronously — clean flag, filename adoption, recents —
+ * but only when the document content has not moved on since the
+ * snapshot was encoded. */
+void PD_Document::_asyncSaveFinished(void * asyncJob, UT_Error error)
+{
+	PD_AsyncSaveJob * job = static_cast<PD_AsyncSaveJob *>(asyncJob);
+
+	if (error != UT_OK)
+	{
+		UT_DEBUGMSG(("PD_Document: async save of '%s' failed [%d]\n",
+					 job->target.c_str(), error));
+		if (job->restoreTypeOnFail)
+			m_lastSavedAsType = job->oldSavedAsType;
+		signalListeners(PD_SIGNAL_DOCDIRTY_CHANGED);
+
+		/* surface the failure through the same message the sync path
+		 * raises — pick any frame still showing this document */
+		XAP_String_Id id;
+		switch (error)
+		{
+		case UT_SAVE_WRITEERROR:
+		case UT_IE_COULDNOTWRITE:
+			id = AP_STRING_ID_MSG_SaveFailedWrite; break;
+		case UT_SAVE_NAMEERROR:
+			id = AP_STRING_ID_MSG_SaveFailedName; break;
+		default:
+			id = AP_STRING_ID_MSG_SaveFailed; break;
+		}
+		XAP_App * pApp = XAP_App::getApp();
+		if (pApp)
+		{
+			const UT_sint32 nFrames = pApp->getFrameCount();
+			for (UT_sint32 i = 0; i < nFrames; i++)
+			{
+				XAP_Frame * pFrame = pApp->getFrame(i);
+				if (pFrame && pFrame->getCurrentDoc() == this)
+				{
+					pFrame->showMessageBox(id, XAP_Dialog_MessageBox::b_O,
+										   XAP_Dialog_MessageBox::a_OK,
+										   job->target.c_str());
+					break;
+				}
+			}
+		}
+		return;
+	}
+
+	if (job->setFilename)
+	{
+		_setFilename(job->target.c_str());
+		signalListeners(PD_SIGNAL_DOCNAME_CHANGED);
+	}
+	if (job->markClean &&
+		getContentSerial() == job->serial &&
+		getForceDirtyGen() == job->dirtyGen)
+	{
+		_setClean();
+		signalListeners(PD_SIGNAL_DOCDIRTY_CHANGED);
+	}
+	if (job->addRecent)
+	{
+		XAP_App * pApp = XAP_App::getApp();
+		if (pApp)
+		{
+			auto prefs = pApp->getPrefs();
+			prefs->addRecent(job->target.c_str());
+			prefs->savePrefsFile();
+		}
+	}
+
+	/* same notification the synchronous save issues on success */
+	XAP_App * pApp2 = XAP_App::getApp();
+	if (!pApp2)
+		return;
+	const UT_sint32 nFrames = pApp2->getFrameCount();
+	for (UT_sint32 i = 0; i < nFrames; i++)
+	{
+		XAP_Frame * pFrame = pApp2->getFrame(i);
+		if (pFrame && pFrame->getCurrentDoc() == this &&
+			pFrame->getCurrentView())
+		{
+			pFrame->getCurrentView()->notifyListeners(AV_CHG_SAVE);
+		}
+	}
+}
+
+bool PD_Document::isAsyncSavePending(void) const
+{
+	return m_pAsyncSaveState && m_pAsyncSaveState->pending.load() > 0;
+}
+
+UT_Error PD_Document::drainAsyncSaves(void)
+{
+	UT_AsyncWrite_waitAll();
+	return m_pAsyncSaveState
+		? static_cast<UT_Error>(m_pAsyncSaveState->lastResult.load())
+		: UT_OK;
 }
 
 //////////////////////////////////////////////////////////////////

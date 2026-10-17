@@ -137,6 +137,16 @@ responsibility** — see `README.md`.
   since startup recovery cannot answer a password prompt; and stale
   `.part`/orphaned `.info` temp files left by crashes or kills are
   reclaimed at startup while `.lock` files are preserved.
+- **Asynchronous saves** — saving no longer blocks the UI on the disk
+  write: the document is still serialized on the UI thread (the piece
+  table is not thread-safe) into an in-memory payload, then a single
+  background worker stages it through a sibling `.part` file and
+  atomically renames it over the target, so crash-safety is unchanged.
+  The Save and Save As commands, autosave recovery copies and
+  application shutdown all go through the same writer; edits made
+  while a write is in flight keep the document dirty, a failed
+  background write raises the usual save-error dialog, and closing a
+  window or quitting waits for outstanding writes to land.
 
 ### User interface
 

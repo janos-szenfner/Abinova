@@ -148,7 +148,7 @@ public:
 	virtual UT_Error		importFile(const char * szFilename, int ieft, bool markClean = false, bool bImportStylesFirst = true, const char * props = nullptr) = 0;
 	virtual UT_Error		newDocument() = 0;
 	virtual bool			isDirty(void) const = 0;
-	virtual void            forceDirty() {m_bForcedDirty = true;};
+	virtual void            forceDirty() {_setForceDirty(true);};
 	bool                    isForcedDirty() const {return m_bForcedDirty;}
 
 	/*! Serial identifying the document's content epoch; it bumps on
@@ -183,6 +183,37 @@ public:
 	UT_Error		        saveAs(const char * szFilename, int ieft, const char * props = nullptr);
 	UT_Error		        saveAs(const char * szFilename, int ieft, bool cpy, const char * props = nullptr);
 	UT_Error		        save(void);
+
+	/*! Async variants of save()/saveAs(): the document is encoded on
+	 *  the calling (UI) thread, then the finished payload is written to
+	 *  disk on a worker thread so the write can never stall the UI.
+	 *  The return value only reports failures up to and including the
+	 *  encode — a later disk error is reported when the write finishes.
+	 *  Document classes without an async implementation fall back to a
+	 *  synchronous save, so the call is always safe. */
+	UT_Error		        saveAsync(void);
+	UT_Error		        saveAsAsync(const char * szFilename, int ieft,
+									bool cpy, const char * props = nullptr);
+	/*! True while an async save of this document is queued or being
+	 *  written.  The document still reports isDirty() in that window —
+	 *  the on-disk file is not current yet. */
+	virtual bool            isAsyncSavePending(void) const { return false; }
+	/*! Block until this document's pending async writes have landed;
+	 *  returns the last write's result (UT_OK when nothing failed or
+	 *  nothing was pending).  Used where a later step (window close,
+	 *  shutdown) must not run ahead of the save. */
+	virtual UT_Error        drainAsyncSaves(void);
+	/*! Serialize the document as a saveAs() to @szFilename/@ieft into
+	 *  a byte buffer, without touching the filesystem.  The encode runs
+	 *  on the calling thread (piece-table access is not thread-safe)
+	 *  and applies the same history/revision bookkeeping the matching
+	 *  saveAs() performs; the returned payload may then be written by
+	 *  anyone, on any thread.  Used by the autosave path so that only
+	 *  the encode — never the disk write — stalls the UI.
+	 *  Default implementation returns UT_IE_UNSUPTYPE. */
+	virtual UT_Error        encodeToBytes(const char * szFilename, int ieft,
+										  const char * props,
+										  GBytes ** ppBytes);
 	[[nodiscard]] virtual bool			createDataItem(const char * szName,
 										   bool bBase64,
 										   const UT_ConstByteBufPtr & pByteBuf,
@@ -320,11 +351,28 @@ public:
 	virtual UT_Error	_saveAs(const char * szFilename, int ieft, bool cpy, const char * props = nullptr) = 0;
 	virtual UT_Error	_save(void) = 0;
 
+	/* async save hooks — the defaults just do a synchronous save */
+	virtual UT_Error	_saveAsync(void);
+	virtual UT_Error	_saveAsAsync(const char * szFilename, int ieft,
+									 bool cpy, const char * props);
+
 	void            _purgeRevisionTable();
 	void            _adjustHistoryOnSave();
 	void			_setFilename(const char * name)
 		{ if (name) m_szFilename = name; else m_szFilename.clear(); }
-	void            _setForceDirty(bool b) {m_bForcedDirty = b;}
+	void            _setForceDirty(bool b)
+	{
+		/* generation bumps on a clean->dirty transition so an async
+		 * save in flight can tell "re-dirtied since the snapshot"
+		 * apart from "still the same dirty" */
+		if (b && !m_bForcedDirty)
+			++m_iForceDirtyGen;
+		m_bForcedDirty = b;
+	}
+	/*! monotonically increasing count of forced-dirty transitions;
+	 *  combine with getContentSerial() to test "did anything change
+	 *  since a snapshot" */
+	UT_uint32       getForceDirtyGen(void) const { return m_iForceDirtyGen; }
 	void            _setPieceTableChanging(bool b) {m_bPieceTableChanging = b;}
 	void            _setMarkRevisions(bool bMark) {m_bMarkRevisions = bMark;}
 
@@ -357,6 +405,7 @@ private:
 	bool            m_bAutoRevisioning;
 
 	bool            m_bForcedDirty;
+	UT_uint32       m_iForceDirtyGen;
 	static const std::string m_sEmptyUserName;
 
 	UT_UUID *       m_pUUID;

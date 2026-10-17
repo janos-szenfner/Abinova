@@ -32,6 +32,7 @@
 #include "ut_uuid.h"
 #include "ut_misc.h"
 #include "ut_path.h"
+#include "ut_asyncwrite.h"
 #include "xap_DialogFactory.h"
 
 #include "xad_Document.h"
@@ -61,6 +62,7 @@ AD_Document::AD_Document() :
 	m_iShowRevisionID(0), // show all
 	m_bAutoRevisioning(false),
     m_bForcedDirty(false),
+	m_iForceDirtyGen(0),
 	m_pUUID(nullptr),
 	m_pOrigUUID(nullptr),
 	m_pMyUUID(nullptr),
@@ -908,6 +910,52 @@ UT_Error AD_Document::save(void)
 
 	m_bAfterFirstSave |= (UT_OK == e);
 	return e;
+}
+
+UT_Error AD_Document::_saveAsync(void)
+{
+	return _save();
+}
+
+UT_Error AD_Document::_saveAsAsync(const char * szFilename, int ieft,
+								   bool cpy, const char * props)
+{
+	return _saveAs(szFilename, ieft, cpy, props);
+}
+
+UT_Error AD_Document::saveAsync(void)
+{
+	/* accepted-for-write counts as a save for history purposes — the
+	 * document content is already captured, only the disk write is
+	 * outstanding */
+	UT_Error e = _saveAsync();
+
+	m_bAfterFirstSave |= (UT_OK == e);
+	return e;
+}
+
+UT_Error AD_Document::saveAsAsync(const char * szFilename, int ieft,
+								  bool cpy, const char * props)
+{
+	UT_Error e = _saveAsAsync(szFilename, ieft, cpy, props);
+
+	m_bAfterFirstSave |= (UT_OK == e);
+	return e;
+}
+
+UT_Error AD_Document::drainAsyncSaves(void)
+{
+	UT_AsyncWrite_waitAll();
+	return UT_OK;
+}
+
+UT_Error AD_Document::encodeToBytes(const char * /*szFilename*/,
+									int /*ieft*/, const char * /*props*/,
+									GBytes ** ppBytes)
+{
+	if (ppBytes)
+		*ppBytes = nullptr;
+	return UT_IE_UNSUPTYPE;
 }
 
 bool AD_Document::purgeAllRevisions(AV_View * pView)

@@ -4181,6 +4181,16 @@ s_closeWindow (AV_View * pAV_View, EV_EditMethodCallData * pCallData,
 #endif
 	}
 
+	// an async save queued above (or still in flight) must reach the
+	// disk before the document is torn down; a failed write aborts the
+	// close exactly like a synchronous save failure does
+	if (AD_Document * pDoc = pFrame->getCurrentDoc())
+	{
+		if (pDoc->isAsyncSavePending() &&
+			pDoc->drainAsyncSaves() != UT_OK)
+			return false;
+	}
+
 	// nuke the window
 
 	pApp->forgetFrame(pFrame);

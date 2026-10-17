@@ -295,6 +295,7 @@ EXTRA_DIST = \
 	fmt/xp/t/fv_WheelScroll.t.cpp \
 	ptbl/xp/t/pf_Fragments.t.cpp \
 	ptbl/xp/t/pp_PropertyMap.t.cpp \
+	ptbl/xp/t/pd_AsyncSave.t.cpp \
 	ptbl/xp/t/pd_RDFDoc.t.cpp \
 	ptbl/xp/t/pd_Revision.t.cpp \
 	ptbl/xp/t/pp_Revision.t.cpp \

@@ -305,6 +305,12 @@ public:
 	virtual UT_sint64       getContentSerial(void) const override;
 	virtual time_t          getLastContentChange(void) const override;
 	bool                    isConnected(void) const;
+
+	virtual bool            isAsyncSavePending(void) const override;
+	virtual UT_Error        drainAsyncSaves(void) override;
+	virtual UT_Error        encodeToBytes(const char * szFilename, int ieft,
+										  const char * props,
+										  GBytes ** ppBytes) override;
 	virtual bool			canDo(bool bUndo) const override;
 	virtual UT_uint32		undoCount(bool bUndo) const;
 	virtual bool			undoCmd(UT_uint32 repeatCount) override;
@@ -875,6 +881,16 @@ protected:
 	virtual UT_Error   		_saveAs(const char * szFilename, int ieft, bool cpy, const char * expProps = nullptr) override;
 	virtual UT_Error        _saveAs(GsfOutput *output, int ieft, bool cpy, const char * expProps);
 	virtual UT_Error		_save(void) override;
+	virtual UT_Error		_saveAsync(void) override;
+	virtual UT_Error		_saveAsAsync(const char * szFilename, int ieft,
+										 bool cpy, const char * expProps) override;
+	UT_Error				_encodeToSink(GsfOutputMemory * sink,
+										  const char * szFilename,
+										  IEFileType ieft,
+										  const char * expProps,
+										  IEFileType * pNewFileType);
+	UT_Error				_sinkToBytes(GsfOutputMemory * sink,
+										 GBytes ** ppBytes);
 
 
 	void					_setClean(void);
@@ -917,9 +933,16 @@ private:
 	bool                    _sendAuthorCR(const char *attrName,
                                           pp_Author *pAuthor) const;
 private:
+	friend void             s_asyncSaveDone(void * userData, UT_Error result);
+	void                    _asyncSaveFinished(void * asyncJob, UT_Error error);
+	UT_Error                _queueAsyncWrite(GsfOutputMemory * sink,
+											 const char * szFilename,
+											 void * asyncJob);
+
 	bool					m_ballowListUpdates;
 	pt_PieceTable *			m_pPieceTable;
     PD_DocumentRDFHandle    m_hDocumentRDF;
+	std::shared_ptr<struct PD_AsyncSaveState> m_pAsyncSaveState;
 	std::vector<PL_Listener *> m_vecListeners;
 	std::vector<PL_EditPointTracker *> m_vecEditPointTrackers;
 	std::vector<fl_AutoNumPtr> m_vecLists;

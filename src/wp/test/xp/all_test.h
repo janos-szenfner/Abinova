@@ -59,6 +59,8 @@
 #undef TFSUITE
 #include "src/af/util/xp/t/ut_go_file.t.cpp"
 #undef TFSUITE
+#include "src/af/util/xp/t/ut_asyncwrite.t.cpp"
+#undef TFSUITE
 #include "src/af/util/xp/t/ut_jpeg.t.cpp"
 #undef TFSUITE
 #include "src/af/util/xp/t/ut_Language.t.cpp"
@@ -120,6 +122,8 @@
 #include "src/text/ptbl/xp/t/pd_RDFDoc.t.cpp"
 #undef TFSUITE
 #include "src/text/ptbl/xp/t/pt_DocEdits.t.cpp"
+#undef TFSUITE
+#include "src/text/ptbl/xp/t/pd_AsyncSave.t.cpp"
 #undef TFSUITE
 #include "src/text/ptbl/xp/t/px_ChangeRecord.t.cpp"
 #undef TFSUITE
