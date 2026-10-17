@@ -50,6 +50,7 @@
 #include "ap_UnixIconsPane.h"
 #include "ap_UnixCommentsPane.h"
 #include "ap_UnixNavPane.h"
+#include "ap_UnixMiniBar.h"
 #include "ap_Prefs.h"
 #include "xap_App.h"
 #include "xap_Prefs.h"
@@ -79,6 +80,9 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_dScrollAnimTarget(0.0),
 	m_pRibbon(nullptr),
 	m_wRibbon(nullptr),
+	m_pMiniBar(nullptr),
+	m_uMiniBarIdle(0),
+	m_bMiniBarMouse(false),
 	m_wDocPaned(nullptr),
 	m_wSideDeck(nullptr),
 	m_wStylesPaneW(nullptr),
@@ -138,6 +142,8 @@ AP_UnixFrameImpl::~AP_UnixFrameImpl()
 	DELETEP(m_pA11yListener);
 	DELETEP(m_pDocLayout2);
 	DELETEP(m_pG2);
+	_cancelMiniBarShow();
+	DELETEP(m_pMiniBar);
 	DELETEP(m_pRibbon);
 	DELETEP(m_pStylesPane);
 	DELETEP(m_pSelPane);
@@ -407,6 +413,44 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	gtk_widget_set_vexpand(m_viewOverlay, TRUE);
 	gtk_overlay_set_child(GTK_OVERLAY(m_viewOverlay), m_dArea);
 
+	/* mini toolbar: the floating format strip over a finished text
+	 * selection.  It is a plain overlay child (never a grab), so it
+	 * cannot steal focus; the view listener shows/hides it via
+	 * updateMiniBar(). */
+	m_pMiniBar = new AP_UnixMiniBar(getFrame());
+	gtk_overlay_add_overlay(GTK_OVERLAY(m_viewOverlay),
+							m_pMiniBar->createWidget());
+
+	/* Escape dismisses the strip while the canvas has focus (the
+	 * strip's own controller covers focus inside its combos).  Runs
+	 * after the base key controller, which has already offered the
+	 * key to the view's edit methods. */
+	GtkEventController * miniBarKeys = gtk_event_controller_key_new();
+	g_signal_connect(miniBarKeys, "key-pressed",
+					 G_CALLBACK(_s_miniBarKeyPressed), this);
+	gtk_widget_add_controller(m_dArea, miniBarKeys);
+
+	/* a press that lands anywhere outside the strip — ribbon, rulers,
+	 * side panes — hides it, like Word's mini toolbar.  Capture phase
+	 * on the toplevel sees the press before any child claims it. */
+	if (m_wTopLevelWindow)
+	{
+		GtkGesture * topPress = gtk_gesture_click_new();
+		gtk_gesture_single_set_button(GTK_GESTURE_SINGLE(topPress), 0);
+		gtk_event_controller_set_propagation_phase(
+			GTK_EVENT_CONTROLLER(topPress), GTK_PHASE_CAPTURE);
+		g_signal_connect(topPress, "pressed",
+						 G_CALLBACK(_s_miniBarTopPressed), this);
+		gtk_widget_add_controller(m_wTopLevelWindow,
+								  GTK_EVENT_CONTROLLER(topPress));
+	}
+
+	/* keep the strip glued to the selection across scrolls */
+	g_signal_connect(G_OBJECT(m_pHadj), "value_changed",
+					 G_CALLBACK(_s_miniBarScrolled), this);
+	g_signal_connect(G_OBJECT(m_pVadj), "value_changed",
+					 G_CALLBACK(_s_miniBarScrolled), this);
+
 	if ( bShowRulers )
 	{
 		gtk_grid_attach(GTK_GRID(m_innergrid), m_topRuler, 0, 0, 2, 1);
@@ -606,6 +650,145 @@ void AP_UnixFrameImpl::focusDocument()
 {
 	if (m_dArea && gtk_widget_get_realized(m_dArea))
 		gtk_widget_grab_focus(m_dArea);
+}
+
+/* ---- selection mini toolbar ------------------------------------ */
+
+/* the view listener routes every change notify here.  The strip shows
+ * once a selection exists — deferred to an idle so a mid-drag
+ * EMPTYSEL doesn't flash it under the pointer — and hides the moment
+ * the selection is gone.  While visible it keeps its toggles and its
+ * anchor in sync with the view. */
+void AP_UnixFrameImpl::updateMiniBar(AV_ChangeMask mask)
+{
+	if (!m_pMiniBar)
+		return;
+	AV_View * pAV = getFrame()->getCurrentView();
+	const bool bSel = pAV &&
+		!static_cast<FV_View *>(pAV)->isSelectionEmpty();
+
+	if (!bSel)
+	{
+		m_pMiniBar->hide();
+		m_pMiniBar->clearDismissed();
+		_cancelMiniBarShow();
+		return;
+	}
+
+	if (mask & AV_CHG_EMPTYSEL)
+	{
+		/* selection just appeared */
+		_scheduleMiniBarShow();
+	}
+	else if (m_pMiniBar->isVisible())
+	{
+		/* same selection, new state: mirror the char format and keep
+		 * the strip anchored as the view scrolls/reflows */
+		if (mask & (AV_CHG_FMTCHAR | AV_CHG_FMTBLOCK |
+					AV_CHG_FMTSTYLE))
+			m_pMiniBar->syncState();
+		if (mask & (AV_CHG_MOTION | AV_CHG_WINDOWSIZE |
+					AV_CHG_PAGECOUNT | AV_CHG_HDRFTR))
+			m_pMiniBar->reposition();
+	}
+}
+
+void AP_UnixFrameImpl::hideMiniBar()
+{
+	if (m_pMiniBar)
+		m_pMiniBar->hide();
+}
+
+void AP_UnixFrameImpl::repositionMiniBar()
+{
+	if (m_pMiniBar && m_pMiniBar->isVisible())
+		m_pMiniBar->reposition();
+}
+
+void AP_UnixFrameImpl::_scheduleMiniBarShow()
+{
+	if (m_uMiniBarIdle || !m_pMiniBar)
+		return;
+	m_uMiniBarIdle = g_idle_add(_s_miniBarShowIdle, this);
+}
+
+void AP_UnixFrameImpl::_cancelMiniBarShow()
+{
+	if (m_uMiniBarIdle)
+	{
+		g_source_remove(m_uMiniBarIdle);
+		m_uMiniBarIdle = 0;
+	}
+}
+
+gboolean AP_UnixFrameImpl::_s_miniBarShowIdle(gpointer data)
+{
+	AP_UnixFrameImpl * self = static_cast<AP_UnixFrameImpl *>(data);
+	self->m_uMiniBarIdle = 0;
+	/* a drag that is still in flight must not pop the strip up under
+	 * the pointer — the release hook reschedules */
+	if (!self->m_pMiniBar || self->m_bMiniBarMouse)
+		return G_SOURCE_REMOVE;
+	AV_View * pAV = self->getFrame()->getCurrentView();
+	if (pAV && !static_cast<FV_View *>(pAV)->isSelectionEmpty())
+		self->m_pMiniBar->show();
+	return G_SOURCE_REMOVE;
+}
+
+/* the primary button went down on the canvas: a new selection gesture
+ * starts — undismiss the strip so finishing the drag shows it again */
+void AP_UnixFrameImpl::_docButtonPressed(guint button)
+{
+	if (button != GDK_BUTTON_PRIMARY)
+		return;
+	m_bMiniBarMouse = true;
+	if (m_pMiniBar)
+		m_pMiniBar->clearDismissed();
+}
+
+void AP_UnixFrameImpl::_docButtonReleased(guint button)
+{
+	if (button != GDK_BUTTON_PRIMARY)
+		return;
+	m_bMiniBarMouse = false;
+	AV_View * pAV = getFrame()->getCurrentView();
+	if (pAV && !static_cast<FV_View *>(pAV)->isSelectionEmpty())
+		_scheduleMiniBarShow();
+}
+
+gboolean AP_UnixFrameImpl::_s_miniBarKeyPressed(
+	GtkEventControllerKey * /*c*/, guint keyval, guint /*keycode*/,
+	GdkModifierType /*state*/, gpointer data)
+{
+	AP_UnixFrameImpl * self = static_cast<AP_UnixFrameImpl *>(data);
+	if (keyval != GDK_KEY_Escape || !self->m_pMiniBar ||
+		!self->m_pMiniBar->isVisible())
+		return FALSE;
+	self->m_pMiniBar->dismiss();
+	return TRUE;
+}
+
+void AP_UnixFrameImpl::_s_miniBarTopPressed(GtkGestureClick * /*g*/,
+											gint /*n_press*/,
+											gdouble x, gdouble y,
+											gpointer data)
+{
+	AP_UnixFrameImpl * self = static_cast<AP_UnixFrameImpl *>(data);
+	if (!self->m_pMiniBar || !self->m_pMiniBar->isVisible() ||
+		!self->m_wTopLevelWindow)
+		return;
+	GtkWidget * hit = gtk_widget_pick(self->m_wTopLevelWindow, x, y,
+									  GTK_PICK_INSENSITIVE);
+	if (hit && self->m_pMiniBar->contains(hit))
+		return;
+	self->m_pMiniBar->hide();
+}
+
+void AP_UnixFrameImpl::_s_miniBarScrolled(GtkAdjustment * /*adj*/,
+										  gpointer data)
+{
+	AP_UnixFrameImpl * self = static_cast<AP_UnixFrameImpl *>(data);
+	self->repositionMiniBar();
 }
 
 /* opens the ribbon's Paste Special dialog (paste-options smart tag

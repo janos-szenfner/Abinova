@@ -859,6 +859,9 @@ void XAP_UnixFrameImpl::_fe::button_press_event(GtkGestureClick * g, gint n_pres
 	 * it explicitly so typed input reaches the document. */
 	gtk_widget_grab_focus(w);
 
+	pUnixFrameImpl->_docButtonPressed(
+		gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(g)));
+
 	if (pView)
 	{
 		/* Use the gesture-provided coordinates (already in drawing-area
@@ -887,6 +890,9 @@ void XAP_UnixFrameImpl::_fe::button_release_event(GtkGestureClick * g, gint /*n_
 		pUnixMouse->mouseUp(pView,
 							gtk_event_controller_get_current_event(controller),
 							x, y);
+
+	pUnixFrameImpl->_docButtonReleased(
+		gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(g)));
 }
 
 /*!

@@ -31,6 +31,7 @@
 
 class XAP_UnixApp;
 class AP_UnixFrame;
+class AP_UnixMiniBar;
 class FL_DocLayout;
 class FV_View;
 class AV_Listener;
@@ -90,6 +91,14 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	{ return m_pRibbon != nullptr; }
 	void			showPasteSpecialDialog();
 
+	/* mini toolbar: the floating format strip that hovers over a
+	 * finished text selection (Word-style).  Driven from the view
+	 * listener via updateMiniBar() so both mouse and keyboard
+	 * selection paths funnel through it. */
+	void			updateMiniBar(AV_ChangeMask mask);
+	void			hideMiniBar();
+	void			repositionMiniBar();
+
  protected:
 	friend class AP_UnixFrame;
 	void _showOrHideStatusbar(void);
@@ -129,6 +138,8 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 
 	/* split-view hooks for the shared _fe handlers */
 	virtual void _preDocInput(GtkWidget * w) override;
+	virtual void _docButtonPressed(guint button) override;
+	virtual void _docButtonReleased(guint button) override;
 	virtual AV_View * _viewForScrollAdj(GtkAdjustment * adj) override;
 	virtual bool _isPaneView(AV_View * pView) override;
 	virtual void _postDocDraw(GtkWidget * w, cairo_t * cr,
@@ -180,6 +191,25 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 
 	class AP_UnixRibbon * m_pRibbon;
 	GtkWidget * m_wRibbon;
+
+	/* selection mini toolbar: an overlay child of m_viewOverlay that
+	 * pops up over a finished text selection.  m_uMiniBarIdle is the
+	 * deferred show (the strip appears once the selecting gesture
+	 * settles, not mid-drag); m_bMiniBarMouse tracks the primary
+	 * button so a selection made by dragging shows on release. */
+	class AP_UnixMiniBar * m_pMiniBar;
+	guint       m_uMiniBarIdle;
+	bool        m_bMiniBarMouse;
+	void _scheduleMiniBarShow();
+	void _cancelMiniBarShow();
+	static gboolean _s_miniBarShowIdle(gpointer data);
+	static gboolean _s_miniBarKeyPressed(GtkEventControllerKey * c,
+										 guint keyval, guint keycode,
+										 GdkModifierType state,
+										 gpointer data);
+	static void _s_miniBarTopPressed(GtkGestureClick * g, gint n_press,
+									 gdouble x, gdouble y, gpointer data);
+	static void _s_miniBarScrolled(GtkAdjustment * adj, gpointer data);
 
 	/* document area wrapped in a GtkPaned whose end child is the
 	 * side deck (GtkStack of docked panes) */

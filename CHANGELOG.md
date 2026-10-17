@@ -70,6 +70,17 @@ responsibility** — see `README.md`.
   Cmd+Click TOC navigation, Cmd+wheel zoom and the other Ctrl-click
   bindings work on macOS too.
 
+### User interface
+
+- **Mini toolbar on selection** — finishing a text selection (mouse
+  release, double-click, or Shift+arrows from the keyboard) floats a
+  compact formatting strip just above the selection: font family,
+  size, bold/italic/underline and a font-colour palette, all
+  dispatching the same commands as the ribbon buttons. The strip
+  never steals keyboard focus, follows the selection while
+  scrolling, and disappears on click-away, selection collapse or
+  Escape.
+
 ## [4.0.2] — 2026-10-17
 
 ### Ribbon

@@ -110,6 +110,11 @@ protected:
 	 * scrolling to the pane the widget belongs to, and to paint
 	 * overlays (gridlines) after the view has drawn. */
 	virtual void _preDocInput(GtkWidget * /*w*/) {}
+	/* floating overlays (the selection mini toolbar) need to know
+	 * when a primary-button gesture is in flight on the document
+	 * canvas; button is a GDK button number */
+	virtual void _docButtonPressed(guint /*button*/) {}
+	virtual void _docButtonReleased(guint /*button*/) {}
 	virtual AV_View * _viewForScrollAdj(GtkAdjustment * adj);
 	virtual bool _isPaneView(AV_View * pView);
 	virtual void _postDocDraw(GtkWidget * /*w*/, cairo_t * /*cr*/,

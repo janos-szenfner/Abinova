@@ -306,6 +306,10 @@ public:
 	PT_DocPosition	getSelectionLeftAnchor(void) const;
 	PT_DocPosition	getSelectionRightAnchor(void) const;
 	UT_uint32       getSelectionLength(void) const;
+	/* line-box caret rects at the two ends of the current text
+	 * selection, in view-window layout units — chrome floating over
+	 * the canvas (the mini toolbar) anchors itself on these */
+	bool			getSelectionCaretRects(UT_Rect & rStart, UT_Rect & rEnd) const;
 
 	UT_sint32       getFrameMargin(void) const;
 

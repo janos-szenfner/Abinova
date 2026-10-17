@@ -6394,6 +6394,25 @@ void FV_View::_updateSelectionHandles(void)
 	}
 }
 
+bool FV_View::getSelectionCaretRects(UT_Rect & rStart, UT_Rect & rEnd) const
+{
+	if (isSelectionEmpty())
+		return false;
+	bool bDir = false;
+	UT_sint32 x2 = 0, y2 = 0;
+	UT_uint32 h = 0;
+	rStart.width = rEnd.width = 0;
+	_findPositionCoords(getSelectionLeftAnchor(), false,
+						rStart.left, rStart.top, x2, y2,
+						h, bDir, nullptr, nullptr);
+	rStart.height = h;
+	_findPositionCoords(getSelectionRightAnchor(), false,
+						rEnd.left, rEnd.top, x2, y2,
+						h, bDir, nullptr, nullptr);
+	rEnd.height = h;
+	return true;
+}
+
 
 /*!
  * Arm/disarm the paste-options smart tag (the Word "(Ctrl)" button
