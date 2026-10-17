@@ -248,6 +248,11 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_LAYOUT_ALIGNOBJECTS,	0,1,0,0,	"arrangePosition",	ap_GetState_InImage,		nullptr);
 	_s(AP_MENU_ID_LAYOUT_GROUPOBJECTS,	0,0,0,0,	"frameGroup",		ap_GetState_Groupable,		nullptr);
 	_s(AP_MENU_ID_LAYOUT_ROTATE,		0,0,0,0,	"frameRotateRight", ap_GetState_ObjSelected,	nullptr);
+	_s(AP_MENU_ID_DESIGN_STYLESETS,	0,0,0,0,	nullptr,		nullptr,					nullptr);
+	_s(AP_MENU_ID_DESIGN_THEMECOLORS,	0,0,0,0,	nullptr,		nullptr,					nullptr);
+	_s(AP_MENU_ID_DESIGN_THEMEFONTS,	0,0,0,0,	nullptr,		nullptr,					nullptr);
+	_s(AP_MENU_ID_DESIGN_WATERMARK,	0,0,0,0,	nullptr,		nullptr,					nullptr);
+	_s(AP_MENU_ID_DESIGN_PAGEBORDERS,	0,0,0,0,	nullptr,		nullptr,					nullptr);
 	_s(AP_MENU_ID_REF_TOCPOP,		0,0,0,0,	"insTOC",		ap_GetState_TOCOK,		nullptr);
 	_s(AP_MENU_ID_REF_ADDTEXT,		0,0,0,0,	"tocAddText",		ap_GetState_TOCOK,		nullptr);
 	_s(AP_MENU_ID_REF_NEXTFN,		0,0,0,0,	"footnoteNext",		nullptr,					nullptr);

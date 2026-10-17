@@ -421,9 +421,10 @@ all.
   popup open and froze the UI for seconds. Type-to-search is
   enabled on the dropdown.
 - **LibreOffice NotebookBar-style ribbon UI**: a complete
-  alternative interface — File / Home / Insert / References /
-  Layout / Review / View / Help tabs plus contextual **Table**
-  and **Equation** tabs, Word-style galleries and split buttons.
+  alternative interface — File / Home / Insert / Design /
+  References / Layout / Review / View / Help tabs plus contextual
+  **Table** and **Equation** tabs, Word-style galleries and split
+  buttons.
   See the [Ribbon UI](#ribbon-ui-libreoffice-notebookbar-style)
   section below for the tab-by-tab details.
 - **Word-compatible built-in styles**: the style set in
@@ -463,8 +464,9 @@ all.
 
 The only interface — modelled on LibreOffice Writer's
 NotebookBar (`sw/uiconfig/swriter/ui/notebookbar.ui`). A
-`GtkNotebook` presents **File / Home / Insert / References /
-Layout / Review / View / Help** tabs — **Home is the default** —
+`GtkNotebook` presents **File / Home / Insert / Design /
+References / Layout / Review / View / Help** tabs — **Home is the
+default** —
 plus contextual **Table Design**, **Table Layout** and
 **Equation** tabs that appear only while the caret is inside a
 table or on an equation. The ribbon
@@ -603,6 +605,41 @@ labels, like Word's ribbon.
   **Insert New Equation…** (LaTeX dialog); also the Symbol
   dialog.
 - **Insert File…** handles RTF among other formats.
+
+#### Design tab
+
+Word's Design ribbon — coordinated document-wide look changes
+and page-background controls.
+
+- **Document Formatting**: a gallery of built-in style sets
+  (Default, Basic, Centered, Lines, Shaded) that rewrite the
+  Heading/Title/Body style definitions in one shot — heading
+  colour, alignment, under-heading rules and shaded bands change
+  across the whole document at once while keeping the
+  document's body font.
+- **Colors**: theme palettes (Office, Grayscale, Blue, Green,
+  Red) that re-tint the accent/subtitle/body colours of the
+  named styles.
+- **Fonts**: heading/body family pairs (Calibri Light/Calibri,
+  Cambria/Calibri, Georgia, Arial, Garamond, Trebuchet MS)
+  applied to the named styles.
+- **Watermark**: Word's built-in text stamps (CONFIDENTIAL,
+  DO NOT COPY, DRAFT, SAMPLE, ASAP, URGENT) plus **Picture
+  Watermark…** and **Remove Watermark** — painted as a washed-out
+  diagonal stamp (or centred image) behind the content of every
+  page, stored as `page-watermark-*` section properties so it
+  survives `.abwn` round-trips.
+- **Page Borders**: Box, Thick Box, Double, Dashed, Wave and
+  Edge of Page presets plus **No Border** — rules around the
+  text area or the paper edge, stored as the OOXML
+  `w:pgBorders`-style `page-border-*` section properties shared
+  with `.docx`/`.doc` import; **Page Color** (shared with the
+  Layout tab) rounds out the Page Background group.
+
+All five galleries dispatch real edit methods — `styleSetApply`,
+`themeColorsApply`, `themeFontsApply`, `pageWatermark` and
+`pageBorders` — so the control channel can drive them for
+automation.
 
 #### References tab
 

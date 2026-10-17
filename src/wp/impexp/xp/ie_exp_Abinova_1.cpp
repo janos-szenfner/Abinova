@@ -835,6 +835,17 @@ bool s_Abinova_1_Listener::populateStrux(pf_Frag_Strux* /*sdh*/,
 	if (image_name)
 		m_pUsedImages.insert(image_name);
 
+	/* the watermark image is a *property* (page-watermark-image),
+	 * not an attribute - keep its data item too */
+	const PP_AttrProp * pSecAP = nullptr;
+	if (m_pDocument->getAttrProp(api, &pSecAP) && pSecAP)
+	{
+		const gchar * szWm = nullptr;
+		if (pSecAP->getProperty("page-watermark-image", szWm) &&
+			szWm && *szWm)
+			m_pUsedImages.insert(szWm);
+	}
+
 	switch (pcrx->getStruxType())
 	{
 	case PTX_Section:

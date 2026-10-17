@@ -310,7 +310,7 @@ public:
 
         fg_FillType &       getFillType(void);
 	const fg_FillType & getFillType(void) const;
-  	void                drawLine(const PP_PropertyMap::Line & style,
+  	static void         drawLine(const PP_PropertyMap::Line & style,
 				     UT_sint32 left, UT_sint32 top,
 				     UT_sint32 right, UT_sint32 bot,
 				     GR_Graphics * pGr);

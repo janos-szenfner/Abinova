@@ -22,11 +22,13 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "ut_types.h"
 #include <algorithm>
 #include <memory>
 #include "ut_misc.h"
+#include "ut_color.h"
 
 #include "fp_Page.h"
 #include "fl_DocLayout.h"
@@ -47,7 +49,19 @@
 #include "ut_debugmsg.h"
 #include "ut_assert.h"
 #include "ut_units.h"
+#include "ut_png.h"
+#include "ut_jpeg.h"
 #include "gr_Painter.h"
+#include "gr_CairoGraphics.h"
+#include "gr_Image.h"
+#include "pd_Document.h"
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef M_SQRT2
+#define M_SQRT2 1.41421356237309504880
+#endif
 
 fp_Page::fp_Page(FL_DocLayout* pLayout,
 		 FV_View* pView,
@@ -1563,6 +1577,318 @@ void fp_Page::_drawLineNumbers(dg_DrawArgs* pDA)
 	}
 }
 
+/*!
+ * Paint a Word-style watermark behind the page content: either a
+ * washed-out centred image (the page-watermark-image dataid prop) or a
+ * diagonal text stamp (page-watermark-text tinted by -color, set in
+ * -font at -size pt, 0pt = auto-fit to the page). Painted right after
+ * the paper fill so columns, frames and headers all sit on top of it.
+ */
+void fp_Page::_drawWatermark(dg_DrawArgs* pDA)
+{
+	if (m_pView && (m_pView->getViewMode() != VIEW_PRINT) &&
+		!pDA->pG->queryProperties(GR_Graphics::DGP_PAPER))
+		return;
+	fl_DocSectionLayout * pDSL = getOwningSection();
+	UT_return_if_fail(pDSL);
+	const PP_AttrProp * pAP = nullptr;
+	pDSL->getAP(pAP);
+	UT_return_if_fail(pAP);
+
+	const gchar * szText = nullptr;
+	const gchar * szImage = nullptr;
+	pAP->getProperty("page-watermark-text", szText);
+	pAP->getProperty("page-watermark-image", szImage);
+
+	GR_Graphics * pG = pDA->pG;
+	const UT_sint32 iPageW = getWidth();
+	const UT_sint32 iPageH = getHeight();
+	GR_Painter painter(pG);
+
+	if (szImage && *szImage)
+	{
+		PD_Document * pDoc = m_pLayout->getDocument();
+		UT_ConstByteBufPtr bb;
+		std::string sMime;
+		UT_sint32 iNatW = 0;
+		UT_sint32 iNatH = 0;
+		if (pDoc &&
+			pDoc->getDataItemDataByName(szImage, bb, &sMime, nullptr) && bb)
+		{
+			if (sMime == "image/jpeg")
+				UT_JPEG_getDimensions(bb, iNatW, iNatH);
+			else
+				UT_PNG_getDimensions(bb, iNatW, iNatH);
+		}
+		if (iNatW > 0 && iNatH > 0)
+		{
+			const UT_sint32 iFit = UT_MIN(iPageW, iPageH) / 2;
+			UT_sint32 iW = iFit;
+			UT_sint32 iH = iFit * iNatH / iNatW;
+			if (iH > iFit)
+			{
+				iH = iFit;
+				iW = iFit * iNatW / iNatH;
+			}
+			GR_Image * pImg = pG->createNewImage(szImage, bb, sMime,
+											   iW, iH, GR_Image::GRT_Raster);
+			if (pImg)
+			{
+				GR_BlipEffects fx;
+				fx.lum = true;
+				fx.lumBright = 0.60;
+				fx.alphaMod = 0.5;
+				pImg->applyBlipEffects(fx);
+				painter.drawImage(pImg,
+								  pDA->xoff + (iPageW - iW) / 2,
+								  pDA->yoff + (iPageH - iH) / 2);
+				delete pImg;
+			}
+		}
+		return;
+	}
+
+	if (!szText || !*szText)
+		return;
+
+	const gchar * szColor = nullptr;
+	const gchar * szFont = nullptr;
+	const gchar * szSize = nullptr;
+	pAP->getProperty("page-watermark-color", szColor);
+	pAP->getProperty("page-watermark-font", szFont);
+	pAP->getProperty("page-watermark-size", szSize);
+
+	UT_RGBColor clr(0xc0, 0xc0, 0xc0);
+	if (szColor && *szColor && strcmp(szColor, "auto"))
+		UT_parseColor(szColor, clr);
+
+	UT_UCS4String sText(szText);
+	const UT_UCS4Char * pChars = sText.ucs4_str();
+	const UT_uint32 iLen = sText.length();
+	if (!iLen)
+		return;
+
+	double dPt = (szSize && *szSize) ? UT_convertToPoints(szSize) : 0.0;
+	char szPt[24];
+	snprintf(szPt, sizeof(szPt), "%dpt",
+			 static_cast<int>(dPt > 0.0 ? dPt : 72.0));
+	const char * szFam = (szFont && *szFont) ? szFont : "Sans";
+	GR_Font * pFont = pG->findFont(szFam, "normal", "normal", "bold",
+								   "normal", szPt, "en");
+	if (!pFont)
+		return;
+	pG->setFont(pFont);
+
+	std::vector<UT_GrowBufElement> widths(iLen);
+	UT_uint32 iTextW = 0;
+	pG->measureString(pChars, 0, iLen, widths.data());
+	for (UT_uint32 k = 0; k < iLen; k++)
+		iTextW += static_cast<UT_uint32>(widths[k]);
+	if (!iTextW)
+		return;
+
+	if (dPt <= 0.0)
+	{
+		/* auto: span ~3/4 of the page diagonal but keep the rotated
+		 * run inside the page (horizontal/vertical extent = w/sqrt2) */
+		const double dDiag = sqrt(static_cast<double>(iPageW) * iPageW +
+								  static_cast<double>(iPageH) * iPageH);
+		const double dFit = UT_MIN(0.72 * dDiag,
+								   0.95 * UT_MIN(iPageW, iPageH) * M_SQRT2);
+		double dNew = 72.0 * dFit / static_cast<double>(iTextW);
+		dNew = std::min(200.0, std::max(18.0, dNew));
+		snprintf(szPt, sizeof(szPt), "%dpt", static_cast<int>(dNew + 0.5));
+		pFont = pG->findFont(szFam, "normal", "normal", "bold",
+							 "normal", szPt, "en");
+		if (!pFont)
+			return;
+		pG->setFont(pFont);
+		iTextW = 0;
+		pG->measureString(pChars, 0, iLen, widths.data());
+		for (UT_uint32 k = 0; k < iLen; k++)
+			iTextW += static_cast<UT_uint32>(widths[k]);
+		if (!iTextW)
+			return;
+	}
+
+	const UT_sint32 iX = pDA->xoff + iPageW / 2 -
+		static_cast<UT_sint32>(iTextW) / 2;
+	const UT_sint32 iY = pDA->yoff + iPageH / 2 +
+		(pG->getFontAscent() - pG->getFontDescent()) / 2;
+
+	/* rotate the stamp -45 degrees about the page centre. getCairo()
+	 * auto-beginPaints outside a running paint which unbalances the
+	 * group stack on screen - only transform mid-paint, same guard
+	 * fp_FrameContainer uses. Without cairo the stamp draws level. */
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	cairo_t * cr = nullptr;
+	if (pCG && (pCG->getPaintCount() > 0 ||
+				!pG->queryProperties(GR_Graphics::DGP_SCREEN)))
+		cr = pCG->getCairo();
+	if (cr)
+	{
+		const double dCx = pG->tdu(pDA->xoff + iPageW / 2);
+		const double dCy = pG->tdu(pDA->yoff + iPageH / 2);
+		cairo_save(cr);
+		cairo_translate(cr, dCx, dCy);
+		cairo_rotate(cr, -M_PI / 4.0);
+		cairo_translate(cr, -dCx, -dCy);
+	}
+	pG->setColor(clr);
+	painter.drawChars(pChars, 0, static_cast<int>(iLen), iX, iY,
+					  reinterpret_cast<int *>(widths.data()));
+	if (cr)
+		cairo_restore(cr);
+}
+
+/*!
+ * Map an OOXML w:pgBorders edge style name (stored in the
+ * page-border-<side> section props by both .docx and .doc import, and
+ * written by the Design tab's pageBorders command) to a PropertyMap
+ * linestyle. Compound variants degrade to the nearest strand count and
+ * page-border art paints as a plain stroke.
+ */
+static PP_PropertyMap::TypeLineStyle
+s_pageBorderLineStyle(const gchar * szStyle)
+{
+	if (!szStyle || !*szStyle || !strcmp(szStyle, "none") ||
+		!strcmp(szStyle, "nil"))
+		return PP_PropertyMap::linestyle_none;
+	if (!strcmp(szStyle, "dotted"))
+		return PP_PropertyMap::linestyle_dotted;
+	if (!strcmp(szStyle, "dashed") || !strcmp(szStyle, "dashSmallGap") ||
+		!strcmp(szStyle, "dashLargeGap"))
+		return PP_PropertyMap::linestyle_dashed;
+	if (!strcmp(szStyle, "dotDash") || !strcmp(szStyle, "dashDotStroked"))
+		return PP_PropertyMap::linestyle_dashdot;
+	if (!strcmp(szStyle, "dotDotDash"))
+		return PP_PropertyMap::linestyle_dashdotdot;
+	if (!strcmp(szStyle, "double"))
+		return PP_PropertyMap::linestyle_double;
+	if (!strcmp(szStyle, "triple") || !strncmp(szStyle, "thinThickThin", 13))
+		return PP_PropertyMap::linestyle_triple;
+	if (!strcmp(szStyle, "wave") || !strcmp(szStyle, "doubleWave"))
+		return PP_PropertyMap::linestyle_wave;
+	if (!strncmp(szStyle, "thinThick", 9) || !strncmp(szStyle, "thickThin", 9))
+		return PP_PropertyMap::linestyle_double;
+	/* single, thick, threeDEmboss/Engrave, inset, outset and art all
+	 * paint as a solid stroke */
+	return PP_PropertyMap::linestyle_solid;
+}
+
+/*!
+ * Paint the section-level page-border-<side>* props (OOXML w:pgBorders)
+ * as rules around the page. page-border-offset "page" insets each rule
+ * <side>-space from the paper edge; "text" pushes it <side>-space
+ * outside the margin box (the stroke centreline sits half a thickness
+ * past the nominal edge either way). page-border-display limits which
+ * pages carry the border. Drawn last so the frame sits on top of page
+ * content, matching Word's z-order.
+ */
+void fp_Page::_drawPageBorders(dg_DrawArgs* pDA)
+{
+	if (m_pView && (m_pView->getViewMode() != VIEW_PRINT) &&
+		!pDA->pG->queryProperties(GR_Graphics::DGP_PAPER))
+		return;
+	fl_DocSectionLayout * pDSL = getOwningSection();
+	UT_return_if_fail(pDSL);
+	const PP_AttrProp * pAP = nullptr;
+	pDSL->getAP(pAP);
+	UT_return_if_fail(pAP);
+
+	const gchar * szDisp = nullptr;
+	pAP->getProperty("page-border-display", szDisp);
+	if (szDisp && *szDisp)
+	{
+		const UT_sint32 iPage = m_pLayout->findPage(this);
+		if ((!strcmp(szDisp, "firstPage") && iPage != 0) ||
+			(!strcmp(szDisp, "notFirstPage") && iPage == 0))
+			return;
+	}
+
+	const gchar * szOff = nullptr;
+	pAP->getProperty("page-border-offset", szOff);
+	const bool bFromText = (szOff && !strcmp(szOff, "text"));
+
+	/* reference edges in draw coords */
+	UT_sint32 iL = pDA->xoff;
+	UT_sint32 iT = pDA->yoff;
+	UT_sint32 iR = pDA->xoff + getWidth();
+	UT_sint32 iB = pDA->yoff + getHeight();
+	if (bFromText)
+	{
+		iL += pDSL->getLeftMargin();
+		iT += pDSL->getTopMargin();
+		iR -= pDSL->getRightMargin();
+		iB -= pDSL->getBottomMargin();
+	}
+	const int iSign = bFromText ? -1 : 1;	/* text: outward, page: inward */
+
+	static const char * s_szSides[] = { "top", "left", "bottom", "right" };
+	for (int iSide = 0; iSide < 4; iSide++)
+	{
+		char szKey[64];
+		snprintf(szKey, sizeof(szKey), "page-border-%s", s_szSides[iSide]);
+		const gchar * szStyle = nullptr;
+		pAP->getProperty(szKey, szStyle);
+		PP_PropertyMap::TypeLineStyle eStyle =
+			s_pageBorderLineStyle(szStyle);
+		if (eStyle <= PP_PropertyMap::linestyle_none)
+			continue;
+
+		snprintf(szKey, sizeof(szKey), "page-border-%s-color",
+				 s_szSides[iSide]);
+		const gchar * szCol = nullptr;
+		pAP->getProperty(szKey, szCol);
+		UT_RGBColor clr(0, 0, 0);
+		if (szCol && *szCol && strcmp(szCol, "auto"))
+			UT_parseColor(szCol, clr);
+
+		snprintf(szKey, sizeof(szKey), "page-border-%s-thickness",
+				 s_szSides[iSide]);
+		const gchar * szTh = nullptr;
+		pAP->getProperty(szKey, szTh);
+		UT_sint32 iThick = (szTh && UT_convertToPoints(szTh) > 0.0)
+			? UT_convertToLogicalUnits(szTh)
+			: UT_convertToLogicalUnits("0.5pt");
+
+		snprintf(szKey, sizeof(szKey), "page-border-%s-space",
+				 s_szSides[iSide]);
+		const gchar * szSp = nullptr;
+		pAP->getProperty(szKey, szSp);
+		UT_sint32 iSpace = (szSp && UT_convertToPoints(szSp) > 0.0)
+			? UT_convertToLogicalUnits(szSp) : 0;
+
+		PP_PropertyMap::Line line;
+		line.m_t_linestyle = eStyle;
+		line.m_t_color = PP_PropertyMap::color_color;
+		line.m_color = clr;
+		line.m_t_thickness = PP_PropertyMap::thickness_length;
+		line.m_thickness = iThick;
+
+		const UT_sint32 iOff = iSign * (iSpace + iThick / 2);
+		switch (iSide)
+		{
+		case 0:	/* top */
+			fp_Container::drawLine(line, iL, iT + iOff, iR, iT + iOff,
+								   pDA->pG);
+			break;
+		case 1:	/* left */
+			fp_Container::drawLine(line, iL + iOff, iT, iL + iOff, iB,
+								   pDA->pG);
+			break;
+		case 2:	/* bottom */
+			fp_Container::drawLine(line, iL, iB - iOff, iR, iB - iOff,
+								   pDA->pG);
+			break;
+		default: /* right */
+			fp_Container::drawLine(line, iR - iOff, iT, iR - iOff, iB,
+								   pDA->pG);
+			break;
+		}
+	}
+}
+
 void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 {
 //
@@ -1595,6 +1921,8 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 		UT_sint32 srcY = 0;
 		getFillType().Fill(pDA->pG,srcX,srcY,xmin,ymin,width,height);
 	}
+
+	_drawWatermark(pDA);
 
     _drawCropMarks(pDA);
 
@@ -1767,6 +2095,8 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 		da.yoff += pFC->getY();
 		pFC->draw(&da);
 	}
+
+	_drawPageBorders(pDA);
 
 	m_bNeedsRedraw = false;
 	m_rDamageRect.left = 0;

@@ -49,5 +49,10 @@ void s_getPageMargins(FV_View * inView,
 					  double &page_margin_top,
 					  double &page_margin_bottom );
 
+/* true while CHECK_FRAME would discard an edit-method call
+ * (load/layout in progress, GUI locked, repeat pending) — the
+ * control channel waits on it so scripted commands cannot be
+ * silently dropped */
+bool ap_editMethods_frameBusy(void);
 
 #endif

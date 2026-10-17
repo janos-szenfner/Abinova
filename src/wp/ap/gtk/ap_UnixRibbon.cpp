@@ -105,6 +105,7 @@ static const _ribbon_kv s_ribbon_tab_labels[] =
 	{ "file",       "File" },
 	{ "home",       "Home" },
 	{ "insert",     "Insert" },
+	{ "design",     "Design" },
 	{ "references", "References" },
 	{ "layout",     "Layout" },
 	{ "review",     "Review" },
@@ -151,6 +152,8 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "spacing",     "Spacing" },
 	{ "arrange",     "Arrange" },
 	{ "background",  "Page Background" },
+	{ "docfmt",      "Document Formatting" },
+	{ "pagebg",      "Page Background" },
 	{ "zoom",        "Zoom" },
 	{ "proofing",    "Proofing" },
 	{ "language",    "Language" },
@@ -2372,6 +2375,21 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_HYPHENATION):
 		popover = _makeHyphenationPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_STYLESETS):
+		popover = _makeStyleSetsPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_THEMECOLORS):
+		popover = _makeThemeColorsPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_THEMEFONTS):
+		popover = _makeThemeFontsPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_WATERMARK):
+		popover = _makeWatermarkPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_PAGEBORDERS):
+		popover = _makePageBordersPopover();
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_POSITION):
 		popover = _makePositionPopover();
@@ -5911,6 +5929,127 @@ GtkWidget * AP_UnixRibbon::_makeHyphenationPopover()
 	g_signal_connect(opt, "clicked",
 					 G_CALLBACK(_s_hyphdlg_clicked), this);
 	gtk_box_append(GTK_BOX(box), opt);
+	return popover;
+}
+
+/* Document Formatting gallery: built-in style sets rewrites the
+ * Heading/Body style definitions in one go (styleSetApply) */
+GtkWidget * AP_UnixRibbon::_makeStyleSetsPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * det;
+						  const char * key; } sets[] = {
+		{ "Default",          "Plain headings, body text left aligned",      "default"  },
+		{ "Basic",            "Blue accent headings, compact spacing",       "basic"    },
+		{ "Centered",         "Centred headings and title",                  "centered" },
+		{ "Lines",            "Headings underlined by colour rules",         "lines"    },
+		{ "Shaded",           "Heading bands with a light fill",             "shaded"   },
+	};
+	for (const auto & s : sets)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(s.name, s.det, nullptr,
+								  "styleSetApply", s.key));
+	return popover;
+}
+
+/* Colors dropdown: re-tint the named styles from an accent palette */
+GtkWidget * AP_UnixRibbon::_makeThemeColorsPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * det;
+						  const char * key; } schemes[] = {
+		{ "Office",    "Blue accent, black text",          "office"    },
+		{ "Grayscale", "Grey accent, black text",          "grayscale" },
+		{ "Blue",      "Dark blue accent, black text",     "blue"      },
+		{ "Green",     "Forest accent, black text",        "green"     },
+		{ "Red",       "Rust accent, black text",          "red"       },
+	};
+	for (const auto & s : schemes)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(s.name, s.det, nullptr,
+								  "themeColorsApply", s.key));
+	return popover;
+}
+
+/* Fonts dropdown: heading/body family pairs on the named styles */
+GtkWidget * AP_UnixRibbon::_makeThemeFontsPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * key; } pairs[] = {
+		{ "Calibri Light / Calibri",   "calibri"   },
+		{ "Cambria / Calibri",         "cambria"   },
+		{ "Georgia / Georgia",         "georgia"   },
+		{ "Arial / Arial",             "arial"     },
+		{ "Garamond / Garamond",       "garamond"  },
+		{ "Trebuchet MS / Trebuchet MS","trebuchet" },
+	};
+	for (const auto & p : pairs)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(p.name, nullptr, nullptr,
+								  "themeFontsApply", p.key));
+	return popover;
+}
+
+/* Watermark dropdown: Word's built-in text stamps + picture/remove */
+GtkWidget * AP_UnixRibbon::_makeWatermarkPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Text watermarks"));
+	static const char * stamps[] = {
+		"CONFIDENTIAL", "DO NOT COPY", "DRAFT", "SAMPLE",
+		"ASAP", "URGENT"
+	};
+	for (const char * t : stamps)
+	{
+		std::string spec = std::string("text ") + t;
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(t, nullptr, nullptr,
+								  "pageWatermark", spec.c_str()));
+	}
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>Picture Watermark\xE2\x80\xA6</b>",
+							  nullptr, nullptr, "pageWatermark", "image"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>Remove Watermark</b>",
+							  nullptr, nullptr, "pageWatermark", "none"));
+	return popover;
+}
+
+/* Page Borders dropdown: box presets written as OOXML w:pgBorders
+ * section props, painted by fp_Page::_drawPageBorders */
+GtkWidget * AP_UnixRibbon::_makePageBordersPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * data; } presets[] = {
+		{ "Box",             "single 000000 0.5 24" },
+		{ "Thick Box",       "thick 000000 3 24"    },
+		{ "Double",          "double 000000 3 24"   },
+		{ "Dashed",          "dashed 000000 0.75 24" },
+		{ "Wave",            "wave 000000 1.5 24"   },
+		{ "Edge of Page",    "single 000000 0.5 12 page" },
+	};
+	for (const auto & p : presets)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(p.name, nullptr, nullptr,
+								  "pageBorders", p.data));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>No Border</b>", nullptr, nullptr,
+							  "pageBorders", "none"));
 	return popover;
 }
 

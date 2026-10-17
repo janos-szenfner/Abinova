@@ -413,6 +413,35 @@ static const AP_RibbonGroup s_ribbon_insert_groups[] =
 	{ nullptr,			nullptr }
 };
 
+/* ------------------------------------------------------------- Design --- */
+
+/* Word's Design tab: a coordinated style-set gallery plus the theme
+ * colour/font pair dropdowns; the second group covers the page
+ * background (watermark, page borders, page colour - the last is
+ * shared with the Layout tab's background group) */
+static const AP_RibbonItem s_ribbon_design_docfmt[] =
+{
+	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_STYLESETS),
+	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_THEMECOLORS),
+	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_THEMEFONTS),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_design_pagebg[] =
+{
+	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_WATERMARK),
+	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_PAGEBORDERS),
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonGroup s_ribbon_design_groups[] =
+{
+	{ "docfmt",		s_ribbon_design_docfmt },
+	{ "pagebg",		s_ribbon_design_pagebg },
+	{ nullptr,		nullptr }
+};
+
 /* --------------------------------------------------------- References --- */
 
 static const AP_RibbonItem s_ribbon_references_toc[] =
@@ -812,6 +841,7 @@ static const AP_RibbonTab s_ribbon_tabs[] =
 	{ "file",		s_ribbon_file_groups,		false },
 	{ "home",		s_ribbon_home_groups,		false },
 	{ "insert",		s_ribbon_insert_groups,		false },
+	{ "design",		s_ribbon_design_groups,		false },
 	{ "references",	s_ribbon_references_groups,	false },
 	{ "layout",		s_ribbon_layout_groups,		false },
 	{ "review",		s_ribbon_review_groups,		false },

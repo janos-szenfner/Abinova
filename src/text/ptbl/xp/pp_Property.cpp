@@ -294,6 +294,11 @@ static PP_Property _props[] =
 	{ "page-margin-left",	   "1in",             false, PP_LEVEL_SECT},
 	{ "page-margin-right",     "1in",             false, PP_LEVEL_SECT},
 	{ "page-margin-top",       "1in",             false, PP_LEVEL_SECT},
+	{ "page-watermark-color",  "auto",            false, PP_LEVEL_SECT}, // Word-style diagonal watermark
+	{ "page-watermark-font",   "",                false, PP_LEVEL_SECT}, // family name; "" -> default sans
+	{ "page-watermark-image",  "",                false, PP_LEVEL_SECT}, // dataid of an embedded image
+	{ "page-watermark-size",   "0pt",             false, PP_LEVEL_SECT}, // 0 -> auto-size to the page
+	{ "page-watermark-text",   "",                false, PP_LEVEL_SECT},
 	{ "para-mark-rev",         "",                false, PP_LEVEL_BLOCK}, // tracked w:ins/w:del of the paragraph mark ("+id"/"-id" token, recorded-only)
 	{ "position-to",           "block-above-text",false, PP_LEVEL_FRAME},
 	{ "right-attach",          "",                false, PP_LEVEL_TABLE},

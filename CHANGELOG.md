@@ -150,6 +150,17 @@ responsibility** — see `README.md`.
 
 ### User interface
 
+- **Design ribbon tab** — a new Word-style **Design** tab between
+  Insert and References. The Document Formatting gallery applies
+  coordinated style sets (Default, Basic, Centered, Lines,
+  Shaded) that restyle the whole document at once; the Colors
+  and Fonts dropdowns re-tint and re-font the named styles from
+  theme palettes and heading/body family pairs; the Watermark
+  gallery stamps Word's built-in diagonal texts (CONFIDENTIAL,
+  DRAFT, …) or a washed-out picture behind every page; and Page
+  Borders draws rules around the text area or the page edge,
+  sharing the `page-border-*`/`page-watermark-*` section
+  properties with `.docx` import so everything round-trips.
 - **Mini toolbar on selection** — finishing a text selection (mouse
   release, double-click, or Shift+arrows from the keyboard) floats a
   compact formatting strip just above the selection: font family,

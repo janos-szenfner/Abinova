@@ -84,6 +84,8 @@
 #include "ap_TopRuler.h"
 #include "ap_Prefs.h"
 #include "ut_string_class.h"
+#include "ut_uuid.h"
+#include <ctype.h>
 
 #include "ap_Dialog_Id.h"
 #include "ap_Dialog_Replace.h"
@@ -867,6 +869,11 @@ public:
 	static EV_EditMethod_Fn differentOddEven;
 	static EV_EditMethod_Fn attachTemplate;
 	static EV_EditMethod_Fn updateStyles;
+	static EV_EditMethod_Fn styleSetApply;
+	static EV_EditMethod_Fn themeColorsApply;
+	static EV_EditMethod_Fn themeFontsApply;
+	static EV_EditMethod_Fn pageWatermark;
+	static EV_EditMethod_Fn pageBorders;
 	static EV_EditMethod_Fn footnoteNext;
 	static EV_EditMethod_Fn footnotePrev;
 	static EV_EditMethod_Fn endnoteNext;
@@ -1346,6 +1353,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(openTemplate), 0, ""),
 
 	// p
+	EV_EditMethod(NF(pageBorders),			0,	""),
 #ifdef ENABLE_PRINT
 	EV_EditMethod(NF(pageColumns),			0,	""),
 	EV_EditMethod(NF(pageMargins),			0,	""),
@@ -1355,6 +1363,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(pageSetup),			0,	""),
 	EV_EditMethod(NF(pageSize),				0,	""),
 #endif
+	EV_EditMethod(NF(pageWatermark),		0,	""),
 	EV_EditMethod(NF(paraBefore0),			0,		""),
 	EV_EditMethod(NF(paraBefore12), 		0,		""),
 	EV_EditMethod(NF(paraBorder),			0,		""),
@@ -1526,6 +1535,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(splitCellsDir),        0,  ""),
 	EV_EditMethod(NF(splitTable),           0,  ""),
 	EV_EditMethod(NF(style),				_D_,""),
+	EV_EditMethod(NF(styleSetApply),		0,	""),
 	EV_EditMethod(NF(stylesInspect),		0,	""),
 
 	// t
@@ -1546,6 +1556,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(tableToTextParas),    0,		""),
 	EV_EditMethod(NF(tableToTextTabs),    0,		""),
 	EV_EditMethod(NF(textToTable),		0,		""),
+	EV_EditMethod(NF(themeColorsApply),	0,		""),
+	EV_EditMethod(NF(themeFontsApply),	0,		""),
 	EV_EditMethod(NF(tocAddText),			0,		""),
 	EV_EditMethod(NF(tocGoTo),				0,		""),
 	EV_EditMethod(NF(tocInsert),			0,		""),
@@ -1786,6 +1798,20 @@ static bool s_EditMethods_check_frame(void)
 		result = true;
 	}
 	return result;
+}
+
+/*!
+ * Whether CHECK_FRAME would currently discard an edit method
+ * invocation (document still loading, layout still filling, GUI
+ * locked, or a key-repeat already queued).  The control channel
+ * waits on this so scripted commands are not silently dropped —
+ * CHECK_FRAME reports such drops as success.  Exported for
+ * xap_UnixControlSocket.cpp (the shared library links af and wp
+ * into a single object).
+ */
+bool ap_editMethods_frameBusy(void)
+{
+	return s_EditMethods_check_frame();
 }
 
 /*!
@@ -7444,6 +7470,537 @@ Defun(updateStyles)
 	}
 	pTmpl->unref();
 	return true;
+}
+
+/* ------------------------------------------------------------------ *
+ * Design tab (W16): built-in style sets, theme colours/fonts,
+ * watermark and page borders.  The style features reuse the
+ * updateStyles mechanics: rebuild each named style's attribute vector
+ * (name/type/basedon/followedby + "props") and push it through
+ * setAllAttributes + updateDocForStyleChange so the document
+ * re-renders.  Watermark/borders are section props painted by
+ * fp_Page's _drawWatermark/_drawPageBorders.
+ * ------------------------------------------------------------------ */
+
+/* the document's current body font: __BODYFONT__ in a set's props is
+ * substituted with it so style sets keep themed fonts */
+static std::string s_designBodyFont(FV_View * pView)
+{
+	PD_Document * pDoc = pView->getDocument();
+	PD_Style * pNormal = nullptr;
+	const gchar * szV = nullptr;
+	if (pDoc && pDoc->getStyle("Normal", &pNormal) && pNormal &&
+		pNormal->getPropertyExpand("font-family", szV) && szV && *szV)
+		return szV;
+	return "Times New Roman";
+}
+
+struct _StylePatch
+{
+	const char * name;
+	const char * props;
+};
+
+/* replace each named style's whole props with the patch's (the set
+ * owns the complete look); missing styles are appended */
+static void s_applyStylePatches(FV_View * pView,
+								const _StylePatch * pPatches,
+								size_t nPatches,
+								const std::string & sFont)
+{
+	PD_Document * pDoc = pView->getDocument();
+	if (!pDoc)
+		return;
+	for (size_t i = 0; i < nPatches; i++)
+	{
+		std::string sProps(pPatches[i].props);
+		size_t pos;
+		while ((pos = sProps.find("__BODYFONT__")) != std::string::npos)
+			sProps.replace(pos, 12, sFont);
+
+		PD_Style * pTarget = nullptr;
+		if (!pDoc->getStyle(pPatches[i].name, &pTarget) || !pTarget)
+		{
+			pDoc->appendStyle(PP_PropertyVector {
+				PT_NAME_ATTRIBUTE_NAME, pPatches[i].name,
+				PT_TYPE_ATTRIBUTE_NAME, "P",
+				"basedon", "Normal",
+				"followedby", "Normal",
+				"props", sProps });
+			continue;
+		}
+		PP_PropertyVector vAtts = {
+			PT_NAME_ATTRIBUTE_NAME, pPatches[i].name,
+			PT_TYPE_ATTRIBUTE_NAME, pTarget->isCharStyle() ? "C" : "P"
+		};
+		const gchar * szV = nullptr;
+		if (pTarget->getAttribute("basedon", szV) && szV)
+		{
+			vAtts.push_back("basedon");
+			vAtts.push_back(szV);
+		}
+		if (pTarget->getAttribute("followedby", szV) && szV)
+		{
+			vAtts.push_back("followedby");
+			vAtts.push_back(szV);
+		}
+		vAtts.push_back("props");
+		vAtts.push_back(sProps);
+		if (pTarget->setAllAttributes(vAtts))
+			pDoc->updateDocForStyleChange(pPatches[i].name,
+										  !pTarget->isCharStyle());
+	}
+}
+
+/* Normal baseline shared by every set: identical to the built-in
+ * definition except the family, which follows the document */
+#define DESIGN_NORMAL_PROPS \
+	"font-family:__BODYFONT__; font-size:12pt; font-weight:normal; " \
+	"font-style:normal; font-stretch:normal; font-variant:normal; " \
+	"margin-top:0pt; margin-bottom:0pt; margin-left:0pt; " \
+	"margin-right:0pt; text-decoration:none; text-indent:0in; " \
+	"text-position:normal; line-height:1.15; color:000000; " \
+	"bgcolor:transparent; widows:2; text-align:left"
+
+static const _StylePatch s_set_default[] = {
+	{ "Normal",    DESIGN_NORMAL_PROPS },
+	{ "Title",     "font-family:__BODYFONT__; font-size:26pt; font-weight:bold; text-align:center; margin-bottom:24pt" },
+	{ "Subtitle",  "font-family:__BODYFONT__; font-size:14pt; font-style:italic; text-align:center; margin-bottom:18pt" },
+	{ "Heading 1", "font-family:__BODYFONT__; font-size:16pt; font-weight:bold; font-style:normal; margin-top:12pt; margin-bottom:6pt; keep-with-next:1" },
+	{ "Heading 2", "font-family:__BODYFONT__; font-size:14pt; font-weight:bold; font-style:normal; margin-top:10pt; margin-bottom:4pt; keep-with-next:1" },
+	{ "Heading 3", "font-family:__BODYFONT__; font-size:13pt; font-weight:bold; font-style:normal; margin-top:8pt; margin-bottom:4pt; keep-with-next:1" },
+};
+
+static const _StylePatch s_set_basic[] = {
+	{ "Title",     "font-size:28pt; font-weight:bold; text-align:center; color:2E74B5; margin-bottom:24pt" },
+	{ "Subtitle",  "font-size:13pt; text-align:center; color:595959; margin-bottom:18pt" },
+	{ "Heading 1", "font-size:16pt; font-weight:bold; margin-top:12pt; margin-bottom:6pt; keep-with-next:1; color:2E74B5" },
+	{ "Heading 2", "font-size:13pt; font-weight:bold; margin-top:10pt; margin-bottom:4pt; keep-with-next:1; color:2E74B5" },
+	{ "Heading 3", "font-size:12pt; margin-top:8pt; margin-bottom:4pt; keep-with-next:1; color:2E74B5" },
+};
+
+static const _StylePatch s_set_centered[] = {
+	{ "Title",     "font-size:30pt; font-weight:bold; text-align:center; color:17365D; margin-bottom:24pt" },
+	{ "Subtitle",  "font-size:13pt; font-style:italic; text-align:center; color:595959; margin-bottom:18pt" },
+	{ "Heading 1", "font-size:18pt; font-weight:bold; text-align:center; margin-top:14pt; margin-bottom:8pt; keep-with-next:1; color:17365D" },
+	{ "Heading 2", "font-size:15pt; font-weight:bold; text-align:center; margin-top:10pt; margin-bottom:6pt; keep-with-next:1; color:17365D" },
+	{ "Heading 3", "font-size:13pt; font-style:italic; text-align:center; margin-top:8pt; margin-bottom:4pt; keep-with-next:1; color:17365D" },
+};
+
+static const _StylePatch s_set_lines[] = {
+	{ "Title",     "font-size:28pt; font-weight:bold; text-align:center; margin-bottom:24pt" },
+	{ "Subtitle",  "font-size:13pt; text-align:center; margin-bottom:18pt" },
+	{ "Heading 1", "font-size:16pt; font-weight:bold; margin-top:12pt; margin-bottom:6pt; keep-with-next:1; bot-style:solid; bot-color:4F81BD; bot-thickness:1.5pt; bot-space:4pt" },
+	{ "Heading 2", "font-size:14pt; font-weight:bold; margin-top:10pt; margin-bottom:4pt; keep-with-next:1; bot-style:solid; bot-color:9BBB59; bot-thickness:1pt; bot-space:3pt" },
+	{ "Heading 3", "font-size:13pt; font-weight:bold; margin-top:8pt; margin-bottom:4pt; keep-with-next:1; bot-style:solid; bot-color:808080; bot-thickness:0.75pt; bot-space:2pt" },
+};
+
+static const _StylePatch s_set_shaded[] = {
+	{ "Title",     "font-size:28pt; font-weight:bold; text-align:center; shading-background-color:D9E2F3; margin-bottom:24pt" },
+	{ "Subtitle",  "font-size:13pt; text-align:center; margin-bottom:18pt" },
+	{ "Heading 1", "font-size:16pt; font-weight:bold; margin-top:12pt; margin-bottom:6pt; keep-with-next:1; color:17365D; shading-background-color:D9E2F3" },
+	{ "Heading 2", "font-size:14pt; font-weight:bold; margin-top:10pt; margin-bottom:4pt; keep-with-next:1; color:17365D; shading-background-color:EAF0F8" },
+	{ "Heading 3", "font-size:13pt; font-weight:bold; margin-top:8pt; margin-bottom:4pt; keep-with-next:1; color:17365D" },
+};
+
+struct _StyleSet
+{
+	const char *			key;
+	const _StylePatch *		styles;
+	size_t					count;
+};
+
+static const _StyleSet s_style_sets[] = {
+	{ "default",  s_set_default,  G_N_ELEMENTS(s_set_default)  },
+	{ "basic",    s_set_basic,    G_N_ELEMENTS(s_set_basic)    },
+	{ "centered", s_set_centered, G_N_ELEMENTS(s_set_centered) },
+	{ "lines",    s_set_lines,    G_N_ELEMENTS(s_set_lines)    },
+	{ "shaded",   s_set_shaded,   G_N_ELEMENTS(s_set_shaded)   },
+};
+
+/*
+ * Word's Design > Document Formatting gallery: apply a named bundle of
+ * style definitions across the heading/body styles. callData is the
+ * set key ("default", "basic", "centered", "lines", "shaded").
+ */
+Defun(styleSetApply)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const char * szKey = s.utf8_str();
+	for (const _StyleSet & set : s_style_sets)
+	{
+		if (!strcmp(set.key, szKey))
+		{
+			s_applyStylePatches(pView, set.styles, set.count,
+								s_designBodyFont(pView));
+			return true;
+		}
+	}
+	return false;
+}
+
+struct _PropPatch
+{
+	const char * style;
+	const char * key;
+	const char * value;
+};
+
+/* merge key:value overrides into each named style's existing props
+ * (consecutive patches for one style are batched) */
+static void s_mergeStyleProps(FV_View * pView,
+							  const _PropPatch * pPatches, size_t nPatches)
+{
+	PD_Document * pDoc = pView->getDocument();
+	if (!pDoc)
+		return;
+	size_t i = 0;
+	while (i < nPatches)
+	{
+		size_t j = i;
+		while (j < nPatches &&
+			   !strcmp(pPatches[j].style, pPatches[i].style))
+			j++;
+		PD_Style * pTarget = nullptr;
+		if (pDoc->getStyle(pPatches[i].style, &pTarget) && pTarget)
+		{
+			PP_PropertyVector vProps;
+			pTarget->getAllProperties(vProps, 0);
+			for (size_t k = i; k < j; k++)
+			{
+				bool bSet = false;
+				for (size_t m = 0; m + 1 < vProps.size(); m += 2)
+				{
+					if (!strcmp(vProps[m].c_str(), pPatches[k].key))
+					{
+						vProps[m + 1] = pPatches[k].value;
+						bSet = true;
+						break;
+					}
+				}
+				if (!bSet)
+				{
+					vProps.push_back(pPatches[k].key);
+					vProps.push_back(pPatches[k].value);
+				}
+			}
+			PP_PropertyVector vAtts = {
+				PT_NAME_ATTRIBUTE_NAME, pPatches[i].style,
+				PT_TYPE_ATTRIBUTE_NAME, pTarget->isCharStyle() ? "C" : "P"
+			};
+			const gchar * szV = nullptr;
+			if (pTarget->getAttribute("basedon", szV) && szV)
+			{
+				vAtts.push_back("basedon");
+				vAtts.push_back(szV);
+			}
+			if (pTarget->getAttribute("followedby", szV) && szV)
+			{
+				vAtts.push_back("followedby");
+				vAtts.push_back(szV);
+			}
+			vAtts.push_back("props");
+			vAtts.push_back(PP_makePropString(vProps));
+			if (pTarget->setAllAttributes(vAtts))
+				pDoc->updateDocForStyleChange(pPatches[i].style,
+											  !pTarget->isCharStyle());
+		}
+		i = j;
+	}
+}
+
+/* theme colour schemes: heading/title accent, subtitle, body text */
+struct _ThemeColors
+{
+	const char * key;
+	const char * accent;
+	const char * subtitle;
+	const char * body;
+};
+
+static const _ThemeColors s_theme_colors[] = {
+	{ "office",    "2E74B5", "595959", "000000" },
+	{ "grayscale", "404040", "808080", "000000" },
+	{ "blue",      "1F4E79", "4472C4", "000000" },
+	{ "green",     "375623", "70AD47", "000000" },
+	{ "red",       "843C0C", "C55A11", "000000" },
+};
+
+/*
+ * Word's Design > Colors dropdown: re-tint the named styles from a
+ * small accent palette. callData is the scheme key.
+ */
+Defun(themeColorsApply)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const char * szKey = s.utf8_str();
+	for (const _ThemeColors & t : s_theme_colors)
+	{
+		if (!strcmp(t.key, szKey))
+		{
+			const _PropPatch patches[] = {
+				{ "Normal",    "color", t.body     },
+				{ "Title",     "color", t.accent   },
+				{ "Subtitle",  "color", t.subtitle },
+				{ "Heading 1", "color", t.accent   },
+				{ "Heading 2", "color", t.accent   },
+				{ "Heading 3", "color", t.accent   },
+				{ "Subtle Emphasis",  "color", t.subtitle },
+				{ "Intense Emphasis", "color", t.accent   },
+				{ "Intense Reference","color", t.accent   },
+			};
+			s_mergeStyleProps(pView, patches, G_N_ELEMENTS(patches));
+			return true;
+		}
+	}
+	return false;
+}
+
+struct _ThemeFonts
+{
+	const char * key;
+	const char * heading;
+	const char * body;
+};
+
+static const _ThemeFonts s_theme_fonts[] = {
+	{ "calibri",   "Calibri Light", "Calibri"      },
+	{ "cambria",   "Cambria",       "Calibri"      },
+	{ "georgia",   "Georgia",       "Georgia"      },
+	{ "arial",     "Arial",         "Arial"        },
+	{ "garamond",  "Garamond",      "Garamond"     },
+	{ "trebuchet", "Trebuchet MS",  "Trebuchet MS" },
+};
+
+/*
+ * Word's Design > Fonts dropdown: set a heading/body family pair on
+ * the named styles. callData is the scheme key.
+ */
+Defun(themeFontsApply)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const char * szKey = s.utf8_str();
+	for (const _ThemeFonts & t : s_theme_fonts)
+	{
+		if (!strcmp(t.key, szKey))
+		{
+			const _PropPatch patches[] = {
+				{ "Normal",    "font-family", t.body    },
+				{ "Title",     "font-family", t.heading },
+				{ "Subtitle",  "font-family", t.heading },
+				{ "Heading 1", "font-family", t.heading },
+				{ "Heading 2", "font-family", t.heading },
+				{ "Heading 3", "font-family", t.heading },
+			};
+			s_mergeStyleProps(pView, patches, G_N_ELEMENTS(patches));
+			return true;
+		}
+	}
+	return false;
+}
+
+/*
+ * Word's Design > Watermark: text stamp or picture behind every page,
+ * stored as section props (painted by fp_Page::_drawWatermark).
+ * callData: "none" | "text <words> [rrggbb]" | "image <path>".
+ * "text" alone (no words) also clears.
+ */
+Defun(pageWatermark)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string sSpec(s.utf8_str());
+
+	PP_PropertyVector props;
+	if (sSpec.empty() || sSpec == "none" || sSpec == "text")
+	{
+		props = { "page-watermark-text", "", "page-watermark-image", "" };
+		return pView->setDocWideSectionFormat(props);
+	}
+	if (!strncmp(sSpec.c_str(), "image", 5) &&
+		(sSpec.size() == 5 || sSpec[5] == ' '))
+	{
+		std::string sPath = sSpec.substr(5);
+		while (!sPath.empty() && isspace(sPath.front()))
+			sPath.erase(sPath.begin());
+		while (!sPath.empty() && isspace(sPath.back()))
+			sPath.pop_back();
+		char * pPicked = nullptr;
+		if (sPath.empty())
+		{
+			/* bare "image" - prompt for the file (the ribbon's
+			 * Picture Watermark row passes this) */
+			XAP_Frame * pFrame = static_cast<XAP_Frame *>(
+				pAV_View->getParentData());
+			UT_return_val_if_fail(pFrame, false);
+			IEGraphicFileType iegft = IEGFT_Unknown;
+			if (!s_AskForGraphicPathname(pFrame, &pPicked, &iegft) ||
+				!pPicked)
+				return false;
+			sPath = pPicked;
+		}
+		FG_ConstGraphicPtr pFG;
+		if (IE_ImpGraphic::loadGraphic(sPath.c_str(), IEGFT_Unknown,
+									   pFG) != UT_OK || !pFG ||
+			!pFG->getBuffer())
+		{
+			FREEP(pPicked);
+			return false;
+		}
+		FREEP(pPicked);
+		UT_UUIDPtr uuid = pDoc->getNewUUID();
+		UT_return_val_if_fail(uuid != nullptr, false);
+		std::string sId = "page-watermark-" +
+			uuid->toString().value_or("");
+		if (!pDoc->createDataItem(sId.c_str(), false, pFG->getBuffer(),
+								  pFG->getMimeType(), nullptr))
+			return false;
+		props = { "page-watermark-image", sId,
+				  "page-watermark-text",  "" };
+		return pView->setDocWideSectionFormat(props);
+	}
+	if (!strncmp(sSpec.c_str(), "text ", 5))
+	{
+		std::string sText = sSpec.substr(5);
+		std::string sColor;
+		size_t sp = sText.rfind(' ');
+		if (sp != std::string::npos)
+		{
+			const std::string sTail = sText.substr(sp + 1);
+			bool bHex = (sTail.size() == 6);
+			for (char c : sTail)
+				bHex = bHex && isxdigit(static_cast<unsigned char>(c));
+			if (bHex)
+			{
+				sColor = sTail;
+				sText = sText.substr(0, sp);
+			}
+		}
+		while (!sText.empty() && isspace(sText.back()))
+			sText.pop_back();
+		UT_return_val_if_fail(!sText.empty(), false);
+		props = { "page-watermark-text", sText,
+				  "page-watermark-image", "" };
+		if (!sColor.empty())
+		{
+			props.push_back("page-watermark-color");
+			props.push_back(sColor);
+		}
+		return pView->setDocWideSectionFormat(props);
+	}
+	return false;
+}
+
+/*
+ * Word's Design > Page Borders: rules around the text area or the page
+ * edge, stored as the OOXML w:pgBorders section props (painted by
+ * fp_Page::_drawPageBorders). callData:
+ *   "none" | "<style> [rrggbb [thickness-pt [space-pt [offset]]]]"
+ * style is an OOXML val name (single/double/dashed/wave/...); offset
+ * is "text" (default, border hugs the margins) or "page" (inset from
+ * the paper edge). Missing sides keep their current values; the
+ * preset rows pass all four sides identically.
+ */
+Defun(pageBorders)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string sSpec(s.utf8_str());
+
+	PP_PropertyVector props;
+	if (sSpec.empty() || sSpec == "none")
+	{
+		props = {
+			"page-border-top",    "none",
+			"page-border-left",   "none",
+			"page-border-bottom", "none",
+			"page-border-right",  "none",
+		};
+		return pView->setDocWideSectionFormat(props);
+	}
+
+	std::vector<std::string> parts;
+	{
+		size_t i = 0;
+		while (i < sSpec.size())
+		{
+			while (i < sSpec.size() &&
+				   isspace(static_cast<unsigned char>(sSpec[i])))
+				i++;
+			size_t j = i;
+			while (j < sSpec.size() &&
+				   !isspace(static_cast<unsigned char>(sSpec[j])))
+				j++;
+			if (j > i)
+				parts.push_back(sSpec.substr(i, j - i));
+			i = j;
+		}
+	}
+	UT_return_val_if_fail(!parts.empty(), false);
+
+	static const char * szSides[] = { "top", "left", "bottom", "right" };
+	char szKey[64];
+	const std::string & sStyle = parts[0];
+	const std::string sColor = parts.size() > 1 ? parts[1] : "";
+	const std::string sThick = parts.size() > 2 ? parts[2] : "";
+	const std::string sSpace = parts.size() > 3 ? parts[3] : "";
+	const std::string sOff = parts.size() > 4 ? parts[4] : "";
+	for (const char * szSide : szSides)
+	{
+		snprintf(szKey, sizeof(szKey), "page-border-%s", szSide);
+		props.push_back(szKey);
+		props.push_back(sStyle);
+		if (!sColor.empty())
+		{
+			snprintf(szKey, sizeof(szKey), "page-border-%s-color", szSide);
+			props.push_back(szKey);
+			props.push_back(sColor);
+		}
+		if (!sThick.empty())
+		{
+			snprintf(szKey, sizeof(szKey),
+					 "page-border-%s-thickness", szSide);
+			props.push_back(szKey);
+			props.push_back(sThick + "pt");
+		}
+		if (!sSpace.empty())
+		{
+			snprintf(szKey, sizeof(szKey), "page-border-%s-space",
+					 szSide);
+			props.push_back(szKey);
+			props.push_back(sSpace + "pt");
+		}
+	}
+	if (!sOff.empty() && (!strcmp(sOff.c_str(), "page") ||
+						  !strcmp(sOff.c_str(), "text")))
+	{
+		props.push_back("page-border-offset");
+		props.push_back(sOff);
+	}
+	else
+	{
+		/* Word's default: border measured from the text edge */
+		props.push_back("page-border-offset");
+		props.push_back("text");
+	}
+	return pView->setDocWideSectionFormat(props);
 }
 
 Defun1(footnoteNext)

@@ -33,6 +33,7 @@
 #include "pd_Document.h"
 #include "ap_FmtInspect.h"
 #include "ap_DocInspect.h"
+#include "ap_EditMethods.h"
 #include "ie_types.h"
 #include "ie_exp.h"
 #include "pt_PieceTable.h"
@@ -322,6 +323,18 @@ static bool _cmd_reads_path(const char * cmd)
 	return false;
 }
 
+/* the path a command's params.data reads, when it isn't the whole
+ * payload (pageWatermark takes "image <path>" - every other spec
+ * reads nothing) */
+static const char * _cmd_embedded_read_path(const char * cmd,
+											const char * data)
+{
+	if (!strcmp(cmd, "pageWatermark") &&
+		!strncmp(data, "image ", 6))
+		return data + 6;
+	return nullptr;
+}
+
 static bool _cmd_writes_path(const char * cmd)
 {
 	static const char * const kWrite[] = {
@@ -351,6 +364,13 @@ static bool _exec_named(const std::string & cmd,
 			err = "params.data outside automation-write-root";
 			return false;
 		}
+		const char * embed =
+			_cmd_embedded_read_path(cmd.c_str(), data.c_str());
+		if (embed && !abi_automation_path_allowed(false, embed))
+		{
+			err = "params.data outside automation-read-root";
+			return false;
+		}
 	}
 	EV_EditMethodContainer * emc =
 		s_ctl.app ? s_ctl.app->getEditMethodContainer() : nullptr;
@@ -377,6 +397,21 @@ static bool _exec_named(const std::string & cmd,
 	EV_EditMethodCallData emcd(
 		static_cast<const char *>(data.c_str()),
 		static_cast<UT_uint32>(data.size()));
+	/* Control-channel commands are not "frequent events": while the
+	 * frame is still busy (document loading, layout filling,
+	 * insertion point not placed yet), edit methods drop out through
+	 * CHECK_FRAME — which returns true, making a silently discarded
+	 * command indistinguishable from a successful one.  Pump the
+	 * main context until the frame is ready instead. */
+	if (view && ap_editMethods_frameBusy())
+	{
+		GMainContext * mc = g_main_context_default();
+		const gint64 deadline =
+			g_get_monotonic_time() + 15 * G_TIME_SPAN_SECOND;
+		while (ap_editMethods_frameBusy() &&
+			   g_get_monotonic_time() < deadline)
+			g_main_context_iteration(mc, true);
+	}
 	const bool ok = em->Fn(view, &emcd);
 	if (!ok)
 	{
