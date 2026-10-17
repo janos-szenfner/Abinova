@@ -1116,7 +1116,163 @@ UT_Error PD_Document::importStyles(const char * szFilename, int ieft, bool bDocP
 			updateDocForStyleChange(pStyle->getName(),!pStyle->isCharStyle());
 	}
 
-	return UT_OK;	
+	return UT_OK;
+}
+
+/* Serialize the document's whole style table as an AWML <styles>
+ * section — the same shape ie_exp_Abinova_1 emits into .abw/.awt
+ * files (all AP attributes plus a props= list built from the AP
+ * properties). */
+static std::string s_serializeStylesSection(PD_Document * pDoc)
+{
+	std::vector<PD_Style *> * pvStyles = nullptr;
+	if (!pDoc->enumStyles(pvStyles) || !pvStyles)
+		return "";
+
+	std::string out = "<styles>\n";
+	for (PD_Style * pStyle : *pvStyles)
+	{
+		if (!pStyle)
+			continue;
+		out += "<s";
+		const gchar * szName = nullptr;
+		const gchar * szValue = nullptr;
+		for (int k = 0; pStyle->getNthAttribute(k, szName, szValue); k++)
+		{
+			/* "props" is reconstructed from the properties below */
+			if (szName && !strcmp(szName, PT_PROPS_ATTRIBUTE_NAME))
+				continue;
+			out += ' ';
+			out += szName ? szName : "";
+			out += "=\"";
+			if (szValue)
+				out += UT_escapeXML(szValue);
+			out += "\"";
+		}
+		std::string props;
+		for (int j = 0; pStyle->getNthProperty(j, szName, szValue); j++)
+		{
+			if (!szName || !szValue || !*szValue)
+				continue;
+			if (!props.empty())
+				props += "; ";
+			props += szName;
+			props += ':';
+			props += szValue;
+		}
+		if (!props.empty())
+		{
+			out += " props=\"";
+			out += UT_escapeXML(props);
+			out += "\"";
+		}
+		out += "/>\n";
+	}
+	delete pvStyles;
+	out += "</styles>\n";
+	return out;
+}
+
+/*!
+ * Persist this document's style table as the default for NEW
+ * documents (Design tab "Set as Default", W26).  newDocument()
+ * imports the first readable template that buildTemplateList()
+ * yields, so the style table is spliced into that file's <styles>
+ * section: a user-dir template is rewritten in place, a global
+ * template is copied to <user>/templates/normal.awt (which outranks
+ * it in the search order), and a missing template starts from the
+ * shipped skeleton.  Only the <styles> section changes — pagesize,
+ * section boilerplate and any other template content are preserved.
+ */
+UT_Error PD_Document::saveStylesAsDefaultTemplate(void)
+{
+	std::string styles = s_serializeStylesSection(this);
+	if (styles.empty())
+		return UT_ERROR;
+
+	std::string template_list[6];
+	buildTemplateList(template_list, "normal.awt");
+
+	std::string userDir = XAP_App::getApp()->getUserPrivateDirectory();
+#if defined(_WIN32)
+	userDir += "\\templates";
+	const char * sep = "\\";
+#else
+	userDir += "/templates";
+	const char * sep = "/";
+#endif
+
+	/* resolve the file the new-doc path would load; slots 0-2 live
+	 * under the private dir and can be updated in place, anything
+	 * else is global and gets copied under the user name */
+	std::string baseText;
+	std::string target = userDir + sep + "normal.awt";
+	for (int i = 0; i < 6; i++)
+	{
+		char * fname = UT_go_filename_from_uri(template_list[i].c_str());
+		if (!fname)
+			continue;
+		std::string path(fname);
+		g_free(fname);
+		gchar * contents = nullptr;
+		gsize len = 0;
+		if (!g_file_get_contents(path.c_str(), &contents, &len, nullptr))
+			continue;
+		baseText.assign(contents, len);
+		g_free(contents);
+		if (i < 3)
+			target = path;
+		break;
+	}
+
+	std::string out;
+	const std::string::size_type open = baseText.find("<styles");
+	if (open != std::string::npos)
+	{
+		/* replace the whole <styles>..</styles> (or <styles/>) block */
+		std::string::size_type end = std::string::npos;
+		const std::string::size_type close = baseText.find("</styles>", open);
+		const std::string::size_type gt = baseText.find('>', open);
+		if (close != std::string::npos)
+			end = close + sizeof("</styles>") - 1;
+		else if (gt != std::string::npos && gt > open &&
+				 baseText[gt - 1] == '/')
+			end = gt + 1; /* self-closing <styles/> */
+		else
+			return UT_ERROR; /* malformed template — leave it alone */
+		out = baseText.substr(0, open) + styles + baseText.substr(end);
+	}
+	else if (!baseText.empty())
+	{
+		/* no styles section — insert ahead of the body content */
+		std::string::size_type pos = baseText.find("<section");
+		if (pos == std::string::npos)
+			pos = baseText.find("</abiword>");
+		if (pos == std::string::npos)
+			return UT_ERROR;
+		out = baseText.substr(0, pos) + styles + baseText.substr(pos);
+	}
+	else
+	{
+		/* no template anywhere — start from the shipped skeleton */
+		out =
+			"<?xml version=\"1.0\"?>\n"
+			"<!DOCTYPE abiword PUBLIC \"-//ABISOURCE//DTD AWML 1.0 Strict//EN\" \"http://www.abisource.com/awml.dtd\">\n"
+			"<abiword xmlns=\"http://www.abisource.com/awml.dtd\" xmlns:awml=\"http://www.abisource.com/awml.dtd\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:svg=\"http://www.w3.org/2000/svg\" xmlns:fo=\"http://www.w3.org/1999/XSL/Format\" xmlns:math=\"http://www.w3.org/1998/Math/MathML\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" version=\"0.99.2\" fileformat=\"1.0\" template=\"true\" styles=\"unlocked\" props=\"lang:en-US; dom-dir:ltr\">\n"
+			+ styles +
+			"<pagesize pagetype=\"Letter\" orientation=\"portrait\" width=\"8.500000\" height=\"11.000000\" units=\"in\" page-scale=\"1.000000\"/>\n"
+			"<section props=\"page-margin-footer:0.5in; page-margin-header:0.5in\">\n"
+			"<p style=\"Normal\"/>\n"
+			"</section>\n"
+			"</abiword>\n";
+	}
+
+	if (g_mkdir_with_parents(userDir.c_str(), 0700) != 0)
+		return UT_IE_COULDNOTWRITE;
+	if (!g_file_set_contents(target.c_str(), out.c_str(),
+							 static_cast<gssize>(out.size()), nullptr))
+		return UT_IE_COULDNOTWRITE;
+	return UT_OK;
 }
 
 UT_Error PD_Document::newDocument(void)

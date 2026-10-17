@@ -136,6 +136,7 @@ static const gchar * const s_prefer_glyph[] = {
 	"abinova-design-watermark",
 	"abinova-design-pagecolor",
 	"abinova-design-pageborders",
+	"abinova-design-setdefault",
 	nullptr
 };
 

@@ -883,6 +883,7 @@ public:
 	static EV_EditMethod_Fn updateStyles;
 	static EV_EditMethod_Fn styleSetApply;
 	static EV_EditMethod_Fn designTheme;
+	static EV_EditMethod_Fn designSetDefault;
 	static EV_EditMethod_Fn themeColorsApply;
 	static EV_EditMethod_Fn themeFontsApply;
 	static EV_EditMethod_Fn paraSpacing;
@@ -1114,6 +1115,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(deleteRows),   		0,	""),
 	EV_EditMethod(NF(deleteTable),   		0,	""),
 	EV_EditMethod(NF(deleteXMLID),  		0,	""),
+	EV_EditMethod(NF(designSetDefault),	0,		""),
 	EV_EditMethod(NF(designTheme),		0,		""),
 	EV_EditMethod(NF(differentFirstPage),	0,		""),
 	EV_EditMethod(NF(differentOddEven),		0,		""),
@@ -8145,6 +8147,22 @@ Defun(pageBorders)
 		props.push_back("text");
 	}
 	return pView->setDocWideSectionFormat(props);
+}
+
+/*
+ * Design > Set as Default (wordcraft design.setDefault): the
+ * document's whole style table becomes the default for new documents
+ * — PD_Document::saveStylesAsDefaultTemplate splices it into the
+ * normal template the new-doc path loads.
+ */
+Defun(designSetDefault)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc, false);
+	return pDoc->saveStylesAsDefaultTemplate() == UT_OK;
 }
 
 Defun1(footnoteNext)

@@ -174,6 +174,14 @@ responsibility** — see `README.md`.
   rewrite the document's default space-before/space-after/line
   spacing on the Normal style in one step — also scriptable as
   the `paraSpacing` edit method (`open`, `double`, …).
+- **Set as Default** — a new button at the foot of the Design
+  tab's Document Formatting group (and the bottom of the style-set
+  gallery, like Word) makes the current document's style table the
+  default for new documents: the styles are spliced into the
+  `normal.awt` template the new-document path loads, preserving
+  the template's page size, boilerplate content and any other
+  non-style data. Also scriptable as the `designSetDefault` edit
+  method.
 - **Design tab drawn icons** — every button on the Design ribbon
   tab now shows a distinct procedurally drawn icon (the shared
   20x20 pen-glyph set): Document Formatting gets an "A" set mark,

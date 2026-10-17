@@ -631,6 +631,12 @@ and page-background controls.
 - **Fonts**: heading/body family pairs (Calibri Light/Calibri,
   Cambria/Calibri, Georgia, Arial, Garamond, Trebuchet MS)
   applied to the named styles.
+- **Set as Default**: writes the document's current style table
+  into the `normal.awt` template that new documents are created
+  from — every new document then opens with the applied style
+  set/theme. Only the template's `<styles>` section is replaced;
+  page size, boilerplate content and other template data are
+  preserved.
 - **Watermark**: Word's built-in text stamps (CONFIDENTIAL,
   DO NOT COPY, DRAFT, SAMPLE, ASAP, URGENT) plus **Picture
   Watermark…** and **Remove Watermark** — painted as a washed-out

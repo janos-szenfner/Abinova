@@ -6022,6 +6022,14 @@ GtkWidget * AP_UnixRibbon::_makeStyleSetsPopover()
 		gtk_box_append(GTK_BOX(box),
 					   _presetRow(s.name, s.det, nullptr,
 								  "styleSetApply", s.key));
+	/* Word parks "Set as Default" at the foot of the gallery: the
+	 * document's style table becomes the template for new docs */
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Set as Default",
+							  "Use this document's styles for new documents",
+							  abi_glyph_icon_widget(
+								  "abinova-design-setdefault", 16),
+							  "designSetDefault", nullptr));
 	return popover;
 }
 

@@ -289,6 +289,7 @@ public:
 	UT_Error		importFile(GsfInput *input, int ieft, bool markClean = false, bool bImportStylesFirst = true,
 							   const char * impProps = nullptr);
 	virtual UT_Error		importStyles(const char * szFilename, int ieft, bool bDocProps = false);
+	UT_Error		saveStylesAsDefaultTemplate(void);
 	AP_StatusBar *          getStatusBar(void) const;
 	void                    updateStatus(void);
 	virtual UT_Error		newDocument(void) override;

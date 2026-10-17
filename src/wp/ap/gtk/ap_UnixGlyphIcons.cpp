@@ -557,6 +557,13 @@ static void _g_design_pageborders(const _GlyphPen & p)
 	_pen_rect(p, 6.0, 6.5, 14.0, 15.5, p.ac);
 }
 
+/* set as default: a single green check stroke (wordcraft setDefault) */
+static void _g_design_setdefault(const _GlyphPen & p)
+{
+	const double chk[] = { 4.0, 10.5, 8.5, 15.0, 16.5, 5.0 };
+	_pen_line_c(p, chk, 3, _GREEN);
+}
+
 /* ---------------- name table ---------------- */
 
 typedef void (*_GlyphDraw)(const _GlyphPen &);
@@ -615,6 +622,7 @@ static const _GlyphEntry _glyphs[] =
 	{ "abinova-design-watermark",	_g_design_watermark },
 	{ "abinova-design-pagecolor",	_g_design_pagecolor },
 	{ "abinova-design-pageborders",	_g_design_pageborders },
+	{ "abinova-design-setdefault",	_g_design_setdefault },
 	{ nullptr, nullptr }
 };
 
