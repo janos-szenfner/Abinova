@@ -60,6 +60,8 @@
 #include "ev_Toolbar_Actions.h"
 #include "ev_Toolbar_Labels.h"
 #include "xap_Toolbar_LabelSet.h"
+#include "xap_Prefs.h"
+#include "xap_Prefs_SchemeIds.h"
 #include "ap_Toolbar_Id.h"
 #include "ap_Prefs_SchemeIds.h"
 #include "ap_UnixStockIcons.h"
@@ -285,6 +287,20 @@ AP_UnixRibbon::AP_UnixRibbon(XAP_Frame * pFrame, EV_UnixMenuBar * pMenu)
 
 AP_UnixRibbon::~AP_UnixRibbon()
 {
+	/* the autosave toggle keeps a prefs listener and a signal
+	 * bound to this - drop them before anything can fire back */
+	{
+		XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
+		if (pPrefs)
+			pPrefs->removeListener(_s_autosave_pref, this);
+	}
+	if (m_wAutoSave)
+	{
+		g_signal_handlers_disconnect_by_data(m_wAutoSave, this);
+		g_object_weak_unref(G_OBJECT(m_wAutoSave),
+							s_widget_weak_notify, &m_wAutoSave);
+		m_wAutoSave = nullptr;
+	}
 	/* the notebook can outlive this object when another reference
 	 * pins the window tree (the frame's IM context holds the toplevel
 	 * until the base-class dtor): detach every handler carrying this
@@ -754,9 +770,18 @@ GtkWidget * AP_UnixRibbon::createWidget()
 	m_wQat = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_widget_add_css_class(m_wQat, "qat");
 	gtk_widget_set_valign(m_wQat, GTK_ALIGN_CENTER);
-	gtk_notebook_set_action_widget(GTK_NOTEBOOK(m_wNotebook), m_wQat,
-								   GTK_PACK_START);
 	_rebuildQat();
+
+	/* Word's top-left lane also carries the AutoSave switch: a
+	 * fixed toggle right after the customizable QAT buttons */
+	GtkWidget * qatLane = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	gtk_widget_add_css_class(qatLane, "qat");
+	gtk_widget_set_valign(qatLane, GTK_ALIGN_CENTER);
+	gtk_box_append(GTK_BOX(qatLane), m_wQat);
+	m_wAutoSave = _makeAutoSaveToggle();
+	gtk_box_append(GTK_BOX(qatLane), m_wAutoSave);
+	gtk_notebook_set_action_widget(GTK_NOTEBOOK(m_wNotebook), qatLane,
+								   GTK_PACK_START);
 
 	/* » menu for tabs that do not fit; lives in the header's
 	 * action corner, appears only when tabs overflow */
@@ -12746,6 +12771,88 @@ void AP_UnixRibbon::_rebuildQat()
 		gtk_box_append(GTK_BOX(m_wQat), b);
 	}
 	gtk_widget_set_visible(m_wQat, !m_layout.qat.empty());
+}
+
+/* Word puts an AutoSave switch in the same top-left lane as the
+ * QAT: a flat toggle that flips the AutoSaveFile pref.  The pref
+ * machinery does the rest - DocLayout's prefs listener starts or
+ * stops the frame's save timer, so the interval and options stay
+ * in Preferences where they belong. */
+GtkWidget * AP_UnixRibbon::_makeAutoSaveToggle()
+{
+	m_wAutoSave = gtk_toggle_button_new();
+	gtk_widget_add_css_class(m_wAutoSave, "flat");
+	gtk_widget_add_css_class(m_wAutoSave, "qat-button");
+	GtkWidget * in = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+	GtkWidget * img = abi_action_icon_widget("document-save-symbolic", 16);
+	if (img)
+		gtk_box_append(GTK_BOX(in), img);
+	gtk_box_append(GTK_BOX(in), gtk_label_new("AutoSave"));
+	gtk_button_set_child(GTK_BUTTON(m_wAutoSave), in);
+	XAP_gtk_a11y_name(m_wAutoSave, "AutoSave");
+	_syncAutoSaveToggle();
+	g_signal_connect(m_wAutoSave, "toggled",
+					 G_CALLBACK(_s_autosave_toggled), this);
+	/* if the pref flips elsewhere (the Options dialog), the
+	 * toggle follows it */
+	XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
+	if (pPrefs)
+		pPrefs->addListener(_s_autosave_pref, this);
+	/* the widget may outlive this object pinned inside the
+	 * toplevel - the weak ref nulls the member on finalize */
+	g_object_weak_ref(G_OBJECT(m_wAutoSave),
+					  s_widget_weak_notify, &m_wAutoSave);
+	return m_wAutoSave;
+}
+
+void AP_UnixRibbon::_syncAutoSaveToggle()
+{
+	if (!m_wAutoSave)
+		return;
+	bool b = false;
+	XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
+	if (pPrefs)
+		pPrefs->getPrefsValueBool(XAP_PREF_KEY_AutoSaveFile, b);
+	g_signal_handlers_block_by_func(m_wAutoSave,
+		reinterpret_cast<gpointer>(_s_autosave_toggled), this);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(m_wAutoSave), b);
+	g_signal_handlers_unblock_by_func(m_wAutoSave,
+		reinterpret_cast<gpointer>(_s_autosave_toggled), this);
+	gtk_widget_set_tooltip_text(m_wAutoSave, b
+		? "AutoSave: On - a recovery copy is saved periodically;"
+		  " the interval lives in Preferences"
+		: "AutoSave: Off - turn on to save a recovery copy"
+		  " periodically");
+}
+
+void AP_UnixRibbon::_s_autosave_toggled(GtkToggleButton * w,
+										gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self && w);
+	XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
+	if (!pPrefs)
+		return;
+	XAP_PrefsScheme * pScheme = pPrefs->getCurrentScheme(true);
+	if (!pScheme)
+		return;
+	/* scheme setValue fires the prefs listeners - DocLayout flips
+	 * the frame's autosave timer live and _s_autosave_pref resyncs
+	 * the toggle; persist at once, as the Options dialog does */
+	pScheme->setValueBool(XAP_PREF_KEY_AutoSaveFile,
+						  gtk_toggle_button_get_active(w));
+	pPrefs->savePrefsFile();
+}
+
+/*static*/ void AP_UnixRibbon::_s_autosave_pref(
+	XAP_Prefs *, const std::set<std::string> * phChanges, void * data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	if (phChanges &&
+		phChanges->find(XAP_PREF_KEY_AutoSaveFile) == phChanges->end())
+		return;
+	self->_syncAutoSaveToggle();
 }
 
 /* shared context popover on a command button: one item whose label

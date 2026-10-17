@@ -23,6 +23,7 @@
 
 #include <gtk/gtk.h>
 
+#include <set>
 #include <string>
 #include <vector>
 #include "ut_types.h"
@@ -31,6 +32,7 @@
 #include "ap_Toolbar_Id.h"
 
 class XAP_Frame;
+class XAP_Prefs;
 class AV_View;
 class EV_UnixMenuBar;
 class EV_Toolbar_LabelSet;
@@ -305,6 +307,17 @@ private:
 	};
 	_RibbonLayout			m_layout;
 	GtkWidget *				m_wQat = nullptr;
+	GtkWidget *				m_wAutoSave = nullptr;
+
+	/* AutoSave switch in the QAT lane: flips the AutoSaveFile pref;
+	 * the pref listeners start/stop the frame's save timer */
+	GtkWidget *		_makeAutoSaveToggle();
+	void			_syncAutoSaveToggle();
+	static void		_s_autosave_toggled(GtkToggleButton * w,
+										gpointer data);
+	static void		_s_autosave_pref(class XAP_Prefs *,
+								 const std::set<std::string> * phChanges,
+								 void * data);
 
 	void			_loadLayout();
 	void			_saveLayout() const;

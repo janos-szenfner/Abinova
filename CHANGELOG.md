@@ -97,6 +97,12 @@ responsibility** — see `README.md`.
   ribbon command for "Add/Remove from Quick Access Toolbar";
   right-click a tab for "Hide tab" / "Reset ribbon layout". The
   layout persists to `~/.config/abinova/ribbon.json`.
+- **AutoSave toggle in the QAT lane** — Word's top-left AutoSave
+  switch now sits next to Save/Undo/Redo: a flat toggle that flips
+  the autosave pref live (the frame's save timer starts/stops via
+  the existing prefs listeners), reflects the stored setting at
+  startup, and persists immediately. The interval and options stay
+  adjustable in Preferences.
 
 ### Automation
 

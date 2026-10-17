@@ -1054,8 +1054,11 @@ Autosave was rebuilt so that unsaved work survives an unclean exit:
   crash). Recovery content is the last autosave checkpoint rather
   than a fresh snapshot — with autosave disabled only the minidump is
   written.
-- **Autosave settings** (enable/disable and the interval in minutes)
-  remain on the Documents tab of Preferences.
+- **Autosave settings**: the interval and options remain on the
+  Documents tab of Preferences; the enable/disable flag can also be
+  flipped from the **AutoSave** toggle in the ribbon's top-left lane
+  (next to Save/Undo/Redo), which reflects the stored setting and
+  applies it live.
 
 ### Password-protected `.abwn` files
 
