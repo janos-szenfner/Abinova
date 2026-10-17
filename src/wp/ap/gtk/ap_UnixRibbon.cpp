@@ -469,6 +469,31 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		"  background: #3c3c3c; color: #fff; border: 1px solid #555;"
 		"  border-radius: 3px; padding: 0 4px;"
 		"  font-size: 0.72em; font-weight: bold;"
+		"}"
+		/* QAT strip: comfortable flat buttons; inside a linked
+		 * undo/redo split the icon half hugs the arrow half so the
+		 * pair reads as one control, like Word */
+		".abinova-ribbon .qat button.qat-button,"
+		".abinova-ribbon .qat menubutton.qat-button {"
+		"  padding: 3px 6px; min-width: 0; min-height: 0;"
+		"}"
+		".abinova-ribbon .qat .linked > button.qat-button {"
+		"  padding-right: 1px;"
+		"}"
+		".abinova-ribbon .qat .linked > menubutton.qat-button {"
+		"  padding-left: 0;"
+		"}"
+		".abinova-ribbon .qat menubutton arrow {"
+		"  -gtk-icon-size: 10px; min-width: 8px; min-height: 8px;"
+		"}"
+		/* compact AutoSave switch in the QAT lane — the knob is a
+		 * direct "switch > slider" node; its min size drives the
+		 * whole control */
+		".abinova-ribbon switch.qat-autosave {"
+		"  min-width: 28px; min-height: 14px; margin: 4px 0;"
+		"}"
+		".abinova-ribbon switch.qat-autosave > slider {"
+		"  min-width: 12px; min-height: 12px; margin: -1px;"
 		"}";
 	GtkCssProvider * css = gtk_css_provider_new();
 	gtk_css_provider_load_from_data(css, ribbon_css, -1);
@@ -13004,16 +13029,17 @@ void AP_UnixRibbon::_s_popover_history_show(GtkPopover * w, gpointer data)
 }
 
 /* Word puts an AutoSave switch in the same top-left lane as the
- * QAT: a label plus a GtkSwitch that flips the AutoSaveFile pref.
+ * QAT: a compact GtkSwitch that flips the AutoSaveFile pref.
  * The pref machinery does the rest - DocLayout's prefs listener
  * starts or stops the frame's save timer, so the interval and
  * options stay in Preferences where they belong. */
 GtkWidget * AP_UnixRibbon::_makeAutoSaveToggle()
 {
-	GtkWidget * in = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+	GtkWidget * in = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 	gtk_widget_set_valign(in, GTK_ALIGN_CENTER);
 	gtk_box_append(GTK_BOX(in), gtk_label_new("AutoSave"));
 	m_wAutoSave = gtk_switch_new();
+	gtk_widget_add_css_class(m_wAutoSave, "qat-autosave");
 	gtk_widget_set_valign(m_wAutoSave, GTK_ALIGN_CENTER);
 	gtk_box_append(GTK_BOX(in), m_wAutoSave);
 	XAP_gtk_a11y_name(m_wAutoSave, "AutoSave");
