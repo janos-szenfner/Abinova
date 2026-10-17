@@ -73,6 +73,8 @@ public:
 	bool					getUndo(PX_ChangeRecord ** ppcr, bool bStatic=false) const;
 	bool					getNthUndo(PX_ChangeRecord ** ppcr, UT_uint32 undoNdx) const;
 	bool					getRedo(PX_ChangeRecord ** ppcr) const;
+	UT_sint32				getOps(std::vector<PX_OpInfo>& ops,
+								   bool bUndo, UT_sint32 maxOps = 0) const;
 	bool					didUndo(void);
 	bool					didRedo(void);
 	void					coalesceHistory(const PX_ChangeRecord * pcr);

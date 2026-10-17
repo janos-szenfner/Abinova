@@ -352,6 +352,14 @@ public:
 	virtual UT_uint32 undoCount (bool bUndo) const;
 	virtual void	cmdUndo(UT_uint32 count) override;
 	virtual void	cmdRedo(UT_uint32 count) override;
+	//! undo/redo counted in user-level ops (the undo dropdown's
+	//! "undo N steps"), unlike cmdUndo's change-record budget
+	void			cmdUndoOps(UT_uint32 opCount);
+	void			cmdRedoOps(UT_uint32 opCount);
+	//! labels for the undo/redo history dropdown, nearest first;
+	//! returns the total number of ops on that side of the history
+	UT_sint32		getHistoryLabels(std::vector<std::string>& labels,
+									 bool bUndo, UT_sint32 maxOps = 0) const;
 	virtual UT_Error	cmdSave(void) override;
 	virtual UT_Error	cmdSaveAs(const char * szFilename, int ieft) override;
 	virtual UT_Error		cmdSaveAs(const char * szFilename, int ieft, bool cpy) override;

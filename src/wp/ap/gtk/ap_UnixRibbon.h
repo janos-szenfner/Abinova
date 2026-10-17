@@ -208,6 +208,12 @@ private:
 	void			_populateRecentList(GtkWidget * box);
 	static void		_s_popover_recent_show(GtkPopover * w, gpointer data);
 	static void		_s_recent_clear_clicked(GtkWidget * w, gpointer data);
+	/* QAT undo/redo history dropdown: Word's split button lists
+	 * recent ops; entry N undoes/redoes N steps */
+	GtkWidget *		_makeHistoryDropButton(bool bUndo);
+	GtkWidget *		_makeHistoryPopover(bool bUndo);
+	void			_populateHistoryList(GtkWidget * box, bool bUndo);
+	static void		_s_popover_history_show(GtkPopover * w, gpointer data);
 	/* View tab */
 	GtkWidget *		_makeZoomPopover();
 	GtkWidget *		_makeWindowPopover();

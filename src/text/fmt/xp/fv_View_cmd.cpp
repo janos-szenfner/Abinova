@@ -5998,6 +5998,135 @@ void FV_View::cmdRedo(UT_uint32 count)
 	m_bAllowSmartQuoteReplacement = true;
 }
 
+/*!
+ * Undo N user-level ops — the undo dropdown's "undo N steps".
+ * PD_Document::undoCmd budgets in change records (each pt-level undo
+ * consumes one op's worth of records), so convert the op count to a
+ * record budget via getHistoryOps; the budget loop then stops exactly
+ * on the Nth op's boundary.
+ */
+void FV_View::cmdUndoOps(UT_uint32 opCount)
+{
+	std::vector<PX_OpInfo> ops;
+	if (m_pDoc->getHistoryOps(ops, true,
+							  static_cast<UT_sint32>(opCount)) <= 0)
+		return;
+	UT_uint32 budget = 0;
+	for (const PX_OpInfo & op : ops)
+		budget += op.nRecords;
+	if (budget)
+		cmdUndo(budget);
+}
+
+//! Redo N user-level ops; PD_Document::redoCmd already counts ops.
+void FV_View::cmdRedoOps(UT_uint32 opCount)
+{
+	cmdRedo(opCount);
+}
+
+namespace {
+
+const char * _histStruxName(UT_sint32 aux)
+{
+	switch (static_cast<PTStruxType>(aux))
+	{
+	case PTX_Section:           return "Section";
+	case PTX_Block:             return "Paragraph";
+	case PTX_SectionHdrFtr:     return "Header/Footer";
+	case PTX_SectionEndnote:    return "Endnote";
+	case PTX_SectionTable:      return "Table";
+	case PTX_SectionCell:       return "Table Cell";
+	case PTX_SectionFootnote:   return "Footnote";
+	case PTX_SectionMarginnote: return "Margin Note";
+	case PTX_SectionAnnotation: return "Comment";
+	case PTX_SectionFrame:      return "Frame";
+	case PTX_SectionTOC:        return "Table of Contents";
+	default:                    return nullptr;
+	}
+}
+
+const char * _histObjName(UT_sint32 aux)
+{
+	switch (static_cast<PTObjectType>(aux))
+	{
+	case PTO_Image:      return "Picture";
+	case PTO_Field:      return "Field";
+	case PTO_Bookmark:   return "Bookmark";
+	case PTO_Hyperlink:  return "Hyperlink";
+	case PTO_Math:       return "Equation";
+	case PTO_Embed:      return "Object";
+	case PTO_Annotation: return "Comment";
+	case PTO_RDFAnchor:  return "Anchor";
+	default:             return nullptr;
+	}
+}
+
+std::string _histVerbNoun(const char * verb, const char * noun,
+						const char * fallback)
+{
+	if (!noun)
+		return fallback;
+	std::string s = verb;
+	s += ' ';
+	s += noun;
+	return s;
+}
+
+std::string _histLabel(const PX_OpInfo & op)
+{
+	switch (op.type)
+	{
+	case PX_ChangeRecord::PXT_InsertSpan:    return "Typing";
+	case PX_ChangeRecord::PXT_DeleteSpan:    return "Delete";
+	case PX_ChangeRecord::PXT_ChangeSpan:    return "Formatting";
+	case PX_ChangeRecord::PXT_InsertFmtMark:
+	case PX_ChangeRecord::PXT_DeleteFmtMark:
+	case PX_ChangeRecord::PXT_ChangeFmtMark: return "Formatting";
+	case PX_ChangeRecord::PXT_InsertStrux:
+		return _histVerbNoun("Insert", _histStruxName(op.aux), "Insert");
+	case PX_ChangeRecord::PXT_DeleteStrux:
+		return _histVerbNoun("Delete", _histStruxName(op.aux), "Delete");
+	case PX_ChangeRecord::PXT_ChangeStrux:
+	{
+		const char * noun = _histStruxName(op.aux);
+		return noun ? std::string(noun) + " Formatting"
+					: std::string("Formatting");
+	}
+	case PX_ChangeRecord::PXT_InsertObject:
+		return _histVerbNoun("Insert", _histObjName(op.aux), "Insert Object");
+	case PX_ChangeRecord::PXT_DeleteObject:
+		return _histVerbNoun("Delete", _histObjName(op.aux), "Delete Object");
+	case PX_ChangeRecord::PXT_ChangeObject:
+		return _histVerbNoun("Edit", _histObjName(op.aux), "Edit Object");
+	case PX_ChangeRecord::PXT_ListUpdate:    return "List";
+	case PX_ChangeRecord::PXT_StopList:
+	case PX_ChangeRecord::PXT_RemoveList:    return "Remove List";
+	case PX_ChangeRecord::PXT_AddStyle:      return "New Style";
+	case PX_ChangeRecord::PXT_RemoveStyle:   return "Delete Style";
+	case PX_ChangeRecord::PXT_UpdateField:   return "Update Field";
+	case PX_ChangeRecord::PXT_ChangeDocProp: return "Document Properties";
+	case PX_ChangeRecord::PXT_ChangeDocRDF:  return "Document Metadata";
+	default:                               return "Edit";
+	}
+}
+
+} // namespace
+
+/*!
+ * Labels for the undo/redo history dropdown, nearest op first.
+ * Returns the total number of ops on that side of the history, which
+ * may exceed labels.size() when truncated by maxOps.
+ */
+UT_sint32 FV_View::getHistoryLabels(std::vector<std::string>& labels,
+									bool bUndo, UT_sint32 maxOps) const
+{
+	std::vector<PX_OpInfo> ops;
+	UT_sint32 iTotal = m_pDoc->getHistoryOps(ops, bUndo, maxOps);
+	for (const PX_OpInfo & op : ops)
+		labels.push_back(_histLabel(op));
+	return iTotal;
+}
+
 UT_Error FV_View::cmdSave(void)
 {
 	// transfer any persistent properties into the doc

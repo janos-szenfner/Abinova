@@ -309,6 +309,10 @@ public:
 	virtual UT_uint32		undoCount(bool bUndo) const;
 	virtual bool			undoCmd(UT_uint32 repeatCount) override;
 	virtual bool			redoCmd(UT_uint32 repeatCount) override;
+	//! Enumerate user-level undo (bUndo=true) or redo ops, nearest
+	//! first; returns the total number of ops on that side.
+	UT_sint32               getHistoryOps(std::vector<PX_OpInfo>& ops,
+										  bool bUndo, UT_sint32 maxOps = 0) const;
 	bool                    isDoingTheDo(void) const;
 
 	// Caret Methods

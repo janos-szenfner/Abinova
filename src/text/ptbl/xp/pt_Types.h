@@ -161,6 +161,23 @@ enum PLListenerType: uint8_t
 //! ID of a listener - this is its location in m_vecListeners
 typedef UT_uint32 PL_ListenerId;
 
+//! One undo/redo history dropdown entry: a user-level undo step is a
+//! lone change record or a whole glob sequence.  type names the op's
+//! most descriptive record (PX_ChangeRecord::PXType, stored as an int
+//! so this struct can live in the leaf header); aux is that record's
+//! strux or object subtype (PTStruxType / PTObjectType) when it is a
+//! strux or object record, -1 otherwise.
+struct PX_OpInfo
+{
+	UT_sint32				type;
+	UT_sint32				aux;
+	UT_uint32				nRecords;	/*!< change records the op
+										 *   consumes, incl. its glob
+										 *   markers — the count
+										 *   undoCmd's record budget
+										 *   advances by */
+};
+
 #define PT_PROPS_ATTRIBUTE_NAME			(static_cast<const gchar *>("props"))
 #define PT_STYLE_ATTRIBUTE_NAME			(static_cast<const gchar *>("style"))
 #define PT_LEVEL_ATTRIBUTE_NAME			(static_cast<const gchar *>("level"))

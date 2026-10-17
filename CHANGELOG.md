@@ -92,6 +92,13 @@ responsibility** — see `README.md`.
   expression. Match case and whole-word settings apply to all modes,
   and Replace expands capture-group references (`\1`, `\2`, …) from
   the found text.
+- **Undo/Redo history dropdown** — the Quick Access Toolbar's Undo
+  and Redo buttons are now split buttons, Word-style: the arrow drops
+  a list of recent actions ("Typing", "Delete", "Insert Picture",
+  "Table Formatting", …), newest first, and picking entry *N* undoes
+  or redoes back through N steps in one go. The list is rebuilt from
+  the live undo stack each time it opens, so whole multi-step
+  operations (paste, replace-all) always appear as a single entry.
 
 ## [4.0.2] — 2026-10-17
 

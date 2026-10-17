@@ -82,6 +82,9 @@ public:
 								{ return m_history.getUndo(ppcr, bStatic); }
 	bool					getRedo(PX_ChangeRecord ** ppcr) const
 								{ return m_history.getRedo(ppcr); }
+	UT_sint32				getHistoryOps(std::vector<PX_OpInfo>& ops,
+										bool bUndo, UT_sint32 maxOps = 0) const
+								{ return m_history.getOps(ops, bUndo, maxOps); }
 	void                    clearUndo() {m_history.clearHistory();}
 
     static void		s_getLocalisedStyleName(const char *szStyle, std::string &utf8);

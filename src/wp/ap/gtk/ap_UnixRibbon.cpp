@@ -12768,9 +12768,101 @@ void AP_UnixRibbon::_rebuildQat()
 		g_object_set_data(G_OBJECT(b), "abi-menu-id",
 						  GUINT_TO_POINTER(u));
 
+		/* Word parity: undo/redo carry an adjacent dropdown listing
+		 * recent ops where picking entry N undoes/redoes N steps.
+		 * The linked box makes it read as one split button. */
+		if (u == AP_MENU_ID_EDIT_UNDO || u == AP_MENU_ID_EDIT_REDO)
+		{
+			GtkWidget * split =
+				gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+			gtk_widget_add_css_class(split, "linked");
+			gtk_box_append(GTK_BOX(split), b);
+			gtk_box_append(GTK_BOX(split),
+						   _makeHistoryDropButton(
+							   u == AP_MENU_ID_EDIT_UNDO));
+			gtk_box_append(GTK_BOX(m_wQat), split);
+			continue;
+		}
+
 		gtk_box_append(GTK_BOX(m_wQat), b);
 	}
 	gtk_widget_set_visible(m_wQat, !m_layout.qat.empty());
+}
+
+/* The arrow half of the undo/redo split button: no child means GTK
+ * draws just the direction arrow, matching Word's little ▼. */
+GtkWidget * AP_UnixRibbon::_makeHistoryDropButton(bool bUndo)
+{
+	GtkWidget * mb = gtk_menu_button_new();
+	gtk_widget_add_css_class(mb, "flat");
+	gtk_widget_add_css_class(mb, "qat-button");
+	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
+								GTK_ARROW_DOWN);
+	gtk_widget_set_tooltip_text(mb,
+								bUndo ? "Undo History"
+									  : "Redo History");
+	XAP_gtk_a11y_name(mb,
+					  bUndo ? "Undo History" : "Redo History");
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(mb),
+								_makeHistoryPopover(bUndo));
+	return mb;
+}
+
+GtkWidget * AP_UnixRibbon::_makeHistoryPopover(bool bUndo)
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+	_populateHistoryList(box, bUndo);
+	g_object_set_data(G_OBJECT(popover), "abi-hist-undo",
+					  GUINT_TO_POINTER(bUndo));
+	g_signal_connect(popover, "show",
+					 G_CALLBACK(_s_popover_history_show), this);
+	return popover;
+}
+
+/* refreshed at "show" so the labels always match the live stack */
+void AP_UnixRibbon::_populateHistoryList(GtkWidget * box, bool bUndo)
+{
+	GtkWidget * child;
+	while ((child = gtk_widget_get_first_child(box)) != nullptr)
+		gtk_box_remove(GTK_BOX(box), child);
+
+	FV_View * pView = m_pFrame
+		? static_cast<FV_View *>(m_pFrame->getCurrentView())
+		: nullptr;
+	std::vector<std::string> labels;
+	UT_sint32 iTotal = pView
+		? pView->getHistoryLabels(labels, bUndo, 100)
+		: 0;
+
+	if (iTotal <= 0)
+	{
+		GtkWidget * w = _popoverEmButton(
+			bUndo ? "Nothing to undo" : "Nothing to redo",
+			nullptr, nullptr);
+		gtk_widget_set_sensitive(w, FALSE);
+		gtk_box_append(GTK_BOX(box), w);
+		return;
+	}
+	for (std::size_t i = 0; i < labels.size(); ++i)
+	{
+		std::string n = std::to_string(i + 1);
+		GtkWidget * w = _popoverEmButton(labels[i].c_str(), nullptr,
+										 bUndo ? "undoTo" : "redoTo",
+										 n.c_str());
+		gtk_box_append(GTK_BOX(box), w);
+	}
+}
+
+void AP_UnixRibbon::_s_popover_history_show(GtkPopover * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self && w);
+	GtkWidget * box = gtk_popover_get_child(w);
+	if (box)
+		self->_populateHistoryList(
+			box, GPOINTER_TO_UINT(
+				g_object_get_data(G_OBJECT(w), "abi-hist-undo")));
 }
 
 /* Word puts an AutoSave switch in the same top-left lane as the

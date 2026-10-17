@@ -656,3 +656,56 @@ TFTEST_MAIN("Go Back points track through later edits")
 	TFPASS(v2->cmdGoBack());
 	TFPASS(v2->getPoint() <= hv2.eod());
 }
+
+TFTEST_MAIN("undo history enumerates labelled ops and undoes N steps")
+{
+	EditOpsView hv;
+	TFPASS(hv.load("base"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	const std::string start = eo_doc_text(v);
+
+	/* three distinct user-level edits — the delete between the two
+	 * inserts keeps adjacent same-type records from coalescing into
+	 * one history entry */
+	v->setPoint(hv.eod());
+	const UT_UCS4Char A[] = { 'A' };
+	TFPASS(v->cmdCharInsert(A, 1));              /* "baseA" */
+	v->setPoint(3);
+	v->cmdCharDelete(true, 1);                   /* "bseA"  */
+	const UT_UCS4Char C[] = { 'C' };
+	v->setPoint(hv.eod());
+	TFPASS(v->cmdCharInsert(C, 1));              /* "bseAC" */
+	TFPASS(eo_doc_text(v) == "bseAC");
+
+	/* the dropdown's view of history: newest first, all labelled */
+	std::vector<std::string> labels;
+	const UT_sint32 n = v->getHistoryLabels(labels, true);
+	TFPASS(n >= 3);
+	TFPASS(labels.size() >= 3);
+	if (labels.size() >= 3)
+	{
+		TFPASS(labels[0] == "Typing");
+		TFPASS(labels[1] == "Delete");
+		TFPASS(labels[2] == "Typing");
+	}
+
+	/* maxOps truncates the list but not the reported total */
+	std::vector<std::string> few;
+	TFPASS(v->getHistoryLabels(few, true, 2) == n);
+	TFPASS(few.size() == 2);
+
+	/* picking entry 2 undoes exactly the last two ops */
+	v->cmdUndoOps(2);
+	TFPASS(eo_doc_text(v) == "baseA");
+
+	/* those two ops moved to the redo side, nearest first */
+	std::vector<std::string> rlabels;
+	TFPASS(v->getHistoryLabels(rlabels, false) >= 2);
+	TFPASS(rlabels.size() >= 2);
+
+	/* redoTo puts both back */
+	v->cmdRedoOps(2);
+	TFPASS(eo_doc_text(v) == "bseAC");
+}

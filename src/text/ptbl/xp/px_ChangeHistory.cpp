@@ -25,6 +25,8 @@
 #include "px_ChangeHistory.h"
 #include "px_CR_Span.h"
 #include "px_CR_Glob.h"
+#include "px_CR_Strux.h"
+#include "px_CR_Object.h"
 #include "pt_PieceTable.h"
 #include "ut_debugmsg.h"
 #include "xap_App.h"
@@ -445,6 +447,225 @@ bool px_ChangeHistory::getNthUndo(PX_ChangeRecord ** ppcr, UT_uint32 undoNdx) co
 	return false;
 }
 
+
+namespace {
+
+/* rank record types by how well they describe the user-level op; the
+ * highest-ranked record inside a glob names the whole op (a paste's
+ * InsertSpan beats the FmtMarks that trail it). */
+int _opTypeRank(PX_ChangeRecord::PXType t)
+{
+	switch (t)
+	{
+	case PX_ChangeRecord::PXT_InsertObject:
+	case PX_ChangeRecord::PXT_DeleteObject:
+		return 90;
+	case PX_ChangeRecord::PXT_InsertStrux:
+	case PX_ChangeRecord::PXT_DeleteStrux:
+		return 80;
+	case PX_ChangeRecord::PXT_InsertSpan:
+	case PX_ChangeRecord::PXT_DeleteSpan:
+		return 70;
+	case PX_ChangeRecord::PXT_ListUpdate:
+	case PX_ChangeRecord::PXT_StopList:
+	case PX_ChangeRecord::PXT_RemoveList:
+	case PX_ChangeRecord::PXT_AddStyle:
+	case PX_ChangeRecord::PXT_RemoveStyle:
+		return 60;
+	case PX_ChangeRecord::PXT_ChangeSpan:
+	case PX_ChangeRecord::PXT_ChangeStrux:
+	case PX_ChangeRecord::PXT_ChangeObject:
+		return 50;
+	case PX_ChangeRecord::PXT_InsertFmtMark:
+	case PX_ChangeRecord::PXT_DeleteFmtMark:
+	case PX_ChangeRecord::PXT_ChangeFmtMark:
+	case PX_ChangeRecord::PXT_UpdateField:
+		return 40;
+	case PX_ChangeRecord::PXT_ChangeDocProp:
+	case PX_ChangeRecord::PXT_ChangeDocRDF:
+		return 30;
+	case PX_ChangeRecord::PXT_ChangePoint:
+		return 0;
+	default:
+		return 20;
+	}
+}
+
+/* subtype of a strux or object record for a finer dropdown label. */
+UT_sint32 _opAux(const PX_ChangeRecord * pcr)
+{
+	if (!pcr)
+		return -1;
+	switch (pcr->getType())
+	{
+	case PX_ChangeRecord::PXT_InsertStrux:
+	case PX_ChangeRecord::PXT_DeleteStrux:
+	case PX_ChangeRecord::PXT_ChangeStrux:
+		return static_cast<UT_sint32>(
+			static_cast<const PX_ChangeRecord_Strux *>(pcr)->getStruxType());
+	case PX_ChangeRecord::PXT_InsertObject:
+	case PX_ChangeRecord::PXT_DeleteObject:
+	case PX_ChangeRecord::PXT_ChangeObject:
+		return static_cast<UT_sint32>(
+			static_cast<const PX_ChangeRecord_Object *>(pcr)->getObjectType());
+	default:
+		return -1;
+	}
+}
+
+} // namespace
+
+/*!
+ * Enumerate the undoable (bUndo) or redoable (!bUndo) user-level ops,
+ * nearest first.  An op is a lone change record or a whole glob
+ * sequence (MultiStep or UserAtomic Start through its matching End,
+ * nested globs included) — the same boundaries undoCmd()/redoCmd()
+ * stop at, so picking entry N is exactly "undo N steps".
+ *
+ * Returns the total number of ops available on that side of the
+ * history, which may exceed ops.size() when truncated by maxOps
+ * (0 = no limit).
+ */
+UT_sint32 px_ChangeHistory::getOps(std::vector<PX_OpInfo>& ops,
+								   bool bUndo, UT_sint32 maxOps) const
+{
+	UT_sint32 iTotal = 0;
+	UT_sint32 iDepth = 0;
+	int iBestRank = -1;
+	PX_OpInfo cur{PX_ChangeRecord::PXT_GlobMarker, -1, 0};
+
+	auto noteRecord = [&](const PX_ChangeRecord * pcr)
+	{
+		if (pcr->getType() == PX_ChangeRecord::PXT_GlobMarker)
+			return;
+		int rank = _opTypeRank(pcr->getType());
+		if (rank > iBestRank)
+		{
+			iBestRank = rank;
+			cur.type = pcr->getType();
+			cur.aux = _opAux(pcr);
+		}
+	};
+	auto flushOp = [&](UT_uint32 nRecords)
+	{
+		cur.nRecords = nRecords;
+		iTotal++;
+		if (maxOps <= 0 || static_cast<UT_sint32>(ops.size()) < maxOps)
+			ops.push_back(cur);
+		cur = {PX_ChangeRecord::PXT_GlobMarker, -1, 0};
+		iBestRank = -1;
+	};
+
+	const UT_sint32 iSize =
+		static_cast<UT_sint32>(m_vecChangeRecords.size());
+	if (bUndo)
+	{
+		/* backward scan: an End marker opens a glob, its matching
+		 * Start closes it; the lowest reachable index is m_iMinUndo
+		 * (getUndo's position bound m_undoPosition > m_iMinUndo
+		 * translates to index >= m_iMinUndo).  iLastBoundary is the
+		 * index where the previous op started, so a finished op's
+		 * span is [i, iLastBoundary) — the same distance undoCmd's
+		 * undoCount delta covers, foreign records included. */
+		UT_sint32 iLastBoundary = m_undoPosition - m_iAdjustOffset;
+		UT_sint32 iLastProcessed = iLastBoundary;
+		for (UT_sint32 i = iLastBoundary - 1;
+			 i >= m_iMinUndo && i >= 0; --i)
+		{
+			const PX_ChangeRecord * pcr = m_vecChangeRecords[i].get();
+			if (!pcr || !pcr->isFromThisDoc())
+				continue;
+			iLastProcessed = i;
+			if (pcr->getType() == PX_ChangeRecord::PXT_GlobMarker)
+			{
+				UT_Byte flags = static_cast<const PX_ChangeRecord_Glob *>(
+					pcr)->getFlags();
+				if (flags & (PX_ChangeRecord_Glob::PXF_MultiStepEnd |
+							 PX_ChangeRecord_Glob::PXF_UserAtomicEnd))
+					iDepth++;
+				else if (flags & (PX_ChangeRecord_Glob::PXF_MultiStepStart |
+								  PX_ChangeRecord_Glob::PXF_UserAtomicStart))
+				{
+					if (iDepth > 0)
+					{
+						if (--iDepth == 0)
+						{
+							flushOp(iLastBoundary - i);
+							iLastBoundary = i;
+						}
+					}
+					else
+					{
+						flushOp(iLastBoundary - i); // stray Start bounds its own op
+						iLastBoundary = i;
+					}
+				}
+				continue;
+			}
+			noteRecord(pcr);
+			if (iDepth == 0)
+			{
+				flushOp(iLastBoundary - i);
+				iLastBoundary = i;
+			}
+		}
+		/* a scan that stopped inside a glob (m_iMinUndo cut) still has
+		 * collected records — emit them as a partial op */
+		if (iBestRank >= 0)
+			flushOp(iLastBoundary - iLastProcessed);
+	}
+	else
+	{
+		/* forward scan: a Start marker opens a glob, its matching End
+		 * closes it; the redo region starts right at the effective
+		 * undo position (undo only ever stops on an op boundary).
+		 * A finished op's span is [iLastBoundary, i]. */
+		UT_sint32 iLastBoundary = m_undoPosition - m_iAdjustOffset;
+		UT_sint32 iLastProcessed = iLastBoundary - 1;
+		for (UT_sint32 i = iLastBoundary; i < iSize; ++i)
+		{
+			const PX_ChangeRecord * pcr = m_vecChangeRecords[i].get();
+			if (!pcr || !pcr->isFromThisDoc())
+				continue;
+			iLastProcessed = i;
+			if (pcr->getType() == PX_ChangeRecord::PXT_GlobMarker)
+			{
+				UT_Byte flags = static_cast<const PX_ChangeRecord_Glob *>(
+					pcr)->getFlags();
+				if (flags & (PX_ChangeRecord_Glob::PXF_MultiStepStart |
+							 PX_ChangeRecord_Glob::PXF_UserAtomicStart))
+					iDepth++;
+				else if (flags & (PX_ChangeRecord_Glob::PXF_MultiStepEnd |
+								  PX_ChangeRecord_Glob::PXF_UserAtomicEnd))
+				{
+					if (iDepth > 0)
+					{
+						if (--iDepth == 0)
+						{
+							flushOp(i - iLastBoundary + 1);
+							iLastBoundary = i + 1;
+						}
+					}
+					else
+					{
+						flushOp(i - iLastBoundary + 1); // stray End bounds its own op
+						iLastBoundary = i + 1;
+					}
+				}
+				continue;
+			}
+			noteRecord(pcr);
+			if (iDepth == 0)
+			{
+				flushOp(i - iLastBoundary + 1);
+				iLastBoundary = i + 1;
+			}
+		}
+		if (iBestRank >= 0)
+			flushOp(iLastProcessed - iLastBoundary + 1);
+	}
+	return iTotal;
+}
 
 bool px_ChangeHistory::getRedo(PX_ChangeRecord ** ppcr) const
 {

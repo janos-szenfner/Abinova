@@ -5052,6 +5052,12 @@ bool PD_Document::redoCmd(UT_uint32 repeatCount)
 	return true;
 }
 
+UT_sint32 PD_Document::getHistoryOps(std::vector<PX_OpInfo>& ops,
+									 bool bUndo, UT_sint32 maxOps) const
+{
+	return m_pPieceTable->getHistoryOps(ops, bUndo, maxOps);
+}
+
 
 bool  PD_Document::isDoingTheDo(void) const
 {

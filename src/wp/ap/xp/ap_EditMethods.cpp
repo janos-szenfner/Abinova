@@ -563,6 +563,8 @@ public:
 
 	static EV_EditMethod_Fn undo;
 	static EV_EditMethod_Fn redo;
+	static EV_EditMethod_Fn undoTo;
+	static EV_EditMethod_Fn redoTo;
 	static EV_EditMethod_Fn cut;
 	static EV_EditMethod_Fn copy;
 	static EV_EditMethod_Fn paraSortAscend;
@@ -1403,6 +1405,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(rdfTest), 				0,	""),
 #endif
 	EV_EditMethod(NF(redo), 				0,	""),
+	EV_EditMethod(NF(redoTo),				0,	""),
 	EV_EditMethod(NF(refCaption),			0,	""),
 	EV_EditMethod(NF(refDeleteSource),		0,	""),
 	EV_EditMethod(NF(refInsertBibliography), 0,	""),
@@ -1574,6 +1577,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	// u
 	EV_EditMethod(NF(unHangingIndent),		0,	""),
 	EV_EditMethod(NF(undo), 				0,	""),
+	EV_EditMethod(NF(undoTo),				0,	""),
 	EV_EditMethod(NF(updateField),			0,	""),
 	EV_EditMethod(NF(updateStyles),			0,		""),
 
@@ -3392,6 +3396,43 @@ Defun1(redo)
 	CHECK_FRAME;
 	UT_return_val_if_fail (pAV_View, false);
 	pAV_View->cmdRedo(1);
+	return true;
+}
+
+/*! undoTo — undo history dropdown. callData is the 1-based number of
+ *  user-level ops to undo ("undo N steps" in Word). */
+Defun(undoTo)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_uint32 n = 1;
+	if (pCallData && pCallData->m_pData)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		n = static_cast<UT_uint32>(atoi(s.utf8_str()));
+		if (n == 0)
+			n = 1;
+	}
+	pView->cmdUndoOps(n);
+	return true;
+}
+
+/*! redoTo — redo history dropdown; callData is the op count. */
+Defun(redoTo)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_uint32 n = 1;
+	if (pCallData && pCallData->m_pData)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		n = static_cast<UT_uint32>(atoi(s.utf8_str()));
+		if (n == 0)
+			n = 1;
+	}
+	pView->cmdRedoOps(n);
 	return true;
 }
 
