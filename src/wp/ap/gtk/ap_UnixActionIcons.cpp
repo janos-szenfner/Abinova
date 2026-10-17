@@ -128,6 +128,13 @@ abi_action_icon_for_menu (XAP_Menu_Id id)
  * the drawn glyph even though the legacy theme icon exists */
 static const gchar * const s_prefer_glyph[] = {
 	"tb_view_showpara",
+	"abinova-design-themes",
+	"abinova-design-themecolors",
+	"abinova-design-themefonts",
+	"abinova-design-stylesets",
+	"abinova-design-watermark",
+	"abinova-design-pagecolor",
+	"abinova-design-pageborders",
 	nullptr
 };
 

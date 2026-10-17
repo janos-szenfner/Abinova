@@ -4854,6 +4854,16 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 /* dispatch a drawn glyph for the Layout menu ids */
 static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 {
+	/* ids that map onto the shared pen-glyph set via the stock table
+	 * (the Design tab) use those icons instead of a page overlay */
+	const gchar * glyph = abi_stock_from_menu_id(id);
+	if (glyph && abi_glyph_icon_has(glyph))
+	{
+		GtkWidget * ic = abi_glyph_icon_widget(glyph, MIN(w, h));
+		if (ic)
+			return ic;
+	}
+
 	_PageSpec spec = { 0.12, 0.12, 0.15, 0.15, 1, false, false, 0, false };
 	void (*extra)(cairo_t *, double, double) = nullptr;
 

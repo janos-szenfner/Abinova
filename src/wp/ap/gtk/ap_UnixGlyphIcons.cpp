@@ -234,6 +234,8 @@ static void _pen_page(const _GlyphPen & p, double x0, double y0,
 /* fixed semantic colours (same picks as wordcraft) */
 static const GdkRGBA _YELLOW = { 0xF2 / 255.0, 0xC8 / 255.0, 0x11 / 255.0, 1.0 };
 static const GdkRGBA _GREEN  = { 0x2E / 255.0, 0x8B / 255.0, 0x57 / 255.0, 1.0 };
+static const GdkRGBA _RED    = { 0xD1 / 255.0, 0x3B / 255.0, 0x3B / 255.0, 1.0 };
+static const GdkRGBA _ORANGE = { 0xE0 / 255.0, 0x7B / 255.0, 0x1F / 255.0, 1.0 };
 
 /* ---------------- icon shapes ---------------- */
 
@@ -484,6 +486,64 @@ static void _g_table(const _GlyphPen & p)
 	_pen_line_c(p, c2, 2, p.fg);
 }
 
+/* ---- Design tab icons (wordcraft's design.* set) ---- */
+
+/* themes: four coloured squares */
+static void _g_design_themes(const _GlyphPen & p)
+{
+	_pen_frect(p, 3.0, 3.0, 10.0, 10.0, p.ac);
+	_pen_frect(p, 10.0, 3.0, 17.0, 10.0, _ORANGE);
+	_pen_frect(p, 3.0, 10.0, 10.0, 17.0, _GREEN);
+	_pen_frect(p, 10.0, 10.0, 17.0, 17.0, _YELLOW);
+}
+
+/* theme colours: three filled circles */
+static void _g_design_themecolors(const _GlyphPen & p)
+{
+	_pen_fcircle(p, 7.0, 7.5, 3.5, _RED);
+	_pen_fcircle(p, 13.0, 7.5, 3.5, p.ac);
+	_pen_fcircle(p, 10.0, 13.0, 3.5, _GREEN);
+}
+
+/* theme fonts: "Aa" in accent */
+static void _g_design_themefonts(const _GlyphPen & p)
+{
+	_pen_text(p, 10.0, 10.0, 13.0, "Aa", p.ac, FALSE);
+}
+
+/* style sets: accent "A" with a set-mark stroke */
+static void _g_design_stylesets(const _GlyphPen & p)
+{
+	_pen_text(p, 10.0, 10.0, 14.0, "A", p.ac, FALSE);
+	const double chk[] = { 13.0, 15.0, 17.0, 11.0 };
+	_pen_line_c(p, chk, 2, p.fg);
+}
+
+/* watermark: page with a washed-out bold "W" */
+static void _g_design_watermark(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 16.0, 18.0);
+	GdkRGBA dim = p.ac;
+	dim.alpha = 0.6;
+	_pen_text(p, 10.0, 11.0, 7.0, "W", dim, TRUE);
+}
+
+/* page colour: page with a tinted fill block */
+static void _g_design_pagecolor(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 16.0, 18.0);
+	GdkRGBA tint = p.ac;
+	tint.alpha = 0.5;
+	_pen_frect(p, 5.0, 9.0, 15.0, 17.0, tint);
+}
+
+/* page borders: page with an accent inner frame */
+static void _g_design_pageborders(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 16.0, 18.0);
+	_pen_rect(p, 6.0, 6.5, 14.0, 15.5, p.ac);
+}
+
 /* ---------------- name table ---------------- */
 
 typedef void (*_GlyphDraw)(const _GlyphPen &);
@@ -534,6 +594,13 @@ static const _GlyphEntry _glyphs[] =
 	{ "zoom-out",					_g_zoom_out },
 	{ "insert-image",				_g_picture },
 	{ "insert-table",				_g_table },
+	{ "abinova-design-themes",		_g_design_themes },
+	{ "abinova-design-themecolors",	_g_design_themecolors },
+	{ "abinova-design-themefonts",	_g_design_themefonts },
+	{ "abinova-design-stylesets",	_g_design_stylesets },
+	{ "abinova-design-watermark",	_g_design_watermark },
+	{ "abinova-design-pagecolor",	_g_design_pagecolor },
+	{ "abinova-design-pageborders",	_g_design_pageborders },
 	{ nullptr, nullptr }
 };
 

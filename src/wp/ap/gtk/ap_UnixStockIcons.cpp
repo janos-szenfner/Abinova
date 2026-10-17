@@ -220,6 +220,11 @@ static struct AbiStockMapping {
   { "abinova-clipboard-pane",		AP_MENU_ID_VIEW_CLIPPANE,				"edit-paste" },
   { "abinova-tools-options",		AP_MENU_ID_TOOLS_OPTIONS,				"preferences-system-symbolic" },
   { "abinova-rdf-editor",			AP_MENU_ID_RDF_EDITOR,					"accessories-text-editor-symbolic" },
+  { "abinova-design-stylesets",	AP_MENU_ID_DESIGN_STYLESETS,			"abinova-design-stylesets" },
+  { "abinova-design-themecolors",	AP_MENU_ID_DESIGN_THEMECOLORS,		"abinova-design-themecolors" },
+  { "abinova-design-themefonts",	AP_MENU_ID_DESIGN_THEMEFONTS,			"abinova-design-themefonts" },
+  { "abinova-design-watermark",	AP_MENU_ID_DESIGN_WATERMARK,			"abinova-design-watermark" },
+  { "abinova-design-pageborders",	AP_MENU_ID_DESIGN_PAGEBORDERS,		"abinova-design-pageborders" },
   { nullptr, 					static_cast<_Ap_Menu_Id>(0),					nullptr }
 };
 

@@ -161,6 +161,12 @@ responsibility** — see `README.md`.
   Borders draws rules around the text area or the page edge,
   sharing the `page-border-*`/`page-watermark-*` section
   properties with `.docx` import so everything round-trips.
+- **Design tab drawn icons** — every button on the Design ribbon
+  tab now shows a distinct procedurally drawn icon (the shared
+  20x20 pen-glyph set): Document Formatting gets an "A" set mark,
+  Colors a three-dot palette, Fonts an "Aa", Watermark a page with
+  a washed-out "W", and Page Borders a page with an accent frame —
+  no icon-theme dependency.
 - **Developer ribbon tab with content controls** — a new
   Word-style **Developer** tab carrying a Controls group: Plain
   Text, Check Box, Combo Box, Drop-down List and Date Picker
