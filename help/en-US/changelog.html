@@ -4,7 +4,7 @@
 <h1>Changelog</h1>
 <p>All notable changes in this experimental Abinova GTK4 fork, grouped by category. Based on upstream Abiword 3.1.90 (<code>5e3e1cc</code> import).</p>
 <p>This project is experimental and supplied <b>without any warranty or responsibility</b> — see <code>README.md</code>.</p>
-<h2>[4.0.3] — unreleased</h2>
+<h2>[4.0.3] — 2026-10-18</h2>
 <h3>Automation</h3>
 <ul>
 <li><b>Control channel hardening</b> — the <code>--control PORT</code>   listener now supports <code>{"method":"auth","key":"…"}</code>   once per connection (subsequent requests may omit the key),   rejects missing/wrong keys with <code>unauthorized</code> and   closes the connection, replies <code>bad request</code> and   closes on non-JSON input, caps request lines at 1 MiB,   disconnects unauthenticated clients after 30 s, and removes the   <code>control-key.local-PORT</code> file on clean exit so a stale   key can't be replayed into the next session.</li>
