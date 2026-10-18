@@ -1856,6 +1856,9 @@ read aloud (user opt-out). Ribbon lives in
 | W20 | Final gate 2/4: security audit — details below | done | 3 | resumed mid-task: previous run had landed all fixes + report; control socket hardened (bounded 64KiB-chunk reader enforces 1MiB cap pre-newline, refcounted _Conn + cancellable kills teardown UAF, auth key from UT_go_random_bytes OS entropy, key file g_open 0600|O_NOFOLLOW, _key_match compare, write_all replies, attachTemplate joined read-root confinement, missing key-dir fails closed); TOC ctrl+click gated by new pf_Fragments::contains liveness check; table-formula parser DepthGuard(64); s_insertArtworkFile rejects ..; portguard leaks fixed (g_close) — report .devin/W20-security.md (8 fixes, 6 documented residuals); verified: make -j2 clean; /tmp/w20_verify.py 15/15 under Xvfb (2MiB unterminated line -> capped+closed+server alive, attachTemplate/updateStyles/file.save/ui.screenshot traversal refused, insertShape .. refused, 30-conn churn, key 0600); hostile formula doc -> PDF rc=0; portwrap PASS |
 | W21 | Final gate 3/4: dead-code sweep — details below | done | 3 | resumed after interrupt: swept the v4.0.2..HEAD stream diff — 90 added members + 202 methods + 34 file-local statics reference-checked; removed unused run members/getters (m_sKey/m_sStyle/m_sTitle/m_sTag/m_sItems, getZoteroKey/isCheckbox/isChecked/getCtlType/getTag — attrs stay on the field AP, read by fv_View_cmd+ribbon), uncalled AP_UnixFrameImpl::hideMiniBar + AP_Dialog_DocInspector::getCategoryMask/isSelected, and 3 ad-hoc fprintf(stderr) dumps in fp_FieldTableSum.t.cpp; no added #if 0 branches or markers; UT_DEBUGMSG/ui_drive prints kept (debug-only/intentional) — report .devin/W21-deadcode.md; verified: make -j2 clean (66 baseline warnings only), tablesum tests PASS w/o chatter, only pre-existing flaky fv_DragAutoScroll fails, Badge/Austin->pdf rc=0 render OK, no stream stderr on convert |
 | W22 | Final gate 4/4: memory-leak / lifetime check — details below | done | 1 | valgrind memcheck suite+GUI session: fixed stale-frame UAF in control-socket _s_close_frames (liveness vs app registry), minibar colour-dialog UAF (m_wColorDlg tracking+dtor teardown), _findPrevPattern trailing GMatchInfo leak, flush_done orphaned GList nodes (move queue not copy), C0-control JSON escaping in control replies, test-side tmpdir/g_bytes_ref leaks; report .devin/W22-memory.md — verified: make -j2 clean; check-valgrind corpus 16/16; Abinova-test under memcheck 167/0 with 0 bytes definitely lost; scripted open/edit/undo/clipboard/theme/autosave/close-quit session zero invalid accesses; full suite 18440 tests 5 fails all pre-existing fv_DragAutoScroll flake |
+| W27 | Design tab structure parity with wordcraft — details below | done | 1 | Design tab reshaped to wordcraft's 3 groups: Themes (own group, big menupop) | Document Formatting (5-tile style-set gallery + more-chevron + [Colors,Fonts] stack + [ParaSpacing,Effects,SetAsDefault] stack) | Page Background reordered Watermark->PageColor->PageBorders; new AP_RIBBON_ITEM_SETGAL (tiles apply styleSetApply via _s_setgal_tile_clicked, mini Title/Heading/Body previews mirroring s_set_* patches) + AP_RIBBON_ITEM_COLEND column-break in the 3-row grid packing + AP_RIBBON_DEAD_EFFECTS stub (wordcraft's is itself a settings-only stub — no effects engine here); STYLESETS MENUPOP removed from the tab (gallery + chevron cover it) — verified: make -j2 clean; xvfb+XTest: real click on "basic" tile -> saved .abwn carries 2e74b5; xwininfo shows Themes popover mapped 276x282 (xwd -id capture: Craft..Sketchbook rows); Badge.docx->pdf rc=0 |
+| W28 | Design tab Page Color dropdown + Effects + watermark custom — details below | pending | 0 | page-background menu parity |
+| W29 | macOS idle freeze (~5 min) — details below | pending | 0 | diagnose + fix, no local mac so instrument |
 
 ## WordCraft parity task details
 
@@ -2245,3 +2248,122 @@ pattern/formula allocations. One commit per fix.
 Report to `.devin/W22-memory.md`.
 Verify: suite PASS under the checker; zero new *definite* leaks or
 UAFs in touched code; report committed.
+
+### W27
+
+Design tab structure parity with wordcraft (`/tmp/wordcraft`
+`crates/ui-egui/src/ribbon.rs::design` + `docs/images/design.png`).
+
+Reference layout (wordcraft's Design ribbon, left to right):
+
+1. **"Themes" group** — a single large `Themes` menu-button (the
+   4-colour-squares glyph) whose dropdown lists theme names.
+   Ours currently parks the Themes menupop as the first item inside
+   the "docfmt" group — split it into its own group, leftmost.
+2. **"Document Formatting" group** — three parts:
+   a. a **live style-set thumbnail gallery**: a horizontal strip of
+      small preview cards, one per style set — each card renders a
+      mini document ("Title" in the set's title font+colour, a
+      "Heading 1" line, a body-text line) instead of a text-only
+      dropdown. wordcraft draws real doc snippets
+      (`previews.rs::style_set_gallery`); a cairo-drawn 3-line mock
+      using each set's actual heading font/colour and body font is
+      an acceptable equivalent — reuse `_tblStyleTile` /
+      `_makeTableStyleGallery` machinery (`ap_UnixRibbon.cpp`) and
+      add a new item kind alongside STYLEGAL/TBLGAL. Click applies
+      `styleSetApply <set>`; keep the existing dropdown reachable
+      (e.g. a More/popover tail like the table gallery has).
+   b. a small-item stack: **Colors** ▾ + **Fonts** ▾.
+   c. a small-item stack: **Paragraph Spacing** ▾ + **Effects** +
+      **Set as Default**. Small items already stack 3-per-column in
+      `_buildGroup`; Effects is a stub button like wordcraft's
+      `design.effects` (may be a no-op that reports "not
+      implemented" or opens the existing text-effects dialog if one
+      exists — check before stubbing).
+3. **"Page Background" group** — large buttons in this order:
+   **Watermark** ▾, **Page Color** ▾, **Page Borders** ▾. (Ours
+   currently orders Watermark → PageBorders → page-colour-as-menu;
+   W28 covers the Page Color popover itself.)
+
+Strings/groups in `src/wp/ap/xp/ap_Ribbon_Layouts.h`
+(`s_ribbon_design_*`, `s_ribbon_design_groups`); group captions come
+from `ap_String_Id.h` — add "Themes" and keep "Page Background";
+rename "docfmt" caption to match wordcraft's "Document Formatting".
+
+Verify: `cd src && make -j2` clean; xvfb + XTest click on the Design
+tab — screenshot shows Themes group left, gallery strip with
+rendered previews, two small stacks, then Page Background trio;
+clicking a style-set card applies it (saved .abwn carries the set's
+style props); Badge.docx regression OK.
+
+### W28
+
+Design tab Page Background menu parity with wordcraft.
+
+- **Page Color**: wordcraft's is a dropdown (`No Color` row + the
+  theme colour palette feeding `design.pageColor`). Ours is a plain
+  `AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR` menu item. Give it a
+  MENUPOP with: `No Color` (clears the page-colour prop), a colour
+  palette section (reuse whatever palette widget the
+  Font/Highlight/Border colour buttons use — check
+  `_makeColorButton`/colour popover helpers in ap_UnixRibbon.cpp),
+  and a `More Colours…` row opening the existing dialog if there is
+  one. Wire each swatch to the existing page-colour prop path.
+- **Watermark**: our popover already has text stamps + Picture
+  Watermark… + Remove. Add wordcraft's `Custom Watermark…` row —
+  a small dialog (or reuse an existing one) letting the user type
+  watermark text (+ optional font/colour/size) instead of picking a
+  preset; writes the same page-watermark-text sect props.
+- **Effects** (if W27 didn't land it): a `design.effects`-style
+  small button in the Document Formatting stack.
+
+Verify: `make -j2` clean; xvfb drive — Page Color dropdown shows
+No Color + palette, picking a colour changes the saved .abwn page
+colour and the canvas; Custom Watermark writes page-watermark-text;
+PDF render shows both.
+
+### W29
+
+macOS idle freeze — user report: app started on macOS, left open
+untouched, becomes frozen after ~5 minutes.
+
+Prime suspect: the autosave tick — default period is exactly
+`XAP_PREF_DEFAULT_AutoSaveFilePeriod = "5"` minutes and the W14/W15
+recovery work rewrote that path (`XAP_Frame::autosaveTick` →
+`backup()` → `encodeToBytes` + decode gate + `UT_AsyncWrite_enqueue`
++ `_discardPendingBackups`/`UT_AsyncWrite_waitForTarget`).
+
+Other candidate: macOS **App Nap** — nothing in the tree calls
+`NSProcessInfo beginActivity`; GTK4/Quartz apps that are occluded
+get throttled and can present as frozen.
+
+Work:
+
+1. Instrument `autosaveTick`/`backup()`/`_discardPendingBackups`
+   with timestamped progress prints gated behind an env var
+   (e.g. `ABINOVA_DEBUG_AUTOSAVE=1` → `g_log`/stderr at each stage:
+   tick, lock, encode, decode, enqueue, done, wait-enter,
+   wait-exit) so the user can run a debug build and report where it
+   stops.
+2. Harden the plausible deadlock: `UT_AsyncWrite_waitForTarget`
+   must not be able to wait forever — add a bounded wait
+   (e.g. 30 s) with a diagnostic, and make `g_thread_new` failure
+   fall back to `UT_AsyncWrite_syncWrite` instead of leaving
+   `s_workerRunning` stuck true with a queued job (a permanently
+   queued job is exactly what makes `waitForTarget` hang the UI).
+   Audit `_backupWriteDone`/state flags for a stuck
+   `m_bBackupInProgress`.
+3. App Nap mitigation: add a small Objective-C++ shim compiled only
+   under `__APPLE__` (new file e.g. `xap_UnixAppMac.mm` or a
+   conditional section in xap_UnixApp.cpp with `#ifdef __APPLE__` —
+   check how the build picks source suffixes) calling
+   `[[NSProcessInfo processInfo] beginActivityWithOptions:
+   NSActivityUserInitiated | NSActivityLatencyCritical
+   reason:@"Editing"]` at app init and ending it at quit. Verify it
+   compiles — the macOS CI job is the real check.
+4. Leave a runbook note in the commit/changelog asking the user for
+   `sample <pid> 10` / spindump while frozen if it still occurs.
+
+Verify: `make -j2` clean; the new debug env var emits stage logs on
+Linux; a forced autosave (`AutoSaveFilePeriod=1`, dirty doc) under
+Xvfb cycles without blocking; code review of the mac-only path.

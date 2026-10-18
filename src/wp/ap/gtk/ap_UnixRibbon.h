@@ -75,6 +75,7 @@ private:
 	GtkWidget *		_makeButton(XAP_Menu_Id id, uint8_t flags);
 	GtkWidget *		_makeToolbarWidget(XAP_Toolbar_Id id, uint8_t flags);
 	GtkWidget *		_makeStyleGallery();
+	GtkWidget *		_makeStyleSetGallery();
 	GtkWidget *		_wrapSplit(GtkWidget * w, GtkWidget * popover,
 							   bool bVertical);
 	GtkWidget *		_makePastePopover();
@@ -302,6 +303,7 @@ private:
 	void			_buildIconMap();
 
 	static void		_s_style_tile_clicked(GtkWidget * w, gpointer data);
+	static void		_s_setgal_tile_clicked(GtkWidget * w, gpointer data);
 	static void		_s_style_scroll_clicked(GtkWidget * w, gpointer data);
 	static void		_s_styles_pane_clicked(GtkWidget * w, gpointer data);
 	static void		_updateStyleScrollButtons(AP_UnixRibbon * self);

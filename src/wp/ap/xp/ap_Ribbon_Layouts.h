@@ -68,8 +68,13 @@ enum AP_RibbonItemKind : uint8_t
 									 * checkbox grid */
 	AP_RIBBON_ITEM_TBLGAL	= 9,	/* Table Design styles gallery +
 									 * More popover */
-	AP_RIBBON_ITEM_TBLPOP	= 10	/* Table Design dropdowns
+	AP_RIBBON_ITEM_TBLPOP	= 10,	/* Table Design dropdowns
 									 * (AP_RibbonTblPopId) */
+	AP_RIBBON_ITEM_SETGAL	= 11,	/* Design tab style-set gallery strip
+									 * (wordcraft previews.style_set_gallery) */
+	AP_RIBBON_ITEM_COLEND	= 12	/* column break inside the 3-row grid
+									 * packing - the following items start
+									 * a fresh stack column */
 };
 
 /* ids for AP_RIBBON_ITEM_TBLPOP rows - not menu/toolbar ids */
@@ -110,7 +115,9 @@ enum AP_RibbonDeadId : uint8_t
 	AP_RIBBON_DEAD_UPDATEINDEX,
 	AP_RIBBON_DEAD_TOA,
 	AP_RIBBON_DEAD_MARKCITATION,
-	AP_RIBBON_DEAD_UPDATETOA
+	AP_RIBBON_DEAD_UPDATETOA,
+	AP_RIBBON_DEAD_EFFECTS	/* wordcraft design.effects — theme shape
+							 * effects have no engine support */
 };
 
 enum AP_RibbonItemFlags : uint8_t
@@ -135,6 +142,7 @@ enum AP_RibbonItemFlags : uint8_t
 };
 
 #define AP_RIBBON_ROWEND	{ AP_RIBBON_ITEM_ROWEND,  AP_RIBBON_FLAG_NONE,     0 }
+#define AP_RIBBON_COLEND	{ AP_RIBBON_ITEM_COLEND,  AP_RIBBON_FLAG_NONE,     0 }
 #define AP_RIBBON_MENU_G(x)	{ AP_RIBBON_ITEM_MENU,    static_cast<uint8_t>((AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH)), static_cast<uint16_t>((x) )}
 #define AP_RIBBON_MENU_GS(x)	{ AP_RIBBON_ITEM_MENU,    static_cast<uint8_t>((AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH | AP_RIBBON_FLAG_SLIM)), static_cast<uint16_t>((x) )}
 #define AP_RIBBON_MENU_GSE(x)	{ AP_RIBBON_ITEM_MENU,    static_cast<uint8_t>((AP_RIBBON_FLAG_ICONONLY | AP_RIBBON_FLAG_GLYPH | AP_RIBBON_FLAG_SLIM | AP_RIBBON_FLAG_EVEN)), static_cast<uint16_t>((x) )}
@@ -176,6 +184,7 @@ struct AP_RibbonItem
 #define AP_RIBBON_TB(x)		{ AP_RIBBON_ITEM_TOOLBAR, AP_RIBBON_FLAG_NONE,     static_cast<uint16_t>((x) )}
 #define AP_RIBBON_TB_I(x)	{ AP_RIBBON_ITEM_TOOLBAR, AP_RIBBON_FLAG_ICONONLY, static_cast<uint16_t>((x) )}
 #define AP_RIBBON_GALLERY	{ AP_RIBBON_ITEM_STYLEGAL,AP_RIBBON_FLAG_NONE,     0 }
+#define AP_RIBBON_SETGAL	{ AP_RIBBON_ITEM_SETGAL,  AP_RIBBON_FLAG_NONE,     0 }
 #define AP_RIBBON_END		{ AP_RIBBON_ITEM_MENU,    AP_RIBBON_FLAG_NONE,     static_cast<uint16_t>(AP_MENU_ID__BOGUS1__ )}
 
 struct AP_RibbonGroup
@@ -415,32 +424,39 @@ static const AP_RibbonGroup s_ribbon_insert_groups[] =
 
 /* ------------------------------------------------------------- Design --- */
 
-/* Word's Design tab: the Themes umbrella (font pair + palette in one
- * step) leads a coordinated style-set gallery plus the theme
- * colour/font pair dropdowns; the second group covers the page
- * background (watermark, page borders, page colour - the last is
- * shared with the Layout tab's background group) */
-static const AP_RibbonItem s_ribbon_design_docfmt[] =
+/* wordcraft's Design tab structure (ui-egui ribbon.rs design()):
+ * a Themes group of its own, then Document Formatting = style-set
+ * gallery strip + a [Colors, Fonts] stack + a [Paragraph Spacing,
+ * Effects, Set as Default] stack, then Page Background */
+static const AP_RibbonItem s_ribbon_design_themes[] =
 {
 	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_THEMES),
-	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_STYLESETS),
-	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_PARASPACING),
-	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_THEMECOLORS),
-	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_THEMEFONTS),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_DESIGN_SETDEFAULT),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_design_docfmt[] =
+{
+	AP_RIBBON_SETGAL,
+	AP_RIBBON_MENUPOP_S(AP_MENU_ID_DESIGN_THEMECOLORS),
+	AP_RIBBON_MENUPOP_S(AP_MENU_ID_DESIGN_THEMEFONTS),
+	AP_RIBBON_COLEND,
+	AP_RIBBON_MENUPOP_S(AP_MENU_ID_DESIGN_PARASPACING),
+	AP_RIBBON_DEAD(AP_RIBBON_DEAD_EFFECTS),
+	AP_RIBBON_MENU(AP_MENU_ID_DESIGN_SETDEFAULT),
 	AP_RIBBON_END
 };
 
 static const AP_RibbonItem s_ribbon_design_pagebg[] =
 {
 	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_WATERMARK),
-	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_PAGEBORDERS),
 	AP_RIBBON_MENU_LSW(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR),
+	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_DESIGN_PAGEBORDERS),
 	AP_RIBBON_END
 };
 
 static const AP_RibbonGroup s_ribbon_design_groups[] =
 {
+	{ "themes",		s_ribbon_design_themes },
 	{ "docfmt",		s_ribbon_design_docfmt },
 	{ "pagebg",		s_ribbon_design_pagebg },
 	{ nullptr,		nullptr }

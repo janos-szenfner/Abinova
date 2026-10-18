@@ -609,14 +609,19 @@ labels, like Word's ribbon.
 #### Design tab
 
 Word's Design ribbon — coordinated document-wide look changes
-and page-background controls.
+and page-background controls. The tab splits into three groups:
+**Themes** (its own group), **Document Formatting** and
+**Page Background**.
 
-- **Document Formatting**: a gallery of built-in style sets
-  (Default, Basic, Centered, Lines, Shaded) that rewrite the
-  Heading/Title/Body style definitions in one shot — heading
+- **Document Formatting**: a clickable tile gallery of built-in
+  style sets (Default, Basic, Centered, Lines, Shaded) — each tile
+  previews the set's Title/Heading/Body look, a click rewrites the
+  Heading/Title/Body style definitions in one shot (heading
   colour, alignment, under-heading rules and shaded bands change
   across the whole document at once while keeping the
-  document's body font.
+  document's body font); the chevron opens the full list.
+  Beside it, stacked dropdowns: **Colors**/**Fonts** and
+  **Paragraph Spacing**/**Effects**/**Set as Default**.
 - **Themes**: named themes (Craft, Studio, Gallery, Atelier,
   Darkroom, Sketchbook) that apply a coordinated heading/body
   font pair and accent palette in one step.

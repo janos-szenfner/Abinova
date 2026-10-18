@@ -154,6 +154,7 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "arrange",     "Arrange" },
 	{ "background",  "Page Background" },
 	{ "docfmt",      "Document Formatting" },
+	{ "themes",      "Themes" },
 	{ "pagebg",      "Page Background" },
 	{ "zoom",        "Zoom" },
 	{ "proofing",    "Proofing" },
@@ -561,6 +562,8 @@ GtkWidget * AP_UnixRibbon::createWidget()
 					bRowMajor = true;
 					break;
 				}
+				if (it->kind == AP_RIBBON_ITEM_COLEND)
+					continue;
 				if (!(it->flags & AP_RIBBON_FLAG_LARGE) ||
 					(it->flags & AP_RIBBON_FLAG_SLIM))
 					bAllLarge = false;
@@ -585,9 +588,18 @@ GtkWidget * AP_UnixRibbon::createWidget()
 					evenBox = nullptr;
 					continue;
 				}
+				if (item->kind == AP_RIBBON_ITEM_COLEND)
+				{
+					/* column break: the following compact items start
+					 * a fresh stack column (Word's stacked lanes) */
+					if (nRow != 0) { ++nCol; nRow = 0; }
+					continue;
+				}
 				GtkWidget * w = nullptr;
 				if (item->kind == AP_RIBBON_ITEM_STYLEGAL)
 					w = _makeStyleGallery();
+				else if (item->kind == AP_RIBBON_ITEM_SETGAL)
+					w = _makeStyleSetGallery();
 				else if (item->kind == AP_RIBBON_ITEM_TBLSTYLEOPTS)
 					w = _makeTableStyleOptions();
 				else if (item->kind == AP_RIBBON_ITEM_TBLGAL)
@@ -690,6 +702,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 				 * 3 rows per column, LibreOffice-style */
 				bool bTall = (item->flags & AP_RIBBON_FLAG_LARGE) ||
 					(item->kind == AP_RIBBON_ITEM_STYLEGAL) ||
+					(item->kind == AP_RIBBON_ITEM_SETGAL) ||
 					(item->kind == AP_RIBBON_ITEM_EQSTRUCT) ||
 					(item->kind == AP_RIBBON_ITEM_TBLSTYLEOPTS) ||
 					(item->kind == AP_RIBBON_ITEM_TBLGAL) ||
@@ -5368,6 +5381,7 @@ static const _ribbon_kv s_ribbon_dead_labels[] =
 	{ "toa",         "Insert Table of Authorities" },
 	{ "markcitation","Mark Citation" },
 	{ "updatetoa",   "Update Table" },
+	{ "effects",     "Effects" },
 	{ nullptr,        nullptr }
 };
 
@@ -5375,7 +5389,7 @@ static const char * s_ribbon_dead_keys[] =
 {
 	"citation", "sources", "bibliography", "caption", "figures",
 	"xref", "index", "markentry", "updateindex", "toa",
-	"markcitation", "updatetoa"
+	"markcitation", "updatetoa", "effects"
 };
 
 GtkWidget * AP_UnixRibbon::_makeDeadButton(uint16_t id)
@@ -6001,6 +6015,112 @@ GtkWidget * AP_UnixRibbon::_makeThemesPopover()
 					   _presetRow(t.name, t.det, nullptr,
 								  "designTheme", t.key));
 	return popover;
+}
+
+/* wordcraft's Design tab: a strip of style-set tiles (mini previews of
+ * the Title/Heading/Body look) sitting in Document Formatting — a click
+ * applies the set via styleSetApply, the trailing chevron opens the
+ * full list (previews.style_set_gallery). Tile faces mirror the set
+ * patches in s_set_* (ap_EditMethods.cpp). */
+GtkWidget * AP_UnixRibbon::_makeStyleSetGallery()
+{
+	static const struct {
+		const char * key;		/* styleSetApply callData */
+		const char * name;
+		const char * tip;
+		const char * tcolor;	/* Title text colour */
+		const char * hcolor;	/* Heading text colour */
+		bool		 center;	/* headings/title centred */
+		const char * hbg;		/* heading band fill, or nullptr */
+		const char * hul;		/* heading rule colour, or nullptr */
+	} sets[] = {
+		{ "default",  "Default",  "Plain headings, body text left aligned",
+		  "000000", "000000", true,  nullptr,   nullptr   },
+		{ "basic",    "Basic",    "Blue accent headings, compact spacing",
+		  "2E74B5", "2E74B5", false, nullptr,   nullptr   },
+		{ "centered", "Centered", "Centred headings and title",
+		  "17365D", "17365D", true,  nullptr,   nullptr   },
+		{ "lines",    "Lines",    "Headings underlined by colour rules",
+		  "000000", "000000", false, nullptr,   "4F81BD"  },
+		{ "shaded",   "Shaded",   "Heading bands with a light fill",
+		  "17365D", "17365D", false, "D9E2F3",  nullptr   },
+	};
+
+	GtkWidget * outer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+	for (const auto & s : sets)
+	{
+		GtkWidget * tile = gtk_button_new();
+		gtk_widget_add_css_class(tile, "flat");
+		gtk_widget_add_css_class(tile, "abinova-style-tile");
+		GtkWidget * vb = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+		gtk_widget_set_valign(vb, GTK_ALIGN_CENTER);
+
+		char mk[512];
+		g_snprintf(mk, sizeof(mk),
+			"<span weight='bold' size='large' fgcolor='#%s'>Title</span>",
+			s.tcolor);
+		GtkWidget * t = gtk_label_new(nullptr);
+		gtk_label_set_markup(GTK_LABEL(t), mk);
+		gtk_label_set_justify(GTK_LABEL(t),
+			s.center ? GTK_JUSTIFY_CENTER : GTK_JUSTIFY_LEFT);
+		gtk_box_append(GTK_BOX(vb), t);
+
+		char extra[160] = "";
+		if (s.hbg)
+			g_snprintf(extra, sizeof(extra), " bgcolor='#%s'", s.hbg);
+		else if (s.hul)
+			g_snprintf(extra, sizeof(extra),
+				" underline='single' underline_color='#%s'", s.hul);
+		g_snprintf(mk, sizeof(mk),
+			"<span weight='bold' size='small' fgcolor='#%s'%s>"
+			"Heading 1</span>", s.hcolor, extra);
+		GtkWidget * h = gtk_label_new(nullptr);
+		gtk_label_set_markup(GTK_LABEL(h), mk);
+		gtk_label_set_justify(GTK_LABEL(h),
+			s.center ? GTK_JUSTIFY_CENTER : GTK_JUSTIFY_LEFT);
+		gtk_box_append(GTK_BOX(vb), h);
+
+		GtkWidget * b = gtk_label_new(nullptr);
+		gtk_label_set_markup(GTK_LABEL(b),
+			"<span size='xx-small' fgcolor='#555555'>"
+			"Body text in a short paragraph.</span>");
+		gtk_box_append(GTK_BOX(vb), b);
+
+		gtk_button_set_child(GTK_BUTTON(tile), vb);
+		std::string tip = std::string("Style set: ") + s.name +
+			" \xE2\x80\x94 " + s.tip;
+		gtk_widget_set_tooltip_text(tile, tip.c_str());
+		gtk_widget_set_size_request(tile, 96, -1);
+		g_object_set_data_full(G_OBJECT(tile), "abi-set-key",
+							   g_strdup(s.key), g_free);
+		g_signal_connect(tile, "clicked",
+						 G_CALLBACK(_s_setgal_tile_clicked), this);
+		gtk_box_append(GTK_BOX(outer), tile);
+	}
+
+	/* gallery "more" chevron — the full set list + Set as Default */
+	GtkWidget * more = gtk_menu_button_new();
+	gtk_menu_button_set_icon_name(GTK_MENU_BUTTON(more),
+								  "pan-down-symbolic");
+	gtk_menu_button_set_has_frame(GTK_MENU_BUTTON(more), FALSE);
+	gtk_widget_set_tooltip_text(more, "More style sets");
+	XAP_gtk_a11y_name_from_tooltip(more);
+	gtk_widget_set_valign(more, GTK_ALIGN_END);
+	gtk_menu_button_set_popover(GTK_MENU_BUTTON(more),
+								_makeStyleSetsPopover());
+	gtk_box_append(GTK_BOX(outer), more);
+	return outer;
+}
+
+void AP_UnixRibbon::_s_setgal_tile_clicked(GtkWidget * w, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	const char * szKey = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(w), "abi-set-key"));
+	UT_return_if_fail(szKey);
+	self->_invokeEditMethod("styleSetApply", szKey);
+	self->_maybeReturnFocus();
 }
 
 /* Document Formatting gallery: built-in style sets rewrites the

@@ -203,6 +203,13 @@ responsibility** — see `README.md`.
   Colors a three-dot palette, Fonts an "Aa", Watermark a page with
   a washed-out "W", and Page Borders a page with an accent frame —
   no icon-theme dependency.
+- **Design tab structure parity** — the Design ribbon now follows
+  Word's real layout: Themes sits in a group of its own; Document
+  Formatting shows a clickable style-set tile gallery (mini
+  Title/Heading/body previews — click applies the set, the chevron
+  opens the full list) beside stacked Colors/Fonts and Paragraph
+  Spacing/Effects/Set as Default dropdowns; Page Background orders
+  Watermark → Page Color → Page Borders.
 - **Developer ribbon tab with content controls** — a new
   Word-style **Developer** tab carrying a Controls group: Plain
   Text, Check Box, Combo Box, Drop-down List and Date Picker
