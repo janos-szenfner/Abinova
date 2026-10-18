@@ -2433,6 +2433,9 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_WATERMARK):
 		popover = _makeWatermarkPopover();
 		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR):
+		popover = _makePageColorPopover();
+		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_DESIGN_PAGEBORDERS):
 		popover = _makePageBordersPopover();
 		break;
@@ -6239,12 +6242,218 @@ GtkWidget * AP_UnixRibbon::_makeWatermarkPopover()
 
 	gtk_box_append(GTK_BOX(box),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	/* wordcraft design.watermark.custom: a small dialog for free-form
+	 * stamp text (+ font/colour/size) instead of a preset */
+	GtkWidget * custom = _presetRow("<b>Custom Watermark\xE2\x80\xA6</b>",
+									nullptr, nullptr, nullptr, nullptr);
+	g_signal_connect(custom, "clicked",
+					 G_CALLBACK(_s_watermark_custom_clicked), this);
+	gtk_box_append(GTK_BOX(box), custom);
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("<b>Picture Watermark\xE2\x80\xA6</b>",
 							  nullptr, nullptr, "pageWatermark", "image"));
 	gtk_box_append(GTK_BOX(box),
 				   _presetRow("<b>Remove Watermark</b>",
 							  nullptr, nullptr, "pageWatermark", "none"));
+	return popover;
+}
+
+void AP_UnixRibbon::_s_watermark_custom_clicked(GtkWidget * w,
+												gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	_tb_popdown_popover(w);
+	self->_showCustomWatermarkDialog();
+}
+
+/* Custom Watermark dialog: free text + optional font/colour/size,
+ * written through the same pageWatermark edit method the preset
+ * stamps use (spec: text <t>|<rrggbb>|<family>|<pt>). */
+void AP_UnixRibbon::_showCustomWatermarkDialog()
+{
+	GtkWidget * toplevel = m_pFrame && m_pFrame->getFrameImpl()
+		? static_cast<XAP_UnixFrameImpl *>(
+			  m_pFrame->getFrameImpl())->getTopLevelWindow()
+		: nullptr;
+
+	GtkWidget * dlg = gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dlg), "Custom Watermark");
+	gtk_window_set_modal(GTK_WINDOW(dlg), true);
+	if (toplevel)
+		gtk_window_set_transient_for(GTK_WINDOW(dlg),
+									 GTK_WINDOW(toplevel));
+	gtk_dialog_add_button(GTK_DIALOG(dlg), "_Cancel",
+						  GTK_RESPONSE_CANCEL);
+	gtk_dialog_add_button(GTK_DIALOG(dlg), "_Apply", GTK_RESPONSE_OK);
+	gtk_dialog_set_default_response(GTK_DIALOG(dlg), GTK_RESPONSE_OK);
+
+	GtkWidget * content = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 8);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 8);
+	gtk_widget_set_margin_top(grid, 8);
+	gtk_widget_set_margin_bottom(grid, 8);
+	gtk_widget_set_margin_start(grid, 12);
+	gtk_widget_set_margin_end(grid, 12);
+	gtk_box_append(GTK_BOX(content), grid);
+
+	GtkWidget * lt = gtk_label_new("Text:");
+	gtk_widget_set_halign(lt, GTK_ALIGN_END);
+	gtk_grid_attach(GTK_GRID(grid), lt, 0, 0, 1, 1);
+	GtkWidget * entry = gtk_entry_new();
+	gtk_entry_set_placeholder_text(GTK_ENTRY(entry), "e.g. DRAFT");
+	gtk_widget_set_size_request(entry, 220, -1);
+	gtk_grid_attach(GTK_GRID(grid), entry, 1, 0, 1, 1);
+
+	GtkWidget * lf = gtk_label_new("Font:");
+	gtk_widget_set_halign(lf, GTK_ALIGN_END);
+	gtk_grid_attach(GTK_GRID(grid), lf, 0, 1, 1, 1);
+	GtkFontDialog * fontDlg = gtk_font_dialog_new();
+	GtkWidget * fontBtn = gtk_font_dialog_button_new(fontDlg);
+	gtk_font_dialog_button_set_level(GTK_FONT_DIALOG_BUTTON(fontBtn),
+									 GTK_FONT_LEVEL_FAMILY);
+	gtk_widget_set_hexpand(fontBtn, TRUE);
+	gtk_grid_attach(GTK_GRID(grid), fontBtn, 1, 1, 1, 1);
+
+	GtkWidget * lc = gtk_label_new("Color:");
+	gtk_widget_set_halign(lc, GTK_ALIGN_END);
+	gtk_grid_attach(GTK_GRID(grid), lc, 0, 2, 1, 1);
+	GtkColorDialog * colorDlg = gtk_color_dialog_new();
+	gtk_color_dialog_set_with_alpha(colorDlg, FALSE);
+	GtkWidget * colorBtn = gtk_color_dialog_button_new(colorDlg);
+	/* the washed-out grey Word stamps use */
+	GdkRGBA rgba = { 0.75, 0.75, 0.75, 1.0 };
+	gtk_color_dialog_button_set_rgba(GTK_COLOR_DIALOG_BUTTON(colorBtn),
+									 &rgba);
+	gtk_grid_attach(GTK_GRID(grid), colorBtn, 1, 2, 1, 1);
+
+	GtkWidget * ls = gtk_label_new("Size (pt, 0 = auto):");
+	gtk_widget_set_halign(ls, GTK_ALIGN_END);
+	gtk_grid_attach(GTK_GRID(grid), ls, 0, 3, 1, 1);
+	GtkWidget * sizeSpin = gtk_spin_button_new_with_range(0, 500, 1);
+	gtk_grid_attach(GTK_GRID(grid), sizeSpin, 1, 3, 1, 1);
+
+	g_object_set_data(G_OBJECT(dlg), "abi-wm-text", entry);
+	g_object_set_data(G_OBJECT(dlg), "abi-wm-font", fontBtn);
+	g_object_set_data(G_OBJECT(dlg), "abi-wm-color", colorBtn);
+	g_object_set_data(G_OBJECT(dlg), "abi-wm-size", sizeSpin);
+	g_signal_connect(dlg, "response",
+					 G_CALLBACK(_s_custom_watermark_response), this);
+	gtk_window_present(GTK_WINDOW(dlg));
+}
+
+void AP_UnixRibbon::_s_custom_watermark_response(GtkDialog * dlg,
+												 gint resp, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (resp == GTK_RESPONSE_OK && self)
+	{
+		GtkWidget * entry = static_cast<GtkWidget *>(
+			g_object_get_data(G_OBJECT(dlg), "abi-wm-text"));
+		GtkWidget * fontBtn = static_cast<GtkWidget *>(
+			g_object_get_data(G_OBJECT(dlg), "abi-wm-font"));
+		GtkWidget * colorBtn = static_cast<GtkWidget *>(
+			g_object_get_data(G_OBJECT(dlg), "abi-wm-color"));
+		GtkWidget * sizeSpin = static_cast<GtkWidget *>(
+			g_object_get_data(G_OBJECT(dlg), "abi-wm-size"));
+
+		std::string sText = gtk_editable_get_text(GTK_EDITABLE(entry));
+		while (!sText.empty() && isspace(sText.front()))
+			sText.erase(sText.begin());
+		while (!sText.empty() && isspace(sText.back()))
+			sText.pop_back();
+		/* '|' is the spec's field separator */
+		for (char & c : sText)
+			if (c == '|')
+				c = ' ';
+		if (!sText.empty())
+		{
+			std::string spec = "text " + sText + "|";
+
+			const GdkRGBA * rgba = gtk_color_dialog_button_get_rgba(
+				GTK_COLOR_DIALOG_BUTTON(colorBtn));
+			GdkRGBA fallback = { 0.75, 0.75, 0.75, 1.0 };
+			if (!rgba)
+				rgba = &fallback;
+			char hex[8];
+			g_snprintf(hex, sizeof(hex), "%02x%02x%02x",
+					   static_cast<int>(rgba->red   * 255),
+					   static_cast<int>(rgba->green * 255),
+					   static_cast<int>(rgba->blue  * 255));
+			spec += hex;
+
+			spec += "|";
+			PangoFontDescription * desc =
+				gtk_font_dialog_button_get_font_desc(
+					GTK_FONT_DIALOG_BUTTON(fontBtn));
+			const char * fam =
+				desc ? pango_font_description_get_family(desc) : nullptr;
+			if (fam && *fam)
+				spec += fam;
+
+			spec += "|";
+			int iPt = gtk_spin_button_get_value_as_int(
+				GTK_SPIN_BUTTON(sizeSpin));
+			if (iPt > 0)
+				spec += std::to_string(iPt);
+
+			self->_invokeEditMethod("pageWatermark", spec.c_str());
+		}
+	}
+	gtk_window_destroy(GTK_WINDOW(dlg));
+}
+
+/* Page Color dropdown (wordcraft design.pageColor): a No Color row,
+ * the shared swatch palette, then More Colors -> the Background
+ * dialog so the full chooser stays reachable. */
+GtkWidget * AP_UnixRibbon::_makePageColorPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("No Color", "Transparent page background",
+							  nullptr, "pageColor", "none"));
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Colors"));
+
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 2);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 2);
+	for (guint i = 0; i < G_N_ELEMENTS(_s_color_palette); ++i)
+	{
+		GtkWidget * sw = gtk_button_new();
+		gtk_widget_set_size_request(sw, 20, 20);
+		gtk_widget_set_tooltip_text(sw, _s_color_palette[i]);
+		char css[160];
+		g_snprintf(css, sizeof(css),
+				   "button { background-image: none;"
+				   " background-color: #%s; min-width: 20px;"
+				   " min-height: 20px; padding: 0; }",
+				   _s_color_palette[i]);
+		GtkCssProvider * cssProv = gtk_css_provider_new();
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+		gtk_css_provider_load_from_string(cssProv, css);
+G_GNUC_END_IGNORE_DEPRECATIONS
+		gtk_style_context_add_provider(gtk_widget_get_style_context(sw),
+									   GTK_STYLE_PROVIDER(cssProv),
+									   GTK_STYLE_PROVIDER_PRIORITY_USER);
+		g_object_unref(cssProv);
+		g_object_set_data_full(G_OBJECT(sw), "abi-em-method",
+							   g_strdup("pageColor"), g_free);
+		g_object_set_data_full(G_OBJECT(sw), "abi-em-data",
+							   g_strdup(_s_color_palette[i]), g_free);
+		g_signal_connect(sw, "clicked",
+						 G_CALLBACK(_s_popover_em_clicked), this);
+		gtk_grid_attach(GTK_GRID(grid), sw, i % 10, i / 10, 1, 1);
+	}
+	gtk_box_append(GTK_BOX(box), grid);
+
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>More Colors\xE2\x80\xA6</b>",
+							  nullptr, nullptr, "dlgBackground", nullptr));
 	return popover;
 }
 

@@ -114,7 +114,13 @@ private:
 	GtkWidget *		_makeThemeColorsPopover();
 	GtkWidget *		_makeThemeFontsPopover();
 	GtkWidget *		_makeWatermarkPopover();
+	GtkWidget *		_makePageColorPopover();
 	GtkWidget *		_makePageBordersPopover();
+	void			_showCustomWatermarkDialog();
+	static void		_s_watermark_custom_clicked(GtkWidget * w,
+													gpointer data);
+	static void		_s_custom_watermark_response(GtkDialog * dlg,
+												 gint resp, gpointer data);
 	GtkWidget *		_makeWrapPopover();
 	GtkWidget *		_makePositionPopover();
 	GtkWidget *		_makeAlignObjPopover();

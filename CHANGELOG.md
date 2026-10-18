@@ -210,6 +210,15 @@ responsibility** — see `README.md`.
   opens the full list) beside stacked Colors/Fonts and Paragraph
   Spacing/Effects/Set as Default dropdowns; Page Background orders
   Watermark → Page Color → Page Borders.
+- **Page Color dropdown + Custom Watermark** — Page Color is now a
+  real Word-style dropdown: a **No Color** row (clears the page
+  background), the shared 40-swatch palette applied document-wide,
+  and **More Colors…** which opens the existing Background dialog.
+  The Watermark dropdown gains a **Custom Watermark…** row — a small
+  dialog for free-form stamp text plus optional font family, colour
+  and size, written as `page-watermark-text`/`-color`/`-font`/`-size`
+  section properties. Picking a swatch also scriptable as the new
+  `pageColor` edit method (`pageColor rrggbb`, `pageColor none`).
 - **Developer ribbon tab with content controls** — a new
   Word-style **Developer** tab carrying a Controls group: Plain
   Text, Check Box, Combo Box, Drop-down List and Date Picker

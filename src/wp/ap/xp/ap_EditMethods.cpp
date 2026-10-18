@@ -889,6 +889,7 @@ public:
 	static EV_EditMethod_Fn paraSpacing;
 	static EV_EditMethod_Fn pageWatermark;
 	static EV_EditMethod_Fn pageBorders;
+	static EV_EditMethod_Fn pageColor;
 	static EV_EditMethod_Fn footnoteNext;
 	static EV_EditMethod_Fn footnotePrev;
 	static EV_EditMethod_Fn endnoteNext;
@@ -1376,6 +1377,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 
 	// p
 	EV_EditMethod(NF(pageBorders),			0,	""),
+	EV_EditMethod(NF(pageColor),			0,	""),
 #ifdef ENABLE_PRINT
 	EV_EditMethod(NF(pageColumns),			0,	""),
 	EV_EditMethod(NF(pageMargins),			0,	""),
@@ -8023,17 +8025,46 @@ Defun(pageWatermark)
 	{
 		std::string sText = sSpec.substr(5);
 		std::string sColor;
-		size_t sp = sText.rfind(' ');
-		if (sp != std::string::npos)
+		std::string sFont;
+		std::string sSize;
+		/* the custom-watermark dialog passes the optional fields
+		 * pipe-separated after the text so multi-word family names
+		 * stay unambiguous: text <t>|<rrggbb>|<family>|<pt> */
+		size_t pipe = sText.find('|');
+		if (pipe != std::string::npos)
 		{
-			const std::string sTail = sText.substr(sp + 1);
-			bool bHex = (sTail.size() == 6);
-			for (char c : sTail)
-				bHex = bHex && isxdigit(static_cast<unsigned char>(c));
-			if (bHex)
+			std::string sExt = sText.substr(pipe + 1);
+			sText = sText.substr(0, pipe);
+			std::vector<std::string> fields;
+			size_t pos = 0;
+			while (pos <= sExt.size())
 			{
-				sColor = sTail;
-				sText = sText.substr(0, sp);
+				size_t sep = sExt.find('|', pos);
+				fields.push_back(sExt.substr(
+					pos, sep == std::string::npos
+						 ? std::string::npos : sep - pos));
+				if (sep == std::string::npos)
+					break;
+				pos = sep + 1;
+			}
+			if (fields.size() > 0) sColor = fields[0];
+			if (fields.size() > 1) sFont  = fields[1];
+			if (fields.size() > 2) sSize  = fields[2];
+		}
+		else
+		{
+			size_t sp = sText.rfind(' ');
+			if (sp != std::string::npos)
+			{
+				const std::string sTail = sText.substr(sp + 1);
+				bool bHex = (sTail.size() == 6);
+				for (char c : sTail)
+					bHex = bHex && isxdigit(static_cast<unsigned char>(c));
+				if (bHex)
+				{
+					sColor = sTail;
+					sText = sText.substr(0, sp);
+				}
 			}
 		}
 		while (!sText.empty() && isspace(sText.back()))
@@ -8045,6 +8076,16 @@ Defun(pageWatermark)
 		{
 			props.push_back("page-watermark-color");
 			props.push_back(sColor);
+		}
+		if (!sFont.empty())
+		{
+			props.push_back("page-watermark-font");
+			props.push_back(sFont);
+		}
+		if (!sSize.empty())
+		{
+			props.push_back("page-watermark-size");
+			props.push_back(sSize + "pt");
 		}
 		return pView->setDocWideSectionFormat(props);
 	}
@@ -8147,6 +8188,37 @@ Defun(pageBorders)
 		props.push_back("text");
 	}
 	return pView->setDocWideSectionFormat(props);
+}
+
+/*
+ * Design > Page Color (wordcraft design.pageColor): the paper
+ * background, written doc-wide like Word's command. callData is
+ * "none"/"transparent" to clear, otherwise an rrggbb swatch hex.
+ */
+Defun(pageColor)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string sSpec(s.utf8_str());
+
+	std::string sClr = "transparent";
+	if (!sSpec.empty() && sSpec != "none" && sSpec != "transparent")
+	{
+		bool bHex = (sSpec.size() == 6);
+		for (char c : sSpec)
+			bHex = bHex && isxdigit(static_cast<unsigned char>(c));
+		UT_return_val_if_fail(bHex, false);
+		sClr = sSpec;
+	}
+	const PP_PropertyVector props = { "background-color", sClr };
+	if (!pView->setDocWideSectionFormat(props))
+		return false;
+	UT_Rect rect(0, 0, pView->getWindowWidth(), pView->getWindowHeight());
+	pView->queueDraw(&rect);
+	return true;
 }
 
 /*

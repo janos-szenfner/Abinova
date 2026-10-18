@@ -643,22 +643,27 @@ and page-background controls. The tab splits into three groups:
   page size, boilerplate content and other template data are
   preserved.
 - **Watermark**: Word's built-in text stamps (CONFIDENTIAL,
-  DO NOT COPY, DRAFT, SAMPLE, ASAP, URGENT) plus **Picture
-  Watermark…** and **Remove Watermark** — painted as a washed-out
-  diagonal stamp (or centred image) behind the content of every
-  page, stored as `page-watermark-*` section properties so it
-  survives `.abwn` round-trips.
+  DO NOT COPY, DRAFT, SAMPLE, ASAP, URGENT) plus **Custom
+  Watermark…** (a small dialog for free-form stamp text with
+  optional font, colour and size), **Picture Watermark…** and
+  **Remove Watermark** — painted as a washed-out diagonal stamp
+  (or centred image) behind the content of every page, stored as
+  `page-watermark-*` section properties so it survives `.abwn`
+  round-trips.
 - **Page Borders**: Box, Thick Box, Double, Dashed, Wave and
   Edge of Page presets plus **No Border** — rules around the
   text area or the paper edge, stored as the OOXML
   `w:pgBorders`-style `page-border-*` section properties shared
-  with `.docx`/`.doc` import; **Page Color** (shared with the
-  Layout tab) rounds out the Page Background group.
+  with `.docx`/`.doc` import. **Page Color** is a Word-style
+  dropdown — **No Color**, the 40-swatch palette applied
+  document-wide, and **More Colors…** opening the full colour
+  dialog — which rounds out the Page Background group.
 
 All the galleries dispatch real edit methods — `designTheme`,
 `styleSetApply`, `paraSpacing`, `themeColorsApply`,
-`themeFontsApply`, `pageWatermark` and `pageBorders` — so the
-control channel can drive them for automation.
+`themeFontsApply`, `pageWatermark`, `pageColor` and
+`pageBorders` — so the control channel can drive them for
+automation.
 
 #### References tab
 
