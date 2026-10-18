@@ -30,7 +30,7 @@ separate-locales: false  # English-only UI; no locale files exist to split
 # gstreamer stack (gst-plugins-base/good/bad/ugly + libav via the
 # codecs-extra extension) behind GtkMediaFile playback of embedded media.
 # The vendored libs (librevenge, libwpd, libwpg, libwps, wv,
-# hunspell-1.7.4) are noinst convenience archives folded statically into
+# hunspell-1.7.5) are noinst convenience archives folded statically into
 # libabinova by the tree's own build (top-level SUBDIRS is thirdparty
 # first), so they need no modules of their own.
 #

@@ -19,7 +19,7 @@ application under `<datadir>/licenses/<name>/` (see §8).
 
 | Directory | Version | Upstream | License | License files |
 |---|---|---|---|---|
-| hunspell-1.7.4 | 1.7.4 | hunspell.github.io | MPL-1.1 / GPL-2.0+ / LGPL-2.1+ (tri-license) | `COPYING`, `COPYING.LESSER`, `COPYING.MPL`, `license.hunspell`, `license.myspell` |
+| hunspell-1.7.5 | 1.7.5 | hunspell.github.io | MPL-1.1 / GPL-2.0+ / LGPL-2.1+ (tri-license) | `COPYING`, `COPYING.LESSER`, `COPYING.MPL`, `license.hunspell`, `license.myspell` |
 | librevenge-0.0.6 | 0.0.6 | sourceforge.net/p/libwpd | LGPL-2.1+ / MPL-2.0 | `COPYING.LGPL`, `COPYING.MPL` |
 | libwpd-0.10.3 | 0.10.3 | libwpd.sourceforge.net | LGPL-2.1+ / MPL-2.0 | `COPYING.LGPL`, `COPYING.MPL` |
 | libwpg-0.3.4 | 0.3.4 | libwpg.sourceforge.net | LGPL-2.1+ / MPL-2.0 | `COPYING.LGPL`, `COPYING.MPL` |

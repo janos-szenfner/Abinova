@@ -1,3 +1,12 @@
+2026-10-04: Hunspell 1.7.5 release:
+  - -D lists only the dictionaries directly in each search folder, and
+    no longer recurses into subfolders or lists hyphenation tables
+    (#1152)
+  - Search LibreOffice's dict-* extension folders for dictionaries
+    (#1152)
+  - Build with MSVC using the updated ax_cxx_compile_stdcxx
+  - oss-fuzz fixes and hardening
+
 2026-09-27: Hunspell 1.7.4 release:
   - New --trace option, and Hunspell::set_trace_callback in the library,
     to report how each word was accepted or rejected, for dictionary

@@ -313,6 +313,10 @@ responsibility** — see `README.md`.
   C0 control characters instead of emitting invalid JSON. Remaining
   reports were GTK/fontconfig-internal noise; findings are in
   `.devin/W22-memory.md`.
+- **Vendored hunspell upgraded to 1.7.5** — the bundled
+  spell-checking engine moved from 1.7.4 to the upstream 1.7.5
+  release (`thirdparty/hunspell-1.7.5`); `thirdparty/VENDORED.json`
+  records the new tarball URL and SHA-256.
 
 ## [4.0.2] — 2026-10-17
 

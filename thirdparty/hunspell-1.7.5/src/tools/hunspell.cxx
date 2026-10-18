@@ -1780,6 +1780,38 @@ char* exist2(char* dir, int len, const char* name, const char* ext) {
   return nullptr;
 }
 
+// the dict-* subfolders of a LibreOffice share/extensions folder, sorted by name
+std::vector<std::string> list_dict_extensions(const std::string& dir) {
+  std::vector<std::string> subdirs;
+#if !defined(WIN32) || defined(__MINGW32__)
+  DIR* d = opendir(dir.c_str());
+  if (!d)
+    return subdirs;
+  struct dirent* de;
+  while ((de = readdir(d))) {
+    if (strncmp(de->d_name, "dict-", 5) != 0)
+      continue;
+    std::string entry = dir + DIRSEP + de->d_name;
+    struct stat st;
+    if (stat(entry.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
+      subdirs.push_back(entry);
+  }
+  closedir(d);
+#else
+  WIN32_FIND_DATA de;
+  HANDLE handle = FindFirstFile((dir + DIRSEP + "dict-*").c_str(), &de);
+  if (handle == INVALID_HANDLE_VALUE)
+    return subdirs;
+  do {
+    if (de.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+      subdirs.push_back(dir + DIRSEP + de.cFileName);
+  } while (FindNextFile(handle, &de));
+  FindClose(handle);
+#endif
+  std::sort(subdirs.begin(), subdirs.end());
+  return subdirs;
+}
+
 int listdicpath(char* dir, int len) {
   std::string buf;
   const char* sep = (len == 0) ? "" : DIRSEP;
@@ -1791,26 +1823,15 @@ int listdicpath(char* dir, int len) {
     return 0;
   struct dirent* de;
   while ((de = readdir(d))) {
-    const char* name = de->d_name;
-    if (name[0] == '.')  // skip ".", "..", and dotfiles
+    if (strncmp(de->d_name, "hyph_", 5) == 0)  // hyphenation tables, not spell dicts
       continue;
-    std::string entry = buf + name;
-    struct stat st;
-    if (stat(entry.c_str(), &st) != 0)
-      continue;
-    if (S_ISDIR(st.st_mode)) {
-      // recurse so LO's share/extensions/dict-XX/*.dic layout is found
-      listdicpath(&entry[0], entry.size());
-      continue;
-    }
-    if (strncmp(name, "hyph_", 5) == 0)  // hyphenation tables, not spell dicts
-      continue;
-    len = strlen(name);
-    bool is_hz = len > 7 && strcmp(name + len - 7, ".dic.hz") == 0;
-    bool is_dic = len > 4 && strcmp(name + len - 4, ".dic") == 0;
-    if (is_hz || is_dic) {
-      std::string s(name, len - (is_hz ? 7 : 4));
-      fprintf(stderr, "%s%s\n", buf.c_str(), s.c_str());
+    len = strlen(de->d_name);
+    if ((len > 4 && strcmp(de->d_name + len - 4, ".dic") == 0) ||
+        (len > 7 && strcmp(de->d_name + len - 7, ".dic.hz") == 0)) {
+      char* s = mystrdup(de->d_name);
+      s[len - ((s[len - 1] == 'z') ? 7 : 4)] = '\0';
+      fprintf(stderr, "%s%s\n", buf.c_str(), s);
+      free(s);
     }
   }
   closedir(d);
@@ -1825,12 +1846,8 @@ int listdicpath(char* dir, int len) {
       continue;
     if (name[0] == '.')  // skip ".", "..", and dotfiles
       continue;
-    if (de.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-      // recurse so LO's share\extensions\dict-XX\*.dic layout is found
-      std::string sub = buf + name;
-      listdicpath(&sub[0], sub.size());
+    if (de.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
       continue;
-    }
     if (strncmp(name, "hyph_", 5) == 0)  // hyphenation tables, not spell dicts
       continue;
     len = strlen(name);
@@ -2219,7 +2236,15 @@ int main(int argc, char** argv) {
         add_dirs(std::string(HOME) + DIRSEP + i, "");
       }
       add_dirs(OOODIR, "");
+      // LibreOffice installs each dictionary extension in its own share/extensions/dict-XX
+      size_t first_lodir = dirs.size();
       add_dirs(LODIR, "");
+      std::vector<std::string> lodirs(dirs.begin() + first_lodir, dirs.end());
+      dirs.resize(first_lodir);
+      for (const auto& lodir : lodirs) {
+        for (const auto& extension : list_dict_extensions(lodir))
+          add_dirs(extension, "");
+      }
     }
     for (auto& dir : dirs) {
       path_std_str.append(dir).append(PATHSEP);

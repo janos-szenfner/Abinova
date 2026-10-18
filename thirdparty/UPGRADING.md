@@ -20,7 +20,7 @@ honest with:
 
 | library          | vendored | upstream delta |
 |------------------|----------|----------------|
-| hunspell-1.7.4   | src/{hunspell,parsers,tools} + top docs/licenses | none — zero patched files; upstream build machinery, po/, man/, tests/ dropped |
+| hunspell-1.7.5   | src/{hunspell,parsers,tools} + top docs/licenses | none — zero patched files; upstream build machinery, po/, man/, tests/ dropped |
 | librevenge-0.0.6 | inc/ + src/lib/ + COPYING.*/README | none |
 | libwpd-0.10.3    | inc/ + src/lib/ + COPYING.*/README | none |
 | libwpg-0.3.4     | inc/ + src/lib/ + COPYING.*/README | none |

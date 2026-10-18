@@ -154,7 +154,7 @@ install-data-local:
 	cp -r $(srcdir)/help $(DESTDIR)@ABINOVA_DATADIR@/
 	cp -r $(srcdir)/artwork $(DESTDIR)@ABINOVA_DATADIR@/
 	rm -rf $(DESTDIR)@ABINOVA_DATADIR@/licenses
-	for d in hunspell-1.7.4 librevenge-0.0.6 libwpd-0.10.3 libwpg-0.3.4 libwps-0.4.14 wv-1.2.9; do \
+	for d in hunspell-1.7.5 librevenge-0.0.6 libwpd-0.10.3 libwpg-0.3.4 libwps-0.4.14 wv-1.2.9; do \
 		mkdir -p $(DESTDIR)@ABINOVA_DATADIR@/licenses/$$d; \
 		for f in $(srcdir)/thirdparty/$$d/COPYING* $(srcdir)/thirdparty/$$d/LICENSE* $(srcdir)/thirdparty/$$d/license*; do \
 			if [ -f "$$f" ]; then cp "$$f" $(DESTDIR)@ABINOVA_DATADIR@/licenses/$$d/; fi; \

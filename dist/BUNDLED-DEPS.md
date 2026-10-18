@@ -118,7 +118,7 @@ binary NEEDs only `libabinova-4.0.so` + `libc`, `make install` in
 
 | Library | Source dir | Notes |
 |---|---|---|
-| hunspell 1.7.4 | thirdparty/hunspell-1.7.4 | libhunspell.la, noinst |
+| hunspell 1.7.5 | thirdparty/hunspell-1.7.5 | libhunspell.la, noinst |
 | libwv (wvWare 1.2.9) | thirdparty/wv-1.2.9 | libwv.la, noinst — .doc import |
 | librevenge 0.0.6 | thirdparty/librevenge-0.0.6 | noinst — libwpd/libwps base |
 | libwpd 0.10.3 | thirdparty/libwpd-0.10.3 | noinst — .wpd import |
