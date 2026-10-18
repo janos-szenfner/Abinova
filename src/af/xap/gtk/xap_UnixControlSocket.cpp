@@ -272,6 +272,22 @@ static void _conn_send(_Conn * c, long id, const char * result,
 static std::vector<std::string> s_roots_read;
 static std::vector<std::string> s_roots_write;
 
+/* realpath() without the POSIX header: the MSVCRT/UCRT headers
+ * mingw builds against do not declare it. On Windows, canonicalize
+ * textually when the target exists — junction chasing would need a
+ * handle walk, and both confinement sides pass through this same
+ * transform so textual canonicalization is consistent. */
+static gchar * s_realpath(const char * path)
+{
+#ifdef G_OS_WIN32
+	if (!g_file_test(path, G_FILE_TEST_EXISTS))
+		return nullptr;
+	return g_canonicalize_filename(path, nullptr);
+#else
+	return realpath(path, nullptr);
+#endif
+}
+
 /* resolve through symlinks as far as the filesystem allows:
  * realpath() when the path exists, else realpath of the deepest
  * existing ancestor with the remaining components re-appended
@@ -282,7 +298,7 @@ static std::string _resolve_path(const std::string & p)
 	std::string tail;
 	for (int depth = 0; depth < 64; ++depth)
 	{
-		gchar * real = realpath(cur.c_str(), nullptr);
+		gchar * real = s_realpath(cur.c_str());
 		if (real)
 		{
 			std::string out = real;
@@ -1572,9 +1588,11 @@ bool abi_control_start(XAP_App * pApp, int port)
 	 * g_file_set_contents + a later chmod leaves a window where a
 	 * permissive umask exposes the key to other local users */
 	{
-		const int kfd = g_open(s_ctl.key_path.c_str(),
-							   O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW,
-							   0600);
+		int kflags = O_WRONLY | O_CREAT | O_TRUNC;
+#ifdef O_NOFOLLOW
+		kflags |= O_NOFOLLOW;
+#endif
+		const int kfd = g_open(s_ctl.key_path.c_str(), kflags, 0600);
 		bool wrote = false;
 		if (kfd >= 0)
 		{
