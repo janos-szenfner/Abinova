@@ -259,6 +259,8 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+
       - uses: actions/download-artifact@v8
         with:
           path: release-files
@@ -270,9 +272,20 @@ jobs:
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
         run: |
           REPO="${{ github.repository }}"
+          # release notes = this version's CHANGELOG.md section
+          VER="${TAG#v}"
+          awk -v v="$VER" \
+            '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ && f {exit} f' \
+            CHANGELOG.md | sed '1{/^$/d}' > release-notes.md
           if ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-            gh release create "$TAG" --repo "$REPO" \
-              --title "Abinova ${TAG#v}" \
-              --notes "Automated release build of Abinova ${TAG#v}."
+            if [ -s release-notes.md ]; then
+              gh release create "$TAG" --repo "$REPO" \
+                --title "Abinova ${TAG#v}" \
+                --notes-file release-notes.md
+            else
+              gh release create "$TAG" --repo "$REPO" \
+                --title "Abinova ${TAG#v}" \
+                --notes "Automated release build of Abinova ${TAG#v}."
+            fi
           fi
           gh release upload "$TAG" release-files/* --repo "$REPO" --clobber
