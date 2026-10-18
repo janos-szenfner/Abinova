@@ -333,6 +333,28 @@ responsibility** — see `README.md`.
   spell-checking engine moved from 1.7.4 to the upstream 1.7.5
   release (`thirdparty/hunspell-1.7.5`); `thirdparty/VENDORED.json`
   records the new tarball URL and SHA-256.
+- **Idle-freeze investigation + hardening (macOS report)** — the
+  autosave path now has stage-by-stage diagnostics: launching with
+  `ABINOVA_DEBUG_AUTOSAVE=1` prints a timestamped line on stderr for
+  each stage (tick, instance lock, UI-thread encode, decode gate,
+  worker enqueue, write completion, and the pending-writes wait), so
+  a frozen session can be narrowed to the stage that never finishes.
+  Alongside it, three real stalls were fixed: the inter-instance
+  recovery lock is now released as soon as the background write
+  lands instead of being held for up to a whole autosave period (a
+  second instance — or an external locker — could previously block
+  on it indefinitely); `UT_AsyncWrite_waitForTarget`, which autosave
+  teardown calls on the UI thread, is bounded to 30 s and logs the
+  stuck job instead of freezing forever; and a background-writer
+  spawn failure now falls back to a synchronous write rather than
+  leaving a permanently queued job that every later wait would hang
+  on. On macOS the app additionally holds an `NSProcessInfo`
+  activity token (`NSActivityUserInitiated | NSActivityLatencyCritical`)
+  for its lifetime so App Nap can't throttle an occluded window into
+  looking frozen. If a freeze still occurs, please capture
+  `sample <pid> 10` (or `spindump <pid>`) while it is hung together
+  with the `ABINOVA_DEBUG_AUTOSAVE` trace — that pinpoints the
+  remaining stage.
 
 ## [4.0.2] — 2026-10-17
 

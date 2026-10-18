@@ -269,12 +269,37 @@ void UT_AsyncWrite_enqueue(const char * szTarget, GBytes * payload,
 		}
 		l = next;
 	}
+	bool bSyncWrite = false;
+
 	g_queue_push_tail(&s_queue, job);
 	if (!s_workerRunning)
 	{
 		s_workerRunning = true;
-		GThread * th = g_thread_new("abn-asyncwrite", worker_main, nullptr);
-		g_thread_unref(th);
+		/* try_new, not new: g_thread_new() aborts on failure while
+		 * leaving s_workerRunning stuck true with a live queue — and a
+		 * permanently queued job is exactly what hangs
+		 * UT_AsyncWrite_waitForTarget()'s caller (the UI thread, for
+		 * autosave teardown).  On failure take our job back and write
+		 * it inline; the next enqueue retries the spawn. */
+		GError * gerr = nullptr;
+		GThread * th = g_thread_try_new("abn-asyncwrite", worker_main,
+										nullptr, &gerr);
+		if (th)
+		{
+			g_thread_unref(th);
+		}
+		else
+		{
+			s_workerRunning = false;
+			g_queue_remove(&s_queue, job);
+			UT_WARNINGMSG(("UT_AsyncWrite: worker spawn failed (%s) — "
+						   "writing '%s' on the caller thread\n",
+						   gerr ? gerr->message : "?",
+						   job->target.c_str()));
+			if (gerr)
+				g_error_free(gerr);
+			bSyncWrite = true;
+		}
 	}
 	g_cond_broadcast(&s_cond);
 	g_mutex_unlock(&s_mx);
@@ -283,6 +308,15 @@ void UT_AsyncWrite_enqueue(const char * szTarget, GBytes * payload,
 	for (GList * l = superseded; l; l = l->next)
 		post_done(static_cast<AsyncWriteJob *>(l->data));
 	g_list_free(superseded);
+
+	if (bSyncWrite)
+	{
+		/* after the superseded posts so done order still matches
+		 * write order for this target */
+		job->result = UT_AsyncWrite_syncWrite(job->target.c_str(),
+											  job->bytes);
+		post_done(job);
+	}
 }
 
 void UT_AsyncWrite_waitAll(void)
@@ -306,6 +340,15 @@ void UT_AsyncWrite_waitAll(void)
 
 void UT_AsyncWrite_waitForTarget(const char * szTarget)
 {
+	/* Bounded wait: autosave teardown calls this on the UI thread, so
+	 * a job wedged in the worker (dead filesystem, missing worker)
+	 * used to freeze the whole app at the next autosave tick — the
+	 * prime suspect in the macOS idle-freeze report.  30 s is far
+	 * beyond any sane write; on expiry we log the stuck state and
+	 * proceed, accepting the ".part" collision risk over a permanent
+	 * stall. */
+	const gint64 iDeadline = g_get_monotonic_time() +
+		30 * G_USEC_PER_SEC;
 	g_mutex_lock(&s_mx);
 	for (;;)
 	{
@@ -325,7 +368,16 @@ void UT_AsyncWrite_waitForTarget(const char * szTarget)
 		}
 		if (!found)
 			break;
-		g_cond_wait(&s_cond, &s_mx);
+		if (!g_cond_wait_until(&s_cond, &s_mx, iDeadline))
+		{
+			UT_WARNINGMSG(("UT_AsyncWrite: waitForTarget('%s') timed out "
+						   "after 30s — active='%s' queued=%u, proceeding "
+						   "anyway\n",
+						   szTarget ? szTarget : "*",
+						   s_activeSet ? s_activeTarget.c_str() : "",
+						   s_queue.length));
+			break;
+		}
 	}
 	g_mutex_unlock(&s_mx);
 }

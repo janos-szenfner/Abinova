@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <errno.h>
 #include <fcntl.h>
 #ifdef G_OS_WIN32
@@ -75,6 +76,42 @@
 // MSVC++ warns about using 'this' in initializer list.
 #pragma warning(disable: 4355)
 #endif
+
+/* ---- autosave stage tracing (idle-freeze telemetry) -------------- */
+/* ABINOVA_DEBUG_AUTOSAVE=1 turns on timestamped stage tracing of the
+ * recovery-write path: tick, lock, encode, decode gate, enqueue,
+ * completion, and the pending-writes wait each announce enter/exit, so
+ * a "frozen" report can be narrowed to the stage whose exit line never
+ * prints.  UT_WARNINGMSG reaches stderr in release builds too — the
+ * switch exists so a user can run a normal build and report where the
+ * trace stops. */
+static bool s_debugAutosave(void)
+{
+	static int s_iDebug = -1;
+	if (s_iDebug < 0)
+	{
+		const char * env = getenv("ABINOVA_DEBUG_AUTOSAVE");
+		s_iDebug = (env && *env && g_strcmp0(env, "0") != 0) ? 1 : 0;
+	}
+	return s_iDebug == 1;
+}
+
+static void s_autosaveTrace(const char * fmt, ...) ABI_PRINTF_FORMAT(1,2);
+static void s_autosaveTrace(const char * fmt, ...)
+{
+	if (!s_debugAutosave())
+		return;
+	va_list ap;
+	va_start(ap, fmt);
+	gchar * msg = g_strdup_vprintf(fmt, ap);
+	va_end(ap);
+	const gint64 iNow = g_get_monotonic_time();
+	UT_WARNINGMSG(("autosave[%lld.%03lld] %s\n",
+				   static_cast<long long>(iNow / G_USEC_PER_SEC),
+				   static_cast<long long>((iNow / 1000) % 1000),
+				   msg ? msg : ""));
+	g_free(msg);
+}
 
 XAP_Frame::XAP_Frame(XAP_FrameImpl *pFrameImpl)
 	: m_pDoc(nullptr),
@@ -459,9 +496,15 @@ void XAP_Frame::_restoreAutosavePeriod(void)
  */
 void XAP_Frame::autosaveTick()
 {
+	s_autosaveTrace("tick");
 	AD_Document * pDoc = getCurrentDoc();
 	if (!pDoc || pDoc->isPieceTableChanging() || m_bBackupInProgress)
 	{
+		s_autosaveTrace("tick deferred: doc=%p pt-changing=%d "
+						"backup-in-progress=%d",
+						static_cast<void *>(pDoc),
+						(pDoc && pDoc->isPieceTableChanging()) ? 1 : 0,
+						m_bBackupInProgress ? 1 : 0);
 		// mid-mutation saves can produce a corrupt export; retry on a
 		// short fuse rather than slipping the whole period
 		_armAutosaveRetry();
@@ -476,6 +519,9 @@ void XAP_Frame::autosaveTick()
 			makeBackupName() == m_stAutoSaveNamePrevious &&
 			UT_isRegularFile(m_stAutoSaveNamePrevious.c_str()))
 		{
+			s_autosaveTrace("tick skip: on-disk recovery copy already "
+							"current (serial %lld)",
+							static_cast<long long>(iSerial));
 			/* content identical to the recovery copy already on disk —
 			 * skipping the serialize is what keeps an idle dirty doc
 			 * from stalling the UI every period.  The name compare
@@ -492,11 +538,16 @@ void XAP_Frame::autosaveTick()
 			now - tLastChange < AUTOSAVE_QUIET_SECS &&
 			now - m_tBackupTime < static_cast<time_t>(m_iAutoSavePeriod) * 60)
 		{
+			s_autosaveTrace("tick deferred: edits still streaming "
+							"(last change %llds ago)",
+							static_cast<long long>(now - tLastChange));
 			_armAutosaveRetry();
 			return;
 		}
 
+		s_autosaveTrace("tick -> backup()");
 		UT_Error error = backup();
+		s_autosaveTrace("tick <- backup() rc=%d", static_cast<int>(error));
 		if (error == UT_OK)
 		{
 			m_pBackupDoc = pDoc;
@@ -517,6 +568,7 @@ void XAP_Frame::autosaveTick()
 	}
 	else
 	{
+		s_autosaveTrace("tick: doc clean -> discardAutosaveFile");
 		discardAutosaveFile();
 	}
 	_restoreAutosavePeriod();
@@ -1226,6 +1278,8 @@ std::string XAP_Frame::makeBackupName(const char* szExt)
 UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 						   bool bSkipInstanceLock)
 {
+	s_autosaveTrace("backup: enter (in-progress=%d)",
+					m_bBackupInProgress ? 1 : 0);
 	if (m_bBackupInProgress || !m_pDoc)
 		return UT_OK;
 
@@ -1237,6 +1291,8 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 	 * lingers either. */
 	if (m_pDoc->isSaveProtected())
 	{
+		s_autosaveTrace("backup: doc is save-protected, dropping any "
+						"plaintext copy");
 		_removeAutoSaveFile();
 		std::string own = makeBackupName(szExt);
 		if (!own.empty())
@@ -1269,19 +1325,30 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 	 * lock must stay held until it lands — ownership moves into the
 	 * job's shared state and is released when the write completes */
 	s_AutosaveLock * pInstLock = new s_AutosaveLock;
-	if (!bSkipInstanceLock &&
-		pInstLock->tryLock(backupPath + ".lock") == s_LockBusy)
+	const s_AutosaveLockResult lockRc = bSkipInstanceLock
+		? s_LockUnavailable
+		: pInstLock->tryLock(backupPath + ".lock");
+	if (lockRc == s_LockBusy)
 	{
+		s_autosaveTrace("backup: lock busy on %s.lock, deferring",
+						backupPath.c_str());
 		delete pInstLock;
 		m_bBackupInProgress = false;
 		return UT_SAVE_LOCKED;
 	}
+	s_autosaveTrace("backup: target %s, instance lock %s",
+					backupPath.c_str(),
+					bSkipInstanceLock ? "skipped (crash child)"
+					: lockRc == s_LockTaken ? "taken"
+					: "unavailable — unlocked write");
 
 	if (!m_stAutoSaveNamePrevious.empty() && (backupPath != m_stAutoSaveNamePrevious))
 	{
 		/* If the user does a Save-As to rename the file then the auto-save name also changes, so
 		 * need to remove the old backup file...
 		 */
+		s_autosaveTrace("backup: name changed, removing %s",
+						m_stAutoSaveNamePrevious.c_str());
 		_removeAutoSaveFile();
 	}
 	m_stAutoSaveNamePrevious = backupPath;
@@ -1300,8 +1367,34 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 	 * sibling temp file and atomically renames it over backupPath.
 	 * Only the encode stalls the UI; the disk write never does. */
 	GBytes * payload = nullptr;
-	UT_Error error = m_pDoc->encodeToBytes(backupPath.c_str(), iEFT,
-										   nullptr, &payload);
+	UT_Error error = UT_OK;
+	const gint64 iEncStart = g_get_monotonic_time();
+	s_autosaveTrace("backup: encode start");
+	try
+	{
+		error = m_pDoc->encodeToBytes(backupPath.c_str(), iEFT,
+									  nullptr, &payload);
+	}
+	catch (...)
+	{
+		/* a throwing encode used to escape with m_bBackupInProgress
+		 * still set — every later tick then early-exited and the frame
+		 * never autosaved again */
+		UT_WARNINGMSG(("autosave: encodeToBytes threw for %s\n",
+					   backupPath.c_str()));
+		if (payload)
+		{
+			g_bytes_unref(payload);
+			payload = nullptr;
+		}
+		error = UT_SAVE_WRITEERROR;
+	}
+	s_autosaveTrace("backup: encode done rc=%d bytes=%llu in %lldms",
+					static_cast<int>(error),
+					payload ? static_cast<unsigned long long>(
+						g_bytes_get_size(payload)) : 0ULL,
+					static_cast<long long>(
+						(g_get_monotonic_time() - iEncStart) / 1000));
 	if (error == UT_OK && !s_decodeRecoveryBytes(payload))
 	{
 		/* encode-and-parse gate: the serialized bytes must re-read
@@ -1310,6 +1403,8 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 		 * check the synchronous path ran on the written .part file */
 		UT_DEBUGMSG(("autosave: encoded payload failed recovery "
 					 "validation, keeping previous copy\n"));
+		s_autosaveTrace("backup: decode gate rejected the payload, "
+						"keeping previous copy");
 		error = UT_SAVE_WRITEERROR;
 	}
 	/* _saveAs used to spend the one-shot above via its addRecent()
@@ -1334,6 +1429,8 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 		/* byte-identical to the payload last queued for this target —
 		 * the on-disk copy is already current (or is landing now);
 		 * replaces the old decode-and-compare of the on-disk file */
+		s_autosaveTrace("backup: payload identical to last queued "
+						"copy, no write");
 		g_bytes_unref(payload);
 		delete pInstLock;
 		m_bBackupInProgress = false;
@@ -1351,6 +1448,8 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 		 * mid-hold, so the payload is written inline here instead of
 		 * being queued */
 		error = UT_AsyncWrite_syncWrite(backupPath.c_str(), payload);
+		s_autosaveTrace("backup: inline sync write rc=%d",
+						static_cast<int>(error));
 		if (error == UT_OK)
 		{
 			_writeBackupInfo(backupPath);
@@ -1377,6 +1476,7 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 		m_pendingBackups.end());
 	m_pendingBackups.push_back(st);
 
+	s_autosaveTrace("backup: enqueued %s", backupPath.c_str());
 	UT_AsyncWrite_enqueue(backupPath.c_str(), payload,
 						  _backupWriteDone,
 						  new std::shared_ptr<XAP_AsyncBackup>(st),
@@ -1395,7 +1495,14 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 	XAP_AsyncBackup * st = pState->get();
 	st->done = true;
 	if (st->discard || !st->frame)
+	{
+		st->lock.reset();
+		s_autosaveTrace("backup: completion for %s discarded "
+						"(frame gone)", st->target.c_str());
 		return;
+	}
+	s_autosaveTrace("backup: write done rc=%d %s",
+					static_cast<int>(result), st->target.c_str());
 
 	XAP_Frame * frame = st->frame;
 	if (result == UT_OK)
@@ -1421,6 +1528,12 @@ UT_Error XAP_Frame::backup(const char* szExt, UT_sint32 iEFT,
 			frame->m_lastBackupPath.clear();
 		}
 	}
+	/* the recovery-name lock only guards the write itself — the job
+	 * state lives on in m_pendingBackups until the next backup purges
+	 * done entries or the frame tears down, so releasing it here keeps
+	 * another instance's waiter from blocking for a whole autosave
+	 * period */
+	st->lock.reset();
 }
 
 /* static */ void XAP_Frame::_backupJobFree(void * userData)
@@ -1437,7 +1550,11 @@ void XAP_Frame::_discardPendingBackups()
 		st->frame = nullptr;
 		st->discard = true;
 		if (!st->done)
+		{
+			s_autosaveTrace("wait-enter %s", st->target.c_str());
 			UT_AsyncWrite_waitForTarget(st->target.c_str());
+			s_autosaveTrace("wait-exit %s", st->target.c_str());
+		}
 	}
 	m_pendingBackups.clear();
 }

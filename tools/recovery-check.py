@@ -206,15 +206,20 @@ def main():
         r = app.chan.request("document.autosave")
         res = r.get("result", {})
         path = res.get("path", "")
+        # the write lands on the async worker just after the reply —
+        # poll for it rather than racing the enqueue
         check("autosave writes recovery copy for dirty doc",
-              res.get("exists") is True and os.path.isfile(path), path)
+              res.get("exists") is True or
+              wait_for(lambda: os.path.isfile(path)), path)
         xml = decode_abwn(path)
         check("recovery copy decode-validates (gzip-transparent XML)",
               xml is not None)
         check("recovery copy contains the typed text",
               xml is not None and b"dirty work" in xml)
+        # .info is written by the completion callback on the next
+        # main-context turn after the worker lands the payload
         check(".info sidecar written alongside",
-              os.path.isfile(path + ".info"))
+              wait_for(lambda: os.path.isfile(path + ".info")))
 
         # --- 2: held instance lock defers the write ------------------
         os.unlink(path)
@@ -228,7 +233,7 @@ def main():
                   not os.path.isfile(path))
         app.chan.request("document.autosave")
         check("lock released: recovery write lands",
-              os.path.isfile(path))
+              wait_for(lambda: os.path.isfile(path)))
         xml = decode_abwn(path)
         check("post-lock copy carries the second edit",
               xml is not None and b"second edit" in xml)
@@ -283,6 +288,7 @@ def main():
         check("two instances resolve the same recovery name",
               pathA and pathA == pathB, f"{pathA} vs {pathB}")
         shared = pathA
+        wait_for(lambda: os.path.isfile(shared))
         xml = decode_abwn(shared)
         a = xml is not None and b"INSTANCE_A_ALPHA" in xml
         b = xml is not None and b"INSTANCE_B_BETA" in xml
@@ -294,6 +300,12 @@ def main():
         time.sleep(21)
         instA.chan.request("document.autosave")
         instB.chan.request("document.autosave")
+        # whichever instance won the name lock this round — the file
+        # must end up holding exactly one complete second-round doc
+        def _round2_landed():
+            x = decode_abwn(shared)
+            return x is not None and (b"MORE_A" in x or b"MORE_B" in x)
+        wait_for(_round2_landed)
         xml = decode_abwn(shared)
         a = xml is not None and b"INSTANCE_A_ALPHA" in xml
         b = xml is not None and b"INSTANCE_B_BETA" in xml

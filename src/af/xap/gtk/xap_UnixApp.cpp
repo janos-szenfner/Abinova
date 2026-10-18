@@ -67,6 +67,71 @@
 #include "gr_CairoNullGraphics.h"
 static CairoNull_Graphics * nullgraphics = nullptr;
 
+#if defined(__APPLE__)
+/* App Nap mitigation for the reported macOS idle freeze: once every
+ * window is occluded macOS coalesces the process's timers down to
+ * near-nothing and the app presents as frozen even though nothing is
+ * blocked.  Holding an NSActivityUserInitiated|NSActivityLatencyCritical
+ * token for the app's lifetime keeps it out of that throttle.  Calls
+ * go through the ObjC runtime C API so this .cpp needs no .mm build
+ * plumbing and no link-time Foundation dependency — if Foundation was
+ * never loaded (a bare --to= run of a non-bundled binary) the class
+ * lookup fails and this degrades to a no-op. */
+#include <objc/runtime.h>
+#include <objc/message.h>
+
+namespace
+{
+
+id s_appNapToken = nullptr;
+
+id appNapMsg0(id obj, const char * selName)
+{
+	return reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(
+		obj, sel_registerName(selName));
+}
+
+void appNapBegin()
+{
+	Class processInfo = objc_getClass("NSProcessInfo");
+	Class nsString = objc_getClass("NSString");
+	if (!processInfo || !nsString || s_appNapToken)
+		return;
+	id info = appNapMsg0(reinterpret_cast<id>(processInfo), "processInfo");
+	if (!info)
+		return;
+	id reason = reinterpret_cast<id (*)(id, SEL, const char *)>(
+		objc_msgSend)(reinterpret_cast<id>(nsString),
+					  sel_registerName("stringWithUTF8String:"),
+					  "Interactive editing");
+	/* NSActivityUserInitiated (0x00ffffff | 1<<20) |
+	 * NSActivityLatencyCritical (0xff00000000) — values from
+	 * NSProcessInfo.h */
+	const unsigned long long options = 0xFF01FFFFFFULL;
+	id token = reinterpret_cast<id (*)(id, SEL, unsigned long long, id)>(
+		objc_msgSend)(info, sel_registerName("beginActivityWithOptions:reason:"),
+					  options, reason);
+	if (token)
+		s_appNapToken = appNapMsg0(token, "retain");
+}
+
+void appNapEnd()
+{
+	if (!s_appNapToken)
+		return;
+	id info = appNapMsg0(reinterpret_cast<id>(objc_getClass("NSProcessInfo")),
+						 "processInfo");
+	if (info)
+		reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(
+			info, sel_registerName("endActivity:"), s_appNapToken);
+	reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(
+		s_appNapToken, sel_registerName("release"));
+	s_appNapToken = nullptr;
+}
+
+} // namespace
+#endif // __APPLE__
+
 /*****************************************************************/
 
 XAP_UnixApp::XAP_UnixApp(const char * szAppName, const char* app_id)
@@ -263,6 +328,10 @@ bool XAP_UnixApp::initialize(const char * szKeyBindingsKey, const char * szKeyBi
 	
 	XAP_App::initialize(szKeyBindingsKey, szKeyBindingsDefaultValue);
 
+#if defined(__APPLE__)
+	appNapBegin();
+#endif
+
 	// do any thing we need here...
 
 	return true;
@@ -270,6 +339,9 @@ bool XAP_UnixApp::initialize(const char * szKeyBindingsKey, const char * szKeyBi
 
 void XAP_UnixApp::shutdown()
 {
+#if defined(__APPLE__)
+	appNapEnd();
+#endif
 	/* any save still being written by the background writer must reach
 	 * the disk before the process goes away — the queued completions
 	 * are delivered inline on this (main) thread */
