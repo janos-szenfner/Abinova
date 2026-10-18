@@ -83,7 +83,11 @@ std::string tmpdir()
 {
 	gchar * d = g_mkdtemp(g_strdup_printf("%s/abnawXXXXXX",
 										  g_get_tmp_dir()));
-	return d ? d : std::string(g_get_tmp_dir());
+	if (!d)
+		return std::string(g_get_tmp_dir());
+	std::string out(d);
+	g_free(d);
+	return out;
 }
 
 } // namespace
@@ -185,10 +189,12 @@ TFTEST_MAIN("fifo order across different targets")
 			o->out->push_back(o->tag);
 	};
 
+	/* enqueue takes its own ref on the payload — a g_bytes_ref in the
+	 * argument would be an abandoned ref */
 	GBytes * p = payload_of("x");
-	UT_AsyncWrite_enqueue((dir + "/a").c_str(), g_bytes_ref(p), cb, &a, nullptr);
-	UT_AsyncWrite_enqueue((dir + "/b").c_str(), g_bytes_ref(p), cb, &b, nullptr);
-	UT_AsyncWrite_enqueue((dir + "/c").c_str(), g_bytes_ref(p), cb, &c, nullptr);
+	UT_AsyncWrite_enqueue((dir + "/a").c_str(), p, cb, &a, nullptr);
+	UT_AsyncWrite_enqueue((dir + "/b").c_str(), p, cb, &b, nullptr);
+	UT_AsyncWrite_enqueue((dir + "/c").c_str(), p, cb, &c, nullptr);
 	g_bytes_unref(p);
 	UT_AsyncWrite_waitAll();
 

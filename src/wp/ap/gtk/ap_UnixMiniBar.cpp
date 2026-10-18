@@ -73,6 +73,7 @@ AP_UnixMiniBar::AP_UnixMiniBar(XAP_Frame * pFrame)
 	, m_wBold(nullptr)
 	, m_wItalic(nullptr)
 	, m_wUnderline(nullptr)
+	, m_wColorDlg(nullptr)
 	, m_bSyncing(false)
 	, m_bDismissed(false)
 	, m_iBarW(-1)
@@ -82,6 +83,12 @@ AP_UnixMiniBar::AP_UnixMiniBar(XAP_Frame * pFrame)
 
 AP_UnixMiniBar::~AP_UnixMiniBar()
 {
+	if (m_wColorDlg)
+	{
+		g_signal_handlers_disconnect_by_data(m_wColorDlg, this);
+		gtk_window_destroy(GTK_WINDOW(m_wColorDlg));
+		m_wColorDlg = nullptr;
+	}
 	if (m_wBar)
 	{
 		g_signal_handlers_disconnect_by_data(m_wBar, this);
@@ -273,8 +280,12 @@ bool AP_UnixMiniBar::contains(GtkWidget * w) const
 	if (w == m_wBar || gtk_widget_is_ancestor(w, m_wBar))
 		return true;
 	/* the colour grid and the combo dropdowns are GtkPopovers: their
-	 * widgets sit in a separate tree rooted at the popover */
-	return gtk_widget_get_ancestor(w, GTK_TYPE_POPOVER) != nullptr;
+	 * widgets sit in a separate tree rooted at the popover, which is
+	 * itself parented to a widget inside the bar — a popover owned
+	 * by other chrome (ribbon menus) does not count */
+	GtkWidget * pop = gtk_widget_get_ancestor(w, GTK_TYPE_POPOVER);
+	return pop && gtk_widget_get_parent(pop) &&
+		gtk_widget_is_ancestor(gtk_widget_get_parent(pop), m_wBar);
 }
 
 /* reflect the selection's current char format — toggles pressed,
@@ -422,6 +433,8 @@ void AP_UnixMiniBar::_s_custom_response(GtkDialog * dlg, gint response,
 				   static_cast<int>(color.blue  * 255));
 		self->_applyColor(hex);
 	}
+	if (self && self->m_wColorDlg == GTK_WIDGET(dlg))
+		self->m_wColorDlg = nullptr;
 	gtk_window_destroy(GTK_WINDOW(dlg));
 }
 
@@ -435,6 +448,11 @@ void AP_UnixMiniBar::_s_custom_clicked(GtkWidget * w, gpointer data)
 		gtk_popover_popdown(GTK_POPOVER(popover));
 
 	GtkWidget * toplevel = GTK_WIDGET(gtk_widget_get_root(w));
+	if (self->m_wColorDlg)
+	{
+		gtk_window_present(GTK_WINDOW(self->m_wColorDlg));
+		return;
+	}
 	GtkWidget * dlg = gtk_color_chooser_dialog_new(
 		"Custom Color", toplevel ? GTK_WINDOW(toplevel) : nullptr);
 	GdkRGBA initial = { 0.0, 0.0, 0.0, 1.0 };
@@ -442,6 +460,7 @@ void AP_UnixMiniBar::_s_custom_clicked(GtkWidget * w, gpointer data)
 	gtk_color_chooser_set_use_alpha(GTK_COLOR_CHOOSER(dlg), FALSE);
 	g_signal_connect(dlg, "response",
 					 G_CALLBACK(_s_custom_response), self);
+	self->m_wColorDlg = dlg;
 	gtk_window_present(GTK_WINDOW(dlg));
 }
 

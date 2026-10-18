@@ -3247,6 +3247,11 @@ FV_View::_findPrevPattern(bool& bDoneEntireDocument)
 			startByte = next;
 		}
 
+		/* a failed g_regex_match_full still allocates info — release
+		 * the trailing non-match before checking foundAt */
+		if (info)
+			g_match_info_free(info);
+
 		if (foundAt != -1)
 		{
 			_setPoint(block->getPosition(false) + foundAt + matchLen);

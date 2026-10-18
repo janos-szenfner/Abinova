@@ -63,14 +63,13 @@ void job_free(AsyncWriteJob * job)
  * main thread — either as an idle handler or inline from waitAll(). */
 void flush_done(void)
 {
-	GQueue deliver = G_QUEUE_INIT;
+	GQueue deliver;
 
 	g_mutex_lock(&s_mx);
-	g_queue_foreach(&s_done,
-					+[](gpointer data, gpointer userData) {
-						g_queue_push_tail(static_cast<GQueue *>(userData), data);
-					}, &deliver);
-	g_queue_init(&s_done);
+	/* move the whole node list — copying data pointers into a second
+	 * queue then reiniting s_done would orphan its GList nodes */
+	deliver = s_done;
+	s_done = G_QUEUE_INIT;
 	s_flushScheduled = false;
 	g_mutex_unlock(&s_mx);
 

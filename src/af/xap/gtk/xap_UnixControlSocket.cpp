@@ -146,7 +146,17 @@ static std::string _json_escape(const std::string & s)
 			case '\n':	o += "\\n"; break;
 			case '\r':	o += "\\r"; break;
 			case '\t':	o += "\\t"; break;
-			default:	o += c;
+			default:
+				/* other C0 controls (form feeds, vertical tabs in
+				 * document text) are invalid raw in JSON — escape */
+				if (static_cast<unsigned char>(c) < 0x20)
+				{
+					char esc[8];
+					g_snprintf(esc, sizeof(esc), "\\u%04x", c);
+					o += esc;
+				}
+				else
+					o += c;
 		}
 	}
 	return o;
@@ -799,13 +809,30 @@ struct _CloseJob { std::vector<XAP_Frame *> frames; };
 static gboolean _s_close_frames(gpointer data)
 {
 	_CloseJob * job = static_cast<_CloseJob *>(data);
+	XAP_App * app = s_ctl.app;
 	EV_EditMethodContainer * emc =
-		s_ctl.app ? s_ctl.app->getEditMethodContainer() : nullptr;
+		app ? app->getEditMethodContainer() : nullptr;
 	const EV_EditMethod * em =
 		emc ? emc->findEditMethodByName("closeWindowX") : nullptr;
 	for (XAP_Frame * f : job->frames)
 	{
-		if (f && em)
+		/* the queued pointers can go stale before the idle runs: a
+		 * second app.quit/file.close request or a real window close
+		 * may already have freed a frame — only dispatch while it is
+		 * still registered with the app */
+		bool live = false;
+		if (f && em && app)
+		{
+			for (UT_sint32 i = 0; i < app->getFrameCount(); ++i)
+			{
+				if (app->getFrame(i) == f)
+				{
+					live = true;
+					break;
+				}
+			}
+		}
+		if (live)
 			em->Fn(f->getCurrentView(), nullptr);
 	}
 	delete job;

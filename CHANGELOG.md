@@ -301,6 +301,18 @@ responsibility** — see `README.md`.
   minibar helper and leftover debug prints in the table-formula test
   were removed. No behaviour change; findings are in
   `.devin/W21-deadcode.md`.
+- **Memory/lifetime gate over the 4.0.3 stream** — the test suite
+  and a scripted open/edit/undo/save GUI session ran under Valgrind
+  memcheck. Fixed the real defects it surfaced: the control
+  channel's deferred frame-close now verifies each frame is still
+  live before acting on it (a rapid close+quit could previously act
+  on a freed frame), the minibar's custom-colour dialog can no
+  longer outlive its frame, backwards pattern-search no longer
+  leaks a `GMatchInfo` on every miss, the async-write done-queue no
+  longer leaks its nodes on flush, and control replies now escape
+  C0 control characters instead of emitting invalid JSON. Remaining
+  reports were GTK/fontconfig-internal noise; findings are in
+  `.devin/W22-memory.md`.
 
 ## [4.0.2] — 2026-10-17
 

@@ -94,6 +94,9 @@ private:
 	GtkWidget *		m_wBold;
 	GtkWidget *		m_wItalic;
 	GtkWidget *		m_wUnderline;
+	/* custom-colour chooser lives outside the bar's widget tree —
+	 * tracked so the destructor can kill it before 'this' goes away */
+	GtkWidget *		m_wColorDlg;
 	bool			m_bSyncing;
 	bool			m_bDismissed;
 	/* cached strip size: the combos carry parented GtkPopovers whose
