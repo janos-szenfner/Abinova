@@ -109,7 +109,6 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	 * listener via updateMiniBar() so both mouse and keyboard
 	 * selection paths funnel through it. */
 	void			updateMiniBar(AV_ChangeMask mask);
-	void			hideMiniBar();
 	void			repositionMiniBar();
 
  protected:

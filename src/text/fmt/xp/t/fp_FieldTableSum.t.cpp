@@ -171,7 +171,6 @@ TFTEST_MAIN("table sum fields compute laid out")
 		return;
 
 	const std::string fields = v.fieldValues();
-	fprintf(stderr, "tablesum fields: %s\n", fields.c_str());
 	/* fixture: stray field outside the table -> "???";
 	 * sum_rows over column 0 (1 + 4) -> 5;
 	 * sum_cols across row 2 (field 5 + 7) -> 12 */
@@ -203,7 +202,6 @@ TFTEST_MAIN("table formula fields evaluate and update")
 		return s;
 	};
 	const std::string fields = deLocale(v.fieldValues());
-	fprintf(stderr, "tableformula fields: %s\n", fields.c_str());
 	/* fixture expectations, in document order:
 	 *   [???]   =SUM(ABOVE) outside a table
 	 *   [30]    =SUM(ABOVE) in C2: cell above is 30
@@ -227,7 +225,6 @@ TFTEST_MAIN("table formula fields evaluate and update")
 	v.recalcFields();
 
 	const std::string fields2 = deLocale(v.fieldValues());
-	fprintf(stderr, "tableformula after edit: %s\n", fields2.c_str());
 	/* A1=100 -> SUM(ABOVE)@A3=140, SUM(A1:B1)=120,
 	 * AVERAGE(LEFT)@C3=130, SUM(A1:A2) \# 0.00=140.00,
 	 * MIN(A1:C1)=20; =B1*2+C1/3 (50) and C2's SUM(ABOVE)

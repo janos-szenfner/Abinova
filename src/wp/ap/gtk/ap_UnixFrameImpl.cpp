@@ -709,12 +709,6 @@ void AP_UnixFrameImpl::updateMiniBar(AV_ChangeMask mask)
 	}
 }
 
-void AP_UnixFrameImpl::hideMiniBar()
-{
-	if (m_pMiniBar)
-		m_pMiniBar->hide();
-}
-
 void AP_UnixFrameImpl::repositionMiniBar()
 {
 	if (m_pMiniBar && m_pMiniBar->isVisible())

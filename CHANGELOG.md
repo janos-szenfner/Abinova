@@ -295,6 +295,12 @@ responsibility** — see `README.md`.
   formatting is bounded so a hostile field instruction can't
   truncate; the remaining findings were documented as analyzer
   artifacts or pre-existing baseline in `.devin/W19-static.md`.
+- **Dead-code sweep over the 4.0.3 stream** — every symbol the
+  release stream introduced was reference-checked; unused field-run
+  members and getters, uncalled Document Inspector accessors, a dead
+  minibar helper and leftover debug prints in the table-formula test
+  were removed. No behaviour change; findings are in
+  `.devin/W21-deadcode.md`.
 
 ## [4.0.2] — 2026-10-17
 

@@ -1254,8 +1254,6 @@ public:
 	virtual bool			calculateValue(void) override;
 	virtual void			_draw(dg_DrawArgs* pDA) override { _defaultDraw(pDA); }
 
-	const std::string &		getZoteroKey(void) const { return m_sKey; }
-
 protected:
 	virtual void			_lookupProperties(const PP_AttrProp * pSpanAP,
 											  const PP_AttrProp * pBlockAP,
@@ -1263,8 +1261,6 @@ protected:
 											  GR_Graphics * pG = nullptr) override;
 
 private:
-	std::string				m_sKey;
-	std::string				m_sStyle;
 	std::string				m_sMode;
 	std::string				m_sText;
 };
@@ -1286,11 +1282,6 @@ public:
 	virtual bool			calculateValue(void) override;
 	virtual void			_draw(dg_DrawArgs* pDA) override;
 
-	bool					isCheckbox(void) const { return m_sCtlType == "checkbox"; }
-	bool					isChecked(void) const { return m_bChecked; }
-	const std::string &		getCtlType(void) const { return m_sCtlType; }
-	const std::string &		getTag(void) const { return m_sTag; }
-
 protected:
 	virtual void			_lookupProperties(const PP_AttrProp * pSpanAP,
 											  const PP_AttrProp * pBlockAP,
@@ -1300,10 +1291,7 @@ protected:
 private:
 	std::string				m_sCtlType;
 	std::string				m_sValue;
-	std::string				m_sTitle;
-	std::string				m_sTag;
 	std::string				m_sPlaceholder;
-	std::string				m_sItems;
 	bool					m_bPlaceholder;
 	bool					m_bChecked;
 };

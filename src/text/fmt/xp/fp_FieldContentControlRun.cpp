@@ -38,13 +38,10 @@
  * ================================================================== */
 
 #include "fp_Run.h"
-#include "fp_Line.h"
 #include "gr_DrawArgs.h"
-#include "fl_BlockLayout.h"
 #include "fv_View.h"
 #include "gr_Painter.h"
 #include "pp_AttrProp.h"
-#include "ut_debugmsg.h"
 
 fp_FieldContentControlRun::fp_FieldContentControlRun(
 	fl_BlockLayout* pBL, UT_uint32 iOffsetFirst, UT_uint32 iLen)
@@ -69,10 +66,7 @@ void fp_FieldContentControlRun::_lookupProperties(
 	const PP_AttrProp * pAP = pSpanAP ? pSpanAP : pBlockAP;
 	m_sCtlType.clear();
 	m_sValue.clear();
-	m_sTitle.clear();
-	m_sTag.clear();
 	m_sPlaceholder.clear();
-	m_sItems.clear();
 	if (pAP)
 	{
 		const gchar * v = nullptr;
@@ -80,14 +74,8 @@ void fp_FieldContentControlRun::_lookupProperties(
 			m_sCtlType = v;
 		if (pAP->getAttribute("sdt-value", v) && v)
 			m_sValue = v;
-		if (pAP->getAttribute("sdt-title", v) && v)
-			m_sTitle = v;
-		if (pAP->getAttribute("sdt-tag", v) && v)
-			m_sTag = v;
 		if (pAP->getAttribute("sdt-placeholder", v) && v)
 			m_sPlaceholder = v;
-		if (pAP->getAttribute("sdt-items", v) && v)
-			m_sItems = v;
 	}
 	if (m_sCtlType.empty())
 		m_sCtlType = "text";

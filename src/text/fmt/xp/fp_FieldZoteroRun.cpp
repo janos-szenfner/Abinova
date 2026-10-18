@@ -33,9 +33,7 @@
  * ================================================================== */
 
 #include "fp_Run.h"
-#include "fl_BlockLayout.h"
 #include "pp_AttrProp.h"
-#include "ut_debugmsg.h"
 
 fp_FieldZoteroRun::fp_FieldZoteroRun(
 	fl_BlockLayout* pBL, UT_uint32 iOffsetFirst, UT_uint32 iLen)
@@ -56,17 +54,11 @@ void fp_FieldZoteroRun::_lookupProperties(
 	/* for object runs the span AP is the object's AP — the same
 	 * place the base class reads "type"/"param" from */
 	const PP_AttrProp * pAP = pSpanAP ? pSpanAP : pBlockAP;
-	m_sKey.clear();
-	m_sStyle.clear();
 	m_sMode.clear();
 	m_sText.clear();
 	if (pAP)
 	{
 		const gchar * v = nullptr;
-		if (pAP->getAttribute("zotero-key", v) && v)
-			m_sKey = v;
-		if (pAP->getAttribute("zotero-style", v) && v)
-			m_sStyle = v;
 		if (pAP->getAttribute("zotero-mode", v) && v)
 			m_sMode = v;
 		if (pAP->getAttribute("zotero-text", v) && v)

@@ -51,14 +51,12 @@ public:
 	void			refresh(void);
 
 	UT_uint32		getCategoryCount(void) const;
-	UT_uint32		getCategoryMask(UT_uint32 i) const;
 	const char *	getCategoryTitle(UT_uint32 i) const;
 	bool			isCategoryFound(UT_uint32 i) const;
 	std::string		getCategorySummary(UT_uint32 i) const;
 	const std::string & getReportText(void) const { return m_sReport; }
 
 	void			setSelected(UT_uint32 i, bool b);
-	bool			isSelected(UT_uint32 i) const;
 	UT_uint32		getSelectedMask(void) const;
 
 	/* strip the selected categories and re-inspect; returns the mask

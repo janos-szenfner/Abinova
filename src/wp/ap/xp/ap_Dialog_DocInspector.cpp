@@ -58,13 +58,6 @@ UT_uint32 AP_Dialog_DocInspector::getCategoryCount(void) const
 	return static_cast<UT_uint32>(m_report.cats.size());
 }
 
-UT_uint32 AP_Dialog_DocInspector::getCategoryMask(UT_uint32 i) const
-{
-	if (i >= m_report.cats.size())
-		return 0;
-	return m_report.cats[i].mask;
-}
-
 const char * AP_Dialog_DocInspector::getCategoryTitle(UT_uint32 i) const
 {
 	if (i >= m_report.cats.size())
@@ -97,11 +90,6 @@ void AP_Dialog_DocInspector::setSelected(UT_uint32 i, bool b)
 {
 	if (i < m_selected.size())
 		m_selected[i] = b;
-}
-
-bool AP_Dialog_DocInspector::isSelected(UT_uint32 i) const
-{
-	return i < m_selected.size() ? m_selected[i] : false;
 }
 
 UT_uint32 AP_Dialog_DocInspector::getSelectedMask(void) const
