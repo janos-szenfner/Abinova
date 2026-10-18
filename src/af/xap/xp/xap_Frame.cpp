@@ -28,7 +28,6 @@
 #include <windows.h>
 #else
 #include <sys/file.h>
-#include <unistd.h>
 #endif
 
 #include <algorithm>
@@ -1011,7 +1010,7 @@ public:
 		if (flock(fd, LOCK_EX | LOCK_NB) != 0)
 		{
 			int e = errno;
-			close(fd);
+			g_close(fd, nullptr);
 			return (e == EWOULDBLOCK) ? s_LockBusy : s_LockUnavailable;
 		}
 		m_fd = fd;
@@ -1033,7 +1032,7 @@ public:
 #else
 		if (m_fd >= 0)
 		{
-			close(m_fd);
+			g_close(m_fd, nullptr);
 			m_fd = -1;
 		}
 #endif

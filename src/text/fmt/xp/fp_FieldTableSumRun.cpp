@@ -592,7 +592,8 @@ class FormulaParser
 {
 public:
 	FormulaParser(const std::string & sText, FormulaTableCtx & ctx)
-		: m_s(sText), m_pos(0), m_ctx(ctx), m_err(FMLERR_OK)
+		: m_s(sText), m_pos(0), m_ctx(ctx), m_err(FMLERR_OK),
+		  m_depth(0)
 	{
 	}
 
@@ -631,6 +632,19 @@ private:
 			m_pos++;
 	}
 
+	/* the grammar recurses on '(' groups, function calls, unary
+	 * chains and '^' — all driven by field-param text that can come
+	 * from an untrusted document, so bound the descent rather than
+	 * trust the operand's length to fit the stack */
+	static const int FML_MAX_DEPTH = 64;
+	struct DepthGuard
+	{
+		int &	d;
+		bool	ok;
+		DepthGuard(int & r, int lim) : d(r), ok(++r <= lim) {}
+		~DepthGuard() { --d; }
+	};
+
 	// scalar view of a value list for arithmetic/comparison operands
 	double scalar(const ValList & v)
 	{
@@ -654,6 +668,12 @@ private:
 
 	ValList parseExpr()          // comparisons produce 1/0
 	{
+		DepthGuard dg(m_depth, FML_MAX_DEPTH);
+		if(!dg.ok)
+		{
+			m_err = FMLERR_SYNTAX;
+			return ValList();
+		}
 		ValList left = parseAdd();
 		while(m_err == FMLERR_OK)
 		{
@@ -742,6 +762,12 @@ private:
 
 	ValList parsePow()          // right associative
 	{
+		DepthGuard dg(m_depth, FML_MAX_DEPTH);
+		if(!dg.ok)
+		{
+			m_err = FMLERR_SYNTAX;
+			return ValList();
+		}
 		ValList base = parseUnary();
 		if(m_err != FMLERR_OK)
 			return base;
@@ -762,6 +788,12 @@ private:
 
 	ValList parseUnary()
 	{
+		DepthGuard dg(m_depth, FML_MAX_DEPTH);
+		if(!dg.ok)
+		{
+			m_err = FMLERR_SYNTAX;
+			return ValList();
+		}
 		skipWs();
 		char c = peek();
 		if(c == '+' || c == '-')
@@ -1175,6 +1207,7 @@ private:
 	UT_uint32 m_pos;
 	FormulaTableCtx & m_ctx;
 	int m_err;
+	int m_depth;
 	std::string m_pic;
 };
 

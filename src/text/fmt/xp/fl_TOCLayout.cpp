@@ -44,6 +44,7 @@
 #include "fp_TOCContainer.h"
 #include "fp_ContainerObject.h"
 #include "pd_Document.h"
+#include "pt_PieceTable.h"
 #include "pp_AttrProp.h"
 #include "gr_Graphics.h"
 #include "pp_Property.h"
@@ -2632,12 +2633,22 @@ bool fl_TOCLayout::getSourcePosForGenBlock(fl_BlockLayout * pGen,
 		return false;
 	}
 	const TOCEntry * pHit = m_vecEntries[iHit].get();
-	if(pHit == nullptr || !pHit->getSourceSDH())
+	const pf_Frag_Strux * sdhSource =
+		pHit ? pHit->getSourceSDH() : nullptr;
+	if(sdhSource == nullptr)
 	{
 		return false;
 	}
-	PT_DocPosition pos =
-		m_pDoc->getStruxPosition(pHit->getSourceSDH());
+	/* the entry's strux handle outlives its frag when the source
+	 * heading is deleted — unlinkFrag frees the storage, so a bare
+	 * getStruxPosition would dereference a dangling pointer.  Only
+	 * resolve while the handle is still on the live fragment list. */
+	pt_PieceTable * pPT = m_pDoc->getPieceTable();
+	if(pPT == nullptr || !pPT->getFragments().contains(sdhSource))
+	{
+		return false;
+	}
+	PT_DocPosition pos = m_pDoc->getStruxPosition(sdhSource);
 	if(pos == 0)
 	{
 		return false;

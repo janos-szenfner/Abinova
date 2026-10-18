@@ -57,6 +57,21 @@ responsibility** — see `README.md`.
   single word, plus hardening in call-data widening, text
   itemization, character insertion, annotation editing, the spell
   dialog's teardown, TOC layout purging and autosave recovery.
+- **Security audit of the parity stream** — the `--control`
+  listener's request reader is now bounded chunk-wise, so a client
+  that never sends a newline can no longer grow the receive buffer
+  past the 1 MiB line cap (previously the whole unterminated line
+  was assembled before the cap was checked). The per-instance auth
+  key is generated from real OS entropy instead of a PRNG, the
+  `control-key.local-PORT` file is created 0600 from the start and
+  refuses symlink targets, and key comparison no longer early-exits
+  byte-wise. `attachTemplate` paths now honour
+  `--automation-read-root` (the stored path is later read by
+  `updateStyles`), `insertShape`/`insertIcon`/`insert3DModel` reject
+  `..` escapes out of the bundled artwork directory, the
+  table-formula evaluator rejects deeply nested expressions instead
+  of overflowing the stack, and Ctrl+Click on a TOC entry no longer
+  follows a stale pointer when the source heading was deleted.
 - **Typing-parity test matrix** — `tools/typing-parity.py` pins 20
   Word-parity typing behaviours against a live instance over the
   control channel (22 cases, 42 assertions, one fresh app launch per

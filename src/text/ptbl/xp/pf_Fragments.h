@@ -51,6 +51,7 @@ public:
 	// Call this to purge ALL the fragments. Likely before the destructor.
 	void                                    purgeFrags();
 	pf_Frag *               findFirstFragBeforePos(PT_DocPosition pos) const;
+	bool					contains(const pf_Frag * pf) const;
 
 	pf_Frag *				getFirst() const;
 	pf_Frag *				getLast() const;

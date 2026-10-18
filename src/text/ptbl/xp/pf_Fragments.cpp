@@ -251,6 +251,26 @@ pf_Frag * pf_Fragments::findFirstFragBeforePos(PT_DocPosition pos) const
 	return pf;
 }
 
+/*!
+ * Linear membership test: is @pf still a live fragment of this list?
+ * Callers holding a pf_Frag/pf_Frag_Strux handle across document
+ * mutations (TOC source entries, cached strux handles) must check
+ * this before dereferencing — unlinkFrag detaches a frag and its
+ * storage may be freed or reused afterwards, so pointer identity on
+ * the live list is the only honest liveness proof.
+ */
+bool pf_Fragments::contains(const pf_Frag * pf) const
+{
+	if (!pf)
+		return false;
+	for (Iterator it(this, _first()); it.is_valid(); ++it)
+	{
+		if (it.value() == pf)
+			return true;
+	}
+	return false;
+}
+
 /* Methods that implement the rb-tree */
 
 

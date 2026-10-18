@@ -8328,6 +8328,13 @@ static bool s_insertArtworkFile(FV_View * pView, XAP_Frame * pFrame,
 {
 	UT_return_val_if_fail(pView && pFrame && szFile, false);
 
+	/* szFile is caller input ("<sub>/<name>.<ext>") and becomes a
+	 * path fragment under the artwork dir — ".." components would
+	 * let a control-channel caller escape it (findAbiSuiteLibFile
+	 * concatenates subdir verbatim) */
+	if (strstr(szFile, ".."))
+		return false;
+
 	std::string sub("artwork");
 	std::string name(szFile);
 	std::string::size_type slash = name.rfind('/');

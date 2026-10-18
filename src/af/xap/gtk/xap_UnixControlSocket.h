@@ -33,7 +33,7 @@ class XAP_App;
  *   {"id":1,"key":"…","method":"engine.execute",
  *    "params":{"command":"insertData","data":"Hello"}}
  *   {"id":2,"key":"…","method":"ui.screenshot",
- *    "params":{"path":"/tmp/shot.png"}}
+ *    "params":{"path":"<output-dir>/shot.png"}}
  * Responses are {"id":N,"result":{…}} or {"id":N,"error":{"message":…}}.
  */
 bool abi_control_start(XAP_App * pApp, int port);

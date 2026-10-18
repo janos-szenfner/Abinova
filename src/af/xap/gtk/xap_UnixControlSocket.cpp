@@ -22,6 +22,7 @@
 #include <gsk/gsk.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <vector>
 
 #include "xap_UnixControlSocket.h"
@@ -39,6 +40,7 @@
 #include "pt_PieceTable.h"
 #include "ut_string.h"
 #include "ut_path.h"
+#include "ut_go_file.h"
 
 #ifdef GDK_WINDOWING_X11
 #include <gdk/x11/gdkx.h>
@@ -166,31 +168,65 @@ static _ControlState s_ctl;
 
 struct _Conn
 {
-	GSocketConnection *		conn;
-	GDataInputStream *		in;
-	GOutputStream *			out;
+	GSocketConnection *		conn = nullptr;
+	/* raw input stream — reads arrive in bounded chunks so a client
+	 * that never sends a newline can't grow a receive buffer
+	 * without limit */
+	GInputStream *			in = nullptr;
+	/* borrowed from conn — valid until conn is released */
+	GOutputStream *			out = nullptr;
+	/* cancelled on teardown so an in-flight read callback can tell
+	 * the connection is dead before it touches freed state */
+	GCancellable *			cancellable = nullptr;
+	/* bytes not yet terminated by '\n' */
+	std::string				buf;
 	/* set by the "auth" method or any request that carried a
 	 * correct top-level key — requests after it may omit the key */
 	bool					authed = false;
+	bool					closing = false;
+	/* one for the session plus one per in-flight read — a teardown
+	 * (auth timeout, close-after-reply) drops the session ref while
+	 * the pending read keeps the object alive until its callback
+	 * runs */
+	int						refs = 1;
 	/* closes an unauthenticated connection after 30 s */
 	guint					auth_timer = 0;
 };
 
+static void _conn_ref(_Conn * c)
+{
+	++c->refs;
+}
+
+static void _conn_unref(_Conn * c)
+{
+	if (--c->refs == 0)
+		delete c;
+}
+
 static void _conn_close(_Conn * c)
 {
-	if (!c)
+	if (!c || c->closing)
 		return;
+	c->closing = true;
 	if (c->auth_timer)
+	{
 		g_source_remove(c->auth_timer);
-	if (c->in)
-		g_object_unref(c->in);
+		c->auth_timer = 0;
+	}
+	g_cancellable_cancel(c->cancellable);
+	g_clear_object(&c->in);
+	/* out is borrowed from conn — null it before the stream goes
+	 * away so a late _conn_send can never write to freed memory */
+	c->out = nullptr;
 	if (c->conn)
 	{
 		g_io_stream_close(G_IO_STREAM(c->conn),
 						  nullptr, nullptr);
-		g_object_unref(c->conn);
+		g_clear_object(&c->conn);
 	}
-	delete c;
+	g_clear_object(&c->cancellable);
+	_conn_unref(c);
 }
 
 static void _conn_send(_Conn * c, long id, const char * result,
@@ -212,8 +248,11 @@ static void _conn_send(_Conn * c, long id, const char * result,
 		r += result ? result : "true";
 	}
 	r += "}\n";
-	g_output_stream_write(c->out, r.data(), r.size(),
-						  nullptr, nullptr);
+	/* write_all: a short write would truncate the reply stream and
+	 * desync every response after it */
+	if (c->out)
+		g_output_stream_write_all(c->out, r.data(), r.size(),
+								  nullptr, nullptr, nullptr);
 }
 
 /*****************************************************************/
@@ -316,7 +355,13 @@ static XAP_Frame * _first_frame()
  * by the automation roots when those are configured */
 static bool _cmd_reads_path(const char * cmd)
 {
-	static const char * const kRead[] = { "openRecent", "updateStyles" };
+	/* attachTemplate only stores the path, but updateStyles with an
+	 * empty params.data reads it back as the template source — the
+	 * path must be confined at store time or the read check on
+	 * updateStyles is bypassable */
+	static const char * const kRead[] = {
+		"attachTemplate", "openRecent", "updateStyles"
+	};
 	for (const char * n : kRead)
 		if (!strcmp(cmd, n))
 			return true;
@@ -1108,6 +1153,24 @@ static bool _m_ui_click(const std::string &, std::string & err)
 }
 #endif
 
+/* constant-time-ish key compare: early-exit on length lets a
+ * loopback client probe the key byte-by-byte otherwise */
+static bool _key_match(const std::string & a, const std::string & b)
+{
+	const size_t n = a.size() > b.size() ? a.size() : b.size();
+	unsigned char diff =
+		static_cast<unsigned char>(a.size() ^ b.size());
+	for (size_t i = 0; i < n; ++i)
+	{
+		const unsigned char x =
+			i < a.size() ? static_cast<unsigned char>(a[i]) : 0;
+		const unsigned char y =
+			i < b.size() ? static_cast<unsigned char>(b[i]) : 0;
+		diff |= static_cast<unsigned char>(x ^ y);
+	}
+	return diff == 0;
+}
+
 /* returns false when the connection must close after the reply:
  * wordcraft-compatible behaviour for auth failures, oversized
  * lines and non-JSON input (so an HTTP probe can't reach the
@@ -1131,7 +1194,7 @@ static bool _dispatch(_Conn * c, const std::string & line)
 
 	if (method == "auth")
 	{
-		if (key == s_ctl.key)
+		if (_key_match(key, s_ctl.key))
 		{
 			c->authed = true;
 			if (c->auth_timer)
@@ -1151,7 +1214,7 @@ static bool _dispatch(_Conn * c, const std::string & line)
 
 	if (!c->authed)
 	{
-		if (!key.empty() && key == s_ctl.key)
+		if (!key.empty() && _key_match(key, s_ctl.key))
 			c->authed = true;
 		else
 		{
@@ -1323,37 +1386,75 @@ static bool _dispatch(_Conn * c, const std::string & line)
 /* connection plumbing                                            */
 /*****************************************************************/
 
-static void _s_line_ready(GObject * src, GAsyncResult * res,
-						  gpointer data)
+/* hard cap on one request line — the buffer is checked before a
+ * newline arrives, so an endless line can never grow it past this */
+static const size_t CTL_MAX_LINE = 1048576;
+
+static void _s_chunk_ready(GObject * src, GAsyncResult * res,
+						   gpointer data)
 {
 	_Conn * c = static_cast<_Conn *>(data);
-	gsize len = 0;
-	char * line = g_data_input_stream_read_line_finish(
-		c->in, res, &len, nullptr);
-	if (!line)
+	/* teardown cancels the pending read; the callback still runs —
+	 * bail before touching released state */
+	if (c->closing || !c->in)
 	{
-		_conn_close(c);
+		_conn_unref(c);
 		return;
 	}
-	bool keep = true;
-	if (len)
+	GBytes * bytes = g_input_stream_read_bytes_finish(
+		G_INPUT_STREAM(src), res, nullptr);
+	if (!bytes || !g_bytes_get_size(bytes))
 	{
-		if (len > 1048576)
+		if (bytes)
+			g_bytes_unref(bytes);
+		_conn_close(c);
+		_conn_unref(c);
+		return;
+	}
+	gsize n = 0;
+	const char * p = static_cast<const char *>(
+		g_bytes_get_data(bytes, &n));
+	c->buf.append(p, n);
+	g_bytes_unref(bytes);
+
+	/* dispatch every complete line the chunk carried */
+	for (;;)
+	{
+		size_t eol = c->buf.find('\n');
+		if (eol == std::string::npos)
 		{
-			_conn_send(c, 0, nullptr, "line too long");
-			keep = false;
+			if (c->buf.size() > CTL_MAX_LINE)
+			{
+				_conn_send(c, 0, nullptr, "line too long");
+				_conn_close(c);
+				_conn_unref(c);
+				return;
+			}
+			break;
 		}
-		else
-			keep = _dispatch(c, std::string(line, len));
+		std::string line(c->buf, 0, eol);
+		c->buf.erase(0, eol + 1);
+		if (!line.empty() && line.back() == '\r')
+			line.pop_back();
+		if (line.empty())
+			continue;
+		if (!_dispatch(c, line) || c->closing)
+		{
+			_conn_close(c);
+			_conn_unref(c);
+			return;
+		}
 	}
-	g_free(line);
-	if (!keep)
+	if (c->closing)
 	{
-		_conn_close(c);
+		_conn_unref(c);
 		return;
 	}
-	g_data_input_stream_read_line_async(
-		c->in, G_PRIORITY_DEFAULT, nullptr, _s_line_ready, c);
+	_conn_ref(c);
+	g_input_stream_read_bytes_async(
+		c->in, 65536, G_PRIORITY_DEFAULT, c->cancellable,
+		_s_chunk_ready, c);
+	_conn_unref(c);
 }
 
 static gboolean _s_auth_timeout(gpointer data)
@@ -1371,12 +1472,15 @@ static gboolean _s_incoming(GSocketService * /*svc*/,
 {
 	_Conn * c = new _Conn;
 	c->conn = G_SOCKET_CONNECTION(g_object_ref(conn));
-	c->in = g_data_input_stream_new(
-		g_io_stream_get_input_stream(G_IO_STREAM(conn)));
+	c->in = G_INPUT_STREAM(g_object_ref(
+		g_io_stream_get_input_stream(G_IO_STREAM(conn))));
 	c->out = g_io_stream_get_output_stream(G_IO_STREAM(conn));
+	c->cancellable = g_cancellable_new();
 	c->auth_timer = g_timeout_add_seconds(30, _s_auth_timeout, c);
-	g_data_input_stream_read_line_async(
-		c->in, G_PRIORITY_DEFAULT, nullptr, _s_line_ready, c);
+	_conn_ref(c);
+	g_input_stream_read_bytes_async(
+		c->in, 65536, G_PRIORITY_DEFAULT, c->cancellable,
+		_s_chunk_ready, c);
 	return G_SOURCE_CONTINUE;
 }
 
@@ -1415,19 +1519,50 @@ bool abi_control_start(XAP_App * pApp, int port)
 		return false;
 	}
 
-	/* per-instance auth key, next to ribbon.json */
+	/* per-instance auth key, next to ribbon.json — real OS entropy;
+	 * a PRNG key would be guessable by another local user, and
+	 * serving with a predictable key is worse than not serving */
 	char key[33];
-	for (int i = 0; i < 32; ++i)
-		key[i] = "0123456789abcdef"[g_random_int_range(0, 16)];
-	key[32] = 0;
+	unsigned char rnd[16];
+	if (!UT_go_random_bytes(rnd, sizeof(rnd)))
+	{
+		g_clear_object(&s_ctl.service);
+		return false;
+	}
+	for (int i = 0; i < 16; ++i)
+		g_snprintf(key + 2 * i, 3, "%02x", rnd[i]);
 	s_ctl.key = key;
 	s_ctl.key_path = _key_path(port);
 	gchar * dir = g_path_get_dirname(s_ctl.key_path.c_str());
-	g_mkdir_with_parents(dir, 0700);
+	if (!dir || !*dir || g_mkdir_with_parents(dir, 0700) != 0)
+	{
+		g_free(dir);
+		g_clear_object(&s_ctl.service);
+		return false;
+	}
 	g_free(dir);
-	g_file_set_contents(s_ctl.key_path.c_str(), s_ctl.key.c_str(),
-						-1, nullptr);
-	g_chmod(s_ctl.key_path.c_str(), 0600);
+	/* create the key file 0600 from the start and refuse symlinks —
+	 * g_file_set_contents + a later chmod leaves a window where a
+	 * permissive umask exposes the key to other local users */
+	{
+		const int kfd = g_open(s_ctl.key_path.c_str(),
+							   O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW,
+							   0600);
+		bool wrote = false;
+		if (kfd >= 0)
+		{
+			wrote = write(kfd, s_ctl.key.c_str(), s_ctl.key.size()) ==
+				static_cast<gssize>(s_ctl.key.size());
+			close(kfd);
+		}
+		if (!wrote)
+		{
+			if (kfd >= 0)
+				g_remove(s_ctl.key_path.c_str());
+			g_clear_object(&s_ctl.service);
+			return false;
+		}
+	}
 	/* a stale key file must never outlive the session it unlocks */
 	atexit(+[] {
 		if (!s_ctl.key_path.empty())
