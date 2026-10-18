@@ -24,7 +24,11 @@
 #include <gio/gio.h>
 #include <glib/gstdio.h>
 
+#ifdef G_OS_WIN32
+#include <windows.h>
+#else
 #include <signal.h>
+#endif
 
 namespace
 {
@@ -230,7 +234,7 @@ UT_ScreenshotResult s_gnome_capture(std::string & outPath)
 									G_SPAWN_STDERR_TO_DEV_NULL),
 								nullptr, nullptr, &pid, nullptr);
 	g_free(shot);
-	if (!ok || pid <= 0)
+	if (!ok || !pid)
 	{
 		g_unlink(tmp);
 		g_free(tmp);
@@ -260,7 +264,12 @@ UT_ScreenshotResult s_gnome_capture(std::string & outPath)
 
 	if (!ctx.exited)
 	{
+		/* GPid is a pid_t on UNIX but a process HANDLE on Windows */
+#ifdef G_OS_WIN32
+		TerminateProcess(pid, 1);
+#else
 		kill(pid, SIGTERM);
+#endif
 		g_spawn_close_pid(pid);
 		g_unlink(tmp);
 		g_free(tmp);

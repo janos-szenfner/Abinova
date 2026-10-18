@@ -113,7 +113,7 @@ deb_deps="build-essential autoconf automake libtool pkg-config
 	libgtk-4-dev libcairo2-dev libpango1.0-dev librsvg2-dev
 	libfribidi-dev libgsf-1-dev libxslt1-dev libxml2-dev
 	zlib1g-dev libpng-dev libjpeg-dev libtiff-dev
-	libglib2.0-dev libx11-dev
+	libglib2.0-dev libx11-dev libxtst-dev
 	libenchant-2-dev hunspell
 	libboost-dev
 	patchelf
@@ -126,7 +126,7 @@ suse_deps="gcc gcc-c++ make autoconf automake libtool pkg-config
 	gtk4-devel cairo-devel pango-devel librsvg-devel
 	fribidi-devel libgsf-devel libxslt-devel libxml2-devel
 	zlib-devel libpng16-devel libjpeg8-devel libtiff-devel
-	glib2-devel libX11-devel
+	glib2-devel libX11-devel libXtst-devel
 	enchant-devel hunspell
 	boost-devel
 	patchelf
