@@ -6,6 +6,41 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.4] — unreleased
+
+### User interface
+
+- **Design ribbon tab restructured to the Word layout** — three
+  groups: a standalone **Themes** group (font pair + palette in one
+  step), **Document Formatting** with a live style-set thumbnail
+  gallery (each card renders a mini Title / Heading 1 / body preview
+  in that set's fonts and colours) plus stacked small controls for
+  Theme Colors, Theme Fonts, Paragraph Spacing, Effects and Set as
+  Default, and **Page Background** with Watermark, Page Color and
+  Page Borders.
+- **Page Color dropdown** — No Color, the theme colour palette and
+  More Colours…; **Custom Watermark…** lets you type watermark text
+  instead of picking a preset.
+
+### Reliability
+
+- **Vendored hunspell upgraded to 1.7.5**.
+- **macOS idle freeze fixes** — the autosave path (which fires at
+  the default 5-minute mark) had several stalls that could freeze
+  the UI: `UT_AsyncWrite_waitForTarget` waited unboundedly on the
+  main thread (now bounded with diagnostics), a failed worker-thread
+  spawn left queued jobs stuck forever (now falls back to a
+  synchronous write), the inter-instance recovery lock was retained
+  for a whole autosave period after the write landed (now released
+  on completion), and an encoding exception could wedge every later
+  autosave tick (now contained). The app also holds an App Nap
+  activity token on macOS so an occluded window is not throttled.
+  `ABINOVA_DEBUG_AUTOSAVE=1` emits a timestamped stage trace.
+- **Release-build fixes** — `libxtst-dev`/`libXtst-devel` added to
+  the Linux dependency lists (the control channel's XTest input
+  needs it), and Windows/MSYS2 portability fixes for `GPid`
+  handling, `kill()`, `realpath()` and `O_NOFOLLOW`.
+
 ## [4.0.3] — 2026-10-18
 
 ### Automation
