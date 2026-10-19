@@ -493,6 +493,10 @@ case "$host_os" in
     DEPS_CFLAGS="$DEPS_CFLAGS -D_WIN32_WINNT=0x0A00 -DWINVER=0x0A00"
     DEPS_LIBS="$DEPS_LIBS -lbcrypt"
     ;;
+  darwin*)
+    dnl the App Nap token in xap_UnixApp.cpp calls the ObjC runtime
+    DEPS_LIBS="$DEPS_LIBS -lobjc"
+    ;;
 esac
 
 DEPS_CFLAGS="$DEPS_CFLAGS -DGDK_VERSION_MIN_REQUIRED=$GTK_ENCODED_VERSION -DGDK_VERSION_MAX_ALLOWED=$GTK_ENCODED_VERSION"
