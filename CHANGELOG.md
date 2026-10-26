@@ -6,6 +6,14 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.5] — 2026-10-26
+
+### Maintenance
+
+- **Vendored hunspell updated to 1.7.6** — upstream bug-fix and
+  oss-fuzz hardening release; identical vendored file set, no local
+  patches.
+
 ## [4.0.4] — 2026-10-19
 
 ### User interface
