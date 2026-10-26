@@ -5,18 +5,27 @@
   "build": "Each lib is a libtool noinst convenience archive built by thirdparty/Makefile.am (explicit _SOURCES lists, -fPIC, folded into libabinova). Upstream build systems are NOT vendored; on upgrade, refresh the _SOURCES list and _CPPFLAGS -I paths in Makefile.am.",
   "libraries": {
     "hunspell": {
-      "dir": "hunspell-1.7.5",
-      "version": "1.7.5",
+      "dir": "hunspell-1.7.6",
+      "version": "1.7.6",
       "upstream": "https://github.com/hunspell/hunspell",
       "tarball": {
-        "url": "https://github.com/hunspell/hunspell/releases/download/v1.7.5/hunspell-1.7.5.tar.gz",
-        "sha256": "2e559f0c2a592ba48e421477f58e9bf7e01062277a4a7821afb52fc9401010ae"
+        "url": "https://github.com/hunspell/hunspell/releases/download/v1.7.6/hunspell-1.7.6.tar.gz",
+        "sha256": "9c650ace31d4d8cc1da925a9507c3de1d50f1a54857af2f72429f517d5d53467"
       },
       "license": "MPL-1.1 / GPL-2.0 / LGPL-2.1 tri-license (COPYING, COPYING.LESSER, COPYING.MPL, license.hunspell, license.myspell vendored)",
       "vendored_paths": [
-        "AUTHORS", "COPYING", "COPYING.LESSER", "COPYING.MPL",
-        "license.hunspell", "license.myspell", "NEWS", "README", "THANKS",
-        "src/hunspell/", "src/parsers/", "src/tools/"
+        "AUTHORS",
+        "COPYING",
+        "COPYING.LESSER",
+        "COPYING.MPL",
+        "license.hunspell",
+        "license.myspell",
+        "NEWS",
+        "README",
+        "THANKS",
+        "src/hunspell/",
+        "src/parsers/",
+        "src/tools/"
       ],
       "dropped": "upstream autotools machinery (configure.ac/Makefile.am|in/m4/), po/, man/, tests/, hunspell.pc.in; per-dir Makefile.in",
       "patched_files": {},
@@ -45,14 +54,20 @@
         "sha256": "19eacf5ce55d7fe6a990a45142589cdf7da0c7b68701797f133482cb44f189fa"
       },
       "license": "LGPL-2.1+ / MPL-2.0 (COPYING.LGPL, COPYING.MPL vendored)",
-      "vendored_paths": ["inc/", "src/lib/", "COPYING.LGPL", "COPYING.MPL", "README"],
+      "vendored_paths": [
+        "inc/",
+        "src/lib/",
+        "COPYING.LGPL",
+        "COPYING.MPL",
+        "README"
+      ],
       "dropped": "upstream autotools machinery, docs/, data/, src/{conv,fuzz,test}, *.pc.in, *.rc.in, ChangeLog/NEWS/AUTHORS/HACKING, per-dir Makefile.am|in",
       "patched_files": {},
       "local_files": {},
       "flags": "-DLIBREVENGE_BUILD",
       "advisory_checked": "2026-10-05 (NVD + Debian OSV)",
       "advisories": [],
-      "advisory_note": "No published CVEs against librevenge at any version. Latest upstream release is 0.0.6 — vendored copy is current."
+      "advisory_note": "No published CVEs against librevenge at any version. Latest upstream release is 0.0.6 \u2014 vendored copy is current."
     },
     "libwpd": {
       "dir": "libwpd-0.10.3",
@@ -63,7 +78,13 @@
         "sha256": "2465b0b662fdc5d4e3bebcdc9a79027713fb629ca2bff04a3c9251fdec42dd09"
       },
       "license": "LGPL-2.1+ / MPL-2.0 (COPYING.LGPL, COPYING.MPL vendored)",
-      "vendored_paths": ["inc/", "src/lib/", "COPYING.LGPL", "COPYING.MPL", "README"],
+      "vendored_paths": [
+        "inc/",
+        "src/lib/",
+        "COPYING.LGPL",
+        "COPYING.MPL",
+        "README"
+      ],
       "dropped": "upstream autotools machinery, docs/, src/{conv,fuzz,test}, *.pc.in, *.rc(.in), ChangeLog/NEWS/AUTHORS/HACKING/CREDITS/TODO, per-dir Makefile.am|in",
       "patched_files": {},
       "local_files": {},
@@ -102,11 +123,11 @@
           "id": "CVE-2018-19208",
           "summary": "NULL pointer dereference in WP6ContentListener::defineTable (WPXTable.h) -> DoS",
           "affects": "libwpd 0.10.2",
-          "vendored_status": "not-affected — bounds+null checks present in vendored WP6ContentListener.cpp:defineTable",
+          "vendored_status": "not-affected \u2014 bounds+null checks present in vendored WP6ContentListener.cpp:defineTable",
           "fixed_in": "0.10.2-3 (Debian) / upstream 0.10.3"
         }
       ],
-      "advisory_note": "Upstream latest is 0.10.3 (2019) — vendored copy is current and past all five published libwpd CVEs."
+      "advisory_note": "Upstream latest is 0.10.3 (2019) \u2014 vendored copy is current and past all five published libwpd CVEs."
     },
     "libwpg": {
       "dir": "libwpg-0.3.4",
@@ -117,14 +138,20 @@
         "sha256": "b55fda9440d1e070630eb2487d8b8697cf412c214a27caee9df69cec7c004de3"
       },
       "license": "LGPL-2.1+ / MPL-2.0 (COPYING.LGPL, COPYING.MPL vendored)",
-      "vendored_paths": ["inc/", "src/lib/", "COPYING.LGPL", "COPYING.MPL", "README"],
+      "vendored_paths": [
+        "inc/",
+        "src/lib/",
+        "COPYING.LGPL",
+        "COPYING.MPL",
+        "README"
+      ],
       "dropped": "upstream autotools machinery, docs/, src/{conv,fuzz}, *.pc.in, *.rc(.in), ChangeLog/NEWS/AUTHORS, per-dir Makefile.am|in",
       "patched_files": {},
       "local_files": {},
       "flags": "-DLIBWPG_BUILD -DLIBWPG_STREAMS",
       "advisory_checked": "2026-10-05 (NVD + Debian OSV)",
       "advisories": [],
-      "advisory_note": "No published CVEs against libwpg at any version. Latest upstream release is 0.3.4 — vendored copy is current."
+      "advisory_note": "No published CVEs against libwpg at any version. Latest upstream release is 0.3.4 \u2014 vendored copy is current."
     },
     "libwps": {
       "dir": "libwps-0.4.14",
@@ -135,30 +162,40 @@
         "sha256": "365b968e270e85a8469c6b160aa6af5619a4e6c995dbb04c1ecc1b4dd13e80de"
       },
       "license": "LGPL-2.1+ / MPL-2.0 (COPYING.LGPL, COPYING.MPL vendored)",
-      "vendored_paths": ["inc/", "src/lib/", "COPYING.LGPL", "COPYING.MPL", "README"],
+      "vendored_paths": [
+        "inc/",
+        "src/lib/",
+        "COPYING.LGPL",
+        "COPYING.MPL",
+        "README"
+      ],
       "dropped": "upstream autotools machinery, docs/, src/{conv,fuzz,test}, *.pc.in, *.rc(.in), ChangeLog/NEWS/AUTHORS/HACKING/CREDITS, per-dir Makefile.am|in",
       "patched_files": {},
       "local_files": {},
       "flags": "-DLIBWPS_BUILD -DLIBWPS_STREAMS",
       "advisory_checked": "2026-10-05 (NVD + Debian OSV)",
       "advisories": [],
-      "advisory_note": "No published CVEs against libwps at any version (the MS08-011/CVE-2009-1533 Works-converter CVEs are Microsoft's own converter, not libwps). Latest upstream release is 0.4.14 — vendored copy is current."
+      "advisory_note": "No published CVEs against libwps at any version (the MS08-011/CVE-2009-1533 Works-converter CVEs are Microsoft's own converter, not libwps). Latest upstream release is 0.4.14 \u2014 vendored copy is current."
     },
     "wv": {
       "dir": "wv-1.2.9",
       "version": "1.2.9",
-      "upstream": "http://wvware.sourceforge.net/ (dead since ~2010; original abisource.com downloads are gone — tarball below is the canonical bits via a distro mirror)",
+      "upstream": "http://wvware.sourceforge.net/ (dead since ~2010; original abisource.com downloads are gone \u2014 tarball below is the canonical bits via a distro mirror)",
       "tarball": {
         "url": "https://sources.voidlinux.org/wv-1.2.9/wv-1.2.9.tar.gz",
         "sha256": "4c730d3b325c0785450dd3a043eeb53e1518598c4f41f155558385dd2635c19d",
-        "alternates": ["https://fossies.org/linux/misc/old/wv-1.2.9.tar.gz"]
+        "alternates": [
+          "https://fossies.org/linux/misc/old/wv-1.2.9.tar.gz"
+        ]
       },
-      "license": "GPL-2.0+ (upstream COPYING vendored verbatim — LIC01)",
-      "vendored_paths": ["<flat library sources only: *.c/*.h at the dir root>"],
+      "license": "GPL-2.0+ (upstream COPYING vendored verbatim \u2014 LIC01)",
+      "vendored_paths": [
+        "<flat library sources only: *.c/*.h at the dir root>"
+      ],
       "dropped": "converter mains (wvWare.c, wvText.in, wvConvert.c, wvRTF.c, wvSummary.c, wvVersion.c), helper scripts (wvHtml.in, wvLatex.in, wvPDF.in, wvPS.in, wvDVI.in, wvAbw.in, wvCleanLatex.in, wvDocBook.in, wvWml.in, wvMime), getopt.c/getopt1.c, patterns/, wingdingfont/, xml/, help/, GNUmakefile.*, autotools machinery, version.c.in, wv-1.0.pc.in, README, NEWS",
       "notes": "Upstream is dead; this tree carries a large local security/correctness patch set from the DOC01-23 + UB/SEC/MEM audit series (see git history, task notes in .devin/TASKS.md). 'Upgrading' means a 3-way merge: regenerate the patch series with `tools/vendor-check.py --patch-out DIR wv` against a new upstream drop, or treat the vendored tree as effectively maintained in-tree.",
       "local_files": {
-        "config.h": "hand-written static config (no autoconf); defines MATCHED_TYPE on little-endian hosts — REQUIRED for correct read_*ubit/write_*ubit endianness",
+        "config.h": "hand-written static config (no autoconf); defines MATCHED_TYPE on little-endian hosts \u2014 REQUIRED for correct read_*ubit/write_*ubit endianness",
         "wvblip.c": "local noinst debug tool (DOC22): lists/dumps BlipStore + --picf inline blips"
       },
       "patched_files": {
@@ -195,7 +232,7 @@
         "list.c": "list assembly: style links, LFOLVL overrides, multilevel (DOC05)",
         "lst.c": "PlcfLst bounds (DOC05/DOC21)",
         "lvl.c": "LVLF bounds (DOC05)",
-        "md5.h": "UINT4 was 64-bit on LP64 — broke RC4 key derivation (DOC13)",
+        "md5.h": "UINT4 was 64-bit on LP64 \u2014 broke RC4 key derivation (DOC13)",
         "pap.c": "PAP sprm audit: Word2000+ opcodes, tab/border/indent decode, stylename NUL (DOC03/SEC02)",
         "pcd.c": "PCD bounds + wvFree(*pos) fix (DOC01/DOC15)",
         "picf.c": "PICF BMP palette clamp + U32 shifts (UB02/DOC17)",
@@ -233,7 +270,7 @@
           "fixed_in": "1.2.4"
         }
       ],
-      "advisory_note": "No CVEs affect 1.2.9, but upstream is dead (~2010) so new findings will never be assigned a fix release: the vendored tree carries a 53-file local hardening patch set (DOC01-23 + UB/SEC/MEM audits) that already closed whole classes of unpatched memory bugs — treat wv as maintained in-tree, not upstream-tracked. Fuzz coverage: fuzz_doc (through the importer) + the regression corpus in fuzz/regress/doc."
+      "advisory_note": "No CVEs affect 1.2.9, but upstream is dead (~2010) so new findings will never be assigned a fix release: the vendored tree carries a 53-file local hardening patch set (DOC01-23 + UB/SEC/MEM audits) that already closed whole classes of unpatched memory bugs \u2014 treat wv as maintained in-tree, not upstream-tracked. Fuzz coverage: fuzz_doc (through the importer) + the regression corpus in fuzz/regress/doc."
     }
   }
 }

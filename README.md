@@ -30,7 +30,7 @@ The fork is focused on:
   `src/wp/impexp/epub/` and is compiled into the core library:
   EPUB 3.3 import and export, plus the export-options dialog.
 - **Built-in grammar checking** — the former `grammar` plugin now
-  lives in `src/wp/ap/grammar/` (vendored hunspell 1.7.5 backend);
+  lives in `src/wp/ap/grammar/` (vendored hunspell 1.7.6 backend);
   sentence-level checking runs through the existing grammar-squiggle
   pipeline, gated by the `AutoGrammarCheck` preference.
 - **MS Word (.doc) support** — bundled `wv-1.2.9` in `thirdparty/`,
@@ -388,7 +388,7 @@ all.
   decoded to PNG/SVG at insert time, so saved documents stay
   portable.
 - **Grammar checker switched to Hunspell** (now built-in): the checker no
-  longer uses link-grammar. A vendored `hunspell-1.7.5` is built in
+  longer uses link-grammar. A vendored `hunspell-1.7.6` is built in
   `thirdparty/` and the sentence walker now flags each
   misspelled word with the existing grammar-squiggle path. The
   `link-grammar-5.12.5` third-party tree (~43 MB) was removed.
@@ -2754,7 +2754,7 @@ are enforced by `configure`)
 
 **Vendored in `thirdparty/` / `fonts/`**
 
-- [Hunspell 1.7.5](https://hunspell.github.io/) — spell/grammar
+- [Hunspell 1.7.6](https://hunspell.github.io/) — spell/grammar
   checking (`thirdparty/hunspell-*`)
 - [wv 1.2.9](https://github.com/Abinova/wv) — MS Word `.doc` import,
   patched for the reported buffer overflows

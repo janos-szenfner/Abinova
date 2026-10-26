@@ -19,7 +19,7 @@
 # just prints the resolved package list for the detected (or
 # --distro-selected) distro and exits — useful when you cannot sudo.
 #
-# Hunspell itself is vendored (thirdparty/hunspell-1.7.5); the distro
+# Hunspell itself is vendored (thirdparty/hunspell-1.7.6); the distro
 # hunspell package is installed for the CLI/tools and an en_US
 # dictionary is installed best-effort because the grammar checker
 # loads dictionaries from the standard dirs (PORT04).
