@@ -423,7 +423,8 @@ class ABI_EXPORT AllCarets
 	void		forceDraw(void);
 	bool        doBlinkIfNeeded(void);
 	void        setPendingBlink(void);
-	
+	void        setViewKey(UT_uint64 iKey);
+
  private:
 	GR_Graphics * m_pG;
 	GR_Caret **    m_pLocalCaret;
@@ -492,6 +493,8 @@ class ABI_EXPORT GR_Graphics
 
 	virtual void      setColor(const UT_RGBColor& clr) = 0;
 	virtual void      getColor(UT_RGBColor& clr) = 0;
+	virtual void      setAlpha(double dAlpha);
+	double            getAlpha(void) const { return m_dAlpha; }
 	virtual GR_Font*  getGUIFont() = 0;
 
 	GR_Font*  findFont(const char* pszFontFamily,
@@ -990,4 +993,5 @@ class ABI_EXPORT GR_Graphics
 	std::vector<GR_Caret *>  m_vecCarets;
 	AllCarets               m_AllCarets;
 	bool                    m_bAntiAliasAlways;
+	double                  m_dAlpha;
 };

@@ -49,6 +49,7 @@
 #include "xap_AppImpl.h"
 #include "xap_InputModes.h"
 #include "gr_Image.h"
+#include "gr_Caret.h"
 #include "xap_Frame.h"
 #include "xap_EditMethods.h"
 
@@ -294,6 +295,11 @@ bool XAP_App::initialize(const char * szKeyBindingsKey, const char * szKeyBindin
 		setEnableSmoothScrolling(true);
 	else
 		setEnableSmoothScrolling(false);
+
+	// caret glide/fade animation master switch (Word-style)
+	bool bCaretAnim = true;
+	getPrefsValueBool(XAP_PREF_KEY_CaretAnimation, bCaretAnim);
+	GR_Caret::setAnimationsEnabled(bCaretAnim);
 
 	//
 	// Need to initialize the random number generator. 

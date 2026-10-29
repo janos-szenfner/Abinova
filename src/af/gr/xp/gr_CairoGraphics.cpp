@@ -1631,7 +1631,8 @@ void GR_CairoGraphics::_setSource(cairo_t *cr, const UT_RGBColor &clr)
 		cairo_set_source(cr, pat->getPattern());
 	}
 	else {
-		cairo_set_source_rgb(cr, clr.m_red/255., clr.m_grn/255., clr.m_blu/255.);
+		cairo_set_source_rgba(cr, clr.m_red/255., clr.m_grn/255., clr.m_blu/255.,
+							  getAlpha());
 	}
 }
 
@@ -3402,6 +3403,15 @@ void GR_CairoGraphics::setColor(const UT_RGBColor& clr)
 	m_curColorDirty = true;
 }
 
+void GR_CairoGraphics::setAlpha(double dAlpha)
+{
+	if (dAlpha != getAlpha())
+	{
+		GR_Graphics::setAlpha(dAlpha);
+		m_curColorDirty = true;
+	}
+}
+
 void GR_CairoGraphics::drawLine(UT_sint32 x1, UT_sint32 y1,
 							   UT_sint32 x2, UT_sint32 y2)
 {
@@ -3690,7 +3700,8 @@ void GR_CairoGraphics::saveRectangle(UT_Rect &r, UT_uint32 iIndex)
 	 * reading pixels back mid-record corrupts the recorded frame, so we
 	 * skip it entirely: the full repaint that follows covers the region
 	 * anyway. */
-	if (m_cr && cairo_surface_get_type(cairo_get_target(m_cr)) == CAIRO_SURFACE_TYPE_RECORDING)
+	if (m_cr == nullptr ||
+		cairo_surface_get_type(cairo_get_target(m_cr)) == CAIRO_SURFACE_TYPE_RECORDING)
 		return;
 
 	if(iIndex >= m_vSaveRect.size())
@@ -3723,7 +3734,8 @@ void GR_CairoGraphics::restoreRectangle(UT_uint32 iIndex)
 {
 	/* See saveRectangle(): nothing to restore when the target is a
 	 * recording surface - the repaint omits the caret on its own. */
-	if (m_cr && cairo_surface_get_type(cairo_get_target(m_cr)) == CAIRO_SURFACE_TYPE_RECORDING)
+	if (m_cr == nullptr ||
+		cairo_surface_get_type(cairo_get_target(m_cr)) == CAIRO_SURFACE_TYPE_RECORDING)
 		return;
 
 	cairo_save(m_cr);

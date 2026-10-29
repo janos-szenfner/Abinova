@@ -61,6 +61,7 @@
 #include "xav_View.h"
 #include "fv_View.h"
 #include "fv_FrameEdit.h"
+#include "gr_Caret.h"
 #include "fl_DocLayout.h"
 #include "xad_Document.h"
 #include "gr_CairoGraphics.h"
@@ -873,6 +874,9 @@ void XAP_UnixFrameImpl::_fe::button_press_event(GtkGestureClick * g, gint n_pres
 	pUnixFrameImpl->_docButtonPressed(
 		gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(g)));
 
+	// caret glide: a pointer-caused caret move fades in, never glides
+	GR_Caret::notePointerInput();
+
 	if (pView)
 	{
 		/* Use the gesture-provided coordinates (already in drawing-area
@@ -901,6 +905,8 @@ void XAP_UnixFrameImpl::_fe::button_release_event(GtkGestureClick * g, gint /*n_
 		pUnixMouse->mouseUp(pView,
 							gtk_event_controller_get_current_event(controller),
 							x, y);
+
+	GR_Caret::notePointerInput();
 
 	pUnixFrameImpl->_docButtonReleased(
 		gtk_gesture_single_get_current_button(GTK_GESTURE_SINGLE(g)));
@@ -1357,6 +1363,9 @@ gboolean XAP_UnixFrameImpl::_fe::key_press_event(GtkEventControllerKey * c,
 	pUnixFrameImpl->_preDocInput(w);
 	AV_View * pView = pFrame->getCurrentView();
 	ev_UnixKeyboard * pUnixKeyboard = static_cast<ev_UnixKeyboard *>(pFrame->getKeyboard());
+
+	// caret glide: a key-caused caret move glides + fades in
+	GR_Caret::noteKeyInput();
 
 	if (pView && e)
 		pUnixKeyboard->keyPressEvent(pView, e);
@@ -2092,6 +2101,9 @@ void XAP_UnixFrameImpl::_imCommit(GtkIMContext * /*imc*/, const gchar * text)
 			m_iPreeditLen = 0;
 			m_iPreeditStart = 0;
 		}
+
+	// IM-committed text is typing for the caret glide
+	GR_Caret::noteKeyInput();
 
 	pUnixKeyboard->charDataEvent(pView, static_cast<EV_EditBits>(0),
 								 text, strlen(text));

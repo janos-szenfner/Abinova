@@ -29,6 +29,7 @@
 #include "ut_string_class.h"
 
 class GR_Graphics;
+class GR_Painter;
 
 class ABI_EXPORT GR_Caret
 {
@@ -69,6 +70,20 @@ public:
 	void							resetBlinkTimeout(void);
 	void                            setPendingBlink(void);
 	bool                            doBlinkIfNeeded(void);
+
+	// Caret glide/fade animation (wordcraft caret_glide port):
+	// the view supplies a fingerprint of how the doc is shown (scroll
+	// offsets, window size, zoom, layout) before each setCoords; a move
+	// under an unchanged view may glide, a changed view never does.
+	void							setViewKey(UT_uint64 iKey);
+	// Input-event recency decides whether a caret move was caused by
+	// keys (glide + fade), the pointer (fade only) or a script (jump).
+	// Platform event handlers note each key/button event here.
+	static void						noteKeyInput(void);
+	static void						notePointerInput(void);
+	// "animations off" master switch (XAP pref CaretAnimation).
+	static void						setAnimationsEnabled(bool bOn);
+	static bool						animationsEnabled(void);
 private:
 	GR_Caret() = delete;
 	GR_Caret(const GR_Caret& rhs) = delete;
@@ -77,6 +92,7 @@ private:
 	static void						s_work(UT_Worker * w);
 	static void						s_enable(UT_Worker * w);
 	static void						s_blink_timeout(UT_Worker * w);
+	static void						s_anim(UT_Worker * w);
 
 	UT_uint32						_getCursorBlinkTime() const;
 	UT_uint32						_getCursorBlinkTimeout() const;
@@ -84,6 +100,24 @@ private:
 
 	void							_erase();
 	void							_blink(bool bExplicit);
+
+	// animation internals
+	static double					_animSecs(void);
+	bool							_animationsOn(void) const;
+	static double					_ease(double s);
+	double							_animProgress(gint64 iStartUs, gint64 iNowUs) const;
+	void							_advanceBlink(gint64 iNowUs);
+	void							_setFadeTarget(gint64 iNowUs, double dTo);
+	void							_paintCaret(GR_Painter & painter);
+	void							_drawCaretBars(GR_Painter & painter,
+											   double x, double y, double h,
+											   double x2, double y2, double h2,
+											   double dOpacity);
+	void							_eraseCaretPixels(void);
+	void							_hardHide(void);
+	void							_animStart(void);
+	void							_animStop(void);
+	bool							_barNearScreen(double x, double y, double h) const;
 
 	UT_sint32						m_xPoint;
 	UT_sint32						m_yPoint;
@@ -125,6 +159,34 @@ private:
 	gint64                                                  m_iLastDrawTime;
 	UT_sint32                                               m_iRetry;
 	bool                                                    m_bPendingBlink;
+
+	// glide/fade animation state
+	UT_Timer *						m_animWorker;
+	UT_uint64						m_uViewKey;
+	UT_uint64						m_uPendingViewKey;
+	bool							m_bViewKeySet;
+	bool							m_bGliding;
+	gint64							m_iGlideStartUs;
+	double							m_dFromX;
+	double							m_dFromY;
+	double							m_dFromH;
+	double							m_dFromX2;
+	double							m_dFromY2;
+	double							m_dFromH2;
+	bool							m_bFading;
+	gint64							m_iFadeStartUs;
+	double							m_dFadeFrom;
+	double							m_dFadeTo;
+	double							m_dOpacity;
+	bool							m_bDrawn;
+	bool							m_bInPaint;
+	bool							m_bAnimTickPending;
+	bool							m_bAnimRunning;
+	gint64							m_iLastShownUs;
+
+	static gint64					s_iLastKeyUs;
+	static gint64					s_iLastPointerUs;
+	static bool						s_bAnimationsOn;
 };
 
 class ABI_EXPORT GR_CaretDisabler

@@ -1272,6 +1272,7 @@ protected:
 	void				_fixInsertionPointCoords(bool bIgnoreAll = false);
 	void				_fixInsertionPointCoords(fv_CaretProps * pCP) const;
 	void				_fixAllInsertionPointCoords(void) const;
+	UT_uint64			_caretViewKey(void) const;
 
 	void				_drawSelection();
 	void				_extSel(UT_uint32 iOldPoint);

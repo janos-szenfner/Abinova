@@ -212,6 +212,16 @@ void        AllCarets::setPendingBlink(void)
 		(*m_pLocalCaret)->setPendingBlink();
 }
 
+void        AllCarets::setViewKey(UT_uint64 iKey)
+{
+	if((*m_pLocalCaret))
+		(*m_pLocalCaret)->setViewKey(iKey);
+	for(UT_sint32 i =0; i< m_vecCarets->size();i++)
+	{
+		(*m_vecCarets)[i]->setViewKey(iKey);
+	}
+}
+
 void		AllCarets::setCoords(UT_sint32 x, UT_sint32 y, UT_uint32 h,
 						  UT_sint32 x2, UT_sint32 y2, UT_uint32 h2, 
 						  bool bPointDirection, 
@@ -267,8 +277,14 @@ GR_Graphics::GR_Graphics()
 	  m_iPrevYOffset(0),
 	  m_iPrevXOffset(0),
 	  m_AllCarets(this,&m_pCaret,&m_vecCarets),
-	  m_bAntiAliasAlways(false)
+	  m_bAntiAliasAlways(false),
+	  m_dAlpha(1.0)
 {
+}
+
+void GR_Graphics::setAlpha(double dAlpha)
+{
+	m_dAlpha = dAlpha;
 }
 
 GR_Font* GR_Graphics::findFont(const char* pszFontFamily,

@@ -261,6 +261,7 @@ public:
 
 	virtual void setColor(const UT_RGBColor& clr) override;
 	virtual void getColor(UT_RGBColor &clr) override;
+	virtual void setAlpha(double dAlpha) override;
 
 	PangoFontMap * getFontMap() const {_syncFontConfigMaps(); return m_pFontMap;}
 	PangoContext * getContext() const {_syncFontConfigMaps(); return m_pContext;}
@@ -369,7 +370,7 @@ public:
 	// this is called to get the surface out of what is drawning.
 	static cairo_surface_t * _getCairoSurfaceFromContext(cairo_t *cr,
 												const cairo_rectangle_t & rect);
-	static void _setSource(cairo_t *, const UT_RGBColor &);
+	void _setSource(cairo_t *, const UT_RGBColor &);
 
 	// all instances have to be created via GR_GraphicsFactory; see gr_Graphics.h
 	GR_CairoGraphics(cairo_t *cr, UT_uint32 iDeviceResolution);

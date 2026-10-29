@@ -10,6 +10,13 @@ responsibility** — see `README.md`.
 
 ### Added
 
+- **Word-style caret glide and fade** — the insertion point eases to
+  its new position over ~0.1s when you move it with the keyboard
+  (mid-flight moves re-aim from wherever it was heading), fades in
+  on pointer clicks, and blinks as a soft fade instead of a hard
+  toggle; moves driven by scripts or the control channel still jump
+  instantly. Turn it off with the `CaretAnimation` preference, or
+  freeze the timing for screenshots with `ABINOVA_CARET_GLIDE_MS=0`.
 - **Soft drop shadow under the page paper** — a subtle darkened band
   offset ~2px down and expanded ~1.5px around each page in Print
   Layout, replacing the old hard 2px line edges; screen-only, so it

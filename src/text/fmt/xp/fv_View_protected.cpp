@@ -29,6 +29,7 @@
 
 #include <stdlib.h>
 #include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <stdio.h>
 #include <ctype.h>
@@ -4589,8 +4590,30 @@ void FV_View::_fixAllInsertionPointCoords() const
 	}
 }
 
+/* Fingerprint of how the document is shown for the caret glide: a
+ * changed view (scroll, zoom, resize, another document) must never
+ * animate. Mixed FNV-1a over the inputs the caret cannot see. */
+UT_uint64 FV_View::_caretViewKey(void) const
+{
+	UT_uint64 k = 1469598103934665603ULL;
+	k ^= static_cast<UT_uint64>(static_cast<UT_sint64>(m_xScrollOffset));
+	k *= 1099511628211ULL;
+	k ^= static_cast<UT_uint64>(static_cast<UT_sint64>(m_yScrollOffset));
+	k *= 1099511628211ULL;
+	k ^= static_cast<UT_uint64>(getWindowWidth());
+	k *= 1099511628211ULL;
+	k ^= static_cast<UT_uint64>(getWindowHeight());
+	k *= 1099511628211ULL;
+	k ^= static_cast<UT_uint64>(m_pG ? m_pG->getZoomPercentage() : 0);
+	k *= 1099511628211ULL;
+	k ^= static_cast<UT_uint64>(reinterpret_cast<uintptr_t>(m_pLayout));
+	k *= 1099511628211ULL;
+	return k;
+}
+
 void FV_View::_fixInsertionPointCoords(fv_CaretProps * pCP) const
 {
+	pCP->m_pCaret->setViewKey(_caretViewKey());
 	if ((pCP->m_iInsPoint > 0) && !isLayoutFilling())
 	{
 		fl_BlockLayout * pBlock = nullptr;
@@ -4634,6 +4657,7 @@ void FV_View::_fixInsertionPointCoords(bool bIgnoreAll)
 {
 	if (m_pG->allCarets()->getBaseCaret() == nullptr)
 		return;
+	m_pG->allCarets()->setViewKey(_caretViewKey());
 	if(!bIgnoreAll)
 		_fixAllInsertionPointCoords();
 	

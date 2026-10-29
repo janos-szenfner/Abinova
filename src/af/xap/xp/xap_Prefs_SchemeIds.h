@@ -154,6 +154,11 @@
 #define XAP_PREF_KEY_EnableSmoothScrolling  "EnableSmoothScrolling"
 #define XAP_PREF_DEFAULT_EnableSmoothScrolling		 "1"
 
+/* Word-style caret glide + fade animation (wordcraft caret_glide
+ * port); "0" restores the old jump/hard-blink caret */
+#define XAP_PREF_KEY_CaretAnimation  "CaretAnimation"
+#define XAP_PREF_DEFAULT_CaretAnimation		 "1"
+
 
 #define XAP_PREF_KEY_ToolbarNumEntries "Toolbar_NumEntries_"
 #define XAP_PREF_KEY_ToolbarID "Toolbar_ID_"
@@ -230,6 +235,7 @@ dcl(ColorForRevision8)
 dcl(ColorForRevision9)
 dcl(ColorForRevision10)
 dcl(EnableSmoothScrolling)
+dcl(CaretAnimation)
 dcl(ZoomType)
 dcl(ZoomPercentage)
 dcl(DefaultSaveDirectory)
