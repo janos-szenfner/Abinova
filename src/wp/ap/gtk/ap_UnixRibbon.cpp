@@ -13534,8 +13534,12 @@ GtkWidget * AP_UnixRibbon::_makeHistoryDropButton(bool bUndo)
 	GtkWidget * mb = gtk_menu_button_new();
 	gtk_widget_add_css_class(mb, "flat");
 	gtk_widget_add_css_class(mb, "qat-button");
+	/* wordcraft-style drawn ▼ instead of the theme arrow node —
+	 * the theme renders it oversized on some platforms (macOS) */
 	gtk_menu_button_set_direction(GTK_MENU_BUTTON(mb),
-								GTK_ARROW_DOWN);
+								GTK_ARROW_NONE);
+	gtk_menu_button_set_child(GTK_MENU_BUTTON(mb),
+							  abi_glyph_icon_widget("pan-down-symbolic", 9));
 	gtk_widget_set_tooltip_text(mb,
 								bUndo ? "Undo History"
 									  : "Redo History");

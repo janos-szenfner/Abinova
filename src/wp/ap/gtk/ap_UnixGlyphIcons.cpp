@@ -267,6 +267,15 @@ static void _g_showpara(const _GlyphPen & p)
 	_pen_text(p, 10.0, 10.5, 15.0, "\xc2\xb6", p.fg, FALSE);
 }
 
+/* small down triangle — wordcraft's "dropdown", used instead of the
+ * theme's arrow inside menu/split buttons (its size varies per
+ * platform: oversized on macOS) */
+static void _g_dropdown(const _GlyphPen & p)
+{
+	const double t[] = { 5.5, 8.0, 14.5, 8.0, 10.0, 13.5 };
+	_pen_fill(p, t, 3, p.fg);
+}
+
 static void _g_find(const _GlyphPen & p)
 {
 	_pen_circle(p, 8.5, 8.5, 5.0, p.fg);
@@ -587,6 +596,7 @@ static const _GlyphEntry _glyphs[] =
 	{ "edit-undo",					_g_undo },
 	{ "edit-redo",					_g_redo },
 	{ "tb_view_showpara",			_g_showpara },
+	{ "pan-down",					_g_dropdown },
 	{ "edit-find",					_g_find },
 	{ "edit-find-replace",			_g_replace },
 	{ "edit-select-all",			_g_select_all },
