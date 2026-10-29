@@ -51,6 +51,23 @@ class GR_PangoRenderInfo;
 class GR_CairoGraphics;
 class XAP_Frame;
 
+/*! Legacy "symbol fonts" whose private 8-bit codes stand in for
+ *  unrelated Unicode glyphs.  Word stores the character either as the
+ *  private-use code U+F000 + the font's code (w:sym, Insert>Symbol) or
+ *  as the bare code 0x20-0xFF in a run whose font is the symbol font;
+ *  either way the text is mapped to the real Unicode character at
+ *  shaping time so it renders with whatever font is installed. */
+enum GR_SymbolFontType
+{
+	GR_SYM_NONE = 0,
+	GR_SYM_ADOBE_SYMBOL,	// Symbol, Symbol (PCL6), ...
+	GR_SYM_ZAPF_DINGBATS,	// *dingbat*
+	GR_SYM_WINGDINGS,
+	GR_SYM_WINGDINGS_2,
+	GR_SYM_WINGDINGS_3,
+	GR_SYM_WEBDINGS
+};
+
 class GR_CairoPatternImpl
 	: public UT_ColorPatImpl
 {
@@ -267,8 +284,9 @@ public:
 	virtual void invertRect(const UT_Rect* pRect) override;
 	virtual void drawLine(UT_sint32, UT_sint32, UT_sint32, UT_sint32) override;
 
-	bool isDingbat(void) const {return m_bIsDingbat;}
-	bool isSymbol(void) const {return m_bIsSymbol;};
+	bool isDingbat(void) const {return m_eSymbolFont == GR_SYM_ZAPF_DINGBATS;}
+	bool isSymbol(void) const {return m_eSymbolFont == GR_SYM_ADOBE_SYMBOL;}
+	GR_SymbolFontType symbolFontType(void) const {return m_eSymbolFont;}
 
 	void resetFontMapResolution(void);
 
@@ -369,8 +387,11 @@ public:
 										   UT_BidiCharType iVisDir,
 										   const char * pUtf8);
 
-	void         _setIsSymbol(bool b) {m_bIsSymbol = b;}
-	void         _setIsDingbat(bool b) {m_bIsDingbat = b;}
+	/* map one character of document text to the codepoint to shape
+	 * when the run font is a legacy symbol font (identity otherwise) */
+	static UT_UCS4Char _mapSymbolFontChar(GR_SymbolFontType e,
+										  UT_UCS4Char c);
+	static GR_SymbolFontType _symbolFontType(const GR_PangoFont * pFont);
 
 	PangoFont *  _adjustedPangoFont (const GR_PangoFont * pFont, PangoFont * pf);
 	PangoFont *  _adjustedLayoutPangoFont (const GR_PangoFont * pFont, PangoFont * pf);
@@ -412,8 +433,7 @@ public:
 	GR_Graphics::CapStyle  m_capStyle;
 	GR_Graphics::LineStyle m_lineStyle;
 	bool            m_linePropsDirty;
-	bool                    m_bIsSymbol;
-	bool                    m_bIsDingbat;
+	GR_SymbolFontType       m_eSymbolFont;
 	UT_sint32               m_iPrevX1;
 	UT_sint32               m_iPrevX2;
 	UT_sint32               m_iPrevY1;

@@ -36,6 +36,7 @@
 
 // External includes
 #include <string>
+#include <cstring>
 
 OXMLi_ListenerState_Numbering::OXMLi_ListenerState_Numbering():
 	OXMLi_ListenerState(),
@@ -281,7 +282,22 @@ void OXMLi_ListenerState_Numbering::endElement (OXMLi_EndElementRequest * rqst)
 		if(m_currentList)
 		{
 			m_currentList->setAttributes(dummy->getAttributes());
-			m_currentList->setProperties(dummy->getProperties());
+			PP_PropertyVector props = dummy->getProperties();
+			if(nameMatches(rqst->pName, NS_W_KEY, "rPr"))
+			{
+				/* w:lvl/w:rPr is the numbering symbol's run properties
+				 * (ECMA-376): it styles the label only, not the item
+				 * text.  The list's props are copied onto every list
+				 * paragraph, so the label font has to travel as
+				 * field-font — a literal font-family would mark the
+				 * item text as e.g. Wingdings too */
+				for(size_t i = 0; i + 1 < props.size(); i += 2)
+				{
+					if(props[i] == "font-family")
+						props[i] = "field-font";
+				}
+			}
+			m_currentList->setProperties(props);
 		}
 		rqst->stck->pop(); //remove the dummy element
 		rqst->handled = true;

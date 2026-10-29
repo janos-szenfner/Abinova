@@ -68,6 +68,14 @@ responsibility** — see `README.md`.
 - **Windows: the text cursor is now a visible I-beam over the page**
   — a drawn black-with-white-edge cursor replaces the system I-beam
   that could vanish on white paper.
+- **Symbol, Wingdings, Wingdings 2/3 and Webdings text now renders as
+  the intended symbols** — Word stores those fonts' private codes as
+  U+F000+code or bare bytes; they are now mapped to the real Unicode
+  characters at shaping time (per the Unicode L2/12-368 tables) and
+  drawn with any installed font instead of boxes, e.g. the classic
+  Wingdings `F0A7` square and `F0FC` check bullets. List-level fonts
+  (`w:lvl/w:rPr`) now style the label only and no longer leak onto
+  the item text.
 
 ### Maintenance
 
