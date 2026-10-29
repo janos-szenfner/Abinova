@@ -6,6 +6,25 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.6] — unreleased
+
+### Bug fixes
+
+- **Window can be resized below the ribbon/status-bar width** — the
+  status bar pinned every field's representative string as a hard
+  size_request, summing to a ~1.5K px window-minimum-width floor.
+  Fields now ellipsize (issue #1).
+- **Crash opening documents (notably .abw with images)** —
+  `_replaceView` freed the old document/layout/graphics before the
+  replaced view's destructor ran; the view then detached from freed
+  objects. Teardown order now keeps them alive until the view dies
+  (issue #1).
+
+### Maintenance
+
+- **ABINOVA_DEBUG_LAYOUT=1** — diagnostic env var dumping each
+  toplevel child's measured minimum width.
+
 ## [4.0.5] — 2026-10-26
 
 ### Maintenance

@@ -1859,6 +1859,23 @@ read aloud (user opt-out). Ribbon lives in
 | W27 | Design tab structure parity with wordcraft — details below | done | 1 | Design tab reshaped to wordcraft's 3 groups: Themes (own group, big menupop) | Document Formatting (5-tile style-set gallery + more-chevron + [Colors,Fonts] stack + [ParaSpacing,Effects,SetAsDefault] stack) | Page Background reordered Watermark->PageColor->PageBorders; new AP_RIBBON_ITEM_SETGAL (tiles apply styleSetApply via _s_setgal_tile_clicked, mini Title/Heading/Body previews mirroring s_set_* patches) + AP_RIBBON_ITEM_COLEND column-break in the 3-row grid packing + AP_RIBBON_DEAD_EFFECTS stub (wordcraft's is itself a settings-only stub — no effects engine here); STYLESETS MENUPOP removed from the tab (gallery + chevron cover it) — verified: make -j2 clean; xvfb+XTest: real click on "basic" tile -> saved .abwn carries 2e74b5; xwininfo shows Themes popover mapped 276x282 (xwd -id capture: Craft..Sketchbook rows); Badge.docx->pdf rc=0 |
 | W28 | Design tab Page Color dropdown + Effects + watermark custom — details below | done | 3 | resumed mid-task: new pageColor edit method (none->transparent else rrggbb, written doc-wide via setDocWideSectionFormat + queueDraw); PAGE_COLOR switched to MENUPOP with _makePageColorPopover (No Color row, 40-swatch _s_color_palette grid via abi-em data, More Colors->dlgBackground); watermark popover gains Custom Watermark… row -> _showCustomWatermarkDialog (text entry + GtkFontDialogButton family + GtkColorDialogButton + size spin) emitting "text T|rrggbb|family|pt" through pageWatermark which now parses the pipe spec into page-watermark-color/-font/-size (props+painter already existed); Effects already stubbed in W27 — verified: make -j2 clean; xvfb+dbus control channel: engine.execute pageColor 2E74B5/none lands in saved .abwn, custom spec writes all 4 props, PDF shows blue paper + diagonal CUSTOM STAMP; XTest click-scan of the real popover maps No Color row (writes transparent), all 4 swatch rows (666666/ffff00/ffffcc/bf9000 exact palette hits) and More Colors->Background dialog; watermark popover sweep found Custom Watermark->dialog + Picture->Insert Picture; dialog typed+Apply writes page-watermark-text + default Sans/bfbfbf (modal key routing needed XSetInputFocus in the driver) |
 | W29 | macOS idle freeze (~5 min) — details below | done | 1 | ABINOVA_DEBUG_AUTOSAVE=1 stage tracing (s_autosaveTrace: tick/defer-reasons/lock/encode+ms/decode-gate/enqueue/done/wait-enter/exit, stderr in release too); real defects found+fixed: recovery .lock lived in the XAP_AsyncBackup shared_ptr held by m_pendingBackups until next backup/teardown — held up to a whole period, now st->lock.reset() in _backupWriteDone the moment the write lands (found because recovery-check.py wedged forever: its flock() LockHolder could never acquire); UT_AsyncWrite_waitForTarget bounded to 30s + diagnostic dump (was an infinite UI stall on wedged worker); g_thread_try_new + inline syncWrite fallback (was abort-with-stuck-queue); encodeToBytes try/catch so a throw can't wedge m_bBackupInProgress; App Nap NSProcessInfo NSActivityUserInitiated|LatencyCritical token under __APPLE__ via ObjC runtime C API (no .mm/build plumbing, no Foundation link dep, graceful if Foundation absent) — verified: make -j2 clean; xvfb+dbus control-channel drive emits every stage line and cycles clean; recovery-check.py 17/17 (racy land-vs-reply checks converted to wait_for); Abinova-test asyncwrite 29/0; rich.abw->pdf rc=0; mac path is __APPLE__-only, CI is the real compile check; runbook ask in CHANGELOG (sample <pid>/spindump + trace) |
+| W30 | GTK floor bump to 4.18+ API — details below | pending | 0 |  |
+| W31 | Typing parity 2: Tab-indent selection, Alt+numpad, IM reset — details below | pending | 0 |  |
+| W32 | Nav UX: dbl-click margins->header/footer + persist nav-pane/spell-as-you-type — details below | pending | 0 |  |
+| W33 | Small UI correctness: word count+labels, minibar alignment, Zotero boundary — details below | pending | 0 |  |
+| W34 | Layout batch 1: justified manual-break stretch, NBSP width, bookmark break — details below | pending | 0 |  |
+| W35 | Layout batch 2: table row margins/splitting, keep-with-next, float wrap, list label — details below | pending | 0 |  |
+| W36 | Perf: skip per-char property lookups for plain text runs — details below | pending | 0 |  |
+| W37 | Visual polish: triple borders, dark-theme comments/ruler, Windows I-beam — details below | pending | 0 |  |
+| W38 | Wingdings/Webdings/Symbol -> Unicode glyph mapping — details below | pending | 0 |  |
+| W39 | View modes: Full Screen F11, Focus mode, Read Mode/Web Layout — details below | pending | 0 |  |
+| W40 | Picture transparency slider + corrections; WMF/EMF insert — details below | pending | 0 |  |
+| W41 | Fonts embedded in .docx used for layout + PDF export — details below | pending | 0 |  |
+| W42 | Split Cells + Convert Text to Table dialogs — details below | pending | 0 |  |
+| W43 | arabicAlpha/arabicAbjad list numbering — details below | pending | 0 |  |
+| W44 | Restrict Editing (document protection) — details below | pending | 0 |  |
+| W45 | Update check against GitHub releases (opt-in) — details below | pending | 0 |  |
+| W46 | Import hardening: cap DOCX attrs, VML paths, U+FFFE/FFFF in ODT — details below | pending | 0 |  |
 
 ## WordCraft parity task details
 
@@ -2367,3 +2384,301 @@ Work:
 Verify: `make -j2` clean; the new debug env var emits stage logs on
 Linux; a forced autosave (`AutoSaveFilePeriod=1`, dirty doc) under
 Xvfb cycles without blocking; code review of the mac-only path.
+
+### W30
+
+GTK API floor bump. `configure.ac` currently pins
+`GTK_VERSION_REQ=4.14.5` and `-DGDK_VERSION_MAX_ALLOWED=GDK_VERSION_4_14`;
+upstream GTK is ~4.20.
+
+Work:
+- Bump `GTK_VERSION_REQ` and `GTK_ENCODED_VERSION` to the newest GTK
+  available across our release targets. The constraint is the Linux CI
+  job (`tools/build-linux.sh` on `ubuntu-24.04`, which ships GTK 4.14):
+  either move the workflow's linux job to a newer base
+  (`ubuntu-26.04` GitHub runner if available, else a container/source
+  with newer GTK), or bump only as far as ubuntu-24.04's GTK permits
+  and document why. macOS (Homebrew), Windows (MSYS2) and Flatpak
+  (GNOME runtime '51') all track current GTK, so they tolerate the
+  highest choice.
+- Fix every new deprecation warning the wider MAX_ALLOWED window
+  surfaces (e.g. `gtk_file_chooser_*` -> `GtkFileDialog`,
+  `gtk_dialog_*` deprecations already warned in the build).
+- Keep `-DGDK_VERSION_MIN_REQUIRED` at the same level.
+
+Verify: `make -j2` clean with no *new* deprecation warnings vs the
+4.14 baseline; release.yml still builds if the workflow is touched;
+`src/abinova --version` and a doc->pdf convert run fine.
+
+### W31
+
+Typing parity batch 2 (wordcraft `docs/typing-parity.md`):
+
+1. **Tab on a non-empty selection indents the whole paragraph**
+   instead of replacing the selection with a tab character (Word
+   behavior; wordcraft PR #4291). In `FV_View::cmdCharInsert` (or the
+   tab key path in `ap_EditMethods`): when the selection is not empty
+   and covers paragraph content, apply left-indent to every covered
+   paragraph (mirroring `dlgParagraph` increase-indent), keep it
+   undoable as one block.
+2. **Alt+numpad character codes** (wordcraft #1146): Alt+digit-entry
+   inserts the corresponding code point — decimal Alt+Numpad on
+   Windows-style, Linux Alt+Shift hex not required. Implement at the
+   key-press layer (`xap_UnixFrameImpl::_fe::key_press_event`):
+   while Alt held, accumulate keypad digits; on Alt release insert
+   `g_unichar` for the accumulated decimal value.
+3. **Space/Enter must not reset the X11 input context** (wordcraft
+   #1179): check `queueIMReset()`/`gtk_im_context_reset` usage in
+   `xap_UnixFrameImpl` — resetting on ordinary Space/Enter breaks
+   compose sequences. Only reset on context changes.
+
+Verify: `make -j2` clean; xvfb control-channel `ui.key`/`ui.text`
+drives — Tab on selected paragraph increases indent (saved .abwn
+shows ind prop), Alt+065 inserts "A", multi-keystroke compose
+sequences survive.
+
+### W32
+
+Navigation/persistence UX:
+
+1. **Double-click in the page margin opens header/footer editing**
+   (wordcraft #1144): top margin area -> header tab of the HdrFtr
+   dialog (or in-place header editing if one exists), bottom margin
+   -> footer. Wire in `fv_View` mouse handlers
+   (`fv_View_cmd.cpp`/button-press on the gray margin zone).
+   Also **double-clicking a footer scrolls to it** (wordcraft #2214).
+2. **Remember Navigation pane visibility across launches** (wordcraft
+   #2528): persist the side-pane visible state + which pane in the
+   prefs profile (`XAP_PREF_KEY_`-style), restore on startup in
+   `AP_UnixFrameImpl` after `_createDocumentWindow`.
+3. **Remember "check spelling as you type" across restarts**
+   (wordcraft #1837): verify the pref actually persists; if it's
+   session-only, route it through the saved scheme
+   (`XAP_PrefsScheme::setValue` + write-back).
+
+Verify: `make -j2` clean; xvfb — XTest double-click at margin coords
+opens HdrFtr dialog; quit/relaunch restores pane state + spell pref.
+
+### W33
+
+Small UI correctness batch:
+
+1. **Word count includes generated numbered-list labels**
+   (wordcraft #908): `fl_DocStats`/word-count path — when counting,
+   prepend list-label text of each numbered paragraph to its words.
+2. **Mini toolbar alignment buttons reflect on-page alignment**
+   (wordcraft v0.12): `ap_UnixMiniBar` — mark the toggle-button for
+   the alignment actually present at the caret when the strip opens.
+3. **Zotero: text typed immediately after a citation stays outside
+   its field** (wordcraft #1162): our W18 Zotero field-run — when the
+   caret sits at the field's trailing boundary and text is inserted,
+   insert AFTER the field end, not inside it (mirror the existing
+   hyperlink-field boundary handling).
+
+Verify: `make -j2` clean; xvfb control-channel — word count grows
+with list labels, minibar toggles current alignment, typing after a
+citation lands outside the field run (document.inspect).
+
+### W34
+
+Layout batch 1 (fl_/fp_ line breaking):
+
+1. **Justified lines ending in a manual line break get stretched**
+   (wordcraft #3924): `fp_Line` justification pass currently skips
+   lines ending in a break — stretch them too.
+2. **NBSP renders at normal-space width**, not the font's U+00A0
+   glyph advance (wordcraft #4210): in run width measurement
+   (`fp_TextRun`/`gr_CairoGraphics` measure), substitute U+0020 width
+   for U+00A0.
+3. **A bookmark is not a line-break opportunity** (wordcraft #4211):
+   the break scan must not break before/after a zero-width bookmark
+   anchor.
+
+Verify: `make -j2` clean; headless `--to=pdf` on a fixture doc with
+justify+manual-break, NBSP runs, and bookmarks — pdftoppm compare.
+
+### W35
+
+Layout batch 2 (tables/floats/keeps):
+
+1. **Table rows share cell margins and split across pages like Word**
+   (wordcraft #1177) + **retain cell top insets across row page
+   breaks** (wordcraft #2524).
+2. **Text above a float's anchor wraps around it** (wordcraft #2237):
+   floated frame insertion currently pushes subsequent text; anchor-
+   preceding lines must wrap around the float too.
+3. **Keep-with-next takes the same 0.01pt slack as other fit checks**
+   (wordcraft #3816).
+4. **A list label moves with its text when the paragraph is aligned**
+   (wordcraft #1159): right/center-aligned list items keep label+text
+   together.
+
+Verify: `make -j2` clean; `--to=pdf` fixtures for each case.
+
+### W36
+
+Perf: **skip per-character property/table lookups for plain text
+runs** (wordcraft #4577-era optimization): in the layout/format pass
+(`fp_TextRun`/`gr_RenderInfo` itemization path), when a run segment
+has uniform formatting and contains no special chars, do the
+property lookup once per segment instead of per character. Keep a
+fast bail to the per-char path when any char has differing props.
+
+Verify: `make -j2` clean; time `--to=pdf` on a large docx before/
+after (report both); same PDF output.
+
+### W37
+
+Visual polish batch:
+
+1. **Triple borders draw as three lines** on screen and in PDF
+   (wordcraft #2210): `pr_*`/fp border rendering — `border-style:
+   triple` currently falls back to single.
+2. **Dark theme: comments readable + ruler text contrast**
+   (wordcraft #2563/#1154): comment annotation color and ruler
+   foreground pick theme-aware colors instead of hardcoded dark.
+3. **I-beam pointer over white paper on Windows** (wordcraft #2230):
+   ensure the text cursor is a visible I-beam over the page area on
+   win32 (GDK cursor name / native fallback under `G_OS_WIN32`).
+
+Verify: `make -j2` clean; screenshots for borders/dark theme; windows
+part is compile-only (note in commit).
+
+### W38
+
+**Wingdings/Webdings/Symbol -> Unicode glyph mapping** (wordcraft
+#776 + `crates/fonts`): when a run's font is Wingdings/Webdings/Symbol,
+map the legacy byte codes to the Unicode symbols they encode (wordcraft
+has the mapping tables — port the tables, not the code) so text shows
+the intended symbols with any installed font instead of boxes. Apply
+at text-run shaping in `gr_CairoGraphics`/`fp_TextRun` or font
+substitution layer.
+
+Verify: `make -j2` clean; doc with Wingdings bullet (the classic \xF0B7
+bullet) renders as bullet in PDF.
+
+### W39
+
+View modes:
+
+1. **Full Screen on F11 + View menu command** (wordcraft #1153):
+   `gtk_window_fullscreen` toggle, bindable edit method
+   (`viewFullscreen`), menu id + F11 accel in the keybinding table.
+2. **Focus mode fills the screen** (wordcraft #1678): hides chrome —
+   ribbon, rulers, status bar; document centered; Esc exits. New
+   `viewFocusMode` edit method + View menu item.
+3. **Read Mode / Web Layout** (wordcraft #2591/#1876): check current
+   `VIEW_WEB`/read modes — Web Layout text must fill the window width
+   (resize listener re-flows); a read mode if present keeps keyboard
+   nav and shows unobscured columns. Implement what's missing.
+
+Verify: `make -j2` clean; xvfb F11 fullscreen toggle, focus mode
+hides chrome + restores, web layout reflows on resize.
+
+### W40
+
+Pictures:
+
+1. **Transparency slider + corrections are absolute from the
+   original** (wordcraft #1175): in the image/positioned-object
+   properties dialog add a transparency slider (0-100%) writing a
+   `image-transparency`-style prop; corrections stack multiplicatively
+   on the original, not cumulatively. Renderer honors it
+   (`gr_UnixImage`/cairo alpha).
+2. **Insert > Picture accepts WMF and EMF metafiles** (wordcraft
+   #869): add loaders to `ie_impGraphic` (libwmf or cairo rendering
+   path) and extend the file-chooser filter.
+
+Verify: `make -j2` clean; doc with 50% transparent image -> PDF shows
+alpha; a .wmf file inserts and renders.
+
+### W41
+
+**Fonts embedded in .docx lay out and export correctly** (wordcraft
+#1176): docx `word/fonts/*.fntdata` (obfuscated OpenType) — deobfuscate
+(guid XOR first 32 bytes), register with the font DB (pango FT2
+custom face), use for layout/PDF. `src/wp/impexp/openxml` for reading,
+`gr_UnixCairoGraphics`/`gr_Font` for registration.
+
+Verify: `make -j2` clean; fixture docx with embedded font renders its
+glyphs in PDF (visual diff vs fallback).
+
+### W42
+
+**Split Cells + Convert Text to Table dialogs** (wordcraft #2593):
+
+1. Check existing coverage — AbiWord already has some table ops;
+   implement only what's missing.
+2. **Split Cells dialog**: rows/cols count, splits the selected cell(s)
+   via the existing table-cell API (`FV_View` cell commands).
+3. **Convert Text to Table**: dialog (separator: tab/comma/paragraph/
+   other, cols), converts selected text to a table strux
+   (`pd_Document` insertTable API).
+
+Table menu entries + edit methods + control-channel testable.
+
+Verify: `make -j2` clean; xvfb — select text, convert to table,
+split a cell; .abwn round-trip.
+
+### W43
+
+**arabicAlpha / arabicAbjad list numbering** (wordcraft #4218):
+extend the numbered-list label generator
+(`fl_AutoNum`/`ut_NumberSuffix`-style formatter where decimal/alpha/
+roman live) with Arabic-letter ordinal numbering — arabicAlpha
+(sequential abjad letters a,b,c...) and arabicAbjad (abjad numeric
+values). Wire the OOXML numFmt names on import/export.
+
+Verify: `make -j2` clean; docx with arabicAlpha list shows أ، ب، ج…
+labels in PDF; round-trip keeps numFmt.
+
+### W44
+
+**Restrict Editing** (wordcraft v0.11, `crates/engine/src/cmd`):
+Word-style document protection — start/stop protection with optional
+password + restriction mode (tracked-changes-only / comments-only /
+read-only / fill-in-forms). Persist the protection state in the doc
+(.abwn props + docx `w:documentProtection` round-trip). When active:
+edit methods check the restriction (block typing in read-only regions,
+force tracked insertions in tracked-only mode, etc.); a Stop
+Protection dialog prompts for the password. File commands + user name
+flow per wordcraft's UI. Keep scope sane: read-only +
+tracked-changes-only minimum viable.
+
+Verify: `make -j2` clean; xvfb — protect+lock, typing blocked,
+unlock restores editing; docx round-trip carries the protection.
+
+### W45
+
+**Update check** (wordcraft #4741 area): opt-in check for a newer
+release on GitHub (`api.github.com/repos/janos-szenfner/Abinova/releases/latest`).
+- Preferences checkbox "Check for updates" (default OFF — privacy),
+  stored pref.
+- At most once/day, async (GTask/GThread + libsoup or GSocket TLS —
+  whatever the tree already links; NO blocking the UI).
+- When newer: a non-modal info bar/dialog "Abinova X.Y.Z is
+  available" linking to the release page.
+- Remember last-check timestamp + dismissed version so it doesn't nag.
+
+Verify: `make -j2` clean; mock via a local HTTP endpoint or
+dependency-inject the URL for the test; offline -> silent.
+
+### W46
+
+Import hardening batch (wordcraft-ported guards):
+
+1. **Cap DOCX XML attributes per element** (wordcraft #3857): in the
+   OOXML reader (`OXML_*` attr parsing / libxml2 handler), reject or
+   truncate elements with > ~10k attributes (prevents quadratic attr
+   processing).
+2. **Cap VML path commands parsed from a `v=` path attribute**
+   (wordcraft #3951): bound the parsed command count.
+3. **Drop U+FFFE and U+FFFF from ODT export text** (wordcraft #3817):
+   sanitize on `ODe` text write.
+4. Sweep nearby: reject signs/non-digits in date fields
+   (wordcraft #3575), `parse_number` returning error on f64 overflow
+   (wordcraft #3577) — apply the same guards where our parsers
+   have the shape.
+
+Verify: `make -j2` clean; hostile fixture docs (huge-attr xml, huge
+v= path, U+FFFE text) import/export without hang/crash.
