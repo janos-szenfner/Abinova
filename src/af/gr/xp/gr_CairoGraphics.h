@@ -228,6 +228,9 @@ public:
 								   UT_sint32& x2, UT_sint32& y2,
 								   UT_sint32& height, bool& bDirection) const override;
 	virtual UT_sint32 getTextWidth(GR_RenderInfo & ri) override;
+	virtual bool      measureCharAdvances(GR_RenderInfo & ri,
+										  UT_sint32 * pAdvances,
+										  UT_uint32 iLen) override;
 
 	virtual const UT_VersionInfo & getVersion() const override {return s_Version;}
 

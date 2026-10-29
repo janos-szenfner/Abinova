@@ -802,6 +802,17 @@ class ABI_EXPORT GR_Graphics
 	// because it might overflow in some cases, see bug 13709
 	virtual UT_sint32 getTextWidth(GR_RenderInfo & ri) VIRTUAL_SFX;
 
+	// fills pAdvances[i] for i in [0,iLen) with the width of the
+	// character at logical offset i of ri, exactly as successive
+	// getTextWidth() queries with m_iOffset = i, m_iLength = 1 would
+	// return them -- one pass over the shaped data instead of a
+	// per-character glyph-range lookup.  Returns false when the
+	// graphics class cannot batch this (e.g. non-LTR text), in which
+	// case the caller must fall back to the per-character queries.
+	virtual bool measureCharAdvances(GR_RenderInfo & /*ri*/,
+									 UT_sint32 * /*pAdvances*/,
+									 UT_uint32 /*iLen*/) VIRTUAL_SFX {return false;}
+
 	// should be overriden by any classes implemented as plugins
 	// NB: you must not use s_Version to store the version of derrived
 	// classes, but have your own static variable for the derrived

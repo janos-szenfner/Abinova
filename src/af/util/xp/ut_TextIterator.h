@@ -114,6 +114,25 @@ class ABI_EXPORT UT_TextIterator
 	virtual UT_UCS4Char getChar() = 0;
 
 	/////////////////////////////////////////////////////////////////////////
+	// bulk data accessor; copies up to iLen characters starting at the
+	// current position into pBuf, advancing the iterator past them, and
+	// returns the number of characters copied
+	//
+	// The default implementation below does a plain per-character
+	// getChar(); implementations backed by contiguously stored text
+	// should override this to copy whole uniformly-formatted segments
+	// at once, so that sequential reads do not pay a per-character
+	// storage lookup
+	//
+	virtual UT_uint32 copyChars(UT_UCS4Char * pBuf, UT_uint32 iLen)
+	{
+		UT_uint32 i = 0;
+		for(; i < iLen && getStatus() == UTIter_OK; ++i, ++(*this))
+			pBuf[i] = getChar();
+		return i;
+	}
+
+	/////////////////////////////////////////////////////////////////////////
 	// positon accessor; returns a value representing current postion
 	//
 	// NB: The position can be expressed in an arbitrary coordinate

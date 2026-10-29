@@ -327,9 +327,11 @@ bool GR_PangoRenderInfo::getUTF8Text()
 	sUTF8->reserve( text.getUpperLimit());
 	// we intentionally run this as far as the iterator lets us, even if that is
 	// past the end of this item
-	for(; text.getStatus() == UTIter_OK; ++text)
+	UT_UCS4Char aBuf[512];
+	UT_uint32 n;
+	while((n = text.copyChars(aBuf, 512)) > 0)
 	{
-		*sUTF8 += text.getChar();
+		sUTF8->appendUCS4(aBuf, n);
 	}
 
 	s_pOwnerUTF8 = this;
@@ -609,10 +611,19 @@ bool GR_CairoGraphics::itemize(UT_TextIterator & text, GR_Itemization & I)
 	UT_uint32 iLen = iPosEnd - iPosStart + 1; // including iPosEnd
 
 	UT_uint32 i;
-	for(i = 0; i < iLen; ++i, ++text)
+	for(i = 0; i < iLen;)
 	{
-		UT_return_val_if_fail(text.getStatus() == UTIter_OK, false);
-		utf8 += text.getChar();
+		UT_UCS4Char aBuf[512];
+		UT_uint32 n = text.copyChars(aBuf, UT_MIN(iLen - i, 512));
+		if(!n)
+		{
+			// iterator ran out before the span length -- same bail the
+			// per-character loop took
+			UT_return_val_if_fail(text.getStatus() == UTIter_OK, false);
+			break;
+		}
+		utf8.appendUCS4(aBuf, n);
+		i += n;
 	}
 
 	UT_uint32 iByteLength = utf8.byteLength();
@@ -808,105 +819,125 @@ bool GR_CairoGraphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& ri)
 	utf8.reserve(si.m_iLength);
 	bool previousWasSpace = si.m_previousWasSpace;
 
-	UT_sint32 i;
-	for(i = 0; i < si.m_iLength; ++i, ++si.m_Text)
+	const bool bSymbol  = isSymbol();
+	const bool bDingbat = !bSymbol && isDingbat();
+
+	// the characters as they are fed to the fontset below (after
+	// remap/transform); only collected when a substitute font has to
+	// be resolved for this run
+	std::vector<UT_UCS4Char> vFontChars;
+	if(pfs)
+		vFontChars.reserve(si.m_iLength);
+
+	UT_sint32 i = si.m_iLength;
+	if(!bSymbol && !bDingbat)
 	{
-		UT_return_val_if_fail(si.m_Text.getStatus() == UTIter_OK, false);
-		UT_UCS4Char c = si.m_Text.getChar();
-		if(isSymbol())
-			utf8 += adobeToUnicode(c);
-		else if(isDingbat())
-			utf8 += adobeDingbatsToUnicode(c);
-		else {
-			
-			if (si.m_TextTransform == GR_ShapingInfo::LOWERCASE)
-				c = g_unichar_tolower(c);
-			else if (si.m_TextTransform == GR_ShapingInfo::UPPERCASE)
-				c = g_unichar_toupper(c);
-			else if (si.m_TextTransform == GR_ShapingInfo::CAPITALIZE) {
-				if (previousWasSpace) {
-					c = g_unichar_toupper(c);
-				}
-			} // else si.m_TextTransform == GR_ShapingInfo::NONE
-			
-			// a no-break space is shaped as an ordinary space: Word sets
-			// it as wide as a space even in fonts whose own U+00A0 glyph
-			// is wider; only the shaping changes, line breaking still
-			// reads the document text
-			if(c == UCS_NBSP)
-				c = UCS_SPACE;
-			
-			utf8 += c;
-			previousWasSpace = g_unichar_isspace(c);
-		}
-
-		if (pfs)
+		/* plain characters: copy whole fragments at once, apply the
+		 * case transform and the nbsp->space shaping fix-up into a
+		 * contiguous chunk, then UTF-8 encode it in one call --
+		 * instead of a per-character iterator/append round-trip */
+		UT_UCS4Char aBuf[512];
+		while(i)
 		{
-			/*
-			 * A font change; get the best font for this character
-			 */
-			PangoFont * font = pango_fontset_get_font (pfs, c);
-			
-			if (!font)
+			UT_uint32 n = si.m_Text.copyChars(aBuf, UT_MIN(i, 512));
+			if(!n)
+				break;
+
+			for(UT_uint32 k = 0; k < n; ++k)
 			{
-				/*
-				 * We did not find a suitable font -- nothing we can do.
-				 */
-				UT_DEBUGMSG(("@@@@ ===== Failed to find font for u%04x\n", c));
-			}
-			else if (pFontSubst && (pFontSubst != font))
-			{
-				/*
-			     * Ok, the font we got for this character does not match
-			     * the one we got the for the preceding characters.
-			     *
-			     * What we could do is to split the run before this character
-			     * so we might use two different fonts, but we currently
-			     * do not have the infrastructure to do this. Also, doing this
-			     * breaks when the missing glyph is a combining character.
-			     *
-			     * Alternatively, we would need to maintain an internal list
-			     * of fonts for each section, but that would mean also to
-			     * maintain separate glyph strings, which would be a nightmare.
-			     *
-			     * We can limit this from happening by preventing items that
-			     * will use different font from merging, which I have now done,
-			     * but again, this does not work when combining characters are
-			     * involved, because we cannot draw the combining character on
-			     * it's own.
-			     *
-			     * TODO -- devise a sensible way of handling this.
-			     */
-#if DEBUG
-				PangoFontDescription * pfd = pango_font_describe (pFontSubst);
-				char * sFontSubst = pango_font_description_to_string (pfd);
-				pango_font_description_free (pfd);
-				pfd = pango_font_describe (font);
-				char * sFont = pango_font_description_to_string (pfd);
-				pango_font_description_free (pfd);
-				UT_DEBUGMSG(("@@@@ ===== Font for u%04x (%s) does not match "
-							 "earlier font %s\n", c, sFont, sFontSubst));
-				g_free (sFontSubst);
-				g_free (sFont);
-#endif
-				g_object_unref (G_OBJECT (pFontSubst));
-				pFontSubst = font;
-			}
-			else if (pFontSubst == font)
-			{
-				/* We now have two references to this font, rectify */
-				g_object_unref (G_OBJECT (font));
-			}
-			else
-			{
-				pFontSubst = font;
+				UT_UCS4Char c = aBuf[k];
+
+				if (si.m_TextTransform == GR_ShapingInfo::LOWERCASE)
+					c = g_unichar_tolower(c);
+				else if (si.m_TextTransform == GR_ShapingInfo::UPPERCASE)
+					c = g_unichar_toupper(c);
+				else if (si.m_TextTransform == GR_ShapingInfo::CAPITALIZE) {
+					if (previousWasSpace) {
+						c = g_unichar_toupper(c);
+					}
+				} // else si.m_TextTransform == GR_ShapingInfo::NONE
+
+				// a no-break space is shaped as an ordinary space: Word
+				// sets it as wide as a space even in fonts whose own
+				// U+00A0 glyph is wider; only the shaping changes,
+				// line breaking still reads the document text
+				if(c == UCS_NBSP)
+					c = UCS_SPACE;
+
+				aBuf[k] = c;
+				if(pfs)
+					vFontChars.push_back(c);
+				previousWasSpace = g_unichar_isspace(c);
 			}
 
+			utf8.appendUCS4(aBuf, n);
+			i -= n;
+		}
+		UT_return_val_if_fail(i == 0, false);
+	}
+	else
+	{
+		for(; i; --i, ++si.m_Text)
+		{
+			UT_return_val_if_fail(si.m_Text.getStatus() == UTIter_OK, false);
+			UT_UCS4Char c = si.m_Text.getChar();
+			if(bSymbol)
+				utf8 += adobeToUnicode(c);
+			else
+				utf8 += adobeDingbatsToUnicode(c);
+
+			if(pfs)
+				vFontChars.push_back(c);
 		}
 	}
 
-	if(pfs) 
+	if(pfs)
 	{
+		/*
+		 * A font change; pick the best font for this run's text.
+		 *
+		 * What we could do is to split the run before every
+		 * character that needs a different font, but we currently
+		 * do not have the infrastructure to do this. Also, doing
+		 * this breaks when the missing glyph is a combining
+		 * character.
+		 *
+		 * Alternatively, we would need to maintain an internal list
+		 * of fonts for each section, but that would mean also to
+		 * maintain separate glyph strings, which would be a
+		 * nightmare.
+		 *
+		 * We can limit this from happening by preventing items that
+		 * will use different font from merging, which I have now
+		 * done, but again, this does not work when combining
+		 * characters are involved, because we cannot draw the
+		 * combining character on it's own.
+		 *
+		 * Historically a fontset lookup ran for every character and
+		 * only the last successful result was kept, so scanning back
+		 * from the last character and taking the first covered one
+		 * gives the identical outcome -- for a uniformly covered
+		 * segment a single lookup per run.
+		 *
+		 * TODO -- devise a sensible way of handling this.
+		 */
+		for(std::vector<UT_UCS4Char>::const_reverse_iterator it =
+				vFontChars.rbegin(); it != vFontChars.rend(); ++it)
+		{
+			PangoFont * font = pango_fontset_get_font (pfs, *it);
+			if(font)
+			{
+				pFontSubst = font;
+				break;
+			}
+
+			/*
+			 * We did not find a suitable font -- nothing we can do.
+			 */
+			UT_DEBUGMSG(("@@@@ ===== Failed to find font for u%04x\n",
+						 static_cast<UT_uint32>(*it)));
+		}
+
 		g_object_unref(reinterpret_cast<GObject*>(pfs));
 		pfs = nullptr;
 	}
@@ -937,7 +968,6 @@ bool GR_CairoGraphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& ri)
 	}
 	
 	RI->m_pGlyphs = pango_glyph_string_new();
-	RI->m_pScaledGlyphs = pango_glyph_string_new();
 
 	/*
 	 * We want to do the shaping on a font at it's actual point size, so we
@@ -980,8 +1010,6 @@ bool GR_CairoGraphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& ri)
 	
 	pango_shape(utf8.utf8_str(), utf8.byteLength(),
 				&(pItem->m_pi->analysis), RI->m_pGlyphs);
-	pango_shape(utf8.utf8_str(), utf8.byteLength(),
-				&(pItem->m_pi->analysis), RI->m_pScaledGlyphs);
 
 	pItem->m_pi->analysis.font = pPangoFontOrig;
 
@@ -1016,6 +1044,16 @@ bool GR_CairoGraphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& ri)
 			}
 		}
 	}
+
+	/*
+	 * the zoom-scaled glyph string is a verbatim copy of what was
+	 * just shaped (letter-spacing adjustment included) -- the second
+	 * pango_shape() this used to take was pure duplicate work over
+	 * the same text and analysis; _scaleCharacterMetrics() rewrites
+	 * the geometry from m_pGlyphs for non-100% zooms anyway
+	 */
+	RI->m_pScaledGlyphs = pango_glyph_string_copy(RI->m_pGlyphs);
+	UT_return_val_if_fail(RI->m_pScaledGlyphs, false);
 
 	// need to transfer data that we will need later from si to RI
 	RI->m_iLength = si.m_iLength;
@@ -1071,6 +1109,84 @@ UT_sint32 GR_CairoGraphics::getTextWidth(GR_RenderInfo & ri)
 	xxx_UT_DEBUGMSG(("TextWidths Pango Font %x height %d text width %d \n",
 					 pFont, pFont->getAscent(), iWidth));
 	return iWidth;
+}
+
+/*!
+    fills pAdvances[i] for i in [0,iLen) with the widths getTextWidth()
+    would return for successive one-character queries over that
+    range, in a single pass over the glyph string.  Only handles LTR
+    text; returns false for anything else so the caller can fall back
+    to per-character getTextWidth() queries.
+*/
+bool GR_CairoGraphics::measureCharAdvances(GR_RenderInfo & ri,
+										   UT_sint32 * pAdvances,
+										   UT_uint32 iLen)
+{
+	UT_return_val_if_fail(ri.getType() == GRRI_CAIRO_PANGO, false);
+	GR_PangoRenderInfo & RI = static_cast<GR_PangoRenderInfo &>(ri);
+	const GR_CairoPangoItem * pItem =
+		static_cast<const GR_CairoPangoItem *>(RI.m_pItem);
+
+	UT_return_val_if_fail( RI.m_pGlyphs && RI.m_pLogOffsets && pItem
+						   && pAdvances, false );
+
+	// the char->glyph mapping below relies on the logical offsets
+	// being non-decreasing; for RTL text keep the per-character path
+	UT_return_val_if_fail( RI.m_iVisDir != UT_BIDI_RTL, false );
+
+	const GR_PangoFont * pFont =
+		static_cast<const GR_PangoFont *>(RI.m_pFont);
+	UT_return_val_if_fail( pFont, false );
+
+	PangoFont * pf = _adjustedLayoutPangoFont(pFont,
+											  pItem->m_pi->analysis.font);
+	UT_return_val_if_fail( pf, false );
+
+	PangoGlyphString * pg         = RI.m_pGlyphs;
+	const UT_sint32    iGlyphCount = pg->num_glyphs;
+	const int *        pOff        = RI.m_pLogOffsets;
+
+	// gStart[c] = index of the first glyph whose logical offset is
+	// >= c (the same first-hit rule _measureExtent() applies); the
+	// offsets are non-decreasing, so one pointer walk builds the
+	// whole table
+	std::vector<UT_sint32> vStart(iLen + 1);
+	UT_sint32 g = 0;
+	for(UT_uint32 c = 0; c <= iLen; ++c)
+	{
+		while(g < iGlyphCount &&
+			  pOff[g] < static_cast<UT_sint32>(c))
+			++g;
+		vStart[c] = g;
+	}
+
+	// the glyph range measured for character c is [vStart[c], gEnd),
+	// where gEnd is the first glyph AFTER vStart[c] whose offset is
+	// >= c+1 (mirroring how _measureExtent() continues the scan past
+	// the start glyph); when no such glyph exists the range runs to
+	// the end of the string
+	UT_sint32 gEnd = 0;
+	PangoRectangle LR;
+	for(UT_uint32 c = 0; c < iLen; ++c)
+	{
+		UT_sint32 gStart = vStart[c];
+		if(gStart >= iGlyphCount)
+		{
+			pAdvances[c] = 0;
+			continue;
+		}
+
+		gEnd = UT_MAX(gEnd, gStart + 1);
+		while(gEnd < iGlyphCount &&
+			  pOff[gEnd] < static_cast<UT_sint32>(c) + 1)
+			++gEnd;
+
+		pango_glyph_string_extents_range(pg, gStart, gEnd, pf,
+										 nullptr, &LR);
+		pAdvances[c] = ptlunz(LR.width + LR.x);
+	}
+
+	return true;
 }
 
 /*!
@@ -1339,11 +1455,16 @@ void GR_CairoGraphics::renderChars(GR_RenderInfo & ri)
 
 		UT_UTF8String utf8;
 		UT_uint32 i;
-		
-		for(i = 0; i < RI.m_iCharCount && text.getStatus() == UTIter_OK;
-			++i, ++text)
+
+		for(i = 0; i < RI.m_iCharCount && text.getStatus() == UTIter_OK;)
 		{
-			utf8 += text.getChar();
+			UT_UCS4Char aBuf[512];
+			UT_uint32 n = text.copyChars(aBuf,
+										 UT_MIN(RI.m_iCharCount - i, 512));
+			if(!n)
+				break;
+			utf8.appendUCS4(aBuf, n);
+			i += n;
 		}
 
 		if(RI.m_iCharCount > i)

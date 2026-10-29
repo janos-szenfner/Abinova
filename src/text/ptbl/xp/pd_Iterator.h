@@ -97,6 +97,12 @@ class ABI_EXPORT PD_DocIterator : public UT_TextIterator
 
 	pf_Frag * m_frag;
 
+	// text-buffer pointer resolved for the current fragment; only
+	// re-fetched when m_frag changes, i.e., once per fragment instead
+	// of per character
+	const pf_Frag *     m_pCharFrag = nullptr;
+	const UT_UCS4Char * m_pFragChars = nullptr;
+
 	UTIterStatus    m_status;
 };
 
@@ -116,6 +122,7 @@ class ABI_EXPORT PD_StruxIterator : public UT_TextIterator
 					 UT_uint32 offset = 0, UT_uint32 maxoffset = 0xffffffff);
 
 	virtual UT_UCS4Char getChar() override; // return character at present position
+	virtual UT_uint32 copyChars(UT_UCS4Char * pBuf, UT_uint32 iLen) override;
 
 	virtual UT_uint32 getPosition() const override {return m_offset;}
 	virtual void setPosition(UT_uint32 pos) override;
@@ -150,6 +157,12 @@ class ABI_EXPORT PD_StruxIterator : public UT_TextIterator
 	pf_Frag_Strux* m_sdh;
 
 	const pf_Frag * m_frag;
+
+	// text-buffer pointer resolved for the current fragment; only
+	// re-fetched when m_frag changes, i.e., once per fragment instead
+	// of per character
+	const pf_Frag *     m_pCharFrag = nullptr;
+	const UT_UCS4Char * m_pFragChars = nullptr;
 
 	UTIterStatus    m_status;
 	UT_uint32       m_max_offset;

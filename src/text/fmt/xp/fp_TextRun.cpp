@@ -881,16 +881,33 @@ bool	fp_TextRun::findMaxLeftFitSplitPoint(UT_sint32 iMaxLeftWidth, fp_RunSplitIn
 		text.setUpperLimit(text.getPosition() + getLength() - 1);
 
 	UT_uint32 iPosStart = text.getPosition();
-	
+
 	//bool bReverse = (getVisDirection() == UT_BIDI_RTL);
 	UT_sint32 iNext = -1;
-	
+
+	// resolve every character width in this run in a single pass over
+	// the shaped glyph data when the graphics class can batch it --
+	// for a plain, uniformly-shaped segment that is one glyph-table
+	// scan instead of a per-character range lookup; the per-character
+	// getTextWidth() queries below remain as the fallback (e.g. RTL)
+	std::vector<UT_sint32> vAdv(getLength());
+	const UT_sint32 * pAdv = getGraphics()->measureCharAdvances(
+		*m_pRenderInfo, vAdv.data(), getLength()) ? vAdv.data() : nullptr;
+
 	for(UT_uint32 i = 0; i < getLength() && text.getStatus() == UTIter_OK; i++, ++text)
 	{
 		// getTextWidth() takes LOGICAL offset
-		m_pRenderInfo->m_iOffset = i;
-		m_pRenderInfo->m_iLength = 1;
-		UT_sint32 iCW2 = getGraphics()->getTextWidth(*m_pRenderInfo);
+		UT_sint32 iCW2;
+		if(pAdv)
+		{
+			iCW2 = pAdv[i];
+		}
+		else
+		{
+			m_pRenderInfo->m_iOffset = i;
+			m_pRenderInfo->m_iLength = 1;
+			iCW2 = getGraphics()->getTextWidth(*m_pRenderInfo);
+		}
 		iLeftWidth += iCW2;
 		iRightWidth -= iCW2;
 

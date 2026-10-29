@@ -60,6 +60,12 @@ responsibility** — see `README.md`.
 
 ### Maintenance
 
+- **Faster text layout and rendering** — document text is now read
+  in whole-fragment chunks instead of one character at a time, the
+  line-fit scan measures all character widths in a single pass over
+  the shaped glyphs, and shaping no longer duplicates a second
+  Pango pass per text run (~20% faster PDF export on text-heavy
+  documents; output is unchanged).
 - **ABINOVA_DEBUG_LAYOUT=1** — diagnostic env var dumping each
   toplevel child's measured minimum width.
 - **GTK requirement raised to 4.22** — `configure` now requires

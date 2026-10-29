@@ -17,7 +17,10 @@
  * 02110-1301 USA.
  */
 
+#include <string.h>
+
 #include "ut_debugmsg.h"
+#include "ut_misc.h"
 #include "pd_Iterator.h"
 #include "pt_PieceTable.h"
 #include "pf_Frag.h"
@@ -57,6 +60,8 @@ UT_TextIterator * PD_DocIterator::makeCopy() const
 	
 	t->m_pos = m_pos;
 	t->m_frag = m_frag;
+	t->m_pCharFrag = m_pCharFrag;
+	t->m_pFragChars = m_pFragChars;
 	t->m_status = m_status;
 	t->m_max_pos = m_max_pos;
 
@@ -175,7 +180,12 @@ UT_UCS4Char PD_DocIterator::getChar()
 	{
 		const pf_Frag_Text * pft = static_cast<const pf_Frag_Text*>(m_frag);
 
-		const UT_UCS4Char * p = m_pt.getPointer(pft->getBufIndex());
+		if(m_pCharFrag != m_frag)
+		{
+			m_pFragChars = m_pt.getPointer(pft->getBufIndex());
+			m_pCharFrag  = m_frag;
+		}
+		const UT_UCS4Char * p = m_pFragChars;
 
 		if(!p)
 		{
@@ -439,6 +449,8 @@ UT_TextIterator * PD_StruxIterator::makeCopy() const
 	t->m_pPT = m_pPT;
 	t->m_offset = m_offset;
 	t->m_frag = m_frag;
+	t->m_pCharFrag = m_pCharFrag;
+	t->m_pFragChars = m_pFragChars;
 	t->m_status = m_status;
 	t->m_frag_offset = m_frag_offset;
 	t->m_max_offset = m_max_offset;
@@ -512,7 +524,12 @@ UT_UCS4Char PD_StruxIterator::getChar()
 	{
 		const pf_Frag_Text * pft = static_cast<const pf_Frag_Text*>(m_frag);
 
-		const UT_UCS4Char * p = m_pPT->getPointer(pft->getBufIndex());
+		if(m_pCharFrag != m_frag)
+		{
+			m_pFragChars = m_pPT->getPointer(pft->getBufIndex());
+			m_pCharFrag  = m_frag;
+		}
+		const UT_UCS4Char * p = m_pFragChars;
 
 		if(!p)
 		{
@@ -533,6 +550,86 @@ UT_UCS4Char PD_StruxIterator::getChar()
 
 	// we are in a non-text fragment
 	return UT_IT_NOT_CHARACTER;
+}
+
+/*! copies up to iLen characters starting at the current position
+    into pBuf and advances the iterator past them; returns the number
+    of characters copied
+
+    Characters on a text fragment are copied straight out of the
+    fragment's buffer -- one buffer-pointer lookup per fragment
+    instead of per character; non-text fragments yield
+    UT_IT_NOT_CHARACTER per position, exactly as getChar() reports
+    them.
+*/
+UT_uint32 PD_StruxIterator::copyChars(UT_UCS4Char * pBuf, UT_uint32 iLen)
+{
+	UT_return_val_if_fail(pBuf, 0);
+
+	// the last position sequential iteration is allowed to read: data
+	// lives at [m_strux_len, m_max_offset]; a getChar() outside that
+	// range still succeeds once but ++ cannot move on from it, so the
+	// read stops there, mirroring the getChar()/++ loop
+	UT_uint32 iLast = m_max_offset;
+	if(m_offset + 1 < m_strux_len || m_offset > m_max_offset)
+		iLast = m_offset;
+
+	UT_uint32 iDone = 0;
+	while(iDone < iLen && m_frag && m_status == UTIter_OK && m_offset <= iLast)
+	{
+		UT_uint32 iAvail = m_frag_offset + m_frag->getLength() - m_offset;
+		UT_uint32 iChunk = UT_MIN(iAvail, iLen - iDone);
+		iChunk = UT_MIN(iChunk, iLast - m_offset + 1);
+
+		if(!iChunk)
+			break;
+
+		if(m_frag->getType() == pf_Frag::PFT_Text)
+		{
+			const pf_Frag_Text * pft = static_cast<const pf_Frag_Text*>(m_frag);
+
+			if(m_pCharFrag != m_frag)
+			{
+				m_pFragChars = m_pPT->getPointer(pft->getBufIndex());
+				m_pCharFrag  = m_frag;
+			}
+
+			if(!m_pFragChars)
+			{
+				UT_ASSERT_HARMLESS(UT_SHOULD_NOT_HAPPEN);
+				m_status = UTIter_Error;
+				break;
+			}
+
+			memcpy(pBuf + iDone,
+				   m_pFragChars + (m_offset - m_frag_offset),
+				   iChunk * sizeof(UT_UCS4Char));
+		}
+		else
+		{
+			// non-text fragment: the same positions getChar() would
+			// report as UT_IT_NOT_CHARACTER
+			for(UT_uint32 k = 0; k < iChunk; ++k)
+				pBuf[iDone + k] = UT_IT_NOT_CHARACTER;
+		}
+
+		iDone    += iChunk;
+		m_offset += iChunk;
+
+		// mirror the ++ operator: the increment that moved us here
+		// fails when the landing position is outside
+		// [m_strux_len, m_max_offset] -- the iterator has to go
+		// OutOfBounds or callers polling until 0 (e.g.
+		// getUTF8Text()) would read on past the limit
+		if(m_offset < m_strux_len || m_offset > m_max_offset)
+		{
+			m_status = UTIter_OutOfBounds;
+			break;
+		}
+		_findFrag();
+	}
+
+	return iDone;
 }
 
 bool PD_StruxIterator::_incrementPos(UT_sint32 d)
