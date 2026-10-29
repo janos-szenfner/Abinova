@@ -2090,8 +2090,414 @@ void FV_View::clearGroupSel(void)
 	m_vecGroupSel.clear();
 }
 
+/* -------- Shape Format: fill / outline / effects / text --------- */
+
+/* checks the colour argument the galleries pass: 6-digit hex with an
+ * optional leading '#', "none"/"transparent" or "" for No Fill.
+ * Returns the normalised hex in sHex (empty for no-colour). */
+static bool s_shapeColor(const char * sz, std::string & sHex)
+{
+	sHex.clear();
+	if (!sz)
+		return false;
+	std::string s(sz);
+	while (!s.empty() && isspace(s.front()))
+		s.erase(s.begin());
+	while (!s.empty() && isspace(s.back()))
+		s.pop_back();
+	if (s.empty() || s == "none" || s == "transparent")
+		return true;
+	if (s.front() == '#')
+		s.erase(s.begin());
+	if (s.size() != 6)
+		return false;
+	for (char c : s)
+		if (!isxdigit(c))
+			return false;
+	for (char & c : s)
+		c = static_cast<char>(toupper(c));
+	sHex = s;
+	return true;
+}
+
+/* one undoable glob applying add-props then removing named props on a
+ * single frame's section strux */
+bool FV_View::_shapeFormatFrame(fl_FrameLayout * pFL,
+								const PP_PropertyVector & addProps,
+								const std::vector<const char *> & remProps)
+{
+	if (!pFL)
+		return false;
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	if (!addProps.empty())
+		_writeFrameProps(pFL, addProps);
+	for (const char * sz : remProps)
+		_writeFrameProp(pFL, sz, "");
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/*! Shape Fill gallery: szColor is "none" for No Fill or an RRGGBB
+ * hex colour.  A solid fill replaces any gradient; Word keeps the
+ * transparency (fill-alpha) across colour picks, so it is left alone
+ * on colour and only dropped by No Fill. */
+bool FV_View::shapeFill(const char * szColor)
+{
+	std::string sHex;
+	if (!s_shapeColor(szColor, sHex))
+		return false;
+	fl_FrameLayout * pFL = getFrameLayout();
+	if (!pFL)
+		return false;
+	if (sHex.empty())
+	{
+		const PP_PropertyVector props = {
+			"background-color", "transparent"
+		};
+		return _shapeFormatFrame(pFL, props,
+								 { "fill-gradient", "fill-alpha" });
+	}
+	const PP_PropertyVector props = {
+		"background-color", sHex.c_str()
+	};
+	return _shapeFormatFrame(pFL, props, { "fill-gradient" });
+}
+
+/*! Shape Outline gallery: "none" removes the whole stroke (border
+ * sides plus the a:ln extras); a colour paints a uniform solid
+ * border of dWidthPt points (Word's default outline is 0.75pt).
+ * Fresh gallery picks replace compound strands, custom dashes and
+ * gradient strokes but keep arrowheads. */
+bool FV_View::shapeOutline(const char * szColor, double dWidthPt)
+{
+	fl_FrameLayout * pFL = getFrameLayout();
+	if (!pFL)
+		return false;
+	std::string sHex;
+	if (szColor && !strcmp(szColor, "-"))
+	{
+		/* Weight submenu: keep the current outline colour */
+		const char * cur = s_framePropStr(pFL, "top-color");
+		sHex = (cur && *cur) ? cur : "000000";
+	}
+	else if (!s_shapeColor(szColor, sHex))
+		return false;
+	if (sHex.empty())
+	{
+		const PP_PropertyVector props = {
+			"top-style", "none", "right-style", "none",
+			"bot-style", "none", "left-style", "none"
+		};
+		return _shapeFormatFrame(
+			pFL, props,
+			{ "line-compound", "line-dash", "line-custom-dash",
+			  "outline-gradient", "line-align",
+			  "line-start-arrow", "line-start-arrow-w",
+			  "line-start-arrow-len", "line-end-arrow",
+			  "line-end-arrow-w", "line-end-arrow-len" });
+	}
+	if (dWidthPt <= 0.0)
+		dWidthPt = 0.75;
+	char buf[24];
+	snprintf(buf, sizeof(buf), "%.2fpt", dWidthPt);
+	const PP_PropertyVector props = {
+		"top-style", "solid", "right-style", "solid",
+		"bot-style", "solid", "left-style", "solid",
+		"top-color", sHex.c_str(), "right-color", sHex.c_str(),
+		"bot-color", sHex.c_str(), "left-color", sHex.c_str(),
+		"top-thickness", buf, "right-thickness", buf,
+		"bot-thickness", buf, "left-thickness", buf
+	};
+	return _shapeFormatFrame(
+		pFL, props,
+		{ "line-compound", "line-custom-dash", "outline-gradient" });
+}
+
+/*! Shape Effects presets: "none" clears the drop shadow; the named
+ * presets write the OOXML a:outerShdw property set (dir in 60000ths
+ * of a degree, clockwise from east). */
+bool FV_View::shapeShadow(const char * szPreset)
+{
+	fl_FrameLayout * pFL = getFrameLayout();
+	if (!pFL || !szPreset)
+		return false;
+	if (!strcmp(szPreset, "none"))
+	{
+		const PP_PropertyVector props = {
+			"frame-shadow", "none"
+		};
+		return _shapeFormatFrame(
+			pFL, props,
+			{ "frame-shadow-offset", "frame-shadow-dir",
+			  "frame-shadow-blur", "frame-shadow-color",
+			  "frame-shadow-alpha", "frame-shadow-rot" });
+	}
+	/* id -> a:outerShdw@dir (60000ths of a degree) */
+	static const struct { const char * id; const char * dir; } presets[] = {
+		{ "offset-br", "2700000"  },   /* 45 deg, bottom right */
+		{ "offset-b",  "5400000"  },   /* 90 deg, straight down */
+		{ "offset-r",  "0"        },   /* 0 deg, straight right */
+		{ "offset-bl", "8100000"  },   /* 135 deg, bottom left */
+		{ "offset-tl", "18900000" },   /* 315 deg, top left */
+	};
+	const char * szDir = nullptr;
+	for (const auto & p : presets)
+		if (!strcmp(p.id, szPreset))
+			szDir = p.dir;
+	if (!szDir)
+		return false;
+	const PP_PropertyVector props = {
+		"frame-shadow", "outer",
+		"frame-shadow-offset", "4pt",
+		"frame-shadow-dir", szDir,
+		"frame-shadow-blur", "6pt",
+		"frame-shadow-color", "000000",
+		"frame-shadow-alpha", "0.5",
+		"frame-shadow-rot", "1"
+	};
+	return _shapeFormatFrame(pFL, props, {});
+}
+
+/*! Text Direction popover (wps:bodyPr@vert values): "horz" removes
+ * the rotation; vert/vert270 and the other OOXML tokens are stored
+ * verbatim. */
+bool FV_View::shapeTextDirection(const char * szDir)
+{
+	fl_FrameLayout * pFL = getFrameLayout();
+	if (!pFL || !szDir)
+		return false;
+	static const char * const dirs[] = {
+		"vert", "vert270", "eaVert", "vert270eaVert",
+		"mongolianVert", "wordArtVert", "wordArtVertRtl"
+	};
+	if (!strcmp(szDir, "horz") || !strcmp(szDir, "horizontal") ||
+		!*szDir)
+	{
+		return _shapeFormatFrame(pFL, PP_NOPROPS,
+								 { "frame-text-direction" });
+	}
+	for (const char * d : dirs)
+	{
+		if (!strcmp(d, szDir))
+		{
+			const PP_PropertyVector props = {
+				"frame-text-direction", szDir
+			};
+			return _shapeFormatFrame(pFL, props, {});
+		}
+	}
+	return false;
+}
+
+/*! Align Text popover (wps:bodyPr@anchor): top/middle/bottom. */
+bool FV_View::shapeAlignText(const char * szAlign)
+{
+	fl_FrameLayout * pFL = getFrameLayout();
+	if (!pFL || !szAlign)
+		return false;
+	const char * szVal = nullptr;
+	if (!strcmp(szAlign, "top"))
+		szVal = "top";
+	else if (!strcmp(szAlign, "middle") || !strcmp(szAlign, "center"))
+		szVal = "center";
+	else if (!strcmp(szAlign, "bottom"))
+		szVal = "bottom";
+	else
+		return false;
+	const PP_PropertyVector props = {
+		"frame-valign", szVal
+	};
+	return _shapeFormatFrame(pFL, props, {});
+}
+
+/* a frame's rendered bounding box on its page, in inches; the
+ * container geometry is used rather than position props so
+ * column/page/block-anchored frames all resolve */
+static bool s_framePageRect(fl_FrameLayout * pFL,
+							double & x, double & y,
+							double & w, double & h,
+							fp_Page ** ppPage = nullptr)
+{
+	fp_FrameContainer * pFC = pFL
+		? static_cast<fp_FrameContainer *>(pFL->getFirstContainer())
+		: nullptr;
+	if (!pFC || !pFC->getPage())
+		return false;
+	x = static_cast<double>(pFC->getFullX()) / UT_LAYOUT_RESOLUTION;
+	y = static_cast<double>(pFC->getFullY()) / UT_LAYOUT_RESOLUTION;
+	w = static_cast<double>(pFC->getFullWidth()) / UT_LAYOUT_RESOLUTION;
+	h = static_cast<double>(pFC->getFullHeight()) / UT_LAYOUT_RESOLUTION;
+	if (ppPage)
+		*ppPage = pFC->getPage();
+	return true;
+}
+
+/*! Word's Align menu over the multi-object selection: the Selection
+ * pane ticks plus the active frame.  With two or more objects every
+ * member shifts inside the shared bounding box; a single object
+ * aligns to the page margins (Word's "Align to Margin" default).
+ * "distribute-h"/"distribute-v" space three or more objects evenly
+ * between the outermost pair. */
+bool FV_View::alignObjects(const char * szHow)
+{
+	if (!szHow || !*szHow)
+		return false;
+	enum { A_LEFT, A_CENTER, A_RIGHT, A_TOP, A_MIDDLE, A_BOTTOM,
+		   A_DIST_H, A_DIST_V } how;
+	if (!strcmp(szHow, "left"))            how = A_LEFT;
+	else if (!strcmp(szHow, "center"))     how = A_CENTER;
+	else if (!strcmp(szHow, "right"))      how = A_RIGHT;
+	else if (!strcmp(szHow, "top"))        how = A_TOP;
+	else if (!strcmp(szHow, "middle") ||
+			 !strcmp(szHow, "center-v"))   how = A_MIDDLE;
+	else if (!strcmp(szHow, "bottom"))     how = A_BOTTOM;
+	else if (!strcmp(szHow, "distribute-h") ||
+			 !strcmp(szHow, "distribute-horizontally"))
+		how = A_DIST_H;
+	else if (!strcmp(szHow, "distribute-v") ||
+			 !strcmp(szHow, "distribute-vertically"))
+		how = A_DIST_V;
+	else
+		return false;
+
+	std::vector<fl_FrameLayout *> sel;
+	getGroupSel(sel);
+	fl_FrameLayout * pCur = getFrameLayout();
+	if (pCur && std::find(sel.begin(), sel.end(), pCur) == sel.end())
+		sel.push_back(pCur);
+	if (sel.empty())
+		return false;
+
+	struct _Box { fl_FrameLayout * pFL; double x, y, w, h; };
+	std::vector<_Box> boxes;
+	for (fl_FrameLayout * pFL : sel)
+	{
+		_Box b = { pFL, 0.0, 0.0, 0.0, 0.0 };
+		if (s_framePageRect(pFL, b.x, b.y, b.w, b.h))
+			boxes.push_back(b);
+	}
+	if (boxes.empty())
+		return false;
+	const bool bDistrib = (how == A_DIST_H || how == A_DIST_V);
+	if (boxes.size() < (bDistrib ? 3u : 2u))
+	{
+		/* single object (or too few to distribute): align it to the
+		 * page margins; distribute with <3 objects is a no-op */
+		if (bDistrib || boxes.size() != 1)
+			return false;
+		_Box & b = boxes.front();
+		fp_Page * pPage = nullptr;
+		double x0, y0, w0, h0;
+		if (!s_framePageRect(b.pFL, x0, y0, w0, h0, &pPage) || !pPage)
+			return false;
+		fl_DocSectionLayout * pDSL = b.pFL->getDocSectionLayout();
+		if (!pDSL)
+			return false;
+		const double pw = static_cast<double>(pPage->getWidth())
+			/ UT_LAYOUT_RESOLUTION;
+		const double ph = static_cast<double>(pPage->getHeight())
+			/ UT_LAYOUT_RESOLUTION;
+		const double mL = static_cast<double>(pDSL->getLeftMargin())
+			/ UT_LAYOUT_RESOLUTION;
+		const double mR = static_cast<double>(pDSL->getRightMargin())
+			/ UT_LAYOUT_RESOLUTION;
+		const double mT = static_cast<double>(pDSL->getTopMargin())
+			/ UT_LAYOUT_RESOLUTION;
+		const double mB = static_cast<double>(pDSL->getBottomMargin())
+			/ UT_LAYOUT_RESOLUTION;
+		double dx = 0.0, dy = 0.0;
+		switch (how)
+		{
+		case A_LEFT:   dx = mL - b.x; break;
+		case A_CENTER: dx = mL + (pw - mL - mR - b.w) / 2.0 - b.x; break;
+		case A_RIGHT:  dx = pw - mR - b.w - b.x; break;
+		case A_TOP:    dy = mT - b.y; break;
+		case A_MIDDLE: dy = mT + (ph - mT - mB - b.h) / 2.0 - b.y; break;
+		case A_BOTTOM: dy = ph - mB - b.h - b.y; break;
+		default: return false;
+		}
+		if (dx == 0.0 && dy == 0.0)
+			return true;   /* already aligned */
+		_saveAndNotifyPieceTableChange();
+		m_pDoc->beginUserAtomicGlob();
+		_shiftFrame(b.pFL, dx, dy);
+		m_pDoc->endUserAtomicGlob();
+		_restorePieceTableState();
+		_generalUpdate();
+		notifyListeners(AV_CHG_MOTION);
+		return true;
+	}
+
+	if (bDistrib)
+	{
+		const bool bHoriz = (how == A_DIST_H);
+		std::sort(boxes.begin(), boxes.end(),
+				  [bHoriz](const _Box & a, const _Box & c)
+				  { return (bHoriz ? a.x : a.y) < (bHoriz ? c.x : c.y); });
+		const _Box & first = boxes.front();
+		const _Box & last = boxes.back();
+		double span = (bHoriz ? last.x + last.w : last.y + last.h)
+			- (bHoriz ? first.x : first.y);
+		double used = 0.0;
+		for (const _Box & b : boxes)
+			used += bHoriz ? b.w : b.h;
+		const double gap = (span - used)
+			/ static_cast<double>(boxes.size() - 1);
+		_saveAndNotifyPieceTableChange();
+		m_pDoc->beginUserAtomicGlob();
+		double cursor = (bHoriz ? first.x + first.w : first.y + first.h)
+			+ gap;
+		for (size_t i = 1; i + 1 < boxes.size(); ++i)
+		{
+			_Box & b = boxes[i];
+			const double d = bHoriz ? cursor - b.x : cursor - b.y;
+			_shiftFrame(b.pFL, bHoriz ? d : 0.0, bHoriz ? 0.0 : d);
+			cursor += (bHoriz ? b.w : b.h) + gap;
+		}
+		m_pDoc->endUserAtomicGlob();
+		_restorePieceTableState();
+		_generalUpdate();
+		notifyListeners(AV_CHG_MOTION);
+		return true;
+	}
+
+	/* shared bounding box: every member shifts to the common edge */
+	double bx0 = 1e30, by0 = 1e30, bx1 = -1e30, by1 = -1e30;
+	for (const _Box & b : boxes)
+	{
+		bx0 = UT_MIN(bx0, b.x);       by0 = UT_MIN(by0, b.y);
+		bx1 = UT_MAX(bx1, b.x + b.w); by1 = UT_MAX(by1, b.y + b.h);
+	}
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	for (const _Box & b : boxes)
+	{
+		double dx = 0.0, dy = 0.0;
+		switch (how)
+		{
+		case A_LEFT:   dx = bx0 - b.x; break;
+		case A_CENTER: dx = (bx0 + bx1 - b.w) / 2.0 - b.x; break;
+		case A_RIGHT:  dx = bx1 - b.w - b.x; break;
+		case A_TOP:    dy = by0 - b.y; break;
+		case A_MIDDLE: dy = (by0 + by1 - b.h) / 2.0 - b.y; break;
+		case A_BOTTOM: dy = by1 - b.h - b.y; break;
+		default: break;
+		}
+		if (dx != 0.0 || dy != 0.0)
+			_shiftFrame(b.pFL, dx, dy);
+	}
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
 /*!
- * Enumerates every frame layout in the document (text boxes and
  * image/table/embed wrappers) in document order - the Selection
  * pane's object list.  Frames hosted by blocks are found by walking
  * the block chain; each block's m_vecFrames holds the frames

@@ -538,6 +538,13 @@ public:
 	static EV_EditMethod_Fn frameSendBackward;
 	static EV_EditMethod_Fn frameSendToBack;
 	static EV_EditMethod_Fn frameUngroup;
+	static EV_EditMethod_Fn frameMultiSelect;
+	static EV_EditMethod_Fn alignObjects;
+	static EV_EditMethod_Fn shapeFill;
+	static EV_EditMethod_Fn shapeOutline;
+	static EV_EditMethod_Fn shapeEffects;
+	static EV_EditMethod_Fn shapeTextDirection;
+	static EV_EditMethod_Fn shapeAlignText;
 	static EV_EditMethod_Fn cutFrame;
 	static EV_EditMethod_Fn copyFrame;
 	static EV_EditMethod_Fn selectFrame;
@@ -1025,6 +1032,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(alignCenter),			0,		""),
 	EV_EditMethod(NF(alignJustify), 		0,		""),
 	EV_EditMethod(NF(alignLeft),			0,		""),
+	EV_EditMethod(NF(alignObjects),			0,		""),
 	EV_EditMethod(NF(alignRight),			0,		""),
 	EV_EditMethod(NF(arrangeAll), 0, ""),
 	EV_EditMethod(NF(arrangePosition),		0,	""),
@@ -1274,6 +1282,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(frameFlipVert),		0,		""),
 	EV_EditMethod(NF(frameGroup),			0,		""),
 	EV_EditMethod(NF(frameInFrontOfText),	0,		""),
+	EV_EditMethod(NF(frameMultiSelect),		0,		""),
 	EV_EditMethod(NF(frameRotateLeft),		0,		""),
 	EV_EditMethod(NF(frameRotateRight),		0,		""),
 	EV_EditMethod(NF(frameRotateTo),		0,		""),
@@ -1574,6 +1583,11 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(setStyleHeading2), 	0,		""),
 	EV_EditMethod(NF(setStyleHeading3), 	0,		""),
 	EV_EditMethod(NF(setStyleNormal), 		0,		""),
+	EV_EditMethod(NF(shapeAlignText),		0,		""),
+	EV_EditMethod(NF(shapeEffects),			0,		""),
+	EV_EditMethod(NF(shapeFill),			0,		""),
+	EV_EditMethod(NF(shapeOutline),			0,		""),
+	EV_EditMethod(NF(shapeTextDirection),	0,		""),
 	EV_EditMethod(NF(showNotes),			0,		""),
 	EV_EditMethod(NF(singleSpace),			0,		""),
 	EV_EditMethod(NF(sortColsAscend),       0,  ""),
@@ -8477,7 +8491,8 @@ static void s_replace_all(std::string & s, const char * from,
 }
 
 static bool s_insertArtworkFile(FV_View * pView, XAP_Frame * pFrame,
-								const char * szFile)
+								const char * szFile,
+								bool bPositioned = false)
 {
 	UT_return_val_if_fail(pView && pFrame && szFile, false);
 
@@ -8554,11 +8569,51 @@ static bool s_insertArtworkFile(FV_View * pView, XAP_Frame * pFrame,
 		s_CouldNotLoadFileMessage(pFrame, path.c_str(), errorCode);
 		return false;
 	}
-	errorCode = pView->cmdInsertGraphic(pFG);
+	/* shapes land as floating positioned frames like Word's Insert
+	 * Shape (they join the Selection pane object list and answer to
+	 * the Arrange/Shape Format commands); icons and 3D art stay
+	 * inline pictographs */
+	errorCode = bPositioned
+		? pView->cmdInsertPositionedGraphic(pFG)
+		: pView->cmdInsertGraphic(pFG);
 	if (errorCode != UT_OK)
 	{
 		s_CouldNotLoadFileMessage(pFrame, path.c_str(), errorCode);
 		return false;
+	}
+	if (bPositioned)
+	{
+		/* Word leaves the new shape selected: the frame sits right
+		 * before the block holding the caret, so pick the frame with
+		 * the largest strux position <= point */
+		std::vector<fl_FrameLayout *> frames;
+		pView->getFrameLayouts(frames);
+		fl_FrameLayout * pNew = nullptr;
+		PT_DocPosition iPt = pView->getPoint();
+		for (fl_FrameLayout * pFL : frames)
+		{
+			PT_DocPosition fPos = pFL->getPosition(true);
+			if (fPos <= iPt &&
+				(!pNew || fPos > pNew->getPosition(true)))
+				pNew = pFL;
+		}
+		if (pNew)
+		{
+			/* SVG artwork with no intrinsic size lands at 0x0 —
+			 * give it a Word-like default so it is visible */
+			const PP_AttrProp * pAP = nullptr;
+			const gchar * w = nullptr;
+			pNew->getAP(pAP);
+			if (!pAP ||
+				!pAP->getProperty("frame-width", w) || !w || !*w ||
+				UT_convertToInches(w) < 0.001)
+			{
+				pView->setFrameProps(pNew,
+					{ "frame-width", "1.5in",
+					  "frame-height", "1.5in" });
+			}
+			pView->selectFrameObject(pNew);
+		}
 	}
 	return true;
 }
@@ -8578,7 +8633,7 @@ Defun(insertShape)
 	std::string f("shapes/");
 	f += s.utf8_str();
 	f += ".svg";
-	return s_insertArtworkFile(pView, pFrame, f.c_str());
+	return s_insertArtworkFile(pView, pFrame, f.c_str(), true);
 }
 
 /* callData: the Lucide icon name under artwork/icons */
@@ -21135,6 +21190,137 @@ Defun1(frameUngroup)
 	if (pCur && std::find(sel.begin(), sel.end(), pCur) == sel.end())
 		sel.push_back(pCur);
 	return pView->ungroupFrames(sel);
+}
+
+/* Toggles a frame in/out of the multi-object selection used by
+ * Group/Align - the scriptable equivalent of ticking its Selection
+ * pane checkbox.  callData: "all" ticks every frame, "clear"/"none"
+ * empties the pick, otherwise a zero-based frame index in document
+ * order to toggle. */
+Defun(frameMultiSelect)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string arg(s.utf8_str());
+	if (arg == "clear" || arg == "none")
+	{
+		pView->clearGroupSel();
+		return true;
+	}
+	std::vector<fl_FrameLayout *> all;
+	pView->getFrameLayouts(all);
+	if (arg == "all")
+	{
+		for (fl_FrameLayout * pFL : all)
+			pView->toggleGroupSel(pFL, true);
+		return true;
+	}
+	if (!strncmp(arg.c_str(), "select:", 7))
+	{
+		/* scriptable equivalent of clicking the object: single-select
+		 * it so the Shape Format commands can act on it */
+		char * e2 = nullptr;
+		long s = strtol(arg.c_str() + 7, &e2, 10);
+		if (!e2 || *e2 || s < 0 ||
+			s >= static_cast<long>(all.size()))
+			return false;
+		pView->selectFrameObject(all[s]);
+		return true;
+	}
+	char * end = nullptr;
+	long n = strtol(arg.c_str(), &end, 10);
+	if (!end || *end || n < 0 ||
+		n >= static_cast<long>(all.size()))
+		return false;
+	fl_FrameLayout * pFL = all[n];
+	pView->toggleGroupSel(pFL, !pView->isInGroupSel(pFL));
+	return true;
+}
+
+/* Word's Align menu: left/center/right/top/middle/bottom plus
+ * distribute-h/distribute-v, over the multi-object selection (or
+ * to-page-margins for a single object) */
+Defun(alignObjects)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->alignObjects(s.utf8_str());
+}
+
+/* Shape Format > Shape Fill: callData is "none" or an RRGGBB hex */
+Defun(shapeFill)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->shapeFill(s.utf8_str());
+}
+
+/* Shape Format > Shape Outline: callData is "none" or
+ * "RRGGBB" / "RRGGBB <pt>" (optional outline weight in points) */
+Defun(shapeOutline)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string arg(s.utf8_str());
+	size_t sp = arg.find(' ');
+	std::string sColor = sp == std::string::npos
+		? arg : arg.substr(0, sp);
+	double dPt = 0.0;
+	if (sp != std::string::npos)
+	{
+		std::string w = arg.substr(sp + 1);
+		if (!w.empty() && w.back() == 't')
+			w.pop_back();           /* "1.5pt" */
+		if (!w.empty() && w.back() == 'p')
+			w.pop_back();
+		dPt = g_ascii_strtod(w.c_str(), nullptr);
+	}
+	return pView->shapeOutline(sColor.c_str(), dPt);
+}
+
+/* Shape Format > Shape Effects: "none" or a shadow preset id */
+Defun(shapeEffects)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->shapeShadow(s.utf8_str());
+}
+
+/* Shape Format > Text Direction: horz|vert|vert270|... */
+Defun(shapeTextDirection)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->shapeTextDirection(s.utf8_str());
+}
+
+/* Shape Format > Align Text: top|middle|bottom */
+Defun(shapeAlignText)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData,
+						  false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->shapeAlignText(s.utf8_str());
 }
 
 Defun1(selPane)

@@ -631,6 +631,67 @@ static void _g_pic_alttext(const _GlyphPen & p)
 	_pen_text(p, 8.5, 11.5, 7.0, "a", p.ac, TRUE);
 }
 
+/* ---- Shape Format tab icons ---- */
+
+/* shape fill: paint swatch with a droplet and a swatch bar
+ * (wordcraft "shading") */
+static void _g_shape_fill(const _GlyphPen & p)
+{
+	const double d[] = { 4.0, 9.0, 10.0, 3.0, 16.0, 9.0, 10.0, 15.0 };
+	_pen_closed(p, d, 4, p.fg);
+	_pen_fcircle(p, 16.5, 13.5, 1.6, p.ac);
+	_pen_frect(p, 2.0, 16.5, 18.0, 19.0, _YELLOW);
+}
+
+/* shape outline: pencil drawing a stroke (wordcraft "pen") */
+static void _g_shape_outline(const _GlyphPen & p)
+{
+	const double pen[] = { 4.0, 16.0, 14.0, 6.0, 16.0, 8.0,
+						   6.0, 18.0, 3.5, 18.5, 4.0, 16.0 };
+	_pen_closed(p, pen, 6, p.fg);
+	const double tip[] = { 14.0, 6.0, 15.5, 4.5, 17.5, 6.5, 16.0, 8.0 };
+	_pen_fill(p, tip, 4, p.ac);
+}
+
+/* shape effects: a square casting a soft shadow (wordcraft
+ * "shapeEffects") */
+static void _g_shape_effects(const _GlyphPen & p)
+{
+	for (int k = 2; k >= 0; k--)
+	{
+		GdkRGBA dim = { 0.0, 0.0, 0.0, (30.0 + (2 - k) * 20.0) / 255.0 };
+		_pen_frect(p, 7.0 - k, 7.0 - k, 18.0 + k, 18.0 + k, dim);
+	}
+	_pen_frect(p, 3.0, 3.0, 14.0, 14.0, p.ac);
+	_pen_rect(p, 3.0, 3.0, 14.0, 14.0, p.fg);
+}
+
+/* text direction: glyph plus a vertical arrow (wordcraft
+ * "textDirection") */
+static void _g_shape_textdir(const _GlyphPen & p)
+{
+	_pen_text(p, 9.0, 10.0, 10.0, "A", p.fg, FALSE);
+	const double v[] = { 15.5, 4.0, 15.5, 16.0 };
+	_pen_line_c(p, v, 2, p.ac);
+	const double ar[] = { 13.5, 14.0, 15.5, 16.0, 17.5, 14.0 };
+	_pen_line_c(p, ar, 3, p.ac);
+}
+
+/* align text: box with centered lines and up/down arrows
+ * (wordcraft "alignText") */
+static void _g_shape_aligntext(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.0, 2.5, 17.0, 17.5, p.fg);
+	const double ys[] = { 9.0, 11.5 };
+	_pen_lines(p, 5.5, 11.0, ys, 2);
+	const double v[] = { 14.0, 5.0, 14.0, 15.0 };
+	_pen_line_c(p, v, 2, p.ac);
+	const double up[] = { 12.5, 6.5, 14.0, 5.0, 15.5, 6.5 };
+	_pen_line_c(p, up, 3, p.ac);
+	const double dn[] = { 12.5, 13.5, 14.0, 15.0, 15.5, 13.5 };
+	_pen_line_c(p, dn, 3, p.ac);
+}
+
 /* ---------------- name table ---------------- */
 
 typedef void (*_GlyphDraw)(const _GlyphPen &);
@@ -697,6 +758,11 @@ static const _GlyphEntry _glyphs[] =
 	{ "abinova-picture-crop",		_g_pic_crop },
 	{ "abinova-picture-rotate",	_g_pic_rotate },
 	{ "abinova-picture-alttext",	_g_pic_alttext },
+	{ "abinova-shape-fill",		_g_shape_fill },
+	{ "abinova-shape-outline",	_g_shape_outline },
+	{ "abinova-shape-effects",	_g_shape_effects },
+	{ "abinova-shape-textdir",	_g_shape_textdir },
+	{ "abinova-shape-aligntext",_g_shape_aligntext },
 	{ nullptr, nullptr }
 };
 

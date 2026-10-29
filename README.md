@@ -468,9 +468,10 @@ NotebookBar (`sw/uiconfig/swriter/ui/notebookbar.ui`). A
 `GtkNotebook` presents **File / Home / Insert / Design /
 References / Layout / Review / View / Help** tabs — **Home is the
 default** —
-plus contextual **Table Design**, **Table Layout** and
-**Equation** tabs that appear only while the caret is inside a
-table or on an equation. The ribbon
+plus contextual **Table Design**, **Table Layout**,
+**Picture Format**, **Shape Format** and **Equation** tabs that
+appear only while the caret is inside a table, on an object or on
+an equation. The ribbon
 is the only interface — the classic menubar/toolbar UI and its
 Help → Interface switch were removed along with the `RibbonUI`
 preference.
@@ -868,6 +869,16 @@ automation.
   - **Data** — Sort (ascending/descending, keep-header),
     Repeat Header Rows and Convert to Text (separator choice).
   The Word "Formula" control is intentionally omitted.
+- **Picture Format** — appears while an inline image is selected or
+  a positioned picture frame is active: Corrections, Color
+  (grayscale/sepia/washout/bilevel), Compress, Crop (incl. crop to
+  shape), Rotate and Alt Text.
+- **Shape Format** — appears for text boxes and shape frames:
+  Shape Fill and Shape Outline galleries (No Fill/No Outline,
+  swatch palette, outline weights and a full colour picker), Shape
+  Effects shadow presets, in-shape Text Direction and Align Text,
+  and the shared Arrange menus (Position, Wrap Text, Align —
+  including multi-object align and Distribute — Group and Rotate).
 - **Equation** — visible while the caret is on an equation:
   symbol palettes (Greek letters, operators, relations, arrows —
   each appends a LaTeX snippet to the selected math object),

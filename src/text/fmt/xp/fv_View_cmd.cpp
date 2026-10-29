@@ -11381,6 +11381,14 @@ UT_Error FV_View::cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG, UT_s
 	double dw = static_cast<double>(pFG->getWidth());
 	double dh = static_cast<double>(pFG->getHeight());
 
+	/* SVG artwork without an intrinsic size returns 0 here and the
+	 * frame would render as an invisible 0x0 box — fall back to a
+	 * Word-like default extent */
+	if (dw <= 0.0)
+		dw = 1.5;
+	if (dh <= 0.0)
+		dh = 1.5;
+
 	if(dw > maxW/2.)
 	{
 	     ratw = maxW/dw;

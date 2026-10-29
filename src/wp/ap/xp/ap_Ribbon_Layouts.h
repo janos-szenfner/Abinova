@@ -848,6 +848,44 @@ static const AP_RibbonGroup s_ribbon_picture_groups[] =
 	{ nullptr,		nullptr }
 };
 
+/* ------------------------------------ Shape Format (contextual tab) --- */
+
+/* Word's Shape Tools for text boxes and DrawingML shapes: fill and
+ * outline galleries, effects presets, the in-shape text controls
+ * and the shared Arrange menu ids */
+static const AP_RibbonItem s_ribbon_shapeformat_styles[] =
+{
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_SHAPE_FILL),
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_SHAPE_OUTLINE),
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_SHAPE_EFFECTS),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_shapeformat_text[] =
+{
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_SHAPE_TEXTDIR),
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_SHAPE_ALIGNTEXT),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_shapeformat_arrange[] =
+{
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_LAYOUT_POSITION),
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_LAYOUT_WRAP),
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_LAYOUT_ALIGNOBJECTS),
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_LAYOUT_GROUPOBJECTS),
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_LAYOUT_ROTATE),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonGroup s_ribbon_shapeformat_groups[] =
+{
+	{ "shapestyles",s_ribbon_shapeformat_styles },
+	{ "shapetext",	s_ribbon_shapeformat_text },
+	{ "arrange",	s_ribbon_shapeformat_arrange },
+	{ nullptr,		nullptr }
+};
+
 /* -------------------------------------------- Equation (contextual) --- */
 
 static const AP_RibbonItem s_ribbon_equation_eq[] =
@@ -934,6 +972,7 @@ static const AP_RibbonTab s_ribbon_tabs[] =
 	{ "tabledesign",s_ribbon_tabledesign_groups, true  },
 	{ "table",		s_ribbon_table_groups,		true  },
 	{ "picture",	s_ribbon_picture_groups,	true  },
+	{ "shapeformat",s_ribbon_shapeformat_groups,true  },
 	{ "equation",	s_ribbon_equation_groups,	true  },
 	{ "help",		s_ribbon_help_groups,		false },
 	{ nullptr,		nullptr,					false }

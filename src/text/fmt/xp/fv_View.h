@@ -784,6 +784,18 @@ public:
 	UT_sint32       groupSelCount(void);
 	void            getGroupSel(std::vector<fl_FrameLayout *> & vec);
 	void            clearGroupSel(void);
+	/* Shape Format commands: fill/outline/effects galleries plus the
+	 * in-shape text controls.  All act on the currently selected or
+	 * caret-resident frame, in one undoable write each */
+	bool            shapeFill(const char * szColor);
+	bool            shapeOutline(const char * szColor, double dWidthPt);
+	bool            shapeShadow(const char * szPreset);
+	bool            shapeTextDirection(const char * szDir);
+	bool            shapeAlignText(const char * szAlign);
+	/* Align/Distribute over the multi-object selection (ticked frames
+	 * plus the active frame); a single object aligns to the page
+	 * margins.  distribute needs at least three objects */
+	bool            alignObjects(const char * szHow);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG, UT_sint32 mouseX, UT_sint32 mouseY);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG);
 
@@ -1358,6 +1370,10 @@ protected:
 	void                _groupTransform(std::vector<fl_FrameLayout *> & members,
 										double dDegrees,
 										bool bFlipH, bool bFlipV);
+	/* one undoable glob: add-props then remove-props on a frame */
+	bool                _shapeFormatFrame(fl_FrameLayout * pFL,
+										  const PP_PropertyVector & addProps,
+										  const std::vector<const char *> & remProps);
 
 
 private:

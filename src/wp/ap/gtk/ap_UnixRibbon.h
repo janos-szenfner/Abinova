@@ -129,6 +129,21 @@ private:
 	GtkWidget *		_makeWrapPopover();
 	GtkWidget *		_makePositionPopover();
 	GtkWidget *		_makeAlignObjPopover();
+	/* Shape Format contextual tab */
+	GtkWidget *		_makeShapeFillPopover();
+	GtkWidget *		_makeShapeOutlinePopover();
+	GtkWidget *		_makeShapeEffectsPopover();
+	GtkWidget *		_makeShapeTextDirPopover();
+	GtkWidget *		_makeShapeAlignTextPopover();
+	GtkWidget *		_paletteSwatchGrid(const char * szMethod);
+	void			_shapeColorPick(bool bOutline);
+	static void		_s_shape_fill_more_clicked(GtkWidget * w,
+											   gpointer data);
+	static void		_s_shape_outline_more_clicked(GtkWidget * w,
+												  gpointer data);
+	static void		_s_shape_color_chosen(GObject * src,
+										  GAsyncResult * res,
+										  gpointer data);
 	GtkWidget *		_makeSpinField(int spinId);
 	GtkWidget *		_presetRow(const char * szName, const char * szDetail,
 							   GtkWidget * icon, const char * szMethod,

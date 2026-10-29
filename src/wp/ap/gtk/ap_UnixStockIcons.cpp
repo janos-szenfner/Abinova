@@ -234,6 +234,11 @@ static struct AbiStockMapping {
   { "abinova-picture-crop",		AP_MENU_ID_PICTURE_CROP,			"abinova-picture-crop" },
   { "abinova-picture-rotate",	AP_MENU_ID_PICTURE_ROTATE,			"abinova-picture-rotate" },
   { "abinova-picture-alttext",	AP_MENU_ID_PICTURE_ALTTEXT,			"abinova-picture-alttext" },
+  { "abinova-shape-fill",	AP_MENU_ID_SHAPE_FILL,			"abinova-shape-fill" },
+  { "abinova-shape-outline",	AP_MENU_ID_SHAPE_OUTLINE,		"abinova-shape-outline" },
+  { "abinova-shape-effects",	AP_MENU_ID_SHAPE_EFFECTS,		"abinova-shape-effects" },
+  { "abinova-shape-textdir",	AP_MENU_ID_SHAPE_TEXTDIR,		"abinova-shape-textdir" },
+  { "abinova-shape-aligntext",	AP_MENU_ID_SHAPE_ALIGNTEXT,	"abinova-shape-aligntext" },
   { nullptr, 					static_cast<_Ap_Menu_Id>(0),					nullptr }
 };
 

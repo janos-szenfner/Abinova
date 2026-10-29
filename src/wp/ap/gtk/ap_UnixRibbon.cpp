@@ -112,6 +112,7 @@ static const _ribbon_kv s_ribbon_tab_labels[] =
 	{ "view",       "View" },
 	{ "tabledesign","Table Design" },
 	{ "picture",    "Picture Format" },
+	{ "shapeformat","Shape Format" },
 	{ "developer",  "Developer" },
 	{ "table",      "Table Layout" },
 	{ "equation",   "Equation" },
@@ -184,6 +185,8 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "adjust",      "Adjust" },
 	{ "crop",        "Crop" },
 	{ "alttext",     "Alt Text" },
+	{ "shapestyles", "Shape Styles" },
+	{ "shapetext",   "Text" },
 	{ "controls",    "Controls" },
 	{ "structures",  "Structures" },
 	{ "help",        "Help" },
@@ -2483,6 +2486,21 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_PICTURE_ROTATE):
 		popover = _makePictureRotatePopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_SHAPE_FILL):
+		popover = _makeShapeFillPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_SHAPE_OUTLINE):
+		popover = _makeShapeOutlinePopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_SHAPE_EFFECTS):
+		popover = _makeShapeEffectsPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_SHAPE_TEXTDIR):
+		popover = _makeShapeTextDirPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_SHAPE_ALIGNTEXT):
+		popover = _makeShapeAlignTextPopover();
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_COVERPAGE):
 		popover = _makeCoverPagePopover();
@@ -6453,19 +6471,10 @@ void AP_UnixRibbon::_s_custom_watermark_response(GtkDialog * dlg,
 	gtk_window_destroy(GTK_WINDOW(dlg));
 }
 
-/* Page Color dropdown (wordcraft design.pageColor): a No Color row,
- * the shared swatch palette, then More Colors -> the Background
- * dialog so the full chooser stays reachable. */
-GtkWidget * AP_UnixRibbon::_makePageColorPopover()
+/* shared 10-wide swatch grid: every tile invokes szMethod with the
+ * hex colour as its edit-method data */
+GtkWidget * AP_UnixRibbon::_paletteSwatchGrid(const char * szMethod)
 {
-	GtkWidget * box;
-	GtkWidget * popover = _popover_new_box(&box);
-
-	gtk_box_append(GTK_BOX(box),
-				   _presetRow("No Color", "Transparent page background",
-							  nullptr, "pageColor", "none"));
-	gtk_box_append(GTK_BOX(box), _popover_section_label("Colors"));
-
 	GtkWidget * grid = gtk_grid_new();
 	gtk_grid_set_row_spacing(GTK_GRID(grid), 2);
 	gtk_grid_set_column_spacing(GTK_GRID(grid), 2);
@@ -6489,14 +6498,29 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 									   GTK_STYLE_PROVIDER_PRIORITY_USER);
 		g_object_unref(cssProv);
 		g_object_set_data_full(G_OBJECT(sw), "abi-em-method",
-							   g_strdup("pageColor"), g_free);
+							   g_strdup(szMethod), g_free);
 		g_object_set_data_full(G_OBJECT(sw), "abi-em-data",
 							   g_strdup(_s_color_palette[i]), g_free);
 		g_signal_connect(sw, "clicked",
 						 G_CALLBACK(_s_popover_em_clicked), this);
 		gtk_grid_attach(GTK_GRID(grid), sw, i % 10, i / 10, 1, 1);
 	}
-	gtk_box_append(GTK_BOX(box), grid);
+	return grid;
+}
+
+/* Page Color dropdown (wordcraft design.pageColor): a No Color row,
+ * the shared swatch palette, then More Colors -> the Background
+ * dialog so the full chooser stays reachable. */
+GtkWidget * AP_UnixRibbon::_makePageColorPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("No Color", "Transparent page background",
+							  nullptr, "pageColor", "none"));
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Colors"));
+	gtk_box_append(GTK_BOX(box), _paletteSwatchGrid("pageColor"));
 
 	gtk_box_append(GTK_BOX(box),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
@@ -6581,26 +6605,236 @@ GtkWidget * AP_UnixRibbon::_makePositionPopover()
 	return popover;
 }
 
-/* Align popover: horizontal alignment of the selected frame/image */
+/* Align popover (Word's Align Objects menu): six edge/centre
+ * alignments plus distribute.  With several objects ticked in the
+ * Selection pane they move inside the shared bounding box; a single
+ * object aligns to the page margins */
 GtkWidget * AP_UnixRibbon::_makeAlignObjPopover()
 {
 	GtkWidget * box;
 	GtkWidget * popover = _popover_new_box(&box);
+	g_object_set_data(G_OBJECT(popover), "abi-box", box);
+	g_signal_connect(popover, "map",
+					 G_CALLBACK(_s_arrange_popover_map), this);
 
 	static const struct { const char * name; const char * data; } modes[] = {
-		{ "Align Left",   "frame-horiz-align:left" },
-		{ "Align Center", "frame-horiz-align:center" },
-		{ "Align Right",  "frame-horiz-align:right" },
+		{ "Align Left",    "left"   },
+		{ "Align Center",  "center" },
+		{ "Align Right",   "right"  },
+		{ "Align Top",     "top"    },
+		{ "Align Middle",  "middle" },
+		{ "Align Bottom",  "bottom" },
 	};
 	for (const auto & m : modes)
 		gtk_box_append(GTK_BOX(box),
 					   _presetRow(m.name, nullptr, nullptr,
-								  "sectProps", m.data));
+								  "alignObjects", m.data));
 	gtk_box_append(GTK_BOX(box),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("<b>More Layout Options\xE2\x80\xA6</b>",
-							  nullptr, nullptr, "arrangePosition", nullptr));
+				   _presetRow("Distribute Horizontally",
+							  "Equal gaps between three or more objects",
+							  nullptr, "alignObjects", "distribute-h"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Distribute Vertically",
+							  "Equal gaps between three or more objects",
+							  nullptr, "alignObjects", "distribute-v"));
+	return popover;
+}
+
+/* =============== Shape Format tab: contextual popovers ============ */
+
+struct _ShapeColorJob { AP_UnixRibbon * self; bool bOutline; };
+
+/* More Colors picker for the fill/outline galleries: the chosen
+ * colour feeds back through the same edit methods the swatches use */
+void AP_UnixRibbon::_s_shape_color_chosen(GObject * src,
+										  GAsyncResult * res,
+										  gpointer data)
+{
+	_ShapeColorJob * job = static_cast<_ShapeColorJob *>(data);
+	GdkRGBA * rgba = gtk_color_dialog_choose_rgba_finish(
+		GTK_COLOR_DIALOG(src), res, nullptr);
+	if (rgba && job && job->self)
+	{
+		char hex[8];
+		g_snprintf(hex, sizeof(hex), "%02X%02X%02X",
+				   static_cast<int>(rgba->red   * 255.0 + 0.5),
+				   static_cast<int>(rgba->green * 255.0 + 0.5),
+				   static_cast<int>(rgba->blue  * 255.0 + 0.5));
+		job->self->_invokeEditMethod(
+			job->bOutline ? "shapeOutline" : "shapeFill", hex);
+	}
+	g_free(rgba);
+	g_free(job);
+}
+
+void AP_UnixRibbon::_shapeColorPick(bool bOutline)
+{
+	GtkColorDialog * dlg = gtk_color_dialog_new();
+	gtk_color_dialog_set_with_alpha(dlg, FALSE);
+	_ShapeColorJob * job = g_new(_ShapeColorJob, 1);
+	job->self = this;
+	job->bOutline = bOutline;
+	GtkWindow * win = nullptr;
+	if (m_pFrame && m_pFrame->getFrameImpl())
+		win = GTK_WINDOW(static_cast<XAP_UnixFrameImpl *>(
+			  m_pFrame->getFrameImpl())->getTopLevelWindow());
+	gtk_color_dialog_choose_rgba(dlg, win, nullptr, nullptr,
+								 _s_shape_color_chosen, job);
+	g_object_unref(dlg);
+}
+
+void AP_UnixRibbon::_s_shape_fill_more_clicked(GtkWidget * w,
+											   gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	_tb_popdown_popover(w);
+	self->_shapeColorPick(false);
+}
+
+void AP_UnixRibbon::_s_shape_outline_more_clicked(GtkWidget * w,
+												  gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	_tb_popdown_popover(w);
+	self->_shapeColorPick(true);
+}
+
+/* Shape Fill dropdown: No Fill, the shared swatch palette and a
+ * More Colors row opening the colour dialog */
+GtkWidget * AP_UnixRibbon::_makeShapeFillPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("No Fill", nullptr, nullptr,
+							  "shapeFill", "none"));
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Colors"));
+	gtk_box_append(GTK_BOX(box), _paletteSwatchGrid("shapeFill"));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	GtkWidget * more = _presetRow("<b>More Colors\xE2\x80\xA6</b>",
+								 nullptr, nullptr, nullptr, nullptr);
+	g_signal_connect(more, "clicked",
+					 G_CALLBACK(_s_shape_fill_more_clicked), this);
+	gtk_box_append(GTK_BOX(box), more);
+	return popover;
+}
+
+/* Shape Outline dropdown: No Outline, the shared palette, a Weight
+ * submenu of preset stroke widths and More Colors */
+GtkWidget * AP_UnixRibbon::_makeShapeOutlinePopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("No Outline", nullptr, nullptr,
+							  "shapeOutline", "none"));
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Colors"));
+	gtk_box_append(GTK_BOX(box), _paletteSwatchGrid("shapeOutline"));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Weight"));
+	static const char * const weights[] = {
+		"0.25", "0.5", "0.75", "1", "1.5", "2.25", "3", "4.5", "6"
+	};
+	for (const char * w : weights)
+	{
+		std::string lbl = w;
+		lbl += " pt";
+		std::string data = "- ";
+		data += w;
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(lbl.c_str(), nullptr, nullptr,
+								  "shapeOutline", data.c_str()));
+	}
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	GtkWidget * more = _presetRow("<b>More Colors\xE2\x80\xA6</b>",
+								 nullptr, nullptr, nullptr, nullptr);
+	g_signal_connect(more, "clicked",
+					 G_CALLBACK(_s_shape_outline_more_clicked), this);
+	gtk_box_append(GTK_BOX(box), more);
+	return popover;
+}
+
+/* Shape Effects dropdown: working outer-shadow presets on top of
+ * the existing a:outerShdw frame props; glow/soft-edge/3-D entries
+ * stay greyed like Word's until the painters exist */
+GtkWidget * AP_UnixRibbon::_makeShapeEffectsPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Shadow"));
+	static const struct { const char * name; const char * data; } shadows[] = {
+		{ "Offset Diagonal Bottom Right", "offset-br" },
+		{ "Offset Bottom",                "offset-b"  },
+		{ "Offset Right",                 "offset-r"  },
+		{ "Offset Diagonal Bottom Left",  "offset-bl" },
+		{ "Offset Diagonal Top Left",     "offset-tl" },
+	};
+	for (const auto & s : shadows)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(s.name, nullptr, nullptr,
+								  "shapeEffects", s.data));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>No Shadow</b>", nullptr, nullptr,
+							  "shapeEffects", "none"));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Glow", nullptr, nullptr,
+							  nullptr, nullptr, false));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Soft Edges", nullptr, nullptr,
+							  nullptr, nullptr, false));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("3-D Rotation", nullptr, nullptr,
+							  nullptr, nullptr, false));
+	return popover;
+}
+
+/* Text Direction dropdown: horizontal or the supported vertical
+ * writing modes (wps:bodyPr@vert) */
+GtkWidget * AP_UnixRibbon::_makeShapeTextDirPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * data; } dirs[] = {
+		{ "Horizontal",           "horz"    },
+		{ "Rotate all text 90\xC2\xB0",  "vert"    },
+		{ "Rotate all text 270\xC2\xB0", "vert270" },
+	};
+	for (const auto & d : dirs)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(d.name, nullptr, nullptr,
+								  "shapeTextDirection", d.data));
+	return popover;
+}
+
+/* Align Text dropdown: the frame's vertical text anchor
+ * (wps:bodyPr@anchor) */
+GtkWidget * AP_UnixRibbon::_makeShapeAlignTextPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	static const struct { const char * name; const char * data; } anchors[] = {
+		{ "Top",    "top"    },
+		{ "Middle", "middle" },
+		{ "Bottom", "bottom" },
+	};
+	for (const auto & a : anchors)
+		gtk_box_append(GTK_BOX(box),
+					   _presetRow(a.name, nullptr, nullptr,
+								  "shapeAlignText", a.data));
 	return popover;
 }
 
@@ -6688,6 +6922,15 @@ void AP_UnixRibbon::_s_arrange_popover_map(GtkWidget * popover,
 			bOn = nTicked >= 2;
 		else if (!strcmp(szMethod, "frameUngroup"))
 			bOn = bUngroup;
+		else if (!strcmp(szMethod, "alignObjects"))
+		{
+			const char * szData = static_cast<const char *>(
+				g_object_get_data(G_OBJECT(c), "abi-em-data"));
+			if (szData && !strncmp(szData, "distribute", 10))
+				bOn = (nTicked + (bObj ? 1 : 0)) >= 3;
+			else
+				bOn = bObj || nTicked >= 1;
+		}
 		else
 			bOn = bObj;
 		gtk_widget_set_sensitive(c, bOn);
@@ -12764,6 +13007,13 @@ void AP_UnixRibbon::_refreshContextualTabs()
 		  view->getFrameLayout() &&
 		  view->getFrameLayout()->getFrameType() ==
 			  FL_FRAME_WRAPPER_IMAGE));
+	/* the Shape Format tab mirrors Word's Shape Tools: it opens on
+	 * text boxes and DrawingML shape frames (selected or being
+	 * edited); positioned pictures keep the Picture tools */
+	fl_FrameLayout * pCtxFL = view ? view->getFrameLayout() : nullptr;
+	bool bInShape = pCtxFL &&
+		(pCtxFL->getFrameType() == FL_FRAME_TEXTBOX_TYPE ||
+		 view->getFrameEdit()->isActive());
 
 	UT_sint32 count = m_vecContextualPages.size();
 	for (UT_sint32 i = 0; i < count; ++i)
@@ -12776,6 +13026,8 @@ void AP_UnixRibbon::_refreshContextualTabs()
 			vis = bInMath;
 		else if (key && !strcmp(key, "picture"))
 			vis = bInImage;
+		else if (key && !strcmp(key, "shapeformat"))
+			vis = bInShape && !bInImage;
 
 		/* when the current tab is about to hide, GTK would flip to
 		 * an adjacent page (usually the last one — Help); land back
@@ -13200,6 +13452,7 @@ _kt_tab_keys[] =
 	{ "JD", "tabledesign" },
 	{ "JT", "table" },
 	{ "JP", "picture" },
+	{ "JS", "shapeformat" },
 	{ "JE", "equation" },
 	{ "Y",  "help" },
 	{ nullptr, nullptr }

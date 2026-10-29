@@ -10,6 +10,16 @@ responsibility** — see `README.md`.
 
 ### Added
 
+- **Shape Format ribbon tab** — a contextual Shape Tools tab appears
+  for text boxes and shapes: Shape Fill / Shape Outline galleries
+  (swatch palette, outline weights, full colour picker), Shape
+  Effects shadow presets, Text Direction and Align Text for
+  in-shape text, plus the shared Position/Wrap/Align/Group/Rotate
+  Arrange menus. Insert ▸ Shapes now drops a floating positioned
+  frame (Word-like) instead of an inline image, the Align menu
+  gained real multi-object alignment plus Distribute
+  Horizontally/Vertically, and a new `frameMultiSelect` edit
+  method scripts Selection-pane picking
 - **Word-style caret glide and fade** — the insertion point eases to
   its new position over ~0.1s when you move it with the keyboard
   (mid-flight moves re-aim from wherever it was heading), fades in
