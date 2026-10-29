@@ -11175,20 +11175,45 @@ void AP_UnixRibbon::_s_caption_apply(GtkWidget * w, gpointer data)
 		g_object_get_data(G_OBJECT(w), "dd-label"));
 	GtkWidget * ddPos = static_cast<GtkWidget *>(
 		g_object_get_data(G_OBJECT(w), "dd-pos"));
+	GtkWidget * ddFmt = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-fmt"));
+	GtkWidget * ddChap = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-chap"));
+	GtkWidget * ddSep = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-sep"));
 	GtkWidget * eCustom = static_cast<GtkWidget *>(
 		g_object_get_data(G_OBJECT(w), "entry-custom"));
+	GtkWidget * eText = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "entry-text"));
+	GtkWidget * ckNoLabel = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "ck-nolabel"));
 
 	const char * szCustom = gtk_editable_get_text(GTK_EDITABLE(eCustom));
 	std::string sLabel = (szCustom && *szCustom) ? szCustom
 		: _dropdown_text(ddLabel);
+	const char * szText = gtk_editable_get_text(GTK_EDITABLE(eText));
+	static const char * s_Fmts[] =
+		{ "ARABIC", "alphabetic", "ALPHABETIC", "roman", "ROMAN" };
+	static const char * s_Seps[] = { "-", ".", ":", "—", "–" };
+	const guint iFmt = gtk_drop_down_get_selected(GTK_DROP_DOWN(ddFmt));
+	const guint iChap = gtk_drop_down_get_selected(GTK_DROP_DOWN(ddChap));
+	const guint iSep = gtk_drop_down_get_selected(GTK_DROP_DOWN(ddSep));
 	const std::string sData =
-		sLabel + (gtk_drop_down_get_selected(GTK_DROP_DOWN(ddPos)) == 0
-				  ? "|below" : "|above");
+		sLabel +
+		(gtk_drop_down_get_selected(GTK_DROP_DOWN(ddPos)) == 0
+		 ? "|below" : "|above") +
+		"|" + (iFmt < 5 ? s_Fmts[iFmt] : "ARABIC") +
+		"|" + (szText ? szText : "") +
+		"|" + (gtk_check_button_get_active(
+				   GTK_CHECK_BUTTON(ckNoLabel)) ? "1" : "0") +
+		"|" + std::to_string(iChap) +
+		"|" + (iSep < 5 ? s_Seps[iSep] : "-");
 	_tb_popdown_popover(w);
 	self->_invokeEditMethod("refCaption", sData.c_str());
 }
 
-/* Word's Insert Caption: label, optional custom label, position */
+/* Word's Insert Caption: label, optional custom label, position,
+ * caption text, numbering format, exclude-label and chapter number */
 GtkWidget * AP_UnixRibbon::_makeCaptionPopover()
 {
 	GtkWidget * box;
@@ -11199,10 +11224,29 @@ GtkWidget * AP_UnixRibbon::_makeCaptionPopover()
 	gtk_box_append(GTK_BOX(box), ddLabel);
 	GtkWidget * eCustom = _ref_entry_row("Custom:", nullptr);
 	gtk_box_append(GTK_BOX(box), eCustom);
+	GtkWidget * eText = _ref_entry_row("Text:", nullptr);
+	gtk_box_append(GTK_BOX(box), eText);
 	static const char * s_Pos[] =
 		{ "Below selected item", "Above selected item" };
 	GtkWidget * ddPos = _ref_dropdown_row("Position:", s_Pos, 2);
 	gtk_box_append(GTK_BOX(box), ddPos);
+	static const char * s_Fmts[] =
+		{ "1, 2, 3", "a, b, c", "A, B, C", "i, ii, iii", "I, II, III" };
+	GtkWidget * ddFmt = _ref_dropdown_row("Format:", s_Fmts, 5);
+	gtk_box_append(GTK_BOX(box), ddFmt);
+	GtkWidget * ckNoLabel =
+		gtk_check_button_new_with_label("Exclude label from caption");
+	gtk_box_append(GTK_BOX(box), ckNoLabel);
+	static const char * s_Chap[] =
+		{ "No chapter number", "Chapter from Heading 1",
+		  "Chapter from Heading 2", "Chapter from Heading 3" };
+	GtkWidget * ddChap = _ref_dropdown_row("Chapter:", s_Chap, 4);
+	gtk_box_append(GTK_BOX(box), ddChap);
+	static const char * s_Seps[] =
+		{ "Hyphen (-)", "Period (.)", "Colon (:)",
+		  "Em dash (—)", "En dash (–)" };
+	GtkWidget * ddSep = _ref_dropdown_row("Separator:", s_Seps, 5);
+	gtk_box_append(GTK_BOX(box), ddSep);
 	gtk_box_append(GTK_BOX(box),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 
@@ -11212,8 +11256,17 @@ GtkWidget * AP_UnixRibbon::_makeCaptionPopover()
 					  g_object_get_data(G_OBJECT(ddLabel), "dd"));
 	g_object_set_data(G_OBJECT(btn), "dd-pos",
 					  g_object_get_data(G_OBJECT(ddPos), "dd"));
+	g_object_set_data(G_OBJECT(btn), "dd-fmt",
+					  g_object_get_data(G_OBJECT(ddFmt), "dd"));
+	g_object_set_data(G_OBJECT(btn), "dd-chap",
+					  g_object_get_data(G_OBJECT(ddChap), "dd"));
+	g_object_set_data(G_OBJECT(btn), "dd-sep",
+					  g_object_get_data(G_OBJECT(ddSep), "dd"));
 	g_object_set_data(G_OBJECT(btn), "entry-custom",
 					  g_object_get_data(G_OBJECT(eCustom), "entry"));
+	g_object_set_data(G_OBJECT(btn), "entry-text",
+					  g_object_get_data(G_OBJECT(eText), "entry"));
+	g_object_set_data(G_OBJECT(btn), "ck-nolabel", ckNoLabel);
 	g_signal_connect(btn, "clicked",
 					 G_CALLBACK(_s_caption_apply), this);
 	gtk_box_append(GTK_BOX(box), btn);
@@ -11260,13 +11313,29 @@ GtkWidget * AP_UnixRibbon::_makeTOFPopover()
 	return popover;
 }
 
-void AP_UnixRibbon::_s_xref_map(GtkWidget * popover, gpointer data)
+/* the engine token for the selected reference-type row: the five
+ * base types, or label:<name> for a custom caption label */
+static std::string _xref_to(GtkWidget * ddTo)
 {
-	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
-	UT_return_if_fail(self);
+	static const char * s_To[] =
+		{ "heading", "figure", "table", "equation", "bookmark" };
+	const guint i = gtk_drop_down_get_selected(GTK_DROP_DOWN(ddTo));
+	if (i < G_N_ELEMENTS(s_To))
+		return s_To[i];
+	const char * sz = _dropdown_text(ddTo);
+	if (sz && !strncmp(sz, "Label: ", 7))
+		return std::string("label:") + (sz + 7);
+	return "heading";
+}
+
+/* refill the target list from the selected reference type */
+static void _xref_populate(GtkWidget * popover, FV_View * pView)
+{
 	GtkWidget * listbox = static_cast<GtkWidget *>(
 		g_object_get_data(G_OBJECT(popover), "xref-list"));
-	UT_return_if_fail(listbox);
+	GtkWidget * ddTo = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(popover), "dd-to"));
+	UT_return_if_fail(listbox && ddTo);
 
 	for (GtkWidget * child = gtk_widget_get_first_child(listbox);
 		 child;)
@@ -11276,29 +11345,86 @@ void AP_UnixRibbon::_s_xref_map(GtkWidget * popover, gpointer data)
 		child = next;
 	}
 
-	FV_View * pView = static_cast<FV_View *>(
-		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
 	std::vector<std::string> names;
 	if (pView)
-		pView->getXRefBookmarks(names);
+	{
+		const std::string sTo = _xref_to(ddTo);
+		pView->getXRefTargets(sTo.c_str(), names);
+	}
 	for (const std::string & s : names)
 	{
 		GtkWidget * row = gtk_list_box_row_new();
 		GtkWidget * l = gtk_label_new(s.c_str());
 		gtk_label_set_xalign(GTK_LABEL(l), 0.0f);
+		gtk_label_set_ellipsize(GTK_LABEL(l), PANGO_ELLIPSIZE_END);
 		gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row), l);
-		g_object_set_data_full(G_OBJECT(row), "bookmark",
+		g_object_set_data_full(G_OBJECT(row), "target",
 							   g_strdup(s.c_str()), g_free);
 		gtk_list_box_append(GTK_LIST_BOX(listbox), row);
 	}
 	if (names.empty())
 	{
 		GtkWidget * row = gtk_list_box_row_new();
-		GtkWidget * l = gtk_label_new("(no bookmarks in document)");
+		GtkWidget * l = gtk_label_new("(no targets of this type)");
 		gtk_widget_set_sensitive(row, FALSE);
 		gtk_list_box_row_set_child(GTK_LIST_BOX_ROW(row), l);
 		gtk_list_box_append(GTK_LIST_BOX(listbox), row);
 	}
+}
+
+void AP_UnixRibbon::_s_xref_map(GtkWidget * popover, gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	GtkWidget * ddTo = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(popover), "dd-to"));
+	UT_return_if_fail(ddTo);
+
+	// refresh the type list's tail with the caption labels present
+	// in the document (custom labels are reference types in Word)
+	GListModel * model = gtk_drop_down_get_model(GTK_DROP_DOWN(ddTo));
+	GtkStringList * sl = GTK_STRING_LIST(model);
+	FV_View * pView = static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+	std::vector<std::string> labels;
+	if (pView)
+		pView->getXRefCaptionLabels(labels);
+	while (g_list_model_get_n_items(model) > 5)
+	{
+		gtk_string_list_remove(sl, 5);
+	}
+	static const char * s_Builtin[] = { "Figure", "Table", "Equation" };
+	for (const std::string & lab : labels)
+	{
+		bool bBuiltin = false;
+		for (const char * b : s_Builtin)
+		{
+			if (lab == b)
+			{
+				bBuiltin = true;
+				break;
+			}
+		}
+		if (!bBuiltin)
+		{
+			gtk_string_list_append(
+				sl, (std::string("Label: ") + lab).c_str());
+		}
+	}
+	_xref_populate(popover, pView);
+}
+
+void AP_UnixRibbon::_s_xref_type_changed(GtkDropDown *, GParamSpec *,
+										 gpointer data)
+{
+	GtkWidget * popover = static_cast<GtkWidget *>(data);
+	UT_return_if_fail(popover);
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(
+		g_object_get_data(G_OBJECT(popover), "ribbon"));
+	UT_return_if_fail(self);
+	FV_View * pView = static_cast<FV_View *>(
+		self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+	_xref_populate(popover, pView);
 }
 
 void AP_UnixRibbon::_s_xref_apply(GtkWidget * w, gpointer data)
@@ -11307,30 +11433,40 @@ void AP_UnixRibbon::_s_xref_apply(GtkWidget * w, gpointer data)
 	UT_return_if_fail(self);
 	GtkWidget * listbox = static_cast<GtkWidget *>(
 		g_object_get_data(G_OBJECT(w), "xref-list"));
-	GtkWidget * ddType = static_cast<GtkWidget *>(
-		g_object_get_data(G_OBJECT(w), "dd-type"));
+	GtkWidget * ddShow = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-show"));
+	GtkWidget * ddTo = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-to"));
 	GtkListBoxRow * row = gtk_list_box_get_selected_row(
 		GTK_LIST_BOX(listbox));
 	UT_return_if_fail(row);
-	const char * szBookmark = static_cast<const char *>(
-		g_object_get_data(G_OBJECT(row), "bookmark"));
-	UT_return_if_fail(szBookmark);
+	const char * szTarget = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(row), "target"));
+	UT_return_if_fail(szTarget);
+	static const char * s_Shows[] =
+		{ "text", "page", "number", "abovebelow" };
+	const guint iShow = gtk_drop_down_get_selected(GTK_DROP_DOWN(ddShow));
 	const std::string sData =
-		std::string(szBookmark) +
-		(gtk_drop_down_get_selected(GTK_DROP_DOWN(ddType)) == 0
-		 ? "|text" : "|page");
+		_xref_to(ddTo) + "|" + szTarget + "|" +
+		(iShow < G_N_ELEMENTS(s_Shows) ? s_Shows[iShow] : "text");
 	_tb_popdown_popover(w);
 	self->_invokeEditMethod("refXRef", sData.c_str());
 }
 
-/* Word's Cross-reference: pick a bookmark, insert its text as a link
- * or its page number as a field */
+/* Word's Cross-reference: pick the reference type and target, insert
+ * the text (REF field), page number (PAGEREF), caption number or
+ * "above/below" */
 GtkWidget * AP_UnixRibbon::_makeXRefPopover()
 {
 	GtkWidget * box;
 	GtkWidget * popover = _popover_new_box(&box);
 
-	gtk_box_append(GTK_BOX(box), _popover_section_label("Reference target"));
+	static const char * s_Tos[] =
+		{ "Heading", "Figure", "Table", "Equation", "Bookmark" };
+	GtkWidget * ddTo = _ref_dropdown_row("Type:", s_Tos, 5);
+	gtk_box_append(GTK_BOX(box), ddTo);
+	gtk_box_append(GTK_BOX(box),
+				   _popover_section_label("Reference target"));
 	GtkWidget * sw = gtk_scrolled_window_new();
 	gtk_widget_set_size_request(sw, 240, 140);
 	GtkWidget * listbox = gtk_list_box_new();
@@ -11339,22 +11475,31 @@ GtkWidget * AP_UnixRibbon::_makeXRefPopover()
 	gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(sw), listbox);
 	gtk_box_append(GTK_BOX(box), sw);
 
-	static const char * s_Types[] =
-		{ "Bookmark text (link)", "Page number" };
-	GtkWidget * ddType = _ref_dropdown_row("Insert:", s_Types, 2);
-	gtk_box_append(GTK_BOX(box), ddType);
+	static const char * s_Shows[] =
+		{ "Reference text", "Page number",
+		  "Caption/paragraph number", "Above/below" };
+	GtkWidget * ddShow = _ref_dropdown_row("Insert:", s_Shows, 4);
+	gtk_box_append(GTK_BOX(box), ddShow);
 	gtk_box_append(GTK_BOX(box),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 
 	GtkWidget * btn = gtk_button_new_with_label("Insert Reference");
 	gtk_widget_add_css_class(btn, "flat");
 	g_object_set_data(G_OBJECT(btn), "xref-list", listbox);
-	g_object_set_data(G_OBJECT(btn), "dd-type",
-					  g_object_get_data(G_OBJECT(ddType), "dd"));
+	g_object_set_data(G_OBJECT(btn), "dd-show",
+					  g_object_get_data(G_OBJECT(ddShow), "dd"));
+	g_object_set_data(G_OBJECT(btn), "dd-to",
+					  g_object_get_data(G_OBJECT(ddTo), "dd"));
 	g_signal_connect(btn, "clicked", G_CALLBACK(_s_xref_apply), this);
 	gtk_box_append(GTK_BOX(box), btn);
 
 	g_object_set_data(G_OBJECT(popover), "xref-list", listbox);
+	g_object_set_data(G_OBJECT(popover), "dd-to",
+					  g_object_get_data(G_OBJECT(ddTo), "dd"));
+	g_object_set_data(G_OBJECT(popover), "ribbon", this);
+	g_signal_connect(g_object_get_data(G_OBJECT(ddTo), "dd"),
+					 "notify::selected",
+					 G_CALLBACK(_s_xref_type_changed), popover);
 	g_signal_connect(popover, "map", G_CALLBACK(_s_xref_map), this);
 	return popover;
 }
@@ -11369,6 +11514,26 @@ void AP_UnixRibbon::_s_markentry_map(GtkWidget * popover, gpointer data)
 	const std::string s = self->_refSelectionText();
 	gtk_editable_set_text(GTK_EDITABLE(e), s.c_str());
 	gtk_widget_set_sensitive(e, s.empty());
+
+	// refresh the page-range bookmark list
+	GtkWidget * ddRange = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(popover), "dd-range"));
+	if (ddRange)
+	{
+		GtkStringList * sl = GTK_STRING_LIST(
+			gtk_drop_down_get_model(GTK_DROP_DOWN(ddRange)));
+		while (g_list_model_get_n_items(G_LIST_MODEL(sl)) > 1)
+		{
+			gtk_string_list_remove(sl, 1);
+		}
+		FV_View * pView = static_cast<FV_View *>(
+			self->m_pFrame ? self->m_pFrame->getCurrentView() : nullptr);
+		std::vector<std::string> names;
+		if (pView)
+			pView->getXRefBookmarks(names);
+		for (const std::string & n : names)
+			gtk_string_list_append(sl, n.c_str());
+	}
 }
 
 void AP_UnixRibbon::_s_markentry_apply(GtkWidget * w, gpointer data)
@@ -11377,13 +11542,40 @@ void AP_UnixRibbon::_s_markentry_apply(GtkWidget * w, gpointer data)
 	UT_return_if_fail(self);
 	GtkWidget * e = static_cast<GtkWidget *>(
 		g_object_get_data(G_OBJECT(w), "markentry-entry"));
+	GtkWidget * eSub = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "markentry-sub"));
+	GtkWidget * eSee = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "markentry-see"));
+	GtkWidget * ddRange = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "dd-range"));
+	GtkWidget * ckBold = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "ck-bold"));
+	GtkWidget * ckItalic = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(w), "ck-italic"));
+	const bool bAll = GPOINTER_TO_INT(
+		g_object_get_data(G_OBJECT(w), "mark-all"));
+
 	const char * szText = gtk_editable_get_text(GTK_EDITABLE(e));
+	const char * szSub = gtk_editable_get_text(GTK_EDITABLE(eSub));
+	const char * szSee = gtk_editable_get_text(GTK_EDITABLE(eSee));
+	const char * szRange = "";
+	if (ddRange && gtk_drop_down_get_selected(GTK_DROP_DOWN(ddRange)) > 0)
+		szRange = _dropdown_text(ddRange);
+	const std::string sData =
+		std::string(szText ? szText : "") + "|" +
+		(szSub ? szSub : "") + "|" +
+		(szSee ? szSee : "") + "|" + szRange + "|" +
+		(gtk_check_button_get_active(GTK_CHECK_BUTTON(ckBold)) ? "1" : "") +
+		"|" +
+		(gtk_check_button_get_active(GTK_CHECK_BUTTON(ckItalic)) ? "1" : "") +
+		"|" + (bAll ? "1" : "");
 	_tb_popdown_popover(w);
-	self->_invokeEditMethod("refMarkEntry", szText);
+	self->_invokeEditMethod("refMarkEntry", sData.c_str());
 }
 
 /* Word's Mark Entry: the selected text (or a typed entry) is flagged
- * for the index */
+ * for the index, with the subentry, cross-reference, page-range and
+ * page-number-format options of the XE field */
 GtkWidget * AP_UnixRibbon::_makeMarkEntryPopover()
 {
 	GtkWidget * box;
@@ -11395,24 +11587,57 @@ GtkWidget * AP_UnixRibbon::_makeMarkEntryPopover()
 	GtkWidget * e = static_cast<GtkWidget *>(
 		g_object_get_data(G_OBJECT(eRow), "entry"));
 	gtk_box_append(GTK_BOX(box), eRow);
-	GtkWidget * hint = gtk_label_new(
-		"Select text first, or type the entry. Use \"Main:Sub\" for "
-		"a subentry.");
-	gtk_label_set_wrap(GTK_LABEL(hint), TRUE);
-	gtk_label_set_max_width_chars(GTK_LABEL(hint), 34);
-	gtk_label_set_xalign(GTK_LABEL(hint), 0.0f);
-	gtk_box_append(GTK_BOX(box), hint);
+	GtkWidget * eSubRow = _ref_entry_row("Subentry:", nullptr);
+	GtkWidget * eSub = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(eSubRow), "entry"));
+	gtk_box_append(GTK_BOX(box), eSubRow);
+	GtkWidget * eSeeRow = _ref_entry_row("See:", nullptr);
+	GtkWidget * eSee = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(eSeeRow), "entry"));
+	gtk_box_append(GTK_BOX(box), eSeeRow);
+	GtkStringList * slRange = gtk_string_list_new(nullptr);
+	gtk_string_list_append(slRange, "(current page)");
+	GtkWidget * ddRange = gtk_drop_down_new(G_LIST_MODEL(slRange), nullptr);
+	{
+		GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+		GtkWidget * l = gtk_label_new("Range:");
+		gtk_label_set_xalign(GTK_LABEL(l), 0.0f);
+		gtk_widget_set_size_request(l, 76, -1);
+		gtk_widget_set_hexpand(ddRange, TRUE);
+		gtk_box_append(GTK_BOX(row), l);
+		gtk_box_append(GTK_BOX(row), ddRange);
+		gtk_box_append(GTK_BOX(box), row);
+	}
+	GtkWidget * ckBold =
+		gtk_check_button_new_with_label("Bold page number");
+	gtk_box_append(GTK_BOX(box), ckBold);
+	GtkWidget * ckItalic =
+		gtk_check_button_new_with_label("Italic page number");
+	gtk_box_append(GTK_BOX(box), ckItalic);
 	gtk_box_append(GTK_BOX(box),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 
 	GtkWidget * btn = gtk_button_new_with_label("Mark");
 	gtk_widget_add_css_class(btn, "flat");
-	g_object_set_data(G_OBJECT(btn), "markentry-entry", e);
-	g_signal_connect(btn, "clicked",
-					 G_CALLBACK(_s_markentry_apply), this);
-	gtk_box_append(GTK_BOX(box), btn);
+	GtkWidget * btnAll = gtk_button_new_with_label("Mark All");
+	gtk_widget_add_css_class(btnAll, "flat");
+	for (GtkWidget * b : { btn, btnAll })
+	{
+		g_object_set_data(G_OBJECT(b), "markentry-entry", e);
+		g_object_set_data(G_OBJECT(b), "markentry-sub", eSub);
+		g_object_set_data(G_OBJECT(b), "markentry-see", eSee);
+		g_object_set_data(G_OBJECT(b), "dd-range", ddRange);
+		g_object_set_data(G_OBJECT(b), "ck-bold", ckBold);
+		g_object_set_data(G_OBJECT(b), "ck-italic", ckItalic);
+		g_signal_connect(b, "clicked",
+						 G_CALLBACK(_s_markentry_apply), this);
+		gtk_box_append(GTK_BOX(box), b);
+	}
+	g_object_set_data(G_OBJECT(btnAll), "mark-all",
+					  GINT_TO_POINTER(1));
 
 	g_object_set_data(G_OBJECT(popover), "markentry-entry", e);
+	g_object_set_data(G_OBJECT(popover), "dd-range", ddRange);
 	g_signal_connect(popover, "map", G_CALLBACK(_s_markentry_map), this);
 	return popover;
 }

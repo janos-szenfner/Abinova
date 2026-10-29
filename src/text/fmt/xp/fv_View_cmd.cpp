@@ -10527,19 +10527,471 @@ void FV_View::_ensureRefStyle(const char * szName, const char * szProps) const
 
 /*!
  * Insert a page_ref field at the point, mirroring Word's
- * { PAGEREF bookmark \h }.
+ * { PAGEREF bookmark \h }. bBold/bItalic carry the XE \b/\i page
+ * formatting through to the generated index entry.
  */
-void FV_View::_insertPageRefField(const char * szBookmark)
+void FV_View::_insertPageRefField(const char * szBookmark,
+								  bool bBold, bool bItalic)
 {
 	const PP_PropertyVector atts = {
 		"type", "page_ref",
 		"param", szBookmark
 	};
+	PP_PropertyVector props = PP_NOPROPS;
+	if(bBold || bItalic)
+	{
+		props = {
+			"font-weight", bBold ? "bold" : "normal",
+			"font-style", bItalic ? "italic" : "normal"
+		};
+	}
+	const PT_DocPosition pos = getPoint();
+	if(m_pDoc->insertObject(pos, PTO_Field, atts, props))
+	{
+		setPoint(pos + 1);
+	}
+}
+
+/*!
+ * Insert a bookmark_ref field at the point, mirroring Word's
+ * { REF bookmark \h }: it renders the bookmarked text live.
+ * szKind "abovebelow" makes the field render "above"/"below"
+ * instead (Word's "above/below" insert type).
+ */
+void FV_View::_insertBookmarkRefField(const char * szBookmark,
+									  const char * szKind)
+{
+	PP_PropertyVector atts = {
+		"type", "bookmark_ref",
+		"param", szBookmark
+	};
+	if(szKind && *szKind)
+	{
+		atts.push_back("ref-kind");
+		atts.push_back(szKind);
+	}
 	const PT_DocPosition pos = getPoint();
 	if(m_pDoc->insertObject(pos, PTO_Field, atts, PP_NOPROPS))
 	{
 		setPoint(pos + 1);
 	}
+}
+
+/*!
+ * Page number (1-based) of the document position, or 0 when the
+ * position does not map to a laid-out page yet.
+ */
+UT_uint32 FV_View::_pageOfDocPosition(PT_DocPosition pos) const
+{
+	fl_BlockLayout * pBlock = nullptr;
+	fp_Run * pRun = nullptr;
+	UT_sint32 x, y, x2, y2;
+	UT_uint32 h;
+	bool bDir;
+	const_cast<FV_View *>(this)->_findPositionCoords(
+		pos, false, x, y, x2, y2, h, bDir, &pBlock, &pRun);
+	if(!pRun || !pRun->getLine() || !pRun->getLine()->getContainer()
+	   || !pRun->getLine()->getContainer()->getPage())
+	{
+		return 0;
+	}
+	fp_Page * pPage = pRun->getLine()->getContainer()->getPage();
+	FL_DocLayout * pDL = pPage->getDocLayout();
+	const UT_uint32 iNumPages = pDL->countPages();
+	for(UT_uint32 i = 0; i < iNumPages; i++)
+	{
+		if(pDL->getNthPage(i) == pPage)
+		{
+			return i + 1;
+		}
+	}
+	return 0;
+}
+
+/*!
+ * The heading level of the block (1-9) or false: either an explicit
+ * block outline-level prop (docx w:outlineLvl) or a built-in
+ * "Heading N" style name.
+ */
+bool FV_View::_blockHeadingLevel(const fl_BlockLayout * pBlock,
+								 UT_sint32 & iLevel) const
+{
+	const PP_AttrProp * pAP = nullptr;
+	if(const_cast<fl_BlockLayout *>(pBlock)->getAP(pAP) != FP_VISIBLE)
+	{
+		return false;
+	}
+	const char * psz = nullptr;
+	if(pAP && pAP->getProperty("outline-level", psz) && psz && *psz)
+	{
+		const int n = atoi(psz);
+		if(n >= 0 && n <= 8)
+		{
+			iLevel = n + 1;
+			return true;
+		}
+	}
+	UT_UTF8String sStyle;
+	const_cast<fl_BlockLayout *>(pBlock)->getStyle(sStyle);
+	if(0 == strncmp(sStyle.utf8_str(), "Heading ", 8) &&
+	   sStyle.utf8_str()[8] >= '1' && sStyle.utf8_str()[8] <= '9' &&
+	   sStyle.utf8_str()[9] == 0)
+	{
+		iLevel = sStyle.utf8_str()[8] - '0';
+		return true;
+	}
+	return false;
+}
+
+/*!
+ * The plain text of a block, trimmed.
+ */
+static UT_UTF8String s_blockText(FV_View * pView, fl_BlockLayout * pBlock)
+{
+	UT_UCS4Char * pText = pView->getTextBetweenPos(
+		pBlock->getPosition(false),
+		pBlock->getPosition(false) + pBlock->getLength() - 1);
+	if(!pText)
+	{
+		return UT_UTF8String();
+	}
+	UT_UTF8String s(UT_UCS4String(pText).utf8_str());
+	DELETEPV(pText);
+	// strip embedded object markers (bookmarks, fields show as \x07)
+	// and trim
+	std::string t;
+	for(const char * q = s.utf8_str(); *q; q++)
+	{
+		if(*q != 0x07)
+		{
+			t += *q;
+		}
+	}
+	const size_t b = t.find_first_not_of(" \t\n");
+	if(b == std::string::npos)
+	{
+		return UT_UTF8String();
+	}
+	const size_t e = t.find_last_not_of(" \t\n");
+	return UT_UTF8String(t.substr(b, e - b + 1).c_str());
+}
+
+/*!
+ * The caption label for a caption-styled block: "Figure" for a
+ * "Figure Caption" style, or the word(s) before the number for a
+ * plain "Caption" style.
+ */
+static bool s_blockCaptionLabel(fl_BlockLayout * pBlock,
+								UT_UTF8String & sLabel,
+								const UT_UTF8String & sText)
+{
+	UT_UTF8String sStyle;
+	pBlock->getStyle(sStyle);
+	const char * szStyle = sStyle.utf8_str();
+	const size_t iLen = strlen(szStyle);
+	if(iLen > 8 && 0 == strcmp(szStyle + iLen - 8, " Caption"))
+	{
+		sLabel.assign(szStyle, iLen - 8);
+		return sLabel.size() > 0;
+	}
+	if(0 == strcmp(szStyle, "Caption") ||
+	   0 == strcmp(szStyle, "caption"))
+	{
+		// label = text before the first digit
+		const char * p = sText.utf8_str();
+		const char * d = strchr(p, ':');
+		size_t n = 0;
+		while(p[n] && !g_ascii_isdigit(p[n]) && p[n] != ':')
+		{
+			n++;
+		}
+		if(d && static_cast<size_t>(d - p) < n)
+		{
+			n = d - p;
+		}
+		while(n > 0 && p[n-1] == ' ')
+		{
+			n--;
+		}
+		if(n > 0)
+		{
+			sLabel.assign(p, n);
+			return true;
+		}
+	}
+	return false;
+}
+
+/*!
+ * All cross-reference target display texts for a reference type:
+ * "heading" (styled/outline-level blocks), "figure"/"table"/
+ * "equation"/"label:<name>" (caption blocks by label) and
+ * "bookmark" (user bookmarks). Mirrors the reference-type list of
+ * Word's Cross-reference dialog.
+ */
+void FV_View::getXRefTargets(const char * szTo,
+							 std::vector<std::string> & targets) const
+{
+	if(!szTo || !*szTo || 0 == strcmp(szTo, "bookmark"))
+	{
+		getXRefBookmarks(targets);
+		return;
+	}
+	const bool bHeading = (0 == strcmp(szTo, "heading"));
+	std::string sLabel;
+	if(0 == strncmp(szTo, "label:", 6))
+	{
+		sLabel = szTo + 6;
+	}
+	else if(0 == strcmp(szTo, "figure"))
+	{
+		sLabel = "Figure";
+	}
+	else if(0 == strcmp(szTo, "table"))
+	{
+		sLabel = "Table";
+	}
+	else if(0 == strcmp(szTo, "equation"))
+	{
+		sLabel = "Equation";
+	}
+	else if(!bHeading)
+	{
+		return;
+	}
+	fl_SectionLayout * pSection = m_pLayout->getFirstSection();
+	while(pSection)
+	{
+		for (fl_ContainerLayout * pL = pSection->getFirstLayout(); pL;
+		     pL = pL->getNext())
+		{
+			if (pL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				continue;
+			}
+			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pL);
+			if(bHeading)
+			{
+				UT_sint32 iLevel = 0;
+				if(!_blockHeadingLevel(pBlock, iLevel))
+				{
+					continue;
+				}
+			}
+			else
+			{
+				UT_UTF8String sText = s_blockText(
+					const_cast<FV_View *>(this), pBlock);
+				UT_UTF8String sLab;
+				if(!s_blockCaptionLabel(pBlock, sLab, sText) ||
+				   sLabel != sLab.utf8_str())
+				{
+					continue;
+				}
+			}
+			UT_UTF8String sText = s_blockText(
+				const_cast<FV_View *>(this), pBlock);
+			if(sText.size())
+			{
+				targets.push_back(sText.utf8_str());
+			}
+		}
+		pSection = static_cast<fl_SectionLayout *>(pSection->getNext());
+	}
+}
+
+/*!
+ * The caption labels present in the document, first-seen first —
+ * drives the reference-type list so custom labels ("Plate Caption")
+ * are cross-referenceable like Figure/Table/Equation.
+ */
+void FV_View::getXRefCaptionLabels(std::vector<std::string> & labels) const
+{
+	fl_SectionLayout * pSection = m_pLayout->getFirstSection();
+	while(pSection)
+	{
+		for (fl_ContainerLayout * pL = pSection->getFirstLayout(); pL;
+		     pL = pL->getNext())
+		{
+			if (pL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				continue;
+			}
+			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pL);
+			UT_UTF8String sText = s_blockText(
+				const_cast<FV_View *>(this), pBlock);
+			UT_UTF8String sLab;
+			if(!s_blockCaptionLabel(pBlock, sLab, sText))
+			{
+				continue;
+			}
+			bool bHave = false;
+			for(const std::string & s : labels)
+			{
+				if(s == sLab.utf8_str())
+				{
+					bHave = true;
+					break;
+				}
+			}
+			if(!bHave)
+			{
+				labels.push_back(sLab.utf8_str());
+			}
+		}
+		pSection = static_cast<fl_SectionLayout *>(pSection->getNext());
+	}
+}
+
+/*!
+ * The first block whose cross-reference display text equals (or,
+ * failing that, begins with) szTarget under the given reference
+ * type — see getXRefTargets for the types.
+ */
+fl_BlockLayout * FV_View::_findXRefBlock(const char * szTo,
+										 const char * szTarget) const
+{
+	fl_BlockLayout * pPrefix = nullptr;
+	fl_SectionLayout * pSection = m_pLayout->getFirstSection();
+	while(pSection)
+	{
+		for (fl_ContainerLayout * pL = pSection->getFirstLayout(); pL;
+		     pL = pL->getNext())
+		{
+			if (pL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				continue;
+			}
+			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pL);
+			bool bCandidate = false;
+			if(0 == strcmp(szTo, "heading"))
+			{
+				UT_sint32 iLevel = 0;
+				bCandidate = _blockHeadingLevel(pBlock, iLevel);
+			}
+			else
+			{
+				UT_UTF8String sText = s_blockText(
+					const_cast<FV_View *>(this), pBlock);
+				UT_UTF8String sLab;
+				const char * szLabel =
+					(0 == strncmp(szTo, "label:", 6)) ? szTo + 6 :
+					(0 == strcmp(szTo, "figure")) ? "Figure" :
+					(0 == strcmp(szTo, "table")) ? "Table" :
+					(0 == strcmp(szTo, "equation")) ? "Equation" : "";
+				bCandidate = (*szLabel &&
+							  s_blockCaptionLabel(pBlock, sLab, sText) &&
+							  0 == strcmp(sLab.utf8_str(), szLabel));
+			}
+			if(!bCandidate)
+			{
+				continue;
+			}
+			UT_UTF8String sText = s_blockText(
+				const_cast<FV_View *>(this), pBlock);
+			if(0 == strcmp(sText.utf8_str(), szTarget))
+			{
+				return pBlock;
+			}
+			if(!pPrefix &&
+			   0 == strncmp(sText.utf8_str(), szTarget, strlen(szTarget)))
+			{
+				pPrefix = pBlock;
+			}
+		}
+		pSection = static_cast<fl_SectionLayout *>(pSection->getNext());
+	}
+	return pPrefix;
+}
+
+/*!
+ * Wrap the block's text in a hidden "_Ref<digits>" bookmark the way
+ * Word does when a heading or caption is cross-referenced, reusing
+ * one already covering the same extent. bNumberOnly narrows the
+ * bookmark to the label+number part (up to the first ':') so a
+ * REF to it shows the number only.
+ */
+UT_Error FV_View::_ensureRefBookmark(fl_BlockLayout * pBlock,
+									 bool bNumberOnly,
+									 std::string & sName)
+{
+	const PT_DocPosition posFirst = pBlock->getPosition(false);
+	PT_DocPosition posLast = pBlock->getPosition(false) +
+		pBlock->getLength() - 1;
+	if(bNumberOnly)
+	{
+		UT_UCS4Char * pText = getTextBetweenPos(posFirst, posLast);
+		if(pText)
+		{
+			UT_uint32 i = 0;
+			while(pText[i] && pText[i] != ':')
+			{
+				i++;
+			}
+			// keep trailing spaces out of the bookmarked number
+			while(i > 0 && pText[i-1] == ' ')
+			{
+				i--;
+			}
+			if(i > 0)
+			{
+				posLast = posFirst + i;
+			}
+			DELETEPV(pText);
+		}
+	}
+
+	// reuse an existing _Ref bookmark covering exactly this extent
+	std::vector<std::string> names;
+	_getBookmarksWithPrefix("_Ref", names);
+	for(const std::string & s : names)
+	{
+		FV_BookmarkSpan span;
+		// the start marker takes one position itself, so the marked
+		// text begins a step right of posFirst
+		if(_findBookmarkSpan(s.c_str(), span) &&
+		   span.posLast == posLast &&
+		   (span.posFirst == posFirst || span.posFirst == posFirst + 1))
+		{
+			sName = s;
+			return UT_OK;
+		}
+	}
+
+	char name[BOOKMARK_NAME_SIZE + 1];
+	snprintf(name, sizeof(name), "_Ref%09u",
+			 _nextBookmarkSuffix("_Ref"));
+	if(UT_OK != _bookmarkRange(posFirst, posLast, name))
+	{
+		return UT_ERROR;
+	}
+	sName = name;
+	return UT_OK;
+}
+
+/*!
+ * Wrap a document range in a bookmark without moving the selection:
+ * the end marker goes in first so the start insert cannot shift it.
+ */
+UT_Error FV_View::_bookmarkRange(PT_DocPosition posStart,
+								 PT_DocPosition posEnd,
+								 const char * szName)
+{
+	UT_return_val_if_fail(posEnd > posStart, UT_ERROR);
+	PP_PropertyVector atts = {
+		"name", szName,
+		"type", "end"
+	};
+	if(!m_pDoc->insertObject(posEnd, PTO_Bookmark, atts, PP_NOPROPS))
+	{
+		return UT_ERROR;
+	}
+	atts[3] = "start";
+	if(!m_pDoc->insertObject(posStart, PTO_Bookmark, atts, PP_NOPROPS))
+	{
+		return UT_ERROR;
+	}
+	return UT_OK;
 }
 
 /*!
@@ -10612,10 +11064,34 @@ void FV_View::_writeGeneratedSection(const char * szMarker,
 		{
 			cmdCharInsert(std::string(e.sText.utf8_str()), false);
 		}
-		for(UT_uint32 i = 0; i < e.bookmarks.size(); i++)
+		bool bFirst = true;
+		for(const std::string & bm : e.bookmarks)
 		{
-			cmdCharInsert(i ? ", " : "\t", false);
-			_insertPageRefField(e.bookmarks[i].c_str());
+			cmdCharInsert(bFirst ? "\t" : ", ", false);
+			bFirst = false;
+			// XE \b/\i page formatting lives in idx.<n>.* metadata
+			std::string sB, sI;
+			const bool bBold =
+				(0 == bm.compare(0, strlen(FV_BM_IDX_PREFIX),
+								 FV_BM_IDX_PREFIX)) &&
+				_getIdxMeta(bm, "bold", sB) && sB == "1";
+			const bool bItalic =
+				(0 == bm.compare(0, strlen(FV_BM_IDX_PREFIX),
+								 FV_BM_IDX_PREFIX)) &&
+				_getIdxMeta(bm, "italic", sI) && sI == "1";
+			_insertPageRefField(bm.c_str(), bBold, bItalic);
+		}
+		for(const UT_UTF8String & lp : e.literalPages)
+		{
+			cmdCharInsert(bFirst ? "\t" : ", ", false);
+			bFirst = false;
+			cmdCharInsert(std::string(lp.utf8_str()), false);
+		}
+		for(const UT_UTF8String & see : e.seeRefs)
+		{
+			cmdCharInsert(bFirst ? "\t" : ", ", false);
+			bFirst = false;
+			cmdCharInsert(std::string(see.utf8_str()), false);
 		}
 	}
 
@@ -10694,15 +11170,122 @@ bool FV_View::hasRefSection(const char * szMarker) const
 }
 
 /*!
- * Insert a numbered caption ("Figure 3", "Table 1", ...) in a
+ * Roman numeral for 1-3999 (Word's \* roman / \* ROMAN).
+ */
+static void s_formatRoman(UT_UTF8String & s, UT_uint32 n, bool bUpper)
+{
+	static const struct { UT_uint32 v; const char * l; const char * u; }
+		s_R[] = {
+			{1000, "m", "M"}, {900, "cm", "CM"}, {500, "d", "D"},
+			{400, "cd", "CD"}, {100, "c", "C"}, {90, "xc", "XC"},
+			{50, "l", "L"}, {40, "xl", "XL"}, {10, "x", "X"},
+			{9, "ix", "IX"}, {5, "v", "V"}, {4, "iv", "IV"},
+			{1, "i", "I"}
+		};
+	if(n == 0 || n > 3999)
+	{
+		UT_UTF8String_sprintf(s, "%u", n);
+		return;
+	}
+	s.clear();
+	for(const auto & r : s_R)
+	{
+		while(n >= r.v)
+		{
+			s += bUpper ? r.u : r.l;
+			n -= r.v;
+		}
+	}
+}
+
+/*!
+ * Format a caption sequence number the way the \* switch of Word's
+ * SEQ field does: ARABIC (default), alphabetic/ALPHABETIC (a, b, …,
+ * z, aa) and roman/ROMAN. OOXML numFmt names are accepted too.
+ */
+static UT_UTF8String s_formatSeqNum(UT_uint32 n, const char * szFormat)
+{
+	UT_UTF8String s;
+	if(!szFormat || !*szFormat ||
+	   0 == strcmp(szFormat, "ARABIC") || 0 == strcmp(szFormat, "decimal"))
+	{
+		UT_UTF8String_sprintf(s, "%u", n);
+		return s;
+	}
+	if(0 == strcmp(szFormat, "alphabetic") ||
+	   0 == strcmp(szFormat, "ALPHABETIC") ||
+	   0 == strcmp(szFormat, "lowerLetter") ||
+	   0 == strcmp(szFormat, "upperLetter"))
+	{
+		const bool bUpper = (0 == strcmp(szFormat, "ALPHABETIC") ||
+							 0 == strcmp(szFormat, "upperLetter"));
+		const char base = bUpper ? 'A' : 'a';
+		if(n == 0)
+		{
+			UT_UTF8String_sprintf(s, "%u", n);
+			return s;
+		}
+		s.clear();
+		while(n > 0)
+		{
+			n--;
+			char buf[2] = { static_cast<char>(base + (n % 26)), 0 };
+			s = buf + s;
+			n /= 26;
+		}
+		return s;
+	}
+	if(0 == strcmp(szFormat, "roman") || 0 == strcmp(szFormat, "ROMAN") ||
+	   0 == strcmp(szFormat, "lowerRoman") ||
+	   0 == strcmp(szFormat, "upperRoman"))
+	{
+		s_formatRoman(s, n, (0 == strcmp(szFormat, "ROMAN") ||
+							 0 == strcmp(szFormat, "upperRoman")));
+		return s;
+	}
+	UT_UTF8String_sprintf(s, "%u", n);
+	return s;
+}
+
+/*!
+ * Insert a numbered caption ("Figure 3", "Table IV", ...) in a
  * per-label "<Label> Caption" style above or below the current block,
  * mirroring Word's Insert Caption dialog.
+ *
+ * szFormat is the SEQ \* name (ARABIC/alphabetic/ALPHABETIC/roman/
+ * ROMAN), szText an optional caption text appended after ": ",
+ * bExcludeLabel drops the "Figure " prefix, iChapter (1-9) prepends
+ * the count of preceding level-iChapter headings with szSeparator
+ * (Word's "include chapter number"). With no SEQ field type in the
+ * piece table the number is written literally, counted the way
+ * SEQ \s resolves it: captions since the last chapter heading + 1.
  */
-UT_Error FV_View::cmdInsertCaption(const char * szLabel, bool bAbove)
+UT_Error FV_View::cmdInsertCaption(const char * szLabel, bool bAbove,
+								   const char * szFormat, const char * szText,
+								   bool bExcludeLabel, UT_uint32 iChapter,
+								   const char * szSeparator)
 {
 	UT_return_val_if_fail(szLabel && *szLabel, UT_ERROR);
 	fl_BlockLayout * pBL = getCurrentBlock();
 	UT_return_val_if_fail(pBL, UT_ERROR);
+	if(iChapter > 9)
+	{
+		iChapter = 0;
+	}
+	// Word offers these five separators only
+	static const char * s_Seps[] = { "-", ".", ":", "—", "–" };
+	const char * szSep = "-";
+	if(szSeparator)
+	{
+		for(const char * s : s_Seps)
+		{
+			if(0 == strcmp(szSeparator, s))
+			{
+				szSep = s;
+				break;
+			}
+		}
+	}
 
 	const UT_UTF8String sStyle =
 		UT_UTF8String_sprintf("%s Caption", szLabel);
@@ -10710,8 +11293,14 @@ UT_Error FV_View::cmdInsertCaption(const char * szLabel, bool bAbove)
 		"font-family:Carlito; font-size:11pt; margin-top:6pt; "
 		"margin-bottom:6pt; text-align:centered");
 
-	// Next number for this label: highest existing "<Label> N" + 1.
-	UT_uint32 iMax = 0;
+	// Count the captions of this label before the insertion position,
+	// the chapters (level-iChapter headings) before it, and the
+	// captions since the last chapter — that is what SEQ \s would
+	// number. For a below-caption the current block itself counts.
+	const PT_DocPosition posBlock0 = pBL->getPosition(false);
+	const PT_DocPosition posIns = bAbove
+		? posBlock0 : posBlock0 + pBL->getLength() - 1;
+	UT_uint32 iCapTotal = 0, iCapSinceChapter = 0, iChapters = 0;
 	fl_SectionLayout * pSection = m_pLayout->getFirstSection();
 	while(pSection)
 	{
@@ -10724,35 +11313,49 @@ UT_Error FV_View::cmdInsertCaption(const char * szLabel, bool bAbove)
 				continue;
 			}
 			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pL);
+			if(pBlock->getPosition(false) >= posIns)
+			{
+				continue;
+			}
+			if(iChapter)
+			{
+				UT_sint32 iLevel = 0;
+				if(_blockHeadingLevel(pBlock, iLevel) &&
+				   iLevel == static_cast<UT_sint32>(iChapter))
+				{
+					iChapters++;
+					iCapSinceChapter = 0;
+					continue;
+				}
+			}
 			UT_UTF8String sBlockStyle;
 			pBlock->getStyle(sBlockStyle);
 			if(0 == strcmp(sBlockStyle.utf8_str(), sStyle.utf8_str()))
 			{
-				UT_UCS4Char * pText = getTextBetweenPos(
-					pBlock->getPosition(false) + 1,
-					pBlock->getPosition(false) + pBlock->getLength() - 1);
-				if(pText)
-				{
-					const UT_UTF8String s(UT_UCS4String(pText).utf8_str());
-					DELETEPV(pText);
-					const char * p = s.utf8_str() + strlen(szLabel);
-					while(*p == ' ')
-					{
-						p++;
-					}
-					const UT_uint32 n = strtoul(p, nullptr, 10);
-					if(n > iMax)
-					{
-						iMax = n;
-					}
-				}
+				iCapTotal++;
+				iCapSinceChapter++;
 			}
 		}
 		pSection = static_cast<fl_SectionLayout *>(pSection->getNext());
 	}
 
-	const UT_UTF8String sText =
-		UT_UTF8String_sprintf("%s %u", szLabel, iMax + 1);
+	const UT_uint32 iNum = iChapter ? iCapSinceChapter + 1 : iCapTotal + 1;
+	UT_UTF8String sText;
+	if(!bExcludeLabel)
+	{
+		sText = szLabel;
+		sText += " ";
+	}
+	if(iChapter)
+	{
+		sText += UT_UTF8String_sprintf("%u%s", iChapters, szSep);
+	}
+	sText += s_formatSeqNum(iNum, szFormat);
+	if(szText && *szText)
+	{
+		sText += ": ";
+		sText += szText;
+	}
 	const PT_DocPosition posBlock = pBL->getPosition(false);
 
 	m_pDoc->beginUserAtomicGlob();
@@ -10813,39 +11416,65 @@ UT_Error FV_View::cmdInsertTableOfFigures(const char * szLabel)
 }
 
 /*!
- * Insert a cross-reference to a bookmark: either its page number as a
- * live page_ref field, or the bookmarked text as a clickable
- * #bookmark hyperlink, mirroring Word's Cross-reference dialog.
+ * Insert a cross-reference, mirroring Word's Cross-reference dialog:
+ * szTo is the reference type — "heading", "figure", "table",
+ * "equation", "label:<name>" or "bookmark"; szTarget the item text
+ * (or bookmark name); szShow what to insert — "text" (the REFed
+ * text), "number" (label+number of a caption/heading), "page" or
+ * "abovebelow".
+ *
+ * Heading and caption targets get a hidden "_Ref<digits>" bookmark
+ * wrapped around them, like Word, so the inserted field keeps
+ * tracking the paragraph. Text and number references are live
+ * bookmark_ref fields; page is a page_ref field.
  */
-UT_Error FV_View::cmdInsertCrossReference(const char * szBookmark,
-										  bool bPageNumber)
+UT_Error FV_View::cmdInsertCrossReference(const char * szTo,
+										  const char * szTarget,
+										  const char * szShow)
 {
-	UT_return_val_if_fail(szBookmark && *szBookmark, UT_ERROR);
+	UT_return_val_if_fail(szTarget && *szTarget, UT_ERROR);
+	const char * szKind = (szTo && *szTo) ? szTo : "bookmark";
+	const char * szWhat = (szShow && *szShow) ? szShow : "text";
+	const bool bText = (0 != strcmp(szWhat, "page") &&
+						0 != strcmp(szWhat, "abovebelow"));
+
 	m_pDoc->beginUserAtomicGlob();
 	_saveAndNotifyPieceTableChange();
 
+	std::string sBookmark;
 	bool bRet = false;
-	if(bPageNumber)
+	if(0 == strcmp(szKind, "bookmark"))
 	{
-		_insertPageRefField(szBookmark);
-		bRet = true;
+		FV_BookmarkSpan span;
+		if(_findBookmarkSpan(szTarget, span))
+		{
+			sBookmark = szTarget;
+			bRet = true;
+		}
 	}
 	else
 	{
-		UT_UTF8String sText;
-		if(!_getBookmarkText(szBookmark, sText) || !sText.size())
+		fl_BlockLayout * pTarget = _findXRefBlock(szKind, szTarget);
+		if(pTarget)
 		{
-			sText = szBookmark;
+			// "number" = the label+number part only (up to ':')
+			bRet = (UT_OK == _ensureRefBookmark(
+						pTarget, bText && 0 == strcmp(szWhat, "number"),
+						sBookmark));
 		}
-		const UT_UCS4String sUCS4(sText.utf8_str());
-		const PT_DocPosition pos = getPoint();
-		if(m_pDoc->insertSpan(pos, sUCS4.ucs4_str(), sUCS4.length()))
+	}
+
+	if(bRet)
+	{
+		if(0 == strcmp(szWhat, "page"))
 		{
-			setPoint(pos);
-			m_Selection.setMode(FV_SelectionMode_Single);
-			m_Selection.setSelectionAnchor(pos + sUCS4.length());
-			bRet = (UT_OK == cmdInsertHyperlink(szBookmark));
-			m_Selection.clearSelection();
+			_insertPageRefField(sBookmark.c_str());
+		}
+		else
+		{
+			_insertBookmarkRefField(sBookmark.c_str(),
+									(0 == strcmp(szWhat, "abovebelow"))
+									? "abovebelow" : "text");
 		}
 	}
 
@@ -10875,15 +11504,233 @@ void FV_View::getXRefBookmarks(std::vector<std::string> & names) const
 }
 
 /*!
- * Mark the selection (or the given literal text when nothing is
- * selected) as an index entry, mirroring Word's Mark Entry.
+ * The index-entry metadata key for a "_idx_<n>" bookmark:
+ * "idx.<n>.<key>". The XE field has no run type in the piece table,
+ * so the entry options Word stores in XE switches (subentry,
+ * cross-reference, page-range bookmark, bold/italic page) live in
+ * document metadata keyed by the bookmark's number.
  */
-UT_Error FV_View::cmdMarkIndexEntry(const char * szEntry)
+static std::string s_idxMetaKey(const std::string & sBookmark,
+								const char * szKey)
 {
-	char name[BOOKMARK_NAME_SIZE + 1];
-	snprintf(name, sizeof(name), FV_BM_IDX_PREFIX "%u",
-			 _nextBookmarkSuffix(FV_BM_IDX_PREFIX));
-	return _markTextAsBookmark(szEntry, name);
+	const char * p = sBookmark.c_str();
+	if(0 == strncmp(p, FV_BM_IDX_PREFIX, strlen(FV_BM_IDX_PREFIX)))
+	{
+		p += strlen(FV_BM_IDX_PREFIX);
+	}
+	return std::string("idx.") + p + "." + szKey;
+}
+
+bool FV_View::_getIdxMeta(const std::string & sBookmark,
+						  const char * szKey, std::string & sVal) const
+{
+	return m_pDoc->getMetaDataProp(
+		s_idxMetaKey(sBookmark, szKey), sVal) && !sVal.empty();
+}
+
+void FV_View::_setIdxMeta(const std::string & sBookmark,
+						  const char * szKey, const char * szVal)
+{
+	m_pDoc->setMetaDataProp(s_idxMetaKey(sBookmark, szKey),
+							(szVal && *szVal) ? szVal : "");
+}
+
+/*!
+ * Mark the selection (or the given literal text when nothing is
+ * selected) as an index entry, mirroring Word's Mark Entry. The XE
+ * options are stored on the mark's metadata: szSub appends
+ * ":subentry" to the entry, szSee replaces the page number with a
+ * cross-reference ("See X"), szRange makes the page span of another
+ * bookmark the entry's page ("5–7"), bBold/bItalic format the page
+ * number, bAll marks the first whole-word match in every paragraph
+ * (Word's Mark All).
+ */
+UT_Error FV_View::cmdMarkIndexEntry(const char * szEntry,
+									const char * szSub,
+									const char * szSee,
+									const char * szRange,
+									bool bBold, bool bItalic, bool bAll)
+{
+	if(szRange && *szRange)
+	{
+		FV_BookmarkSpan span;
+		UT_return_val_if_fail(_findBookmarkSpan(szRange, span), UT_ERROR);
+	}
+	if(!bAll)
+	{
+		char name[BOOKMARK_NAME_SIZE + 1];
+		snprintf(name, sizeof(name), FV_BM_IDX_PREFIX "%u",
+				 _nextBookmarkSuffix(FV_BM_IDX_PREFIX));
+		// write the mark's metadata before inserting the bookmark —
+		// same order as cmdInsertCitation's bib.* records
+		_setIdxMeta(name, "sub", szSub);
+		_setIdxMeta(name, "see", szSee);
+		_setIdxMeta(name, "range", szRange);
+		_setIdxMeta(name, "bold", bBold ? "1" : "");
+		_setIdxMeta(name, "italic", bItalic ? "1" : "");
+		return _markTextAsBookmark(szEntry, name);
+	}
+
+	// Mark All: the first whole-word, same-case match of the entry
+	// (or the selection's text) in every paragraph not already marked.
+	UT_UTF8String sWant;
+	if(szEntry && *szEntry)
+	{
+		sWant = szEntry;
+	}
+	else if(!isSelectionEmpty())
+	{
+		PT_DocPosition a = getPoint(), b = getSelectionAnchor();
+		if(a > b)
+		{
+			std::swap(a, b);
+		}
+		UT_UCS4Char * pText = getTextBetweenPos(a, b);
+		if(pText)
+		{
+			sWant = UT_UCS4String(pText).utf8_str();
+			DELETEPV(pText);
+		}
+	}
+	UT_return_val_if_fail(sWant.size(), UT_ERROR);
+	// whole-word search needs the literal entry text
+	const std::string sFind(sWant.utf8_str());
+
+	// Blocks covered by a generated references section are skipped,
+	// and paragraphs already holding this entry.
+	FV_BookmarkSpan spanIdx, spanToa, spanBib;
+	const bool bHaveIdx = _findBookmarkSpan("_genidx", spanIdx);
+	const bool bHaveToa = _findBookmarkSpan("_gentoa", spanToa);
+	const bool bHaveBib = _findBookmarkSpan("_genbib", spanBib);
+	std::vector<std::string> marks;
+	_getBookmarksWithPrefix(FV_BM_IDX_PREFIX, marks);
+
+	// First pass (read-only): collect the match ranges. Inserting
+	// bookmarks mid-iteration would rebuild runs under the block
+	// chain walk.
+	std::vector<std::pair<PT_DocPosition,PT_DocPosition>> hits;
+	fl_SectionLayout * pSection = m_pLayout->getFirstSection();
+	while(pSection)
+	{
+		for (fl_ContainerLayout * pL = pSection->getFirstLayout(); pL;
+		     pL = pL->getNext())
+		{
+			if (pL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				continue;
+			}
+			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pL);
+			const PT_DocPosition posB0 = pBlock->getPosition(false);
+			const PT_DocPosition posB1 =
+				pBlock->getPosition(false) + pBlock->getLength() - 1;
+			if((bHaveIdx && posB0 >= spanIdx.posStart &&
+				posB0 <= spanIdx.posEnd) ||
+			   (bHaveToa && posB0 >= spanToa.posStart &&
+				posB0 <= spanToa.posEnd) ||
+			   (bHaveBib && posB0 >= spanBib.posStart &&
+				posB0 <= spanBib.posEnd))
+			{
+				continue;
+			}
+			bool bMarked = false;
+			for(const std::string & m : marks)
+			{
+				FV_BookmarkSpan sp;
+				if(_findBookmarkSpan(m.c_str(), sp) &&
+				   sp.posFirst >= posB0 && sp.posFirst <= posB1)
+				{
+					UT_UTF8String sM;
+					if(_getBookmarkText(m.c_str(), sM) &&
+					   0 == strcmp(sM.utf8_str(), sFind.c_str()))
+					{
+						bMarked = true;
+						break;
+					}
+				}
+			}
+			if(bMarked)
+			{
+				continue;
+			}
+			UT_UCS4Char * pText = getTextBetweenPos(posB0, posB1);
+			if(!pText)
+			{
+				continue;
+			}
+			const UT_UTF8String sBlock(UT_UCS4String(pText).utf8_str());
+			// first whole-word, same-case match
+			const char * p = sBlock.utf8_str();
+			const size_t iW = sFind.size();
+			size_t off = std::string::npos;
+			for(const char * q = p; (q = strstr(q, sFind.c_str())); q++)
+			{
+				const char prev = (q == p) ? 0 : q[-1];
+				const char next = q[iW];
+				if(!g_ascii_isalnum(prev) && !g_ascii_isalnum(next))
+				{
+					off = q - p;
+					break;
+				}
+			}
+			if(off == std::string::npos)
+			{
+				DELETEPV(pText);
+				continue;
+			}
+			// byte offset != doc offset for non-ASCII text — walk
+			// the UCS4 buffer
+			UT_uint32 iU = 0;
+			size_t iB = 0;
+			while(pText[iU] && iB < off)
+			{
+				iB += g_unichar_to_utf8(pText[iU], nullptr);
+				iU++;
+			}
+			const PT_DocPosition posM0 = posB0 + iU;
+			iB = 0;
+			while(pText[iU] && iB < iW)
+			{
+				iB += g_unichar_to_utf8(pText[iU], nullptr);
+				iU++;
+			}
+			DELETEPV(pText);
+			if(iU > 0)
+			{
+				hits.push_back(std::make_pair(posM0, posB0 + iU));
+			}
+		}
+		pSection = static_cast<fl_SectionLayout *>(pSection->getNext());
+	}
+
+	// Second pass: wrap each match. Every mark adds two objects, so
+	// later match positions shift by the marks already inserted.
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+
+	UT_uint32 iMarked = 0;
+	for(const auto & h : hits)
+	{
+		char name[BOOKMARK_NAME_SIZE + 1];
+		snprintf(name, sizeof(name), FV_BM_IDX_PREFIX "%u",
+				 _nextBookmarkSuffix(FV_BM_IDX_PREFIX));
+		const PT_DocPosition shift = 2 * iMarked;
+		if(UT_OK == _bookmarkRange(h.first + shift, h.second + shift,
+								   name))
+		{
+			_setIdxMeta(name, "sub", szSub);
+			_setIdxMeta(name, "see", szSee);
+			_setIdxMeta(name, "range", szRange);
+			_setIdxMeta(name, "bold", bBold ? "1" : "");
+			_setIdxMeta(name, "italic", bItalic ? "1" : "");
+			iMarked++;
+		}
+	}
+
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	return iMarked ? UT_OK : UT_ERROR;
 }
 
 /*!
@@ -10948,9 +11795,13 @@ void FV_View::_collectMarkedEntries(const char * szPrefix,
 	_getBookmarksWithPrefix(szPrefix, names);
 
 	// Group identical entry text so repeated marks merge their page
-	// numbers like Word does.
+	// numbers like Word does. The "sub"/"see"/"range" options of a
+	// mark live in its idx.<n>.* metadata (the XE switches we have no
+	// field type for).
 	std::vector<UT_UTF8String> keys;
 	std::vector<std::vector<std::string>> grouped;
+	std::vector<std::vector<UT_UTF8String>> groupedSees;
+	std::vector<std::vector<UT_UTF8String>> groupedRanges;
 	for(const std::string & s : names)
 	{
 		UT_UTF8String sText;
@@ -10958,12 +11809,32 @@ void FV_View::_collectMarkedEntries(const char * szPrefix,
 		{
 			continue;
 		}
+		std::string sSub, sSee, sRange;
+		_getIdxMeta(s, "sub", sSub);
+		_getIdxMeta(s, "see", sSee);
+		_getIdxMeta(s, "range", sRange);
+		if(!sSub.empty())
+		{
+			sText += ":";
+			sText += sSub.c_str();
+		}
 		bool bFound = false;
 		for(UT_uint32 i = 0; i < keys.size(); i++)
 		{
 			if(0 == strcmp(keys[i].utf8_str(), sText.utf8_str()))
 			{
-				grouped[i].push_back(s);
+				if(sSee.empty() && sRange.empty())
+				{
+					grouped[i].push_back(s);
+				}
+				else if(!sSee.empty())
+				{
+					groupedSees[i].push_back(sSee.c_str());
+				}
+				else
+				{
+					groupedRanges[i].push_back(sRange.c_str());
+				}
 				bFound = true;
 				break;
 			}
@@ -10971,7 +11842,22 @@ void FV_View::_collectMarkedEntries(const char * szPrefix,
 		if(!bFound)
 		{
 			keys.push_back(sText);
-			grouped.push_back({s});
+			if(sSee.empty() && sRange.empty())
+			{
+				grouped.push_back({s});
+				groupedSees.push_back({});
+				groupedRanges.push_back({});
+			}
+			else
+			{
+				grouped.push_back({});
+				groupedSees.push_back(
+					sSee.empty() ? std::vector<UT_UTF8String>{}
+						: std::vector<UT_UTF8String>{sSee.c_str()});
+				groupedRanges.push_back(
+					sRange.empty() ? std::vector<UT_UTF8String>{}
+						: std::vector<UT_UTF8String>{sRange.c_str()});
+			}
 		}
 	}
 
@@ -10996,6 +11882,7 @@ void FV_View::_collectMarkedEntries(const char * szPrefix,
 	{
 		const std::string sKey(keys[i].utf8_str());
 		const size_t iColon = sKey.find(':');
+		FV_RefEntry * pE = nullptr;
 		if(iColon != std::string::npos && iColon + 1 < sKey.size())
 		{
 			// "Main:Sub" becomes a level-1 header plus a level-2 entry.
@@ -11007,29 +11894,77 @@ void FV_View::_collectMarkedEntries(const char * szPrefix,
 			FV_RefEntry eSub;
 			eSub.sText = sKey.substr(iColon + 1).c_str();
 			eSub.iLevel = 2;
-			eSub.bookmarks = grouped[i];
 			entries.push_back(eSub);
+			pE = &entries.back();
 		}
 		else
 		{
 			FV_RefEntry e;
 			e.sText = keys[i];
 			e.iLevel = 1;
-			e.bookmarks = grouped[i];
 			entries.push_back(e);
+			pE = &entries.back();
+		}
+		pE->bookmarks = grouped[i];
+		pE->seeRefs = groupedSees[i];
+		// a page-range mark renders the referenced bookmark's page
+		// span literally ("5–7")
+		for(const UT_UTF8String & sRange : groupedRanges[i])
+		{
+			FV_BookmarkSpan sp;
+			if(_findBookmarkSpan(sRange.utf8_str(), sp))
+			{
+				const UT_uint32 p0 = _pageOfDocPosition(sp.posFirst);
+				const UT_uint32 p1 = _pageOfDocPosition(sp.posLast);
+				if(p0)
+				{
+					pE->literalPages.push_back(
+						(p1 && p1 != p0)
+						? UT_UTF8String_sprintf("%u–%u", p0, p1)
+						: UT_UTF8String_sprintf("%u", p0));
+					continue;
+				}
+			}
+			pE->literalPages.push_back("?");
 		}
 	}
 }
 
 /*!
  * Insert (or regenerate) the alphabetical index of all _idx_ marked
- * entries, mirroring Word's Insert Index / Update Index.
+ * entries, mirroring Word's Insert Index / Update Index with its
+ * default letter headings (\h "A").
  */
 UT_Error FV_View::cmdInsertIndex(void)
 {
 	std::vector<FV_RefEntry> entries;
 	_collectMarkedEntries(FV_BM_IDX_PREFIX, entries);
-	_regenerateSection("_genidx", "Index", "Index Heading", entries);
+
+	// Word's default index groups entries under a letter heading;
+	// entries are already sorted, so emit one when the initial
+	// changes.
+	std::vector<FV_RefEntry> withLetters;
+	UT_UCS4Char cLast = 0;
+	for(const FV_RefEntry & e : entries)
+	{
+		if(e.sText.size() && !e.bCategory)
+		{
+			const UT_UCS4String sU(e.sText.utf8_str());
+			const UT_UCS4Char c =
+				sU.size() ? g_unichar_toupper(sU[0]) : 0;
+			if(c && c != cLast)
+			{
+				FV_RefEntry eLetter;
+				eLetter.sText = UT_UCS4String(&c, 1).utf8_str();
+				eLetter.iLevel = 1;
+				eLetter.bCategory = true;
+				withLetters.push_back(eLetter);
+				cLast = c;
+			}
+		}
+		withLetters.push_back(e);
+	}
+	_regenerateSection("_genidx", "Index", "Index Heading", withLetters);
 	return UT_OK;
 }
 

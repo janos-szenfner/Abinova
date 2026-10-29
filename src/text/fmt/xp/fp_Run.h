@@ -1105,6 +1105,30 @@ public:
 	virtual UT_uint32		needsFrequentUpdates() override {return FIELD_UPDATE_PAGE;};
 };
 
+// Word's { REF bookmark }: renders the bookmarked text live, or
+// "above"/"below" when the field carries ref-kind="abovebelow"
+class ABI_EXPORT fp_FieldBookmarkRefRun : public fp_FieldRun
+{
+public:
+
+	fp_FieldBookmarkRefRun(fl_BlockLayout* pBL, UT_uint32 iOffsetFirst, UT_uint32 iLen);
+
+	virtual ~fp_FieldBookmarkRefRun() {}
+
+	virtual bool			calculateValue(void) override;
+	virtual void			_draw(dg_DrawArgs* pDA) override { _defaultDraw(pDA); }
+	virtual UT_uint32		needsFrequentUpdates() override {return FIELD_UPDATE_PAGE;};
+
+protected:
+	virtual void			_lookupProperties(const PP_AttrProp * pSpanAP,
+											  const PP_AttrProp * pBlockAP,
+											  const PP_AttrProp * pSectionAP,
+											  GR_Graphics * pG = nullptr) override;
+
+private:
+	bool					m_bAboveBelow;
+};
+
 class ABI_EXPORT fp_FieldPageCountRun : public fp_FieldRun
 {
 public:

@@ -5648,6 +5648,136 @@ bool fp_FieldPageReferenceRun::calculateValue(void)
 
 ///////////////////////////////////////////////////////////////////////////
 
+fp_FieldBookmarkRefRun::fp_FieldBookmarkRefRun(fl_BlockLayout* pBL, UT_uint32 iOffsetFirst, UT_uint32 iLen)
+	: fp_FieldRun(pBL, iOffsetFirst, iLen),
+	  m_bAboveBelow(false)
+{
+}
+
+void fp_FieldBookmarkRefRun::_lookupProperties(const PP_AttrProp * pSpanAP,
+											   const PP_AttrProp * pBlockAP,
+											   const PP_AttrProp * pSectionAP,
+											   GR_Graphics * pG)
+{
+	fp_FieldRun::_lookupProperties(pSpanAP, pBlockAP, pSectionAP, pG);
+	const gchar * pszKind = nullptr;
+	if(pSpanAP)
+	{
+		pSpanAP->getAttribute("ref-kind", pszKind);
+	}
+	else if(pBlockAP)
+	{
+		pBlockAP->getAttribute("ref-kind", pszKind);
+	}
+	m_bAboveBelow = (pszKind && 0 == strcmp(pszKind, "abovebelow"));
+}
+
+bool fp_FieldBookmarkRefRun::calculateValue(void)
+{
+	UT_UTF8String szFieldValue ("?");
+
+	if(!_getParameter())
+		return false;
+
+	FV_View * pView = _getView();
+	// on import the field value can be requested before the View exists
+	if(!pView)
+		return false;
+
+	// find both markers of the named bookmark — same traversal as
+	// fp_FieldPageReferenceRun, but tracking start and end
+	fp_BookmarkRun * pStart = nullptr;
+	fp_BookmarkRun * pEnd = nullptr;
+	fl_SectionLayout * pSection = pView->getLayout()->getFirstSection();
+	while(pSection && !pEnd)
+	{
+		// layout siblings are not all blocks — skip the rest
+		for (fl_ContainerLayout * pL = pSection->getFirstLayout(); pL && !pEnd;
+		     pL = pL->getNext())
+		{
+			if (pL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				continue;
+			}
+			fl_BlockLayout * pBlock = static_cast<fl_BlockLayout *>(pL);
+			for(fp_Run * pRun = pBlock->getFirstRun(); pRun; pRun = pRun->getNextRun())
+			{
+				if(pRun->getType() != FPRUN_BOOKMARK)
+				{
+					continue;
+				}
+				fp_BookmarkRun * pB = static_cast<fp_BookmarkRun *>(pRun);
+				if(0 != strcmp(_getParameter(), pB->getName()))
+				{
+					continue;
+				}
+				if(pB->isStartOfBookmark())
+				{
+					pStart = pB;
+				}
+				else
+				{
+					pEnd = pB;
+				}
+			}
+		}
+		pSection = static_cast<fl_SectionLayout *>(pSection->getNext());
+	}
+
+	if(pStart && pEnd)
+	{
+		if(m_bAboveBelow)
+		{
+			// { REF bm } as "above"/"below": the target sits above the
+			// reference when its text starts before this run
+			const PT_DocPosition posTarget = pStart->getBookmarkedDocPosition(true);
+			const PT_DocPosition posSelf =
+				getBlock()->getPosition(false) + getBlockOffset();
+			szFieldValue = (posTarget < posSelf) ? "above" : "below";
+		}
+		else
+		{
+			const PT_DocPosition posFirst = pStart->getBookmarkedDocPosition(true);
+			const PT_DocPosition posLast = pEnd->getBookmarkedDocPosition(false);
+			if(posLast > posFirst)
+			{
+				UT_UCS4Char * pText = pView->getTextBetweenPos(posFirst, posLast);
+				if(pText && pText[0])
+				{
+					szFieldValue = UT_UCS4String(pText).utf8_str();
+				}
+				else
+				{
+					szFieldValue = _getParameter();
+				}
+				DELETEPV(pText);
+			}
+			else
+			{
+				szFieldValue = _getParameter();
+			}
+		}
+	}
+	else
+	{
+		const XAP_StringSet * pSS = XAP_App::getApp()->getStringSet();
+		std::string Msg1;
+		pSS->getValue(AP_STRING_ID_FIELD_Error, XAP_App::getApp()->getDefaultEncoding(), Msg1);
+
+		std::string Msg2;
+		pSS->getValue(AP_STRING_ID_MSG_BookmarkNotFound, XAP_App::getApp()->getDefaultEncoding(), Msg2);
+		UT_UTF8String_sprintf(szFieldValue, "{%s: %s}",
+							  Msg1.c_str(), Msg2.c_str());
+	}
+
+	if (getField())
+	  getField()->setValue(static_cast<const gchar*>(szFieldValue.utf8_str()));
+
+	return _setValue(szFieldValue.ucs4_str().ucs4_str());
+}
+
+///////////////////////////////////////////////////////////////////////////
+
 fp_FieldPageCountRun::fp_FieldPageCountRun(fl_BlockLayout* pBL, UT_uint32 iOffsetFirst, UT_uint32 iLen) : fp_FieldRun(pBL, iOffsetFirst, iLen)
 {
 }

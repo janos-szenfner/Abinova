@@ -167,6 +167,12 @@ struct FV_RefEntry
 {
 	UT_UTF8String               sText;
 	std::vector<std::string>    bookmarks;
+	// literal page strings ("5–7" from a page-range bookmark),
+	// written as text rather than a live field
+	std::vector<UT_UTF8String>  literalPages;
+	// "See …" cross-references (index entries marked with a
+	// crossReference): rendered after the page numbers
+	std::vector<UT_UTF8String>  seeRefs;
 	UT_sint32                   iLevel = 1;
 	bool                        bCategory = false;
 };
@@ -442,11 +448,21 @@ public:
 	bool			nextNote(bool bFootnote, bool bForward);
 	void			cmdShowNotes(void);
 
-	UT_Error		cmdInsertCaption(const char * szLabel, bool bAbove);
+	UT_Error		cmdInsertCaption(const char * szLabel, bool bAbove,
+								 const char * szFormat, const char * szText,
+								 bool bExcludeLabel, UT_uint32 iChapter,
+								 const char * szSeparator);
 	UT_Error		cmdInsertTableOfFigures(const char * szLabel);
-	UT_Error		cmdInsertCrossReference(const char * szBookmark, bool bPageNumber);
+	UT_Error		cmdInsertCrossReference(const char * szTo,
+										const char * szTarget,
+										const char * szShow);
 	void			getXRefBookmarks(std::vector<std::string> & names) const;
-	UT_Error		cmdMarkIndexEntry(const char * szEntry);
+	void			getXRefTargets(const char * szTo,
+								   std::vector<std::string> & targets) const;
+	void			getXRefCaptionLabels(std::vector<std::string> & labels) const;
+	UT_Error		cmdMarkIndexEntry(const char * szEntry, const char * szSub,
+								  const char * szSee, const char * szRange,
+								  bool bBold, bool bItalic, bool bAll);
 	UT_Error		cmdMarkCitation(const char * szCategory, const char * szCitation);
 	UT_Error		cmdInsertIndex(void);
 	UT_Error		cmdInsertTOA(void);
@@ -1396,7 +1412,24 @@ private:
 	void				_getBookmarksWithPrefix(const char * szPrefix, std::vector<std::string> & names) const;
 	UT_uint32			_nextBookmarkSuffix(const char * szPrefix) const;
 	void				_ensureRefStyle(const char * szName, const char * szProps) const;
-	void				_insertPageRefField(const char * szBookmark);
+	void				_insertPageRefField(const char * szBookmark,
+										bool bBold = false, bool bItalic = false);
+	void				_insertBookmarkRefField(const char * szBookmark,
+										const char * szKind);
+	bool				_blockHeadingLevel(const fl_BlockLayout * pBlock,
+										UT_sint32 & iLevel) const;
+	fl_BlockLayout *	_findXRefBlock(const char * szTo,
+										const char * szTarget) const;
+	UT_Error			_ensureRefBookmark(fl_BlockLayout * pBlock,
+										bool bNumberOnly, std::string & sName);
+	UT_Error			_bookmarkRange(PT_DocPosition posStart,
+									   PT_DocPosition posEnd,
+									   const char * szName);
+	UT_uint32			_pageOfDocPosition(PT_DocPosition pos) const;
+	bool				_getIdxMeta(const std::string & sBookmark,
+									const char * szKey, std::string & sVal) const;
+	void				_setIdxMeta(const std::string & sBookmark,
+									const char * szKey, const char * szVal);
 	PT_DocPosition		_deleteGeneratedSection(const char * szMarker);
 	void				_writeGeneratedSection(const char * szMarker, const char * szHeading, const char * szHeadingStyle, const std::vector<FV_RefEntry> & entries);
 	void				_regenerateSection(const char * szMarker, const char * szHeading, const char * szHeadingStyle, const std::vector<FV_RefEntry> & entries);

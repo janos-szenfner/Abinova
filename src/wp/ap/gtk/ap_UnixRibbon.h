@@ -298,6 +298,8 @@ private:
 	static void		_s_caption_apply(GtkWidget * w, gpointer data);
 	static void		_s_tof_apply(GtkWidget * w, gpointer data);
 	static void		_s_xref_map(GtkWidget * popover, gpointer data);
+	static void		_s_xref_type_changed(GtkDropDown * dd, GParamSpec * ps,
+										 gpointer data);
 	static void		_s_xref_apply(GtkWidget * w, gpointer data);
 	static void		_s_markentry_map(GtkWidget * popover, gpointer data);
 	static void		_s_markentry_apply(GtkWidget * w, gpointer data);

@@ -8937,9 +8937,12 @@ Defun(notImplemented)
 }
 
 /*
- * References ribbon "Insert Caption". callData is
- * "<label>|<position>", e.g. "Figure|below"; position may also be
- * "above".
+ * References ribbon "Insert Caption". callData is pipe-separated:
+ * "<label>|<position>|<format>|<text>|<nolabel>|<chapter>|<sep>",
+ * e.g. "Figure|below" or "Table|above|ROMAN|teeth|0|1|-". Trailing
+ * fields are optional: position below|above, format a SEQ \* name,
+ * text the caption text, nolabel 1 hides the label, chapter a
+ * heading level 1-9 and sep one of "-.:—–".
  */
 Defun(refCaption)
 {
@@ -8949,17 +8952,37 @@ Defun(refCaption)
 	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
 	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
 	const std::string sData(s.utf8_str());
-	const size_t iBar = sData.find('|');
-	const std::string sLabel = sData.substr(0, iBar);
-	const bool bAbove = (iBar != std::string::npos &&
-						 sData.substr(iBar + 1) == "above");
+	std::vector<std::string> f;
+	size_t at = 0;
+	for(size_t i = 0; i < 7; i++)
+	{
+		const size_t bar = sData.find('|', at);
+		f.push_back(sData.substr(at, bar == std::string::npos
+								? bar : bar - at));
+		if(bar == std::string::npos)
+		{
+			break;
+		}
+		at = bar + 1;
+	}
 	/* the label becomes a style name and the inserted caption text;
 	 * unbounded call-data would mint a huge style and drop an
 	 * unbreakable mega-word into layout — a real caption label is
 	 * a few words at most */
 	UT_return_val_if_fail(
-		sLabel.size() > 0 && sLabel.size() <= 128, false);
-	return (UT_OK == pView->cmdInsertCaption(sLabel.c_str(), bAbove));
+		f[0].size() > 0 && f[0].size() <= 128, false);
+	if(f.size() > 3 && f[3].size() > 200)
+	{
+		f[3] = f[3].substr(0, 200);
+	}
+	return (UT_OK == pView->cmdInsertCaption(
+				f[0].c_str(),
+				f.size() > 1 && f[1] == "above",
+				f.size() > 2 ? f[2].c_str() : nullptr,
+				f.size() > 3 ? f[3].c_str() : nullptr,
+				f.size() > 4 && f[4] == "1",
+				f.size() > 5 ? strtoul(f[5].c_str(), nullptr, 10) : 0,
+				f.size() > 6 ? f[6].c_str() : nullptr));
 }
 
 /*
@@ -8978,7 +9001,10 @@ Defun(refInsertTOF)
 
 /*
  * References ribbon "Cross-reference". callData is
- * "<bookmark>|page" or "<bookmark>|text".
+ * "<to>|<target>|<show>" — to: heading/figure/table/equation/
+ * label:<name>/bookmark, target: the item text or bookmark name,
+ * show: text|number|page|abovebelow. The legacy two-field form
+ * "<bookmark>|page|text" is still accepted.
  */
 Defun(refXRef)
 {
@@ -8988,16 +9014,38 @@ Defun(refXRef)
 	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
 	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
 	const std::string sData(s.utf8_str());
-	const size_t iBar = sData.find('|');
-	const std::string sBookmark = sData.substr(0, iBar);
-	const bool bPage = (iBar != std::string::npos &&
-						sData.substr(iBar + 1) == "page");
-	return (UT_OK == pView->cmdInsertCrossReference(sBookmark.c_str(), bPage));
+	std::vector<std::string> f;
+	size_t at = 0;
+	for(size_t i = 0; i < 3; i++)
+	{
+		const size_t bar = sData.find('|', at);
+		f.push_back(sData.substr(at, bar == std::string::npos
+								? bar : bar - at));
+		if(bar == std::string::npos)
+		{
+			break;
+		}
+		at = bar + 1;
+	}
+	UT_return_val_if_fail(f.size() > 1 && !f[0].empty(), false);
+	if(f.size() == 2)
+	{
+		// legacy "<bookmark>|page|text"
+		return (UT_OK == pView->cmdInsertCrossReference(
+					"bookmark", f[0].c_str(),
+					f[1] == "page" ? "page" : "text"));
+	}
+	return (UT_OK == pView->cmdInsertCrossReference(
+				f[0].c_str(), f[1].c_str(), f[2].c_str()));
 }
 
 /*
  * References ribbon "Mark Entry". callData is the entry text used
- * when nothing is selected; empty means "mark the selection".
+ * when nothing is selected, or pipe-separated
+ * "<entry>|<sub>|<see>|<range>|<bold>|<italic>|<all>": sub is the
+ * subentry, see a cross-reference ("See X"), range a page-range
+ * bookmark name, bold/italic/all "1". Plain text (no pipes) is a
+ * bare entry.
  */
 Defun(refMarkEntry)
 {
@@ -9005,14 +9053,47 @@ Defun(refMarkEntry)
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
 	const char * szEntry = "";
+	static std::string sEntry, sSub, sSee, sRange;
+	bool bBold = false, bItalic = false, bAll = false;
+	sSub.clear();
+	sSee.clear();
+	sRange.clear();
 	if(pCallData && pCallData->m_pData)
 	{
-		static UT_UTF8String sEntry;
 		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
-		sEntry = s.utf8_str();
-		szEntry = sEntry.utf8_str();
+		const std::string sData(s.utf8_str());
+		if(sData.find('|') != std::string::npos)
+		{
+			std::vector<std::string> f;
+			size_t at = 0;
+			for(size_t i = 0; i < 7; i++)
+			{
+				const size_t bar = sData.find('|', at);
+				f.push_back(sData.substr(at, bar == std::string::npos
+										? bar : bar - at));
+				if(bar == std::string::npos)
+				{
+					break;
+				}
+				at = bar + 1;
+			}
+			sEntry = f[0];
+			if(f.size() > 1) sSub = f[1];
+			if(f.size() > 2) sSee = f[2];
+			if(f.size() > 3) sRange = f[3];
+			if(f.size() > 4) bBold = (f[4] == "1");
+			if(f.size() > 5) bItalic = (f[5] == "1");
+			if(f.size() > 6) bAll = (f[6] == "1");
+		}
+		else
+		{
+			sEntry = sData;
+		}
+		szEntry = sEntry.c_str();
 	}
-	return (UT_OK == pView->cmdMarkIndexEntry(szEntry));
+	return (UT_OK == pView->cmdMarkIndexEntry(
+				szEntry, sSub.c_str(), sSee.c_str(), sRange.c_str(),
+				bBold, bItalic, bAll));
 }
 
 /*

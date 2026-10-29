@@ -5789,6 +5789,10 @@ bool	fl_BlockLayout::_doInsertFieldRun(PT_BlockOffset blockOffset, const PX_Chan
 	{
 		pNewRun = new fp_FieldPageReferenceRun(this,   blockOffset, 1);
 	}
+	else if(strcmp(pszType, "bookmark_ref") == 0)
+	{
+		pNewRun = new fp_FieldBookmarkRefRun(this,   blockOffset, 1);
+	}
 	else if(strcmp(pszType, "page_count") == 0)
 	{
 		pNewRun = new fp_FieldPageCountRun(this,   blockOffset, 1);
