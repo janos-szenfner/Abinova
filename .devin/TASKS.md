@@ -1876,11 +1876,27 @@ read aloud (user opt-out). Ribbon lives in
 | W39 | View modes: Full Screen F11, Focus mode, Read Mode/Web Layout — details below | done | 1 | fullscreen+focus+read refactored into shared s_enter/leave helpers — focus hides ribbon+side-deck via new XAP_FrameImpl::_setImmersiveChrome (ribbon re-show on menu rebuild gated by m_bImmersiveChrome in _applyUIMode), read mode adds print-pages switch + piece-table edit lock (m_bEditLocked guards the 6 _real* mutators + undoCmd/redoCmd; append/NoUpdate paths bypass so internals keep working); doEscape unwinds read->focus->fullscreen; new menu ids + ribbon View items (Focus in Immersive, Read Mode in Views); bsearch-order fix for method table — verified: make -j2 clean; bare-Xvfb + control channel + xwd: viewFullScreen hides ruler/statusbar keeps ribbon, focus mode hides ALL chrome + doEscape restores (pixel-confirmed), read mode blocks insertData (doc len unchanged) while warpInsPtRight moves caret + Esc unlocks typing, viewWebLayout reflows at 700 vs 1300px widths |
 | W40 | Picture transparency slider + corrections; WMF/EMF insert — details below | done | 1 | image-transparency prop (IMG+FRAME, percent 0-100) registered; s_applyBlipEffects folds it multiplicatively into fx.alphaMod with image-alpha-mod — absolute on original pixels, non-cumulative; Image/Frame Properties dialog gains 0-100% GtkScale (hidden for text boxes) wired through XAP_Dlg_Image get/setTransparency into setCharFormat/setFrameFormat; new emf/ importer — self-contained EMR-record player (window/vp/map modes, world xforms, pens/brushes/fonts, polys/paths, clips, text, DIB/PNG/JPEG blits incl. RLE+bitfields, gradients) rasterized to PNG via cairo -> FG_GraphicRaster, content+suffix+mime sniffed and registered, RTF \emfblip -> picEMF -> IEGFT_EMF wired; verified: make -j2 clean (env.sh for recheck); synthetic test.emf (rect/ellipse/polyline/text/DIB) -> PDF renders all elements, RTF \emfblip + cov11.wmf convert rc=0; image-transparency:50 inline -> PDF 255,128,128 vs opaque 255,0,0; 60% frame-level -> 255,153,153; Badge.docx + Word97Test.doc regression rc=0 |
 | W41 | Fonts embedded in .docx used for layout + PDF export — details below | done | 1 | w:embed* r:id+w:fontKey captured in FontTable listener; OXMLi_PackageManager::openFontTableRelById resolves fontTable.xml.rels (libgsf + strict manual-rels fallback); s_deobfuscateFont XORs first 32 bytes with reversed GUID per ECMA-376 P4 §2.8.1; GR_registerEmbeddedFont vets payload via FreeType (sfnt magic + face enumeration, <=64MiB), spills to tmpfile (atexit cleanup), FcConfigAppFontAddFile; declared-name!=family handled by OXML_FontManager m_embeddedAliases (fc alias proved unreliable through pango's match path); stale pre-existing PangoFcFontMaps refreshed lazily via GR_embeddedFontSerial + _syncFontConfigMaps in the 4 fontmap accessors. Verified: synthetic docx (renamed-family ComicRelief payload, tools/mkembfont.py) — pdffonts embeds the payload's PS name for BOTH declared==family and declared!=family fixtures; bad fontKey falls back to DejaVuSans rc=0; PNG shows distinct faces; Badge/Austin rc=0; make -j2 clean |
-| W42 | Split Cells + Convert Text to Table dialogs — details below | pending | 0 |  |
+| W42 | Split Cells + Convert Text to Table dialogs — details below | done | 1 | existing coverage: SplitCells direction-panel + textToTable auto/calldata path already existed — gaps filled: FV_View::cmdSplitCellsInto(rows,cols) recursively composes binary mid-splits w/ proportional quotas + solid grid-line inserts (rows pass first so attaches stay valid, nested in one undo glob); conversion moved to FV_View::cmdTextToTable adding paras mode + other-char sep + forced cols w/ tail merge; new modal AP_Dialog_TextToTable (.ui, sep radios, auto/manual cols) opened on no-calldata; Split Cells dialog gains "Split into Counts" frame; new splitCellsInto edit method — verified: make -j2 clean (env.sh for recheck); xvfb control channel 10/10 (tabs 3x3, commas:2 tail-merge, paras:2->3x2, other ';' 2x3, split 2x3->9 cells, one-undo restore, split 3x1); abwn attaches contiguous; PDF shows 3x3 table + nested cell; corpus rc=0 |
 | W43 | arabicAlpha/arabicAbjad list numbering — details below | pending | 0 |  |
 | W44 | Restrict Editing (document protection) — details below | pending | 0 |  |
 | W45 | Update check against GitHub releases (opt-in) — details below | pending | 0 |  |
 | W46 | Import hardening: cap DOCX attrs, VML paths, U+FFFE/FFFF in ODT — details below | pending | 0 |  |
+| W47 | Page shadow + contrast-edged I-beam pointer — details below | pending | 0 |  |
+| W48 | Caret glide + fade animation (wordcraft caret_glide) — details below | pending | 0 |  |
+| W49 | Ruler parity: drag-off delete, dbl-click tabs dlg, 5-kind selector, 1/16 snap, table ruler — details below | pending | 0 |  |
+| W50 | Ctrl+Enter direct page break — details below | pending | 0 |  |
+| W51 | Table Design: borders gallery, shading, banded rows/cols, style presets — details below | pending | 0 |  |
+| W52 | Table Layout: autofit, cell margins, text direction, sort, distribute — details below | pending | 0 |  |
+| W53 | Picture Format: corrections presets, color modes, crop, rotate, alt text — details below | pending | 0 |  |
+| W54 | Shape/Frame Format: fill/outline galleries, align/rotate/group — details below | pending | 0 |  |
+| W55 | Layout tab: Position + Wrap galleries, Align Objects, z-order — details below | pending | 0 |  |
+| W56 | References: cross-reference field, caption polish, mark entry + index — details below | pending | 0 |  |
+| W57 | Outline view: promote/demote, expand/collapse, levels — details below | pending | 0 |  |
+| W58 | Review: Compare Documents — details below | pending | 0 |  |
+| W59 | AutoCorrect/AutoFormat engine: TWo INitial CApitals, `-->`, `*bold*`/`_italic_`, exceptions — details below | pending | 0 |  |
+| W60 | Smart quotes: guillemet/low-quote nesting, Hebrew logical order — details below | pending | 0 |  |
+| W61 | Editing keys: Alt+X codepoint toggle, Move Paragraph Up/Down, Ctrl+Alt+H, Ctrl+Tab-in-cell — details below | pending | 0 |  |
+| W62 | Track changes: next/prev nav, tracked formatting, accept/reject-all edge cases, tracking options — details below | pending | 0 |  |
 
 ## WordCraft parity task details
 
@@ -2687,3 +2703,342 @@ Import hardening batch (wordcraft-ported guards):
 
 Verify: `make -j2` clean; hostile fixture docs (huge-attr xml, huge
 v= path, U+FFFE text) import/export without hang/crash.
+
+### W47
+
+Page polish from wordcraft's canvas (`crates/ui-egui/src/canvas.rs`
+page draw, `crates/ui-egui/src/ibeam.rs`):
+
+1. **Drop shadow under the paper** — wordcraft draws
+   `rect_filled(visual_sr.translate(0,2).expand(1.5), 1.0, page_shadow)`
+   beneath the paper fill. Port to `fp_Page`'s paper draw (~1585,
+   where the page background fills): draw a soft dark rect offset
+   ~2px down and expanded ~1.5px behind the paper, using a
+   theme-aware gray (not pure black — check how `page_shadow` reads
+   in light/dark; ~40% black is close). Keep the shadow outside
+   print/PDF export paths the same way borders are handled, or allow
+   it — check what `dg_DrawArgs` distinguishes.
+2. **Contrast-edged I-beam on every platform** — W37 added the drawn
+   I-beam only for `G_OS_WIN32`. Wordcraft's design: over a text area
+   hide the system cursor and draw an I-beam — fill = black on light
+   paper / white on dark (wordcraft `caret_contrast`), 1px edge in
+   the opposite colour, all strokes snapped to whole physical pixels
+   (`snap(p, ppp, w)` helper at lines ~40-55 of ibeam.rs) so 125%/150%
+   scaling stays crisp. Extend our cursor path the same way on GTK:
+   `gtk_widget_set_cursor_from_name("none")` over the drawing area +
+   draw the pointer in the draw func/motion handler.
+
+Verify: `make -j2` clean (source the GTK-dev `env.sh` first if
+configure re-runs); screenshot of a doc page shows the shadow;
+pointer visible over white paper on Linux AND Windows.
+
+### W48
+
+Caret glide + fade — port wordcraft's measured behaviour
+(`crates/ui-egui/src/caret_glide.rs`, read it first — constants and
+rules are the spec):
+
+- **Glide**: key/typing caret moves animate `GLIDE_SECS = 0.10s`
+  from old position to new with an ease curve (`ease()` in that
+  file); a mid-flight move snaps to the in-flight target then glides
+  from there. **Click**: no glide — draw at new place.
+  **Script/control-channel move**: no glide, no fade.
+- **Fade blink**: each on/off transition takes GLIDE_SECS; a move
+  mid-off fades in while gliding. Blink period `BLINK_SECS = 0.53`
+  (keep reading ours from `gtk-cursor-blink-time` if larger — follow
+  wordcraft's rule, not ours).
+- **No glide when**: view changed (zoom/resize/scroll/other doc),
+  caret wasn't drawn last frame, move starts or ends off screen
+  (wordcraft allows 48px slack).
+- Glide runs in **content space** so scrolling doesn't bend the path.
+- Opt-out: an "animations off" option (`ui.caretAnimation` there —
+  add a pref `XAP_PREF_KEY_CaretAnimation` or reuse an existing
+  animations pref) + `ABINOVA_CARET_GLIDE_MS=0` env to freeze timing
+  for scripted screenshots.
+
+Our side (`src/af/gr/xp/gr_Caret.cpp`): the current caret is a
+hard on/off toggle via `saveRectangle`/`restoreRectangle` slots.
+The clean port keeps the save/restore for the *blink-off* state but
+during a glide draws the caret at interpolated positions on a frame
+timer (~60Hz `gtk_widget_add_tick_callback` on the drawing area) —
+fade = alpha ramp on the caret fill via cairo (caret draw already
+goes through `m_pG`/`GR_UnixCairoGraphics` fillRect — alpha via
+`setFillOpacity`-style or a colorWithAlpha path; check what exists
+before adding). Watch the split-caret (bidi) path — two bars glide
+independently.
+
+Verify: `make -j2` clean; xvfb control-channel `ui.key` typing —
+caret visibly animates between positions (screenshot mid-glide
+shows it between endpoints); `ABINOVA_CARET_GLIDE_MS=0` restores
+instant jumps; selection/click produces no glide.
+
+### W49
+
+Ruler parity with wordcraft (`crates/ui-egui/src/ruler_tabs.rs` —
+344 lines, read it for the exact interaction spec; `canvas/margins.rs`
+for snap rules; `table_ruler.rs` for table columns):
+
+1. **Drag a tab stop off the ruler to delete it** — wordcraft drops
+   the stop when the pointer leaves the ruler by >18px (DROP_OFF);
+   releasing off-ruler clears it instead of moving it. Our
+   `AP_TopRuler` tab-drag path (`mouseRelease`/`dragTab` handlers)
+   needs the same: track off-ruler distance during drag, delete the
+   stop on release beyond the threshold. Keep any existing
+   right-click/menu delete working.
+2. **Double-click a tab stop (or the ruler) opens the Tabs dialog**
+   — our Tabs dialog is `AP_Dialog_Tabs`/`dlgTabs`; wire dbl-click
+   on the ruler to it.
+3. **Corner selector cycles 5 kinds in Word's order**: Left, Center,
+   Right, **Decimal, Bar** — wordcraft `KINDS` array is the exact
+   order + `next_kind(k, back)` cycles fwd/back (right-click = back).
+   Check our selector (`ap_TopRuler` tab-type button): add
+   Decimal/Bar kinds if missing; ensure the paragraph prop stores
+   decimal/bar correctly (`FL_TAB_DECIMAL`/`FL_TAB_BAR` exist in
+   `fl_TabType` — verify names before coding).
+4. **1/16 inch snap on margin and indent drags** — wordcraft snaps
+   drags to 1/16" (their test: `dragged_margin` "snapped to 1/16
+   inch"); our `tick.snapPixelToGrid` grid may be coarser — match.
+5. **Table column boundaries draggable on the ruler** — when the
+   caret is inside a table, show cell-boundary handles on the top
+   ruler (wordcraft `table_ruler.rs`, 172 lines): drag adjusts the
+   column edge via the existing table-cell props path used by
+   `dlgFormatTable`/cell-resize code. Reuse the existing
+   cell-boundary hit info (`AP_TopRulerInfo` table fields if present
+   — check `setTableInfo`).
+
+One drag gesture = **one undo step** (wordcraft's rule: apply once on
+button release, not per motion — check ours doesn't spam undo globs).
+
+Verify: `make -j2` clean (source `~/.local/abinova-gtk-dev/env.sh`
+first if configure re-runs); xvfb — XTest drag a stop off the ruler,
+dbl-click opens Tabs dialog, selector cycles all 5 kinds, margin
+drag lands on 1/16 multiples; inside a table the ruler shows column
+handles and dragging one changes the saved .abwn col widths.
+
+### W50
+
+Ctrl+Enter inserts a page break directly (wordcraft `text.pageBreak`
+in `cmd/page.rs` — no dialog; our `insBreak` edit method opens the
+Break dialog which stays for the Insert menu).
+
+Work:
+- New edit method `pageBreak` (or reuse `insBreak` with call data
+  "page" if it accepts that — check its params first) inserting a
+  page-break run directly at the caret, no dialog.
+- Bind `NVK_RETURN`+CONTROL in the keyboard binding table
+  (`ev_Keyboard.cpp`/`ap_LB_*` binding file used by W02) to it on
+  all platforms.
+- Enter inside a table should keep its current meaning (new row or
+  per existing rule — do not break that path; check what Ctrl+Enter
+  in a table does in Word: it splits the table — wordcraft's
+  behaviour is the spec; implement table-split only if cheap,
+  otherwise plain page break before/after).
+
+Verify: `make -j2` clean; xvfb `ui.key ctrl+Return` — document gets
+a page break (document.inspect / PDF shows second page), undo
+restores, no dialog appears.
+
+### W51
+
+Table Design tab parity (wordcraft Table Design = 8 commands):
+borders gallery (none/all/outside/inside/custom per edge), cell
+shading popover, banded-rows/banded-columns toggles, and a table
+style preset list (plain/grid/accent variants). Ours has
+`dlgFormatTable` — surface the same actions as a ribbon
+menupop/gallery writing table-border/shading props
+(`table-border-*`/`cell-bgcolor` props already exist — check names
+in `fl_TableLayout`/`pp_Property`). Wire into the existing Table
+contextual tab.
+
+Verify: `make -j2` clean; apply style to a table via control
+channel; .abwn round-trip keeps props; PDF shows borders/shading.
+
+### W52
+
+Table Layout parity (wordcraft Table Layout = 33): autofit to
+contents/window/fixed, cell-margins dialog, text direction
+(ltr/rtl/vertical), sort rows (asc/desc by column, text/number/
+date), distribute rows/columns evenly. Reuse existing
+`FV_View::cmd*` table APIs + `fl_TableLayout` props; new dialogs
+only for sort + cell margins.
+
+Verify: `make -j2` clean; xvfb — sort a 3-col table, autofit,
+distribute columns; PDF output correct.
+
+### W53
+
+Picture Format parity (wordcraft 14 commands): corrections presets
+(sharpen/blur/brightness/contrast gallery), color modes (grayscale/
+sepia/etc.), crop-to-rect + crop-to-shape, rotate/flip, compress
+(resample), Alt Text field. Blip-effects plumbing already exists
+(`image-alpha-mod` + `applyBlipEffects` from W40) — extend the
+effect enum + a Picture Format contextual group/tab. Alt text:
+`descr`/`alt` attr prop on the image strux, surfaced in the object
+props dialog.
+
+Verify: `make -j2` clean; apply grayscale + sharpen to an image,
+crop, PDF shows result; alt text round-trips docx.
+
+### W54
+
+Shape/Frame Format parity (wordcraft Shape Format = 13): fill and
+outline galleries (color/none/more), shape effects stub, text-in-
+shape basics, align/distribute, rotate/flip, group/ungroup — our
+`insertShape` artwork frames already exist (group/rotate added
+`4133249b`); add the fill/outline props on frames + the alignment/
+distribute edit methods for multiple selected objects.
+
+Verify: `make -j2` clean; insert shape, set fill/outline via
+control channel, PDF shows it; align two objects.
+
+### W55
+
+Layout tab galleries (wordcraft Layout = 22): **Position** gallery
+(in-line + 9-page-anchor presets w/ thumbnails), **Wrap Text**
+popover (in-line, square, tight, through, top-bottom, behind, in
+front + fix-position/move-with-text), **Align Objects** popover
+(left/center/right/top/middle/bottom + distribute), **Bring
+Forward/Send Backward** + in-front-of/behind-text. We already have
+`_makePositionPopover`/`_makeWrapPopover`/`_makeZOrderPopover`/
+`_makeAlignObjPopover` — audit them against wordcraft semantics
+(wrap type names, anchor combos), fill missing entries, fix any
+that write wrong props.
+
+Verify: `make -j2` clean; each popover entry lands correct props on
+a frame/image; PDF shows wrap behavior.
+
+### W56
+
+References gaps (wordcraft References = 25): **cross-reference**
+field (insert REF to heading/figure/table/bookmark — list picker),
+**Insert Caption** polish (check our refCaption — unbounded-label
+fix from W08 aside, does it have label/numbering options?),
+**Mark Entry** dialog + **Insert Index** (index field, mark
+entries via XE-style field runs if the formatter has them — check
+`fp_Field` types for index/xe). If index fields aren't in the
+piece-table, scope = cross-ref + caption + mark-entry only and
+document why index was deferred.
+
+Verify: `make -j2` clean; insert caption + cross-ref, .abwn saves
+fields, PDF renders refs.
+
+### W57
+
+Outline view (wordcraft Outlining = 13): a view mode listing the
+document as heading levels — promote/demote (Tab/Shift+Tab +
+buttons), move up/down, expand/collapse per heading, show-level
+filter (levels 1-9 / body text), close back to print layout.
+Implement as a document view (`FV_View` mode like VIEW_WEB):
+rendered as flattened heading list reusing the existing heading
+styles; commands `outlinePromote`/`outlineDemote`/`outlineMoveUp`/
+`outlineMoveDown`/`outlineExpand`/`outlineCollapse`/`outlineShow`.
+This is the heaviest task of the batch — if a full interactive
+outline is too big, land the levels + promote/demote + show-level
+filter first (that's the 80%).
+
+Verify: `make -j2` clean; fixture doc with H1/H2/H3 — promote H3
+to H2 changes the style prop; collapse hides children; PDF view
+unaffected.
+
+### W58
+
+Compare Documents (wordcraft Review has it — check
+`crates/engine/src/cmd/review.rs` for semantics): pick two
+documents, produce a third marked-up doc showing differences as
+tracked insertions/deletions. Reuse our existing tracked-changes
+machinery (redline props + show/hide markup from W-era review
+work): diff at paragraph level (LCS over block text), emit the
+union doc with ins/del marks. Scope to text-only (no table/image
+diffing).
+
+Verify: `make -j2` clean; two variants of a fixture doc → compared
+doc shows ins/del marks; accept/reject works on them.
+
+### W59
+
+AutoCorrect/AutoFormat-while-typing engine (wordcraft
+`docs/typing-parity.md` + `crates/engine/src` AutoCorrect code —
+the pinned rules are the spec):
+
+1. **TWo INitial CApitals** — two leading capitals in a word ->
+   lowercase the second (Word's rule); also correct ALL-CAPS typed
+   with Caps Lock when the paragraph is normal case.
+2. **Reverting an automatic capital adds an exception** — if the
+   user fixes a corrected word back, remember it (session-level
+   exception list; persist to prefs file if cheap).
+3. **`-->` -> →**, and the common replacements Word ships ((c) ->
+   ©, (tm) -> ™, 1/2 -> ½ etc. — wordcraft's table is the list).
+4. **`*bold*` and `_italic_` as you type** — closing marker applies
+   real bold/italic to the enclosed text and removes the markers
+   (only when the pair wraps a non-empty span in one paragraph).
+   Apply at word-boundary typing time, one undo step.
+
+Existing infrastructure: AbiWord has `fl_AutoCorrect` — extend it;
+check `ap_AutoReplace`/`ut_AutoCorrect` for the current table
+format before writing new machinery.
+
+Verify: `make -j2` clean; xvfb `ui.key` typing — "THe" -> "The",
+"(c)" -> "©", `*word*` becomes bold word without asterisks.
+
+### W60
+
+Smart quotes parity (wordcraft #1670 + the smart-quotes pins):
+- Quote characters open after guillemets («) and low quotes („)
+  and nest correctly per Word's table.
+- Hebrew/RTL logical order: closing quote types in logical order
+  even though it displays before the opening one — the " in
+  acronym case too.
+- Our existing smart-quote substitution lives in
+  `fv_View`/`fl_BlockLayout` `_insertPoint` path — find it first;
+  port wordcraft's quote-table logic (open/close/nest decisions by
+  preceding char class + script).
+
+Verify: `make -j2` clean; typed `'word'` `"word"` render proper
+curlies in EN, «word» nests, Hebrew acronym case matches spec.
+
+### W61
+
+Editing keys (each is a small pinned Word behavior):
+- **Alt+X** — toggles the char before the caret into its hex
+  codepoint and back (type 03B1 Alt+X -> α; α Alt+X -> 03B1).
+- **Move Paragraph Up/Down** — Alt+Shift+Up/Down moves the current
+  paragraph (or selected paragraphs) above/below its neighbor,
+  like Word (works inside lists too — moves the item).
+- **Ctrl+Alt+H** — toggle last-used highlight color on the
+  selection/target; "No Color" when already fully highlighted
+  (wordcraft's toggle semantics, not a setter).
+- **Ctrl+Tab inside a table cell** — inserts a real tab character
+  (plain Tab moves cells; our tab-in-cell path may already do
+  this — check first).
+
+Verify: `make -j2` clean; xvfb ui.key sequences — each produces the
+pinned result in document.inspect/.abwn.
+
+### W62
+
+Track Changes parity gaps (ours has redline basics; wordcraft
+`cmd/review.rs` + typing-parity pins):
+
+1. **Next/Previous Change navigation** (`review.nextChange`/
+   `previousChange`) — jump caret to next tracked ins/del; Review
+   menu items + shortcuts.
+2. **Tracked formatting revisions** — formatting applied while
+   track-changes is on records as a revision (wordcraft "keep
+   pending formatting revisions when clearing formatting" #3971):
+   our redline is ins/del only — add prop-change revision records
+   using the existing revision attribute set if it exists, else
+   scope to nav + edge cases and document the gap.
+3. **Accept/Reject All edge cases** (wordcraft #864): accept-all
+   after a tracked delete at a paragraph end must not merge/join
+   the following paragraph incorrectly; reject-all after typing
+   into an empty paragraph keeps it — check our accept/reject
+   implementation for the same bug shape (theirs was: extra
+   paragraph joined after a tracked delete at paragraph end).
+4. **Tracking options dialog** — markup colors by author,
+   insertions/deletions on/off, tracked moves on/off (wordcraft
+   `review.trackingOptions`): a small dialog writing the existing
+   show-revisions prefs.
+
+Verify: `make -j2` clean; doc with tracked edits — next/prev
+navigates, accept-all on the edge-case doc doesn't join
+paragraphs, reject-all keeps the empty paragraph.

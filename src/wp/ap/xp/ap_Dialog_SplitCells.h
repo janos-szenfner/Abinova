@@ -47,6 +47,7 @@ public:
 	static void                         autoUpdateMC(UT_Worker * pTimer);
 	virtual void                        setSensitivity(AP_CellSplitType splitThis,
 													   bool bSens) = 0;
+	virtual void                        setCountSensitivity(bool bSens) = 0;
 	virtual void                        setActiveFrame(XAP_Frame *pFrame) override;
 	void                                ConstructWindowName(void);
 	void                                setAllSensitivities(void);
@@ -54,6 +55,8 @@ public:
 	void                                finalize(void);
 	void                                setSplitType(AP_CellSplitType iMergeType);
 	void                                onSplit(void);
+	void                                setSplitCount(UT_sint32 nRows, UT_sint32 nCols);
+	void                                onSplitCount(void);
 
 protected:
 	AP_Dialog_SplitCells::tAnswer		m_answer;
@@ -69,6 +72,8 @@ private:
 	UT_sint32                           m_iBot;
 	UT_sint32                           m_iNumRows;
 	UT_sint32                           m_iNumCols;
+	UT_sint32                           m_iCountRows;
+	UT_sint32                           m_iCountCols;
 	fp_TableContainer *                 m_pTab;
 	UT_Timer *                         m_pAutoUpdaterMC;
 	// Handshake variables

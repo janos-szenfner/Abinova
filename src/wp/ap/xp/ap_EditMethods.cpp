@@ -125,6 +125,7 @@
 #include "ap_Dialog_ListRevisions.h"
 #include "ap_Dialog_MergeCells.h"
 #include "ap_Dialog_SplitCells.h"
+#include "ap_Dialog_TextToTable.h"
 #include "ap_Dialog_FormatTable.h"
 //	Maleesh 6/8/2010 - 
 #include "ap_Dialog_Border_Shading.h"
@@ -429,6 +430,7 @@ public:
 	static EV_EditMethod_Fn mergeCellsDir;
 	static EV_EditMethod_Fn splitCells;
 	static EV_EditMethod_Fn splitCellsDir;
+	static EV_EditMethod_Fn splitCellsInto;
 	static EV_EditMethod_Fn formatTable;
 	static EV_EditMethod_Fn autoFitTable;
 	static EV_EditMethod_Fn tableColWider;
@@ -1560,6 +1562,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 #endif
 	EV_EditMethod(NF(splitCells),           0,  ""),
 	EV_EditMethod(NF(splitCellsDir),        0,  ""),
+	EV_EditMethod(NF(splitCellsInto),       0,  ""),
 	EV_EditMethod(NF(splitTable),           0,  ""),
 	EV_EditMethod(NF(style),				_D_,""),
 	EV_EditMethod(NF(styleSetApply),		0,	""),
@@ -15888,10 +15891,40 @@ Defun(insertTableGrid)
 	return true;
 }
 
-// "textToTable": Word's Convert Text to Table.  Splits the selection
-// into rows at paragraph breaks and into columns at the delimiter
-// named in call data ("tabs", "commas", "spaces", or "all" for any of
-// them).  With no call data the delimiter is auto-detected.
+static bool s_doTextToTableDlg(FV_View * pView)
+{
+	UT_return_val_if_fail(pView, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	pFrame->raise();
+
+	XAP_DialogFactory * pDialogFactory
+		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+
+	AP_Dialog_TextToTable * pDialog
+		= static_cast<AP_Dialog_TextToTable *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_TEXT_TO_TABLE)));
+	UT_return_val_if_fail(pDialog, false);
+	pDialog->runModal(pFrame);
+
+	if (pDialog->getAnswer() == AP_Dialog_TextToTable::a_OK)
+	{
+		pView->cmdTextToTable(pDialog->getSepName(),
+							  pDialog->getSepChar(),
+							  pDialog->getNumCols());
+	}
+
+	pDialogFactory->releaseDialog(pDialog);
+	return true;
+}
+
+// "textToTable": Word's Convert Text to Table.  With call data it
+// converts immediately — grammar is mode[:part[:part]] where mode is
+// "tabs" | "commas" | "spaces" | "paras" | "all" | "auto" | "other".
+// For "other" the first extra part is the delimiter character; any
+// remaining numeric part forces the column count (e.g. "tabs:3",
+// "paras:2", "other:|", "other:|:3").  With no call data the Convert
+// dialog opens.
 Defun(textToTable)
 {
 	CHECK_FRAME;
@@ -15900,121 +15933,45 @@ Defun(textToTable)
 	if (pView->isSelectionEmpty())
 		return true;
 
-	PD_DocumentRange dr;
-	pView->getDocumentRangeOfCurrentSelection(&dr);
-	UT_return_val_if_fail(dr.m_pos2 > dr.m_pos1, true);
-	UT_UCS4Char * pSel = pView->getTextBetweenPos(dr.m_pos1, dr.m_pos2);
-	UT_return_val_if_fail(pSel, true);
-	UT_UCS4String sSel(pSel);
-	delete[] pSel;
-	if (sSel.empty())
-		return true;
-
-	// pick the column delimiter
 	std::string sMode;
-	if (pCallData && pCallData->m_pData)
+	UT_sint32 nCols = 0;
+	UT_UCS4Char sepChar = 0;
+	if (pCallData && pCallData->m_pData && pCallData->m_dataLength)
 	{
 		UT_UCS4String sArg(pCallData->m_pData, pCallData->m_dataLength);
-		sMode = sArg.utf8_str();
-	}
-	bool bTabs = false, bCommas = false, bSpaces = false;
-	if (sMode == "commas")
-		bCommas = true;
-	else if (sMode == "spaces")
-		bSpaces = true;
-	else if (sMode == "tabs")
-		bTabs = true;
-	else
-	{
-		// auto / "all": prefer tabs, then commas, then spaces
-		const UT_UCS4Char * p = sSel.ucs4_str();
-		for (size_t i = 0; i < sSel.size(); i++)
+		std::vector<UT_UCS4String> parts;
+		const UT_UCS4Char * p = sArg.ucs4_str();
+		size_t iFrom = 0;
+		for (size_t i = 0; i <= sArg.size(); i++)
 		{
-			if (p[i] == UCS_TAB)
-				bTabs = true;
-			else if (p[i] == ',')
-				bCommas = true;
-			else if (p[i] == ' ')
-				bSpaces = true;
-		}
-		if (sMode == "all")
-		{ /* keep all three flags */ }
-		else if (bTabs)
-		{
-			bCommas = bSpaces = false;
-		}
-		else if (bCommas)
-		{
-			bSpaces = false;
-		}
-	}
-	auto isDelim = [&](UT_UCS4Char c) -> bool
-	{
-		return (bTabs && c == UCS_TAB) || (bCommas && c == ',') ||
-			(bSpaces && c == ' ');
-	};
-
-	// split into rows (paragraph breaks) then cells (delimiter)
-	std::vector<std::vector<UT_UCS4String> > rows;
-	size_t iStart = 0;
-	size_t iLen = sSel.size();
-	const UT_UCS4Char * pBuf = sSel.ucs4_str();
-	for (size_t i = 0; i <= iLen; i++)
-	{
-		if (i < iLen && pBuf[i] != '\n')
-			continue;
-		// one row: [iStart, i)
-		std::vector<UT_UCS4String> cells;
-		size_t iCell = iStart;
-		for (size_t j = iStart; j <= i; j++)
-		{
-			if (j < i && !isDelim(pBuf[j]))
+			if (i < sArg.size() && p[i] != ':')
 				continue;
-			cells.push_back(sSel.substr(iCell, j - iCell));
-			iCell = j + 1;
+			parts.push_back(sArg.substr(iFrom, i - iFrom));
+			iFrom = i + 1;
 		}
-		if (!cells.empty() || iStart < i)
-			rows.push_back(cells);
-		iStart = i + 1;
-	}
-	if (rows.empty())
-		return true;
-	UT_uint32 nCols = 1;
-	for (auto & r : rows)
-		nCols = UT_MAX(nCols, static_cast<UT_uint32>(r.size()));
-	UT_uint32 nRows = static_cast<UT_uint32>(rows.size());
-
-	PD_Document * pDoc = pView->getDocument();
-	UT_return_val_if_fail(pDoc, true);
-	pDoc->beginUserAtomicGlob();
-	// replaces the selection with the empty table
-	pView->cmdInsertTable(nRows, nCols, PP_NOPROPS);
-
-	const pf_Frag_Strux * tableSDH = nullptr;
-	if (pDoc->getStruxOfTypeFromPosition(pView->getPoint(),
-									   PTX_SectionTable, &tableSDH))
-	{
-		PT_DocPosition posTable =
-			pDoc->getStruxPosition(tableSDH) + 1;
-		for (UT_uint32 r = 0; r < nRows; r++)
+		if (!parts.empty())
 		{
-			for (UT_uint32 c = 0; c < nCols && c < rows[r].size(); c++)
+			sMode = parts[0].utf8_str();
+			for (size_t i = 1; i < parts.size(); i++)
 			{
-				if (rows[r][c].empty())
+				// for "other" the first extra part is the delimiter
+				// character itself — even when it is a digit
+				if (sMode == "other" && sepChar == 0 && parts[i].size() > 0)
+				{
+					sepChar = parts[i].ucs4_str()[0];
 					continue;
-				PT_DocPosition posCell =
-					pView->findCellPosAt(posTable, r, c) + 1;
-				if (posCell <= 0)
-					continue;
-				pView->setPoint(posCell);
-				pView->cmdCharInsert(rows[r][c].ucs4_str(),
-									 rows[r][c].size());
+				}
+				const int n = atoi(parts[i].utf8_str());
+				if (n > 0)
+					nCols = n;
 			}
 		}
 	}
-	pDoc->endUserAtomicGlob();
-	pView->updateScreen(false);
-	return true;
+	if (sMode.empty())
+	{
+		return s_doTextToTableDlg(pView);
+	}
+	return pView->cmdTextToTable(sMode.c_str(), sepChar, nCols);
 }
 
 
@@ -19649,6 +19606,24 @@ Defun(splitCellsDir)
 	else if (!strcmp(sz, "vbelow"))eType = vert_below;
 	else return false;
 	return pView->cmdSplitCells(eType);
+}
+
+/* count-based split for the Split Cells dialog / control channel:
+ * data is "rows,cols" — the cell under the point becomes rows x cols
+ * pieces via FV_View::cmdSplitCellsInto */
+Defun(splitCellsInto)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String sData(pCallData->m_pData, pCallData->m_dataLength);
+	UT_sint32 iRows = 0, iCols = 0;
+	if (sscanf(sData.utf8_str(), "%d,%d", &iRows, &iCols) == 2
+		&& iRows > 0 && iCols > 0)
+	{
+		return pView->cmdSplitCellsInto(iRows, iCols);
+	}
+	return true;
 }
 
 Defun1(repeatHeaderRows)

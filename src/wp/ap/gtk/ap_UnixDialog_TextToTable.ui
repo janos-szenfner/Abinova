@@ -1,0 +1,146 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkAdjustment" id="adjNumCols">
+    <property name="lower">1</property>
+    <property name="upper">64</property>
+    <property name="value">1</property>
+    <property name="step-increment">1</property>
+    <property name="page-increment">5</property>
+  </object>
+  <object class="GtkDialog" id="ap_UnixDialog_TextToTable">
+    <property name="title" translatable="yes">Convert Text to Table</property>
+    <property name="resizable">0</property>
+    <property name="modal">1</property>
+        <child><object class="GtkBox" id="vbDialog">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
+        <property name="visible">1</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkGrid" id="grContent">
+            <property name="visible">1</property>
+            <property name="row-spacing">6</property>
+            <property name="column-spacing">12</property>
+            <child>
+              <object class="GtkLabel" id="lbSepAt">
+                <property name="visible">1</property>
+                <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
+                <property name="use-markup">1</property>
+                <property name="xalign">0</property>
+              <layout><property name="column">0</property><property name="row">0</property><property name="column-span">2</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkCheckButton" id="rbSepTabs">
+                <property name="label" translatable="yes">_Tabs</property>
+                <property name="visible">1</property>
+                <property name="can-focus">1</property>
+                <property name="margin-start">18</property>
+                <property name="use-underline">1</property>
+                <property name="active">1</property>
+              <layout><property name="column">0</property><property name="row">1</property><property name="column-span">2</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkCheckButton" id="rbSepCommas">
+                <property name="label" translatable="yes">_Commas</property>
+                <property name="visible">1</property>
+                <property name="can-focus">1</property>
+                <property name="margin-start">18</property>
+                <property name="use-underline">1</property>
+                <property name="group">rbSepTabs</property>
+              <layout><property name="column">0</property><property name="row">2</property><property name="column-span">2</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkCheckButton" id="rbSepParas">
+                <property name="label" translatable="yes">_Paragraphs</property>
+                <property name="visible">1</property>
+                <property name="can-focus">1</property>
+                <property name="margin-start">18</property>
+                <property name="use-underline">1</property>
+                <property name="group">rbSepTabs</property>
+              <layout><property name="column">0</property><property name="row">3</property><property name="column-span">2</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkCheckButton" id="rbSepOther">
+                <property name="label" translatable="yes">_Other:</property>
+                <property name="visible">1</property>
+                <property name="can-focus">1</property>
+                <property name="margin-start">18</property>
+                <property name="use-underline">1</property>
+                <property name="group">rbSepTabs</property>
+              <layout><property name="column">0</property><property name="row">4</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkEntry" id="enOther">
+                <property name="visible">1</property>
+                <property name="can-focus">1</property>
+                <property name="width-request">48</property>
+                <property name="max-length">4</property>
+                <property name="text">;</property>
+              <layout><property name="column">1</property><property name="row">4</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkCheckButton" id="cbAutoCols">
+                <property name="label" translatable="yes">Au_to-detect columns</property>
+                <property name="visible">1</property>
+                <property name="can-focus">1</property>
+                <property name="margin-start">18</property>
+                <property name="margin-top">8</property>
+                <property name="use-underline">1</property>
+                <property name="active">1</property>
+              <layout><property name="column">0</property><property name="row">5</property><property name="column-span">2</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkLabel" id="lbNumCols">
+                <property name="visible">1</property>
+                <property name="margin-start">18</property>
+                <property name="label" translatable="yes">Number of columns:</property>
+                <property name="xalign">0</property>
+              <layout><property name="column">0</property><property name="row">6</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkSpinButton" id="sbNumCols">
+                <property name="width-request">64</property>
+                <property name="visible">1</property>
+                <property name="can-focus">1</property>
+                <property name="adjustment">adjNumCols</property>
+                <property name="climb-rate">1</property>
+                <property name="numeric">1</property>
+              <layout><property name="column">1</property><property name="row">6</property></layout></object>
+              </child>
+          </object>
+          </child>
+              <child>
+          <object class="GtkBox" id="aaDialog">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <property name="visible">1</property>
+                      <child>
+                        <object class="GtkButton" id="btCancel">
+                          <property name="label">_Cancel</property>
+                          <property name="use-underline">1</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                        </child>
+                      <child>
+                        <object class="GtkButton" id="btConvert">
+                          <property name="label" translatable="yes">_Convert</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                          <property name="use-underline">1</property>
+                        </object>
+                        </child>
+                    </object>
+        </child>
+</object>
+    </child><action-widgets>
+      <action-widget response="-6">btCancel</action-widget>
+      <action-widget response="1">btConvert</action-widget>
+    </action-widgets>
+  </object>
+</interface>

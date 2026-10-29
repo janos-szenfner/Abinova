@@ -98,6 +98,13 @@ static void s_split_below(GtkWidget *widget, gpointer data )
 	dlg->onSplit();
 }
 
+static void s_split_count(GtkWidget *widget, gpointer data )
+{
+	AP_UnixDialog_SplitCells * dlg = static_cast<AP_UnixDialog_SplitCells *>(data);
+	UT_return_if_fail(widget && dlg);
+	dlg->doSplitCount();
+}
+
 /*****************************************************************/
 
 #define	WIDGET_ID_TAG_KEY "id"
@@ -125,7 +132,12 @@ AP_UnixDialog_SplitCells::AP_UnixDialog_SplitCells(XAP_DialogFactory * pDlgFacto
 	  m_lwSplitRight(nullptr),
 	  m_lwSplitAbove(nullptr),
 	  m_lwSplitVertMid(nullptr),
-	  m_lwSplitBelow(nullptr)
+	  m_lwSplitBelow(nullptr),
+	  m_wCountCols(nullptr),
+	  m_wCountRows(nullptr),
+	  m_wCountBtn(nullptr),
+	  m_lwCountCols(nullptr),
+	  m_lwCountRows(nullptr)
 {
 }
 
@@ -177,6 +189,23 @@ void AP_UnixDialog_SplitCells::setSensitivity(AP_CellSplitType splitThis, bool b
 	default:
 		break;
 	}
+}
+
+void AP_UnixDialog_SplitCells::doSplitCount(void)
+{
+	setSplitCount(
+		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(m_wCountRows)),
+		gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(m_wCountCols)));
+	onSplitCount();
+}
+
+void AP_UnixDialog_SplitCells::setCountSensitivity(bool bSens)
+{
+	gtk_widget_set_sensitive(m_wCountCols, bSens);
+	gtk_widget_set_sensitive(m_wCountRows, bSens);
+	gtk_widget_set_sensitive(m_wCountBtn,  bSens);
+	gtk_widget_set_sensitive(m_lwCountCols, bSens);
+	gtk_widget_set_sensitive(m_lwCountRows, bSens);
 }
 
 void AP_UnixDialog_SplitCells::event_Close(void)
@@ -363,6 +392,49 @@ GtkWidget * AP_UnixDialog_SplitCells::_constructWindowContents(void)
 	m_lwSplitHoriMid = wlSplitHoriMid;
 	m_lwSplitBelow = wlSplitBelow;
 
+	// Word-style count split: the cell becomes <cols> x <rows> pieces
+	pSS->getValueUTF8(AP_STRING_ID_DLG_SplitCells_ByCount, s);
+	GtkWidget *frame2 = gtk_frame_new(s.c_str());
+	gtk_widget_set_visible(frame2, TRUE);
+	xap_gtk_container_add (wContents, frame2);
+	XAP_gtk_widget_set_margin(frame2, 3);
+	GtkWidget *grid2 = gtk_grid_new ();
+	gtk_widget_set_visible(grid2, TRUE);
+	xap_gtk_container_add (frame2, grid2);
+	g_object_set (G_OBJECT (grid2),
+	              "row-spacing", 6,
+	              "column-spacing", 12,
+	              nullptr);
+
+	pSS->getValueUTF8(AP_STRING_ID_DLG_InsertTable_NumCols, s);
+	m_lwCountCols = gtk_label_new(s.c_str());
+	g_object_set(G_OBJECT(m_lwCountCols),
+	             "xalign", 0.0, "yalign", 0.5, nullptr);
+	gtk_widget_set_visible(m_lwCountCols, TRUE);
+	gtk_grid_attach (GTK_GRID (grid2), m_lwCountCols, 0, 0, 1, 1);
+
+	m_wCountCols = gtk_spin_button_new_with_range(1.0, 64.0, 1.0);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(m_wCountCols), 2.0);
+	gtk_widget_set_visible(m_wCountCols, TRUE);
+	gtk_grid_attach (GTK_GRID (grid2), m_wCountCols, 1, 0, 1, 1);
+
+	pSS->getValueUTF8(AP_STRING_ID_DLG_InsertTable_NumRows, s);
+	m_lwCountRows = gtk_label_new(s.c_str());
+	g_object_set(G_OBJECT(m_lwCountRows),
+	             "xalign", 0.0, "yalign", 0.5, nullptr);
+	gtk_widget_set_visible(m_lwCountRows, TRUE);
+	gtk_grid_attach (GTK_GRID (grid2), m_lwCountRows, 0, 1, 1, 1);
+
+	m_wCountRows = gtk_spin_button_new_with_range(1.0, 64.0, 1.0);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(m_wCountRows), 1.0);
+	gtk_widget_set_visible(m_wCountRows, TRUE);
+	gtk_grid_attach (GTK_GRID (grid2), m_wCountRows, 1, 1, 1, 1);
+
+	pSS->getValueUTF8(AP_STRING_ID_DLG_SplitCells_DoSplit, s);
+	m_wCountBtn = gtk_button_new_with_mnemonic(s.c_str());
+	gtk_widget_set_visible(m_wCountBtn, TRUE);
+	gtk_grid_attach (GTK_GRID (grid2), m_wCountBtn, 0, 2, 2, 1);
+
 	m_wContents = wContents;
 	
 	return m_wContents;
@@ -413,6 +485,10 @@ void AP_UnixDialog_SplitCells::_connectSignals(void)
 	g_signal_connect(G_OBJECT(m_wSplitBelow),
 						   "clicked",
 						   G_CALLBACK(s_split_below),
+						   static_cast<gpointer>(this));
+	g_signal_connect(G_OBJECT(m_wCountBtn),
+						   "clicked",
+						   G_CALLBACK(s_split_count),
 						   static_cast<gpointer>(this));
 
 }

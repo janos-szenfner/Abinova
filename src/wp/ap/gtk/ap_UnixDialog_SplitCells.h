@@ -42,6 +42,8 @@ public:
 	// callbacks can fire these events
 	virtual void			event_Close(void);
 	virtual void setSensitivity(AP_CellSplitType splitThis, bool bsens) override;
+	virtual void setCountSensitivity(bool bsens) override;
+	void         doSplitCount(void);
 	virtual void destroy(void) override;
 	virtual void activate(void) override;
 	virtual void notifyActiveFrame(XAP_Frame * pFrame) override;
@@ -72,5 +74,11 @@ protected:
 	GtkWidget * m_lwSplitAbove;
 	GtkWidget * m_lwSplitVertMid;
 	GtkWidget * m_lwSplitBelow;
+
+	GtkWidget * m_wCountCols;
+	GtkWidget * m_wCountRows;
+	GtkWidget * m_wCountBtn;
+	GtkWidget * m_lwCountCols;
+	GtkWidget * m_lwCountRows;
 
 };

@@ -1068,6 +1068,9 @@ public:
 	bool                cmdInsertRow(PT_DocPosition posTable, bool bBfore);
 	bool                cmdInsertCol(PT_DocPosition posTable, bool bBefore);
 	bool                cmdSplitCells(AP_CellSplitType iSplitType);
+	bool                cmdSplitCellsInto(UT_sint32 nRows, UT_sint32 nCols);
+	bool                cmdTextToTable(const char * szSep, UT_UCS4Char sepChar,
+									   UT_sint32 nCols);
 	bool                cmdSelectColumn(PT_DocPosition posOfColumn);
 	bool                cmdAutoFitTable(void);
 	bool                cmdMergeCells(PT_DocPosition posSource, PT_DocPosition posDestination);

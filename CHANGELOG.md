@@ -96,6 +96,17 @@ responsibility** — see `README.md`.
   FreeType, and registered with fontconfig for the session, so
   documents that carry their own fonts render with the intended
   faces instead of a substitute.
+- **Convert Text to Table dialog + count-based Split Cells** —
+  Text to Table now opens a Word-style dialog
+  (separator: Tabs / Commas / Paragraphs / Other character, optional
+  fixed column count; "Paragraphs" lays one paragraph per cell
+  row-major). The Split Cells dialog gains a "Split into Counts"
+  section (rows × columns spins) that subdivides the cell evenly —
+  pieces distribute proportionally, inserting grid lines when the
+  cell's span is too narrow, all as a single undo step. Both are
+  also reachable via control-channel call data
+  (`textToTable` `tabs`/`commas`/`paras:N`/`other:C[:N]` and
+  `splitCellsInto` `rows,cols`).
 
 ### Maintenance
 

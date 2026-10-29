@@ -737,6 +737,321 @@ bool FV_View::cmdSplitCells(AP_CellSplitType iSplitType)
 	return true;
 }
 
+/*!
+ * Split the cell holding the point into nPieces along one axis, built on
+ * top of the binary cmdSplitCells(): a mid split halves the piece at an
+ * existing grid line, and on a unit-span piece it inserts a new grid
+ * line so the piece can keep multiplying.  The mid split keeps the first
+ * half on the original strux and lands the point inside the second
+ * half, so the second half is always recursed first — grid-line inserts
+ * during the first half's recursion would otherwise shift the second
+ * half's attaches out from under it.
+ */
+static void s_splitCellAxis(FV_View * pView, PT_DocPosition posTable,
+							UT_sint32 nPieces, bool bRows)
+{
+	if (nPieces <= 1)
+	{
+		return;
+	}
+	UT_sint32 iLeft, iRight, iTop, iBot;
+	if (!pView->getCellParams(pView->getPoint(), &iLeft, &iRight, &iTop, &iBot))
+	{
+		return;
+	}
+	const UT_sint32 span = bRows ? (iBot - iTop) : (iRight - iLeft);
+	if (span <= 1)
+	{
+		// a unit-span piece can only grow by inserting a grid line; the
+		// mid split inserts one beside the point cell (the original
+		// piece is then finished) and parks the point in the remainder
+		pView->cmdSplitCells(bRows ? vert_mid : hori_mid);
+		s_splitCellAxis(pView, posTable, nPieces - 1, bRows);
+		return;
+	}
+	const UT_sint32 half = span / 2;
+	// proportional piece quota per half keeps the split balanced
+	UT_sint32 nFirst = static_cast<UT_sint32>(
+		double(nPieces) * double(half) / double(span) + 0.5);
+	nFirst = UT_MAX(1, UT_MIN(nPieces - 1, nFirst));
+	const UT_sint32 nSecond = nPieces - nFirst;
+	pView->cmdSplitCells(bRows ? vert_mid : hori_mid);
+	s_splitCellAxis(pView, posTable, nSecond, bRows);
+	// the first half keeps the original top/left attach
+	const PT_DocPosition posFirst = pView->findCellPosAt(posTable, iTop, iLeft);
+	if (posFirst > 0)
+	{
+		pView->setPoint(posFirst + 1);
+		s_splitCellAxis(pView, posTable, nFirst, bRows);
+	}
+}
+
+/*!
+ * Word-style "Split Cells" dialog counts: split the cell under the
+ * point into nRows x nCols pieces.  Rows are split first — column ops
+ * never touch row attaches, so the per-piece relocation points stay
+ * valid through the column pass.  One undo glob for the whole thing.
+ */
+bool FV_View::cmdSplitCellsInto(UT_sint32 nRows, UT_sint32 nCols)
+{
+	if (!isInTable(getPoint()))
+	{
+		return false;
+	}
+	nRows = UT_MAX(1, UT_MIN(64, nRows));
+	nCols = UT_MAX(1, UT_MIN(64, nCols));
+	if (nRows * nCols <= 1)
+	{
+		return true;
+	}
+	const pf_Frag_Strux * tableSDH = nullptr;
+	if (!m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable, &tableSDH)
+		|| !tableSDH)
+	{
+		return false;
+	}
+	const PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	UT_sint32 iLeft, iRight, iTop, iBot;
+	getCellParams(getPoint(), &iLeft, &iRight, &iTop, &iBot);
+	const UT_sint32 bandTop = iTop;
+	const UT_sint32 bandLeft = iLeft;
+
+	m_pDoc->beginUserAtomicGlob();
+	s_splitCellAxis(this, posTable, nRows, true);
+	// walk the row-band pieces: every piece still contains column
+	// bandLeft and their top attaches partition the band contiguously
+	std::vector<UT_sint32> rowTops;
+	UT_sint32 cursor = bandTop;
+	for (UT_sint32 i = 0; i < nRows; i++)
+	{
+		const PT_DocPosition posCell = findCellPosAt(posTable, cursor, bandLeft);
+		if (posCell <= 0)
+		{
+			break;
+		}
+		UT_sint32 l, r, t, b;
+		getCellParams(posCell + 1, &l, &r, &t, &b);
+		rowTops.push_back(t);
+		if (b <= cursor)
+		{
+			break;
+		}
+		cursor = b;
+	}
+	for (UT_sint32 top : rowTops)
+	{
+		const PT_DocPosition posCell = findCellPosAt(posTable, top, bandLeft);
+		if (posCell <= 0)
+		{
+			continue;
+		}
+		setPoint(posCell + 1);
+		s_splitCellAxis(this, posTable, nCols, false);
+	}
+	// park the point in the top-left piece
+	const PT_DocPosition posFirst = findCellPosAt(posTable, bandTop, bandLeft);
+	if (posFirst > 0)
+	{
+		setPoint(posFirst + 1);
+	}
+	m_pDoc->endUserAtomicGlob();
+	updateScreen(false);
+	return true;
+}
+
+/*!
+ * Word-style Convert Text to Table: replace the current selection with
+ * a table and distribute its text into cells.
+ *   szSep:   "auto" | "tabs" | "commas" | "spaces" | "paras" |
+ *            "other" | "all"      (""/unknown = auto)
+ *   sepChar: the delimiter when szSep=="other" (first char used)
+ *   nCols:   forced column count; <= 0 auto-detects.  Delimiter modes
+ *            merge trailing cells back into the last column; "paras"
+ *            lays one paragraph per cell out row-major.
+ */
+bool FV_View::cmdTextToTable(const char * szSep, UT_UCS4Char sepChar, UT_sint32 nCols)
+{
+	if (isSelectionEmpty())
+	{
+		return true;
+	}
+	PD_DocumentRange dr;
+	getDocumentRangeOfCurrentSelection(&dr);
+	UT_return_val_if_fail(dr.m_pos2 > dr.m_pos1, true);
+	UT_UCS4Char * pSel = getTextBetweenPos(dr.m_pos1, dr.m_pos2);
+	UT_return_val_if_fail(pSel, true);
+	UT_UCS4String sSel(pSel);
+	delete[] pSel;
+	if (sSel.empty())
+	{
+		return true;
+	}
+
+	const std::string sMode = szSep ? szSep : "";
+	bool bTabs = false, bCommas = false, bSpaces = false, bParas = false;
+	if (sMode == "paras")
+	{
+		bParas = true;
+	}
+	else if (sMode == "commas")
+	{
+		bCommas = true;
+	}
+	else if (sMode == "spaces")
+	{
+		bSpaces = true;
+	}
+	else if (sMode == "tabs")
+	{
+		bTabs = true;
+	}
+	else if (sMode == "other" && sepChar)
+	{ /* sepChar is the delimiter */ }
+	else
+	{
+		// auto / "all": prefer tabs, then commas, then spaces
+		const UT_UCS4Char * p = sSel.ucs4_str();
+		for (size_t i = 0; i < sSel.size(); i++)
+		{
+			if (p[i] == UCS_TAB)
+				bTabs = true;
+			else if (p[i] == ',')
+				bCommas = true;
+			else if (p[i] == ' ')
+				bSpaces = true;
+		}
+		if (sMode == "all")
+		{ /* keep all three flags */ }
+		else if (bTabs)
+		{
+			bCommas = bSpaces = false;
+		}
+		else if (bCommas)
+		{
+			bSpaces = false;
+		}
+	}
+	auto isDelim = [&](UT_UCS4Char c) -> bool
+	{
+		if (sMode == "other")
+			return c == sepChar;
+		return (bTabs && c == UCS_TAB) || (bCommas && c == ',') ||
+			(bSpaces && c == ' ');
+	};
+
+	// split into paragraphs
+	std::vector<UT_UCS4String> paras;
+	{
+		const UT_UCS4Char * pBuf = sSel.ucs4_str();
+		size_t iStart = 0;
+		for (size_t i = 0; i <= sSel.size(); i++)
+		{
+			if (i < sSel.size() && pBuf[i] != '\n')
+				continue;
+			if (i > iStart)
+				paras.push_back(sSel.substr(iStart, i - iStart));
+			iStart = i + 1;
+		}
+	}
+	if (paras.empty())
+	{
+		return true;
+	}
+
+	std::vector<std::vector<UT_UCS4String> > rows;
+	if (bParas)
+	{
+		// one cell per paragraph, laid out row-major
+		const size_t nPerRow = static_cast<size_t>(UT_MAX(1, nCols));
+		for (size_t i = 0; i < paras.size(); i += nPerRow)
+		{
+			std::vector<UT_UCS4String> cells;
+			for (size_t c = 0; c < nPerRow && i + c < paras.size(); c++)
+			{
+				cells.push_back(paras[i + c]);
+			}
+			rows.push_back(std::move(cells));
+		}
+	}
+	else
+	{
+		// one row per paragraph, one cell per delimited field
+		for (const auto & para : paras)
+		{
+			std::vector<UT_UCS4String> cells;
+			const UT_UCS4Char * p = para.ucs4_str();
+			size_t iCell = 0;
+			for (size_t j = 0; j <= para.size(); j++)
+			{
+				if (j < para.size() && !isDelim(p[j]))
+					continue;
+				cells.push_back(para.substr(iCell, j - iCell));
+				iCell = j + 1;
+			}
+			rows.push_back(std::move(cells));
+		}
+		if (nCols > 0)
+		{
+			// force the column count: cells past it merge into the last
+			const UT_UCS4Char chSep = (sMode == "other") ? sepChar
+				: bTabs ? UCS_TAB
+				: bCommas ? ','
+				: ' ';
+			for (auto & r : rows)
+			{
+				if (static_cast<UT_sint32>(r.size()) <= nCols)
+					continue;
+				UT_UCS4String tail = r[nCols - 1];
+				for (size_t k = nCols; k < r.size(); k++)
+				{
+					tail += chSep;
+					tail += r[k];
+				}
+				r.resize(nCols);
+				r[nCols - 1] = tail;
+			}
+		}
+	}
+
+	UT_uint32 nColsMax = 1;
+	for (const auto & r : rows)
+	{
+		nColsMax = UT_MAX(nColsMax, static_cast<UT_uint32>(r.size()));
+	}
+	if (!bParas && nCols > 0)
+	{
+		nColsMax = static_cast<UT_uint32>(nCols);
+	}
+	const UT_uint32 nRows = static_cast<UT_uint32>(rows.size());
+
+	PD_Document * pDoc = getDocument();
+	UT_return_val_if_fail(pDoc, true);
+	pDoc->beginUserAtomicGlob();
+	// replaces the selection with the empty table
+	cmdInsertTable(nRows, nColsMax, PP_NOPROPS);
+	const pf_Frag_Strux * tableSDH = nullptr;
+	if (pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable, &tableSDH))
+	{
+		PT_DocPosition posTable = pDoc->getStruxPosition(tableSDH) + 1;
+		for (UT_uint32 r = 0; r < nRows; r++)
+		{
+			for (UT_uint32 c = 0; c < nColsMax && c < rows[r].size(); c++)
+			{
+				if (rows[r][c].empty())
+					continue;
+				PT_DocPosition posCell = findCellPosAt(posTable, r, c) + 1;
+				if (posCell <= 0)
+					continue;
+				setPoint(posCell);
+				cmdCharInsert(rows[r][c].ucs4_str(), rows[r][c].size());
+			}
+		}
+	}
+	pDoc->endUserAtomicGlob();
+	updateScreen(false);
+	return true;
+}
+
 void  FV_View::cmdSelectTOC(UT_sint32 x, UT_sint32 y)
 {
 	UT_sint32 xClick=0,yClick = 0;

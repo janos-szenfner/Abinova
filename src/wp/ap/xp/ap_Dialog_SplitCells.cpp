@@ -61,6 +61,8 @@ AP_Dialog_SplitCells::AP_Dialog_SplitCells(XAP_DialogFactory * pDlgFactory, XAP_
 	  m_iBot(0),
 	  m_iNumRows(0),
 	  m_iNumCols(0),
+	  m_iCountRows(1),
+	  m_iCountCols(2),
 	  m_pTab(nullptr),
 	  m_pAutoUpdaterMC(nullptr),
       m_bDestroy_says_stopupdating(false),
@@ -169,6 +171,7 @@ void AP_Dialog_SplitCells::setAllSensitivities(void)
 		setSensitivity(hori_left,  false);
 		setSensitivity(hori_mid,   false);
 		setSensitivity(hori_right, false);
+		setCountSensitivity(false);
 		return;
 	}
 	if (!pView->isInTable())
@@ -179,8 +182,11 @@ void AP_Dialog_SplitCells::setAllSensitivities(void)
 		setSensitivity(hori_left,  false);
 		setSensitivity(hori_mid,   false);
 		setSensitivity(hori_right, false);
+		setCountSensitivity(false);
 		return;
 	}
+	// a count split works on any cell — unit spans insert grid lines
+	setCountSensitivity(true);
 
 	PT_DocPosition iCurPos = pView->getPoint();
 	m_iCellSource = iCurPos;
@@ -281,6 +287,33 @@ void AP_Dialog_SplitCells::onSplit(void)
 	if (pView)
 	{
 		pView->cmdSplitCells(m_SplitType);
+	}
+	setAllSensitivities();
+}
+
+/*!
+ * Set the requested split counts (rows x cols, Word dialog order).
+ */
+void AP_Dialog_SplitCells::setSplitCount(UT_sint32 nRows, UT_sint32 nCols)
+{
+	m_iCountRows = nRows;
+	m_iCountCols = nCols;
+}
+
+/*!
+ * Split the cell under the point into m_iCountRows x m_iCountCols pieces.
+ */
+void AP_Dialog_SplitCells::onSplitCount(void)
+{
+	FV_View * pView = nullptr;
+
+	if (XAP_Frame * pFrame = getApp()->getLastFocussedFrame())
+	{
+		pView = static_cast<FV_View *>(pFrame->getCurrentView());
+	}
+	if (pView)
+	{
+		pView->cmdSplitCellsInto(m_iCountRows, m_iCountCols);
 	}
 	setAllSensitivities();
 }

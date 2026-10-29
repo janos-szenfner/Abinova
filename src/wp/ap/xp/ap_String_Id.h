@@ -502,6 +502,18 @@ dcl(DLG_SplitCells_Right,	    	     "Split on Right Side")
 dcl(DLG_SplitCells_Above,	    	     "Split on Top Side")
 dcl(DLG_SplitCells_VertMid,	    	     "Split in Middle")
 dcl(DLG_SplitCells_Below,	    	     "Split on Bottom Side")
+dcl(DLG_SplitCells_ByCount,	    	     "Split into Counts")
+dcl(DLG_SplitCells_DoSplit,	    	     "S_plit")
+
+dcl(DLG_TextToTable_Title,		     "Convert Text to Table")
+dcl(DLG_TextToTable_Separate,	     "Separate text at")
+dcl(DLG_TextToTable_Paragraphs,	     "_Paragraphs")
+dcl(DLG_TextToTable_Tabs,		     "_Tabs")
+dcl(DLG_TextToTable_Commas,		     "_Commas")
+dcl(DLG_TextToTable_Other,		     "_Other:")
+dcl(DLG_TextToTable_NumCols,	     "Number of columns:")
+dcl(DLG_TextToTable_AutoCols,	     "Au_to-detect columns")
+dcl(DLG_TextToTable_Convert,	     "Con_vert")
 
 
 dcl(DLG_FormatFrameTitle,	    	     "Format Text Box")
