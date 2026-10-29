@@ -123,6 +123,10 @@ protected:
 	virtual bool _runModalContextMenu(AV_View * pView, const char * szMenuName,
 									  UT_sint32 x, UT_sint32 y) = 0;
 	virtual void _setFullScreen(bool isFullScreen) = 0;
+	/* immersive modes (focus/read) hide the app chrome — ribbon and
+	 * side panes — on top of the classic fullscreen chrome toggles.
+	 * Default no-op for platforms without those widgets. */
+	virtual void _setImmersiveChrome(bool /*bHidden*/) {}
 	virtual void _hideMenuScroll(bool bHideMenuScroll) = 0;
 	virtual void _nullUpdate () const = 0;
 	virtual void _setCursor(GR_Graphics::Cursor cursor) = 0;

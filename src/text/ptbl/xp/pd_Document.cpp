@@ -5658,6 +5658,16 @@ bool  PD_Document::isDoingTheDo(void) const
 	return m_pPieceTable->isDoingTheDo();
 }
 
+void PD_Document::setEditingLocked(bool bLocked)
+{
+	m_pPieceTable->setEditingLocked(bLocked);
+}
+
+bool PD_Document::isEditingLocked() const
+{
+	return m_pPieceTable->isEditingLocked();
+}
+
 ///////////////////////////////////////////////////////////////////
 // DataItems represent opaque (and probably binary) data found in
 // the data-section of the document.  These are used, for example,

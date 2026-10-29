@@ -638,6 +638,8 @@ public:
 	static EV_EditMethod_Fn viewClipPane;
 	static EV_EditMethod_Fn stylesInspect;
 	static EV_EditMethod_Fn viewFullScreen;
+	static EV_EditMethod_Fn viewFocusMode;
+	static EV_EditMethod_Fn viewReadMode;
 	static EV_EditMethod_Fn viewGridlines;
 	static EV_EditMethod_Fn viewNavPane;
 	static EV_EditMethod_Fn viewSplit;
@@ -1672,6 +1674,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(viewExtra),			0,		""),
 	EV_EditMethod(NF(viewFormat),			0,		""),
 #endif
+	EV_EditMethod(NF(viewFocusMode), 0, ""),
 	EV_EditMethod(NF(viewFullScreen), 0, ""),
 	EV_EditMethod(NF(viewGridlines), 0, ""),
 	EV_EditMethod(NF(viewHeadFoot), 		0,		""),
@@ -1680,6 +1683,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(viewNormalLayout), 0, ""),
 	EV_EditMethod(NF(viewPara), 		0,		""),
 	EV_EditMethod(NF(viewPrintLayout), 0, ""),
+	EV_EditMethod(NF(viewReadMode), 0, ""),
 	EV_EditMethod(NF(viewRuler),			0,		""),
 	EV_EditMethod(NF(viewSplit), 0, ""),
 	EV_EditMethod(NF(viewStatus),			0,		""),
@@ -13032,52 +13036,184 @@ UT_return_val_if_fail(pScheme, false);	pScheme->setValueBool(static_cast<const g
 	return true;
 }
 
+/* the document-side chrome classic fullscreen hides: classic bars,
+ * status bar, rulers.  Immersive modes (focus/read) run this plus
+ * _setImmersiveChrome for the ribbon and side deck. */
+static void s_hideDocChrome(XAP_Frame * pFrame, AP_FrameData * pFrameData)
+{
+	for (UT_uint32 i = 0; i < 20; i++) // should never have more than 20 toolbars
+	{
+		if (!pFrame->getToolbar(i))
+			break;
+
+		if (pFrameData->m_bShowBar[i])
+			pFrame->toggleBar(i, false);
+	}
+	if (pFrameData->m_bShowStatusBar)
+		pFrame->toggleStatusBar(false);
+	if (pFrameData->m_bShowRuler)
+		pFrame->toggleRuler(false);
+}
+
+static void s_showDocChrome(XAP_Frame * pFrame, AP_FrameData * pFrameData)
+{
+	if (pFrameData->m_bShowRuler)
+		pFrame->toggleRuler(pFrameData->m_bShowRuler);
+	if (pFrameData->m_bShowStatusBar)
+		pFrame->toggleStatusBar(pFrameData->m_bShowStatusBar);
+	for (UT_uint32 i = 0; i < 4; i++)
+	{
+		if (!pFrame->getToolbar(i))
+			break;
+
+		if (pFrameData->m_bShowBar[i])
+			pFrame->toggleBar(i, true);
+	}
+}
+
+static void s_enterFullScreen(XAP_Frame * pFrame, AP_FrameData * pFrameData)
+{
+	pFrameData->m_bIsFullScreen = true;
+	s_hideDocChrome(pFrame, pFrameData);
+	pFrame->setFullScreen(true);
+}
+
+static void s_leaveFullScreen(XAP_Frame * pFrame, AP_FrameData * pFrameData)
+{
+	s_showDocChrome(pFrame, pFrameData);
+	pFrameData->m_bIsFullScreen = false;
+	pFrame->setFullScreen(false);
+}
+
+/* focus mode (View > Immersive > Focus): fullscreen window with the
+ * document alone — ribbon, rulers, status bar and side panes hidden.
+ * Esc or the command again leaves it; a fullscreen entered before
+ * focus survives the exit. */
+static void s_enterFocusMode(XAP_Frame * pFrame, AP_FrameData * pFrameData)
+{
+	pFrameData->m_bImmersiveWasFullScreen = pFrameData->m_bIsFullScreen;
+	if (!pFrameData->m_bIsFullScreen)
+		s_enterFullScreen(pFrame, pFrameData);
+	pFrame->setImmersiveChrome(true);
+	pFrameData->m_bIsFocusMode = true;
+}
+
+static void s_leaveFocusMode(XAP_Frame * pFrame, AP_FrameData * pFrameData)
+{
+	pFrameData->m_bIsFocusMode = false;
+	pFrame->setImmersiveChrome(false);
+	if (!pFrameData->m_bImmersiveWasFullScreen)
+		s_leaveFullScreen(pFrame, pFrameData);
+}
+
+/* read mode: the document read-only on fullscreen print pages with
+ * the chrome hidden — Word's Read Mode column pages are our print
+ * pages.  The layout change runs before the piece-table lock so the
+ * reflow can still touch the document; leaving unlocks first and
+ * hands the saved layout mode back. */
+static void s_enterReadMode(FV_View * pView, XAP_Frame * pFrame, AP_FrameData * pFrameData)
+{
+	pFrameData->m_bImmersiveWasFullScreen = pFrameData->m_bIsFullScreen;
+	pFrameData->m_readSavedViewMode = pFrameData->m_pViewMode;
+	if (!pFrameData->m_bIsFullScreen)
+		s_enterFullScreen(pFrame, pFrameData);
+	pFrame->setImmersiveChrome(true);
+	if (pFrameData->m_pViewMode != VIEW_PRINT)
+	{
+		pFrameData->m_pViewMode = VIEW_PRINT;
+		pView->setViewMode(VIEW_PRINT);
+	}
+	PD_Document * pDoc = pView->getDocument();
+	if (pDoc)
+		pDoc->setEditingLocked(true);
+	pFrameData->m_bIsReadMode = true;
+}
+
+static void s_leaveReadMode(FV_View * pView, XAP_Frame * pFrame, AP_FrameData * pFrameData)
+{
+	pFrameData->m_bIsReadMode = false;
+	PD_Document * pDoc = pView->getDocument();
+	if (pDoc)
+		pDoc->setEditingLocked(false);
+	if (pFrameData->m_readSavedViewMode != VIEW_PRINT)
+	{
+		pFrameData->m_pViewMode = pFrameData->m_readSavedViewMode;
+		pView->setViewMode(pFrameData->m_readSavedViewMode);
+	}
+	pFrame->setImmersiveChrome(false);
+	if (!pFrameData->m_bImmersiveWasFullScreen)
+		s_leaveFullScreen(pFrame, pFrameData);
+}
+
 Defun1(viewFullScreen)
 {
 	CHECK_FRAME;
 	UT_return_val_if_fail(pAV_View, false);
 	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
 	UT_return_val_if_fail(pFrame, false);
+	FV_View * pView = static_cast<FV_View *>(pAV_View);
 	AP_FrameData *pFrameData = static_cast<AP_FrameData *>(pFrame->getFrameData());
 	UT_return_val_if_fail(pFrameData, false);
 
+	// F11 out of an immersive mode goes back to plain fullscreen:
+	// the mode is left first (it may itself drop the fullscreen).
+	if (pFrameData->m_bIsReadMode)
+		s_leaveReadMode(pView, pFrame, pFrameData);
+	if (pFrameData->m_bIsFocusMode)
+		s_leaveFocusMode(pFrame, pFrameData);
 
-	if(!pFrameData->m_bIsFullScreen) // we're hiding stuff
-	{
-		pFrameData->m_bIsFullScreen = true;
-		for (UT_uint32 i = 0; i < 20; i++) // should never have more than 20 toolbars
-		{
-			if (!pFrame->getToolbar(i))
-				break;
-
-			if (pFrameData->m_bShowBar[i])
-				pFrame->toggleBar(i, false);
-		}
-		if (pFrameData->m_bShowStatusBar)
-			pFrame->toggleStatusBar(false);
-		if (pFrameData->m_bShowRuler)
-			pFrame->toggleRuler(false);
-		pFrame->setFullScreen(true);
-	}
-	else // we're (possibly) unhiding stuff
-	{
-		if (pFrameData->m_bShowRuler)
-			pFrame->toggleRuler(pFrameData->m_bShowRuler);
-		if (pFrameData->m_bShowStatusBar)
-			pFrame->toggleStatusBar(pFrameData->m_bShowStatusBar);
-		for (UT_uint32 i = 0; i < 4; i++)
-		{
-			if (!pFrame->getToolbar(i))
-				break;
-
-			if (pFrameData->m_bShowBar[i])
-				pFrame->toggleBar(i, true);
-		}
-		pFrameData->m_bIsFullScreen = false;
-		pFrame->setFullScreen(false);
-	}
+	if(!pFrameData->m_bIsFullScreen)
+		s_enterFullScreen(pFrame, pFrameData);
+	else
+		s_leaveFullScreen(pFrame, pFrameData);
 
 	// Recalculate the layout after entering/leaving fullscreen
+	pFrame->queue_resize();
+	return true;
+}
+
+Defun1(viewFocusMode)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	FV_View * pView = static_cast<FV_View *>(pAV_View);
+	AP_FrameData *pFrameData = static_cast<AP_FrameData *>(pFrame->getFrameData());
+	UT_return_val_if_fail(pFrameData, false);
+
+	if (!pFrameData->m_bIsFocusMode)
+	{
+		if (pFrameData->m_bIsReadMode)
+			s_leaveReadMode(pView, pFrame, pFrameData);
+		s_enterFocusMode(pFrame, pFrameData);
+	}
+	else
+		s_leaveFocusMode(pFrame, pFrameData);
+
+	pFrame->queue_resize();
+	return true;
+}
+
+Defun1(viewReadMode)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	FV_View * pView = static_cast<FV_View *>(pAV_View);
+	AP_FrameData *pFrameData = static_cast<AP_FrameData *>(pFrame->getFrameData());
+	UT_return_val_if_fail(pFrameData, false);
+
+	if (!pFrameData->m_bIsReadMode)
+	{
+		if (pFrameData->m_bIsFocusMode)
+			s_leaveFocusMode(pFrame, pFrameData);
+		s_enterReadMode(pView, pFrame, pFrameData);
+	}
+	else
+		s_leaveReadMode(pView, pFrame, pFrameData);
+
 	pFrame->queue_resize();
 	return true;
 }
@@ -20458,6 +20594,32 @@ Defun1(doEscape)
 	    pVis->abortDrag();
 	    sEndVisualDrag = false;
 	    return true;
+	}
+	/* immersive modes unwind once the nearer drag/draw states are
+	 * clear — read mode, then focus, then fullscreen, the order
+	 * Word's Esc walks out of them */
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	if (pFrame)
+	{
+		AP_FrameData *pFrameData = static_cast<AP_FrameData *>(pFrame->getFrameData());
+		if (pFrameData && pFrameData->m_bIsReadMode)
+		{
+			s_leaveReadMode(pView, pFrame, pFrameData);
+			pFrame->queue_resize();
+			return true;
+		}
+		if (pFrameData && pFrameData->m_bIsFocusMode)
+		{
+			s_leaveFocusMode(pFrame, pFrameData);
+			pFrame->queue_resize();
+			return true;
+		}
+		if (pFrameData && pFrameData->m_bIsFullScreen)
+		{
+			s_leaveFullScreen(pFrame, pFrameData);
+			pFrame->queue_resize();
+			return true;
+		}
 	}
 	return true;
 }

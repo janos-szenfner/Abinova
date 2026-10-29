@@ -366,6 +366,7 @@ bool pt_PieceTable::_realInsertSpan(PT_DocPosition dpos,
 	// insert character data into the document at the given position.
 
 	UT_return_val_if_fail (m_pts==PTS_Editing, false);
+	UT_return_val_if_fail (!m_bEditLocked, false);
 
 	// get the fragment at the given document position.
 

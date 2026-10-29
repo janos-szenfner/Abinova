@@ -6640,3 +6640,14 @@ responsibility** — see `README.md`.
 - Input-method reset no longer fires on ordinary typing — Space/Enter
   and other IM-consumed keys keep multi-key compose sequences alive;
   resets now happen only on context changes (clicks, focus moves).
+
+## View modes (W39)
+
+- View > Immersive gains **Focus** — a full-screen mode that hides
+  every piece of chrome (ribbon, rulers, status bar, side panes) and
+  leaves only the document. Escape or the command again leaves it.
+- View > Views gains **Read Mode** — full-screen print pages with the
+  document locked against edits; arrow keys and Page Up/Down still
+  navigate, and Escape returns to the previous layout and chrome.
+- Escape now unwinds the mode stack in Word's order: Read Mode, then
+  Focus, then Full Screen.

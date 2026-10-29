@@ -55,6 +55,14 @@ public:
 	bool				m_bShowStatusBar;
 	bool                m_bShowPara;
 	bool                m_bIsFullScreen;
+	bool                m_bIsFocusMode;
+	bool                m_bIsReadMode;
+	/* window was fullscreen before focus/read mode added its own;
+	 * leaving the immersive mode then keeps it */
+	bool                m_bImmersiveWasFullScreen;
+	/* layout mode stashed by read mode (it shows print pages and
+	 * gives the mode back on exit) */
+	ViewMode            m_readSavedViewMode;
 	AP_TopRuler *		m_pTopRuler;
 	AP_LeftRuler *		m_pLeftRuler;
 	EV_Toolbar *		m_pToolbar[4]; // TODO: 4 = NB_OF_TOOLBARS...

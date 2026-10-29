@@ -82,6 +82,8 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_dScrollAnimTarget(0.0),
 	m_pRibbon(nullptr),
 	m_wRibbon(nullptr),
+	m_bImmersiveChrome(false),
+	m_bImmersiveDeckWasVisible(false),
 	m_pMiniBar(nullptr),
 	m_uMiniBarIdle(0),
 	m_bMiniBarMouse(false),
@@ -1809,12 +1811,33 @@ void AP_UnixFrameImpl::refreshRibbon()
 		m_pRibbon->refresh();
 }
 
+void AP_UnixFrameImpl::_setImmersiveChrome(bool bHidden)
+{
+	m_bImmersiveChrome = bHidden;
+	if (m_wRibbon)
+		gtk_widget_set_visible(m_wRibbon, !bHidden);
+	if (m_wSideDeck)
+	{
+		if (bHidden)
+		{
+			m_bImmersiveDeckWasVisible =
+				gtk_widget_get_visible(m_wSideDeck);
+			gtk_widget_set_visible(m_wSideDeck, FALSE);
+		}
+		else if (m_bImmersiveDeckWasVisible)
+		{
+			gtk_widget_set_visible(m_wSideDeck, TRUE);
+			m_bImmersiveDeckWasVisible = false;
+		}
+	}
+}
+
 void AP_UnixFrameImpl::_applyUIMode()
 {
 	if (!m_wRibbon)
 		return;
 
-	gtk_widget_set_visible(m_wRibbon, true);
+	gtk_widget_set_visible(m_wRibbon, !m_bImmersiveChrome);
 
 	// the ribbon replaces the classic icon bars permanently.
 	// m_vecToolbars may still be empty during window construction.

@@ -49,6 +49,10 @@ AP_FrameData::AP_FrameData()
 	m_bInsertMode = true;
 	m_bShowStatusBar = true;
 	m_bIsFullScreen = false;
+	m_bIsFocusMode = false;
+	m_bIsReadMode = false;
+	m_bImmersiveWasFullScreen = false;
+	m_readSavedViewMode = VIEW_PRINT;
 
 	bool b;
         std::string str;

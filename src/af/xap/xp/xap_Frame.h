@@ -106,6 +106,7 @@ public:
 	void setCursor(GR_Graphics::Cursor cursor) { m_pFrameImpl->_setCursor(cursor); }
 	virtual void queue_resize() { m_pFrameImpl->_queue_resize(); }
 	void setFullScreen(bool isFullScreen) { m_pFrameImpl->_setFullScreen(isFullScreen); }
+	void setImmersiveChrome(bool bHidden) { m_pFrameImpl->_setImmersiveChrome(bHidden); }
 	void hideMenuScroll(bool bHideMenuScroll) {
 		m_bHideMenuScroll = bHideMenuScroll;
 		m_pFrameImpl->_hideMenuScroll(bHideMenuScroll);}

@@ -322,6 +322,11 @@ public:
 										  bool bUndo, UT_sint32 maxOps = 0) const;
 	bool                    isDoingTheDo(void) const;
 
+	/* editing lock (read mode / document protection): while set the
+	 * piece-table mutators and undo/redo refuse changes */
+	void                    setEditingLocked(bool bLocked);
+	bool                    isEditingLocked() const;
+
 	// Caret Methods
 
 	void                    removeCaret(const std::string& sCaretID);

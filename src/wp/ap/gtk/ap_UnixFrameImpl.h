@@ -122,6 +122,10 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	virtual void _rebuildMenus() override;
 	void _applyUIMode();
 
+	/* immersive modes (focus/read) hide the ribbon and the side deck
+	 * on top of the classic fullscreen chrome toggles */
+	virtual void _setImmersiveChrome(bool bHidden) override;
+
 	/* heading-navigation pane in the side deck (View > Navigation) */
 	virtual void toggleNavPane() override;
 	virtual bool isNavPaneVisible() const override;
@@ -210,6 +214,12 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 
 	class AP_UnixRibbon * m_pRibbon;
 	GtkWidget * m_wRibbon;
+	/* set by _setImmersiveChrome: hides ribbon + side deck; kept as
+	 * state because _applyUIMode unconditionally re-shows the ribbon
+	 * on every menu rebuild */
+	bool        m_bImmersiveChrome;
+	/* the side deck's visibility before immersive mode hid it */
+	bool        m_bImmersiveDeckWasVisible;
 
 	/* selection mini toolbar: an overlay child of m_viewOverlay that
 	 * pops up over a finished text selection.  m_uMiniBarIdle is the

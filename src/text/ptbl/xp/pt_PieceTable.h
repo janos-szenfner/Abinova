@@ -87,6 +87,13 @@ public:
 								{ return m_history.getOps(ops, bUndo, maxOps); }
 	void                    clearUndo() {m_history.clearHistory();}
 
+	/* editing lock (read mode / document protection): the _real*
+	 * mutators and undo/redo refuse while set.  Internal
+	 * append- and NoUpdate paths bypass it so background machinery
+	 * keeps working. */
+	void                    setEditingLocked(bool bLocked) { m_bEditLocked = bLocked; }
+	bool                    isEditingLocked() const { return m_bEditLocked; }
+
     static void		s_getLocalisedStyleName(const char *szStyle, std::string &utf8);
 	static const char *s_getUnlocalisedStyleName(const char *szLocStyle);
 
@@ -671,6 +678,7 @@ protected:
 	UT_uint32               m_atomicGlobCount;
 	bool                    m_bDoingTheDo;
 	bool                    m_bDoNotTweakPosition;
+	bool                    m_bEditLocked = false;
 
 	UT_uint32               m_iXID;
 	UT_sint32               m_iCurCRNumber;

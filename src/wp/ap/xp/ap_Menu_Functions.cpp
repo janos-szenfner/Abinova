@@ -1263,6 +1263,20 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_View)
 			s = EV_MIS_ZERO;
 		break;
 
+	case AP_MENU_ID_VIEW_FOCUSMODE:
+		if ( pFrameData->m_bIsFocusMode )
+			s = EV_MIS_Toggled;
+		else
+			s = EV_MIS_ZERO;
+		break;
+
+	case AP_MENU_ID_VIEW_READMODE:
+		if ( pFrameData->m_bIsReadMode )
+			s = EV_MIS_Toggled;
+		else
+			s = EV_MIS_ZERO;
+		break;
+
 	case AP_MENU_ID_VIEW_NORMAL:
 	  if ( pFrameData->m_pViewMode == VIEW_NORMAL)
 	    s = EV_MIS_Toggled;

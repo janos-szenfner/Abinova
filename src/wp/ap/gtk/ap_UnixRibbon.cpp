@@ -217,7 +217,7 @@ static const struct {
 } _ribbon_label_overrides[] =
 {
 	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_NORMAL),		"Draft" },
-	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_FULLSCREEN),	"Focus" },
+	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_FULLSCREEN),	"Full Screen" },
 	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_WHOLE),	"One Page" },
 	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_RULER),			"Ruler" },
 	{ static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_STATUSBAR),		"Status Bar" },

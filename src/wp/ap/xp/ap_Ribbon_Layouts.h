@@ -642,6 +642,7 @@ static const AP_RibbonGroup s_ribbon_review_groups[] =
 
 static const AP_RibbonItem s_ribbon_view_views[] =
 {
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_VIEW_READMODE),
 	AP_RIBBON_MENU_LSW(AP_MENU_ID_VIEW_PRINT),
 	AP_RIBBON_MENU_LSW(AP_MENU_ID_VIEW_WEB),
 	AP_RIBBON_MENU_LSW(AP_MENU_ID_VIEW_NORMAL),
@@ -650,6 +651,7 @@ static const AP_RibbonItem s_ribbon_view_views[] =
 
 static const AP_RibbonItem s_ribbon_view_immersive[] =
 {
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_VIEW_FOCUSMODE),
 	AP_RIBBON_MENU_LSW(AP_MENU_ID_VIEW_FULLSCREEN),
 	AP_RIBBON_END
 };
