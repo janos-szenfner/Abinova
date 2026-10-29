@@ -738,7 +738,11 @@ XAP_UnixFrameImpl::XAP_UnixFrameImpl(XAP_Frame *pFrame) :
 	m_imContext(nullptr),
 	m_wTopLevelWindow(nullptr),
 	m_pUnixMenu(nullptr),
-	need_im_reset (false),
+	m_iAltDigitCode(0),
+	m_iAltDigitLastKey(0),
+	m_iAltDigitLastMs(0),
+	m_iAltDigitTimer(0),
+	m_bAltDigitActive(false),
 	m_bDoZoomUpdate(false),
 	m_iNewX(0),
 	m_iNewY(0),
@@ -774,6 +778,11 @@ XAP_UnixFrameImpl::~XAP_UnixFrameImpl()
 
 	DELETEP(m_pUnixMenu);
 	DELETEP(m_pUnixPopup);
+	if(m_iAltDigitTimer)
+	{
+		g_source_remove(m_iAltDigitTimer);
+		m_iAltDigitTimer = 0;
+	}
 
 	// unref the input method context
 	if (m_imContext) {
@@ -785,7 +794,8 @@ XAP_UnixFrameImpl::~XAP_UnixFrameImpl()
 
 void XAP_UnixFrameImpl::focusIMIn ()
 {
-	need_im_reset = true;
+	m_bAltDigitActive = false;
+	m_iAltDigitCode = 0;
 	/* focus controllers on the drawing area can outlive _createIMContext /
 	 * the impl teardown; GTK_IS_IM_CONTEXT asserts on null/dangling. */
 	if (m_imContext) {
@@ -796,7 +806,12 @@ void XAP_UnixFrameImpl::focusIMIn ()
 
 void XAP_UnixFrameImpl::focusIMOut ()
 {
-	need_im_reset = true;
+	m_bAltDigitActive = false;
+	m_iAltDigitCode = 0;
+	if (m_iAltDigitTimer) {
+		g_source_remove(m_iAltDigitTimer);
+		m_iAltDigitTimer = 0;
+	}
 	if (m_imContext) {
 		gtk_im_context_focus_out(getIMContext());
 	}
@@ -804,13 +819,9 @@ void XAP_UnixFrameImpl::focusIMOut ()
 
 void XAP_UnixFrameImpl::resetIMContext()
 {
-  if (need_im_reset)
-    {
-      need_im_reset = false;
-      if (m_imContext) {
-        gtk_im_context_reset (getIMContext());
-      }
-    }
+  if (m_imContext) {
+    gtk_im_context_reset (getIMContext());
+  }
 }
 
 void XAP_UnixFrameImpl::_fe::focus_in_event(GtkEventControllerFocus * /*c*/, GtkWidget *w)
@@ -1171,19 +1182,134 @@ gboolean XAP_UnixFrameImpl::_fe::scroll_notify_event(GtkEventControllerScroll * 
 	return TRUE;
 }
 
+/* keypad digit for an Alt-code keypress, or -1: accepts both the
+ * NumLock-on (KP_0..KP_9) and NumLock-off (KP_Insert..KP_Prior)
+ * keyvals — the numpad's second keysym level is the same physical
+ * keys, and a NumLock-less display still needs code entry to work */
+static int s_altDigitForKeyval(guint keyval)
+{
+	switch (keyval)
+	{
+	case GDK_KEY_KP_0: case GDK_KEY_KP_Insert: return 0;
+	case GDK_KEY_KP_1: case GDK_KEY_KP_End:    return 1;
+	case GDK_KEY_KP_2: case GDK_KEY_KP_Down:   return 2;
+	case GDK_KEY_KP_3: case GDK_KEY_KP_Next:   return 3;
+	case GDK_KEY_KP_4: case GDK_KEY_KP_Left:   return 4;
+	case GDK_KEY_KP_5: case GDK_KEY_KP_Begin:  return 5;
+	case GDK_KEY_KP_6: case GDK_KEY_KP_Right:  return 6;
+	case GDK_KEY_KP_7: case GDK_KEY_KP_Home:   return 7;
+	case GDK_KEY_KP_8: case GDK_KEY_KP_Up:     return 8;
+	case GDK_KEY_KP_9: case GDK_KEY_KP_Prior:  return 9;
+	default: return -1;
+	}
+}
+
+/* Shared Alt+numpad code-entry handling for the canvas and toplevel
+ * key controllers; returns TRUE when the event is consumed as part of
+ * an Alt+digit sequence. The capture-phase toplevel controller needs
+ * this before the window's mnemonic layer claims Alt+key presses. */
+gboolean XAP_UnixFrameImpl::_s_altDigitTimeout(gpointer data)
+{
+	XAP_UnixFrameImpl * p = static_cast<XAP_UnixFrameImpl *>(data);
+	p->m_iAltDigitTimer = 0;
+	p->_altDigitCommit();
+	return G_SOURCE_REMOVE;
+}
+
+/* Commit the accumulated Alt+numpad decimal code as one character.
+ * Fires on Alt release — and, because the window's mnemonic layer
+ * claims Alt key events on some GTK configurations, on an idle
+ * timeout after the last digit press so the character still lands. */
+void XAP_UnixFrameImpl::_altDigitCommit()
+{
+	const guint code = m_iAltDigitCode;
+	m_bAltDigitActive = false;
+	m_iAltDigitCode = 0;
+	m_iAltDigitLastKey = 0;
+	if (m_iAltDigitTimer)
+	{
+		g_source_remove(m_iAltDigitTimer);
+		m_iAltDigitTimer = 0;
+	}
+	/* 0, control chars and values past Unicode type nothing */
+	if (code < 0x20 || code > 0x10FFFF)
+		return;
+	XAP_Frame* pFrame = getFrame();
+	FV_View * pView = static_cast<FV_View*>(pFrame->getCurrentView());
+	ev_UnixKeyboard * pUnixKeyboard =
+		static_cast<ev_UnixKeyboard *>(pFrame->getKeyboard());
+	if (!pView || !pUnixKeyboard)
+		return;
+	gchar buf[8];
+	const gint len =
+		g_unichar_to_utf8(static_cast<gunichar>(code), buf);
+	pUnixKeyboard->charDataEvent(pView, static_cast<EV_EditBits>(0),
+								 buf, len);
+}
+
+bool XAP_UnixFrameImpl::_altDigitKeyEvent(bool bPress, guint keyval,
+										GdkModifierType state,
+										GdkEvent * e)
+{
+	if (bPress)
+	{
+		if (!(state & GDK_ALT_MASK) || s_altDigitForKeyval(keyval) < 0)
+			return false;
+		if (!m_bAltDigitActive)
+		{
+			m_bAltDigitActive = true;
+			m_iAltDigitCode = 0;
+			m_iAltDigitLastKey = 0;
+			m_iAltDigitLastMs = 0;
+		}
+		/* hardware auto-repeat emits release+press pairs ~0ms apart;
+		 * a press of the just-released digit inside the repeat window
+		 * adds nothing */
+		const guint32 t = e ? gdk_event_get_time(e) : 0;
+		const bool bRepeat =
+			m_iAltDigitLastKey == keyval &&
+			t - m_iAltDigitLastMs < 100;
+		if (!bRepeat && m_iAltDigitCode <= 0x10FFFF)
+		{
+			m_iAltDigitCode =
+				m_iAltDigitCode * 10 + s_altDigitForKeyval(keyval);
+		}
+		/* mnemonic handling can eat the Alt release; commit on a
+		 * pause after the last digit too */
+		if (m_iAltDigitTimer)
+			g_source_remove(m_iAltDigitTimer);
+		m_iAltDigitTimer = g_timeout_add(800, _s_altDigitTimeout, this);
+		return true;
+	}
+	if (m_bAltDigitActive && s_altDigitForKeyval(keyval) >= 0)
+	{
+		m_iAltDigitLastKey = keyval;
+		m_iAltDigitLastMs = e ? gdk_event_get_time(e) : 0;
+		return true;
+	}
+	if ((keyval == GDK_KEY_Alt_L || keyval == GDK_KEY_Alt_R) &&
+		m_bAltDigitActive)
+	{
+		_altDigitCommit();
+		return true;
+	}
+	return false;
+}
+
 gboolean XAP_UnixFrameImpl::_fe::key_release_event(GtkEventControllerKey * c,
 												 guint keyval, guint /*keycode*/,
-												 GdkModifierType /*state*/,
+												 GdkModifierType state,
 												 GtkWidget * w)
 {
 	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
 	GdkEvent * e = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(c));
-	UT_UNUSED(keyval);
+
+	if (pUnixFrameImpl->_altDigitKeyEvent(false, keyval, state, e))
+		return TRUE;
 
 	// Let IM handle the event first.
 	if (e && pUnixFrameImpl->getIMContext() && gtk_im_context_filter_keypress(pUnixFrameImpl->getIMContext(), e)) {
 		UT_DEBUGMSG(("IMCONTEXT keyevent swallow: %u\n", keyval));
-		pUnixFrameImpl->queueIMReset ();
 	    return FALSE;
 	}
 	return TRUE;
@@ -1198,11 +1324,19 @@ gboolean XAP_UnixFrameImpl::_fe::key_press_event(GtkEventControllerKey * c,
 	GtkEventController * controller = GTK_EVENT_CONTROLLER(c);
 	GdkEvent * e = gtk_event_controller_get_current_event(controller);
 
+	/* Windows-style Alt+numpad decimal code entry (wordcraft #1146):
+	 * while Alt is held, numeric-keypad digits accumulate a decimal
+	 * code; the character is inserted on Alt release. Only keypad
+	 * digits count. */
+	if (pUnixFrameImpl->_altDigitKeyEvent(true, keyval, state, e))
+		return TRUE;
 
 	// Let IM handle the event first.
 	if (e && pUnixFrameImpl->getIMContext() && gtk_im_context_filter_keypress(pUnixFrameImpl->getIMContext(), e)) {
-		pUnixFrameImpl->queueIMReset ();
-
+		/* a swallowed keystroke is not a context change: queueing an
+		 * IM reset for ordinary IM-consumed keys (every committed
+		 * letter, Space, Enter) makes the next click/focus wipe IM
+		 * state — and killed multi-key compose sequences */
 		if ((state & GDK_ALT_MASK) ||
 			(state & GDK_SUPER_MASK) ||
 			(state & GDK_HYPER_MASK) ||
@@ -1273,6 +1407,34 @@ gboolean XAP_UnixFrameImpl::_fe::key_press_window_event(GtkEventControllerKey * 
 	if (focus && GTK_IS_EDITABLE(focus))
 		return FALSE;
 	return key_press_event(c, keyval, keycode, state, w);
+}
+
+/* Capture-phase toplevel key handlers: Alt+numpad code entry must run
+ * before the window's mnemonic layer, which claims Alt+key presses in
+ * bubble phase. Anything not part of an Alt+digit sequence falls
+ * through untouched. */
+gboolean XAP_UnixFrameImpl::_fe::key_press_window_capture(GtkEventControllerKey * c,
+														guint keyval, guint /*keycode*/,
+														GdkModifierType state,
+														GtkWidget * w)
+{
+	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
+	GdkEvent * e = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(c));
+	if (pUnixFrameImpl->_altDigitKeyEvent(true, keyval, state, e))
+		return TRUE;
+	return FALSE;
+}
+
+gboolean XAP_UnixFrameImpl::_fe::key_release_window_capture(GtkEventControllerKey * c,
+														  guint keyval, guint /*keycode*/,
+														  GdkModifierType state,
+														  GtkWidget * w)
+{
+	XAP_UnixFrameImpl * pUnixFrameImpl = static_cast<XAP_UnixFrameImpl *>(g_object_get_data(G_OBJECT(w), "user_data"));
+	GdkEvent * e = gtk_event_controller_get_current_event(GTK_EVENT_CONTROLLER(c));
+	if (pUnixFrameImpl->_altDigitKeyEvent(false, keyval, state, e))
+		return TRUE;
+	return FALSE;
 }
 
 gboolean XAP_UnixFrameImpl::_fe::close_request(GtkWindow * w, gpointer /*data*/)
@@ -1541,6 +1703,20 @@ void XAP_UnixFrameImpl::_createTopLevelWindow(void)
 	g_signal_connect(toplevelKeys, "key-pressed",
 					 G_CALLBACK(_fe::key_press_window_event), m_wTopLevelWindow);
 	gtk_widget_add_controller(m_wTopLevelWindow, toplevelKeys);
+
+	/* Alt+numpad code entry needs capture-phase delivery: the
+	 * ribbon's keytip controller claims Alt+key presses in bubble
+	 * phase before the canvas key controller ever sees them. */
+	GtkEventController * altKeys = gtk_event_controller_key_new();
+	gtk_event_controller_set_propagation_phase(altKeys,
+											 GTK_PHASE_CAPTURE);
+	g_signal_connect(altKeys, "key-pressed",
+					 G_CALLBACK(_fe::key_press_window_capture),
+					 m_wTopLevelWindow);
+	g_signal_connect(altKeys, "key-released",
+					 G_CALLBACK(_fe::key_release_window_capture),
+					 m_wTopLevelWindow);
+	gtk_widget_add_controller(m_wTopLevelWindow, altKeys);
 
 	// create a VBox inside it.
 

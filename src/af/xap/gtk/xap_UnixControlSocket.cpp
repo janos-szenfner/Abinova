@@ -1058,61 +1058,87 @@ static bool _m_ui_key(const std::string & j, std::string & err)
 		err = "ui.key requires the X11 backend";
 		return false;
 	}
-	/* split "ctrl+shift+F5" into modifiers + final key */
+	/* split "ctrl+shift+F5[,k2,k3…]" — commas give a key sequence so
+	 * modifiers named in the first segment stay held across the rest
+	 * (needed for gestures like Alt+numpad decimal codes); within a
+	 * segment '+' separates modifiers from the key they prefix */
 	std::vector<unsigned> mods;
-	std::string key_name;
+	std::vector<unsigned> keys;
+	bool firstSeg = true;
 	size_t start = 0;
 	for (size_t at = 0; at <= spec.size(); ++at)
 	{
-		if (at != spec.size() && spec[at] != '+')
+		if (at != spec.size() && spec[at] != ',')
 			continue;
-		std::string part = spec.substr(start, at - start);
+		const std::string seg = spec.substr(start, at - start);
 		start = at + 1;
-		if (part.empty())
+		if (seg.empty())
 			continue;
-		std::string low = part;
-		for (size_t i = 0; i < low.size(); ++i)
-			low[i] = (char) g_ascii_tolower(low[i]);
-		const char * sym = nullptr;
-		if (low == "ctrl" || low == "control")
-			sym = "Control_L";
-		else if (low == "shift")
-			sym = "Shift_L";
-		else if (low == "alt" || low == "mod1")
-			sym = "Alt_L";
-		else if (low == "super" || low == "meta" || low == "win")
-			sym = "Super_L";
-		if (sym)
+		/* split the segment on '+' — the last part is the key */
+		size_t p0 = 0, np = 0;
+		std::string parts[8];
+		for (size_t q = 0; q <= seg.size() && np < 8; ++q)
 		{
-			const unsigned kc = _x_keysym_for(sym);
-			if (!kc)
+			if (q == seg.size() || seg[q] == '+')
 			{
-				err = "bad modifier: " + part;
-				return false;
+				parts[np++] = seg.substr(p0, q - p0);
+				p0 = q + 1;
 			}
-			mods.push_back(kc);
 		}
-		else if (at == spec.size())
-			key_name = part;
-		else
+		if (np == 0 || parts[np - 1].empty())
 		{
-			err = "unknown key: " + part;
+			err = "empty key in: " + seg;
 			return false;
 		}
-	}
-	const unsigned kc = _x_keysym_for(key_name.c_str());
-	if (!kc)
-	{
-		err = "unknown key: " + key_name;
-		return false;
+		if (firstSeg)
+		{
+			for (size_t i = 0; i + 1 < np; ++i)
+			{
+				std::string low = parts[i];
+				for (char & ch : low)
+					ch = (char) g_ascii_tolower(ch);
+				const char * sym = nullptr;
+				if (low == "ctrl" || low == "control")
+					sym = "Control_L";
+				else if (low == "shift")
+					sym = "Shift_L";
+				else if (low == "alt" || low == "mod1")
+					sym = "Alt_L";
+				else if (low == "super" || low == "meta" || low == "win")
+					sym = "Super_L";
+				if (!sym)
+				{
+					err = "unknown key: " + parts[i];
+					return false;
+				}
+				const unsigned kc = _x_keysym_for(sym);
+				if (!kc)
+				{
+					err = "bad modifier: " + parts[i];
+					return false;
+				}
+				mods.push_back(kc);
+			}
+		}
+		const unsigned kc = _x_keysym_for(parts[np - 1].c_str());
+		if (!kc)
+		{
+			err = "unknown key: " + parts[np - 1];
+			return false;
+		}
+		keys.push_back(kc);
+		firstSeg = false;
 	}
 	/* focus the frame so the synthetic input lands in the app
 	 * the same way a real WM-delivered event would */
 	XSetInputFocus(dpy, xid, RevertToPointerRoot, CurrentTime);
 	for (unsigned m : mods)
 		XTestFakeKeyEvent(dpy, m, True, CurrentTime);
-	XTestFakeKeyEvent(dpy, kc, True, CurrentTime);
-	XTestFakeKeyEvent(dpy, kc, False, CurrentTime);
+	for (unsigned kc : keys)
+	{
+		XTestFakeKeyEvent(dpy, kc, True, CurrentTime);
+		XTestFakeKeyEvent(dpy, kc, False, CurrentTime);
+	}
 	for (auto it = mods.rbegin(); it != mods.rend(); ++it)
 		XTestFakeKeyEvent(dpy, *it, False, CurrentTime);
 	XSync(dpy, False);

@@ -63,10 +63,18 @@ class XAP_UnixFrameImpl : public XAP_FrameImpl
 	{ return m_iNewY;}
 	void focusIMIn ();
 	void focusIMOut ();
-	void queueIMReset () {
-	  need_im_reset = true;
-	}
+	/* IM context reset — only ever called from context-change points
+	 * (canvas clicks, focus transitions); ordinary IM-consumed
+	 * keystrokes must never reach this or multi-key compose
+	 * sequences (dead keys, ibus preedit) die mid-entry */
 	void resetIMContext ();
+
+	/* shared Alt+numpad decimal code entry for the key controllers;
+	 * TRUE when the event is part of an Alt+digit sequence */
+	bool _altDigitKeyEvent(bool bPress, guint keyval,
+						   GdkModifierType state, GdkEvent * e);
+	void _altDigitCommit();
+	static gboolean _s_altDigitTimeout(gpointer data);
 
 	virtual GtkWidget * getViewWidget (void) const = 0;
 
@@ -83,7 +91,14 @@ protected:
 	GtkWidget *		    m_wTopLevelWindow;
 	EV_UnixMenuBar *	    m_pUnixMenu;
 
-	bool need_im_reset;
+	/* Windows-style Alt+numpad decimal code entry: keypad digits are
+	 * accumulated while Alt is held and committed as one character
+	 * when Alt is released */
+	guint			    m_iAltDigitCode;
+	guint			    m_iAltDigitLastKey;
+	guint32			    m_iAltDigitLastMs;
+	guint			    m_iAltDigitTimer;
+	bool			    m_bAltDigitActive;
 
 	GtkIMContext * getIMContext();
 
@@ -180,6 +195,14 @@ protected:
 			static gboolean key_press_window_event(GtkEventControllerKey *c, guint keyval,
 												   guint keycode, GdkModifierType state,
 												   GtkWidget *w);
+			/* capture-phase toplevel controllers: Alt+numpad code entry
+			 * must run before the window's mnemonic layer eats Alt+key */
+			static gboolean key_press_window_capture(GtkEventControllerKey *c, guint keyval,
+													 guint keycode, GdkModifierType state,
+													 GtkWidget *w);
+			static gboolean key_release_window_capture(GtkEventControllerKey *c, guint keyval,
+													   guint keycode, GdkModifierType state,
+													   GtkWidget *w);
 			static gboolean close_request(GtkWindow *w, gpointer data);
 			static void draw(GtkDrawingArea *area, cairo_t *cr, int width,
 							 int height, gpointer);

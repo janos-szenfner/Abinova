@@ -13153,6 +13153,16 @@ gboolean AP_UnixRibbon::_s_kt_key(GtkEventControllerKey * /*c*/,
 		return FALSE;
 	}
 
+	/* keypad keys are never keytip candidates — they might be an
+	 * Alt+numpad decimal code entry; drop the badges and let the
+	 * frame's key handler see them */
+	if ((keyval >= GDK_KEY_KP_Home && keyval <= GDK_KEY_KP_Delete) ||
+		(keyval >= GDK_KEY_KP_0 && keyval <= GDK_KEY_KP_9))
+	{
+		self->_ktDismiss();
+		return FALSE;
+	}
+
 	/* keytips live: every key is ours */
 	if (keyval == GDK_KEY_Escape ||
 		keyval == GDK_KEY_Alt_L || keyval == GDK_KEY_Alt_R)

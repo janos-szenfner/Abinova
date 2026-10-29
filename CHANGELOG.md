@@ -6566,3 +6566,14 @@ responsibility** — see `README.md`.
 - macOS/Windows GTK4 builds not yet verified.
 - Ribbon tab/group labels are hard-coded English (localization
   pending).
+
+## Typing parity (W31)
+
+- Tab on a selection covering one or more whole paragraphs indents the
+  paragraphs by one half-inch step instead of replacing the text with a
+  tab character (partial single-paragraph selections still get a tab).
+- Alt+numpad decimal code entry: hold Alt, type keypad digits, and the
+  character for the accumulated decimal code is inserted on release.
+- Input-method reset no longer fires on ordinary typing — Space/Enter
+  and other IM-consumed keys keep multi-key compose sequences alive;
+  resets now happen only on context changes (clicks, focus moves).

@@ -6935,6 +6935,41 @@ Defun1(insertTab)
 	UT_UCS4Char c = UCS_TAB;
 	if(!pView->isInTable())
 	{
+		/* Word parity: Tab on a selection that covers a whole paragraph
+		 * (or several) indents the touched paragraphs by one 1/2" step
+		 * instead of replacing the text with a tab character; a partial
+		 * selection inside a single paragraph still gets the tab char. */
+		if (!pView->isSelectionEmpty())
+		{
+			PT_DocPosition selStart = pView->getPoint();
+			PT_DocPosition selEnd = pView->getSelectionAnchor();
+			if (selEnd < selStart)
+			{
+				const PT_DocPosition t = selStart;
+				selStart = selEnd;
+				selEnd = t;
+			}
+			std::vector<fl_BlockLayout *> vBlocks;
+			pView->getBlocksInSelection(&vBlocks);
+			bool bIndent = vBlocks.size() > 1;
+			if (!bIndent && vBlocks.size() == 1)
+			{
+				fl_BlockLayout * pB = vBlocks[0];
+				PT_DocPosition coverEnd = 0;
+				fl_BlockLayout * pNext = pB->getNextBlockInDocument();
+				if (pNext)
+					coverEnd = pNext->getPosition(true);
+				else
+					pView->getEditableBounds(true, coverEnd);
+				bIndent = selStart <= pB->getPosition() &&
+					selEnd >= coverEnd;
+			}
+			if (bIndent)
+			{
+				return pView->setBlockIndents(false, 0.5,
+											  pView->getPageSize().Width(DIM_IN));
+			}
+		}
 		pView->cmdCharInsert(&c,1);
 	}
 	else

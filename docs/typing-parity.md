@@ -39,6 +39,32 @@ python3 tools/typing-parity.py --only list
 | 18 | List: Tab demotes | ⇥ at a list item | demotes one level | context `level 1` → `level 2`, text unchanged | `list-tab-demotes` |
 | 19 | Autoformat table | `+---+---+` ⏎ | becomes a 2-column table | `\n\n` + caret context "table cell" | `table-autoformat` |
 | 20 | `=rand()` expansion | `=rand(1,2)` ⏎ | expands to sample paragraphs | pangram sentences, command consumed | `rand-expands` |
+| 21 | Tab on paragraph selection | `hello world`, Ctrl+A, ⇥ | indents the paragraph 0.5" — no tab char | text unchanged, `margin-left` 0.5in | `tab-indents-paragraph-selection` |
+| 22 | Tab on multi-paragraph selection | `one` ⏎ `two`, Ctrl+A, ⇥ | indents every covered paragraph | text unchanged, both paras indented | `tab-indents-multi-paragraph` |
+| 23 | Tab on partial selection | `hello`, select `hell`, ⇥ | still replaces selection with a tab | `\to` | `tab-partial-selection-tabs` |
+| 24 | Alt+numpad code | Alt+065 / Alt+8364 | inserts the decimal-code character | `A` / `€`; codes > U+10FFFF type nothing | `alt-numpad-character` |
+
+## Notes on Alt+numpad and the input-method reset
+
+* `ui.key` accepts comma-separated sequences (`alt+KP_0,KP_6,KP_5`) —
+  modifiers in the first segment stay held for the whole sequence,
+  which is what Alt+numpad entry needs.
+* Alt+numpad lives in `xap_UnixFrameImpl` (`_altDigitKeyEvent`, shared
+  by the canvas and a capture-phase toplevel controller): keypad
+  digits accumulate while Alt is held and the character is inserted
+  on Alt release, or on an ~800 ms pause after the last digit (the
+  ribbon keytip controller can consume the bare Alt press/release —
+  see `_s_kt_key`, which now passes keypad keys through). Both the
+  NumLock-on (`KP_0..9`) and NumLock-off (`KP_Insert`…`KP_Prior`)
+  keyvals count as digits.
+* The IM context is reset only on context changes — canvas clicks and
+  focus transitions (`resetIMContext`, `focusIMIn`). Ordinary
+  IM-consumed keystrokes (letters, Space, Enter) no longer arm a
+  reset the way the removed `need_im_reset`/`queueIMReset` flag did,
+  so multi-keystroke compose sequences aren't killed by typing. No
+  dead-key or compose-capable IM exists in the Xvfb test environment,
+  so this is verified by code inspection plus the typing regression
+  suite rather than a driven compose.
 
 ## Documented gaps vs Word
 

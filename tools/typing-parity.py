@@ -488,6 +488,60 @@ def t_rand_expands(c):
     c.ok((c.inspect().get("words") or 0) > 10, "two sentences landed")
 
 
+def t_tab_indents_paragraph_selection(c):
+    # W31 / wordcraft #4291: Tab on a selection covering a whole
+    # paragraph indents it by one 1/2" step instead of typing a tab
+    c.text("hello world")
+    c.key("ctrl+a")
+    c.key("Tab")
+    c.eq(c.doc_text(), "hello world",
+         "Tab on selected paragraph types no tab character")
+    rep = c.fmt_report()
+    c.ok("margin-left" in rep and "0.5" in rep,
+         "paragraph gains a 0.5in left indent",
+         f"(report tail: {rep[-160:]!r})")
+
+
+def t_tab_indents_multi_paragraph_selection(c):
+    c.text("one")
+    c.key("Return")
+    c.text("two")
+    c.key("ctrl+a")
+    c.key("Tab")
+    c.eq(c.doc_text(), "one\ntwo",
+         "Tab on multi-paragraph selection types no tab")
+    c.key("ctrl+Home")
+    rep1 = c.fmt_report()
+    c.ok("0.5" in rep1, "first paragraph indented",
+         f"(report tail: {rep1[-160:]!r})")
+    c.key("Down")
+    rep2 = c.fmt_report()
+    c.ok("0.5" in rep2, "second paragraph indented",
+         f"(report tail: {rep2[-160:]!r})")
+
+
+def t_tab_partial_selection_still_tabs(c):
+    # a selection inside one paragraph still gets the tab character
+    c.text("hello")
+    c.key("Home")
+    c.keys("shift+Right", "shift+Right", "shift+Right", "shift+Right")
+    c.key("Tab")
+    c.eq(c.wait_text("\to"), "\to",
+         "partial selection is replaced by a tab character")
+
+
+def t_alt_numpad_types_character(c):
+    # W31 / wordcraft #1146: Alt+numpad decimal code entry — ui.key
+    # holds the first segment's modifiers across the comma sequence
+    c.key("alt+KP_0,KP_6,KP_5")
+    c.eq(c.wait_text("A"), "A", "Alt+065 types 'A'")
+    c.key("alt+KP_8,KP_3,KP_6,KP_4")
+    c.eq(c.wait_text("A€"), "A€", "Alt+8364 types '€'")
+    c.key("alt+KP_9,KP_9,KP_9,KP_9,KP_9,KP_9,KP_9,KP_9")
+    c.eq(c.wait_text("A€"), "A€",
+         "code past Unicode types nothing")
+
+
 def t_no_auto_capitalise(c):
     # gap vs Word: Abinova does not auto-capitalise sentence starts —
     # pinned so the absence is a deliberate, tested fact
@@ -525,6 +579,10 @@ CASES = [
     ("list-tab-demotes", t_list_tab_demotes_shift_promotes),
     ("table-autoformat", t_table_autoformat),
     ("rand-expands", t_rand_expands),
+    ("tab-indents-paragraph-selection", t_tab_indents_paragraph_selection),
+    ("tab-indents-multi-paragraph", t_tab_indents_multi_paragraph_selection),
+    ("tab-partial-selection-tabs", t_tab_partial_selection_still_tabs),
+    ("alt-numpad-character", t_alt_numpad_types_character),
     ("no-auto-capitalise", t_no_auto_capitalise),
     ("no-autocorrect", t_no_autocorrect),
 ]
