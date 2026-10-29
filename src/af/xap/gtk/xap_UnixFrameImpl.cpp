@@ -1610,6 +1610,56 @@ void XAP_UnixFrameImpl::_initialize()
 	UT_ASSERT(m_pMouse);
 }
 
+#ifdef G_OS_WIN32
+/* Windows' I-beam cursor inverts what lies under it, but over a
+ * GPU-drawn surface it stays white and vanishes on white paper
+ * (wordcraft #2230).  Wherever the text cursor would show, swap in an
+ * explicitly drawn I-beam -- black fill edged in white, visible on
+ * paper of any colour -- with the named cursor kept as fallback. */
+static GdkCursor * s_win32_ibeam_cursor(void)
+{
+	static GdkCursor * s_cur = nullptr;
+	if (s_cur)
+		return s_cur;
+
+	const int SZ = 24;
+	const double x = SZ / 2.0, top = 5.0, bot = SZ - 5.0, bar = 3.0;
+	cairo_surface_t * surf =
+		cairo_image_surface_create(CAIRO_FORMAT_ARGB32, SZ, SZ);
+	cairo_t * cr = cairo_create(surf);
+	for (int pass = 0; pass < 2; ++pass)
+	{
+		if (pass == 0)
+		{
+			cairo_set_source_rgba(cr, 1, 1, 1, 1); /* white edge */
+			cairo_set_line_width(cr, 3.0);
+		}
+		else
+		{
+			cairo_set_source_rgba(cr, 0, 0, 0, 1); /* black fill */
+			cairo_set_line_width(cr, 1.0);
+		}
+		cairo_move_to(cr, x, top);       cairo_line_to(cr, x, bot);
+		cairo_move_to(cr, x - bar, top); cairo_line_to(cr, x + bar, top);
+		cairo_move_to(cr, x - bar, bot); cairo_line_to(cr, x + bar, bot);
+		cairo_stroke(cr);
+	}
+	cairo_destroy(cr);
+	GdkPixbuf * pb = xap_gdk_pixbuf_get_from_surface(surf, 0, 0, SZ, SZ);
+	cairo_surface_destroy(surf);
+	GdkTexture * tex = pb ? xap_gdk_texture_new_from_pixbuf(pb) : nullptr;
+	g_clear_object(&pb);
+	GdkCursor * fallback = gdk_cursor_new_from_name("text", nullptr);
+	s_cur = tex ? gdk_cursor_new_from_texture(tex, SZ / 2, SZ / 2,
+											  fallback)
+	            : (fallback ? GDK_CURSOR(g_object_ref(fallback))
+	                        : nullptr);
+	g_clear_object(&tex);
+	g_clear_object(&fallback);
+	return s_cur;
+}
+#endif
+
 void XAP_UnixFrameImpl::_setCursor(GR_Graphics::Cursor c)
 {
 //	if (m_cursor == c)
@@ -1624,6 +1674,19 @@ void XAP_UnixFrameImpl::_setCursor(GR_Graphics::Cursor c)
 	}
 	if(getTopLevelWindow() == nullptr || (m_iFrameMode != XAP_NormalFrame))
 		return;
+
+#ifdef G_OS_WIN32
+	if (c == GR_CURSOR_IBEAM)
+	{
+		GdkCursor * cur = s_win32_ibeam_cursor();
+		gtk_widget_set_cursor(getTopLevelWindow(), cur);
+		gtk_widget_set_cursor(getVBoxWidget(), cur);
+		gtk_widget_set_cursor(m_wSunkenBox, cur);
+		if (m_wStatusBar)
+			gtk_widget_set_cursor(m_wStatusBar, cur);
+		return;
+	}
+#endif
 
 	const char* cursor_name = GR_UnixCairoGraphics::_getCursor(c);
 	xxx_UT_DEBUGMSG(("Set cursor number in Frame %d to %s\n", c, cursor_name));

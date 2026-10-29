@@ -57,6 +57,17 @@ responsibility** — see `README.md`.
   replaced view's destructor ran; the view then detached from freed
   objects. Teardown order now keeps them alive until the view dies
   (issue #1).
+- **Triple borders render as three lines** on screen and in PDF for
+  paragraphs, table cell/table borders and page borders; DOCX
+  `thinThickThin*` border styles now import as three-line borders
+  instead of two (ECMA-376 ST_Border).
+- **Dark theme readability** — the rulers now pick theme-aware
+  colours (dark band, light ticks and numbers) instead of dark text
+  on a dark strip, and comment cards and the comment hover preview
+  pick readable colours under dark themes.
+- **Windows: the text cursor is now a visible I-beam over the page**
+  — a drawn black-with-white-edge cursor replaces the system I-beam
+  that could vanish on white paper.
 
 ### Maintenance
 

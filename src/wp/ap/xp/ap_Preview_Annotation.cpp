@@ -38,6 +38,7 @@ AP_Preview_Annotation::AP_Preview_Annotation(XAP_DialogFactory * pDlgFactory,XAP
 	m_top(0),
 	m_Offset(0),
 	m_clrBackground(255, 247, 177),
+	m_clrForeground(0, 0, 0),
 	m_iAID(0),
 	m_sTitle("n/a"),
 	m_sAuthor("n/a"),
@@ -124,7 +125,7 @@ void AP_Preview_Annotation::drawImmediate(const UT_Rect* clip)
 	UT_UNUSED(clip);
 	m_drawString = m_sDescription;
 	UT_return_if_fail(m_gc);
-	UT_RGBColor FGcolor(0,0,0);
+	UT_RGBColor FGcolor(m_clrForeground);
 	UT_RGBColor BGcolor(m_clrBackground);
 	
 	m_pFont = m_gc->findFont("Times New Roman", "normal",
@@ -163,9 +164,8 @@ void AP_Preview_Annotation::drawImmediate(const UT_Rect* clip)
 	//
 	m_gc->setColor(FGcolor);
 	painter.drawChars(m_drawString.ucs4_str(), 0, len, iLeft, iTop);
-	
-	// bad hardcoded color, but this will probably [ <-this assumption is the bad thing :) ] never be different anyway
-	m_gc->setColor(UT_RGBColor(0,0,0));
+
+	m_gc->setColor(m_clrForeground);
 	painter.drawLine(0, 0, m_gc->tlu(getWindowWidth()), 0);
 	painter.drawLine(m_gc->tlu(getWindowWidth()) - m_gc->tlu(1), 0, m_gc->tlu(getWindowWidth()) - m_gc->tlu(1),
 					 m_gc->tlu(getWindowHeight()));

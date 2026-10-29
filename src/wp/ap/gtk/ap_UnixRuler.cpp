@@ -65,8 +65,55 @@ void AP_UnixRuler::_ruler_style_context_changed()
 {
     AP_Ruler* ruler = dynamic_cast<AP_Ruler*>(this);
     UT_ASSERT(ruler);
-    if (ruler) {
-        ruler->_refreshView();
+    if (!ruler) {
+        return;
+    }
+    /* re-resolve the palette before repainting so a live theme flip
+     * doesn't leave the previous theme's shades on screen */
+    GR_Graphics * pG = _getGraphics();
+    if (pG) {
+        _applyRulerColors(static_cast<GR_UnixCairoGraphics*>(pG));
+    }
+    ruler->_refreshView();
+}
+
+/* the light theme keeps the classic fixed white band with black
+ * ticks; under a dark theme that hardcoded palette puts dark tick
+ * numbers on a dark text-area band (unreadable) and light-grey
+ * margins around a dark strip (inverted).  Dark themes get a dark
+ * ruler instead: dark band, a text area that is still lighter than
+ * the margin bands, and a foreground taken from the theme's own
+ * text colour. */
+void AP_UnixRuler::_applyRulerColors(GR_UnixCairoGraphics* pG)
+{
+    UT_return_if_fail(pG && m_wRuler);
+
+    pG->init3dColors(m_wRuler);
+
+    GdkRGBA fg;
+    gtk_widget_get_color(m_wRuler, &fg);
+    const double lum = 0.299 * fg.red + 0.587 * fg.green + 0.114 * fg.blue;
+    if (lum > 0.5) /* light text on dark chrome: dark theme */
+    {
+        pG->override3DColor(GR_Graphics::CLR3D_Background,
+                          UT_RGBColor(0x24, 0x24, 0x24));
+        pG->override3DColor(GR_Graphics::CLR3D_BevelDown,
+                          UT_RGBColor(0x2e, 0x2e, 0x2e));
+        pG->override3DColor(GR_Graphics::CLR3D_BevelUp,
+                          UT_RGBColor(0x56, 0x56, 0x56));
+        pG->override3DColor(GR_Graphics::CLR3D_Highlight,
+                          UT_RGBColor(0x45, 0x45, 0x45));
+        pG->override3DColor(GR_Graphics::CLR3D_Foreground,
+                          UT_RGBColor(static_cast<UT_Byte>(fg.red * 255),
+                                      static_cast<UT_Byte>(fg.green * 255),
+                                      static_cast<UT_Byte>(fg.blue * 255)));
+    }
+    else
+    {
+        /* the ruler background is a fixed light band, so its text and
+         * tick marks are unconditionally black */
+        pG->override3DColor(GR_Graphics::CLR3D_Foreground,
+                          UT_RGBColor(0, 0, 0));
     }
 }
 
@@ -144,11 +191,7 @@ void AP_UnixRuler::_setView(AV_View* pView, GR_UnixCairoGraphics* pG)
 
     pG->setZoomPercentage(pView->getGraphics()->getZoomPercentage());
 
-    pG->init3dColors(m_wRuler);
-    /* the ruler background is always a fixed light gray/white, so its
-     * text and tick marks must be unconditionally black to stay
-     * readable under any theme (incl. dark themes with light text) */
-    pG->override3DColor(GR_Graphics::CLR3D_Foreground, UT_RGBColor(0, 0, 0));
+    _applyRulerColors(pG);
 }
 
 void AP_UnixRuler::_fe::realize(AP_UnixRuler* self)

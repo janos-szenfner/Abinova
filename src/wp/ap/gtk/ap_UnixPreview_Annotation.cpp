@@ -96,6 +96,21 @@ void  AP_UnixPreview_Annotation::_constructWindow(void)
 	m_pDrawingArea = gtk_drawing_area_new();
 	gtk_widget_set_visible(GTK_WIDGET(m_pDrawingArea), TRUE);
 	gtk_popover_set_child(GTK_POPOVER(m_pPreviewWindow), m_pDrawingArea);
+
+	/* theme-aware card: the pale-yellow note is a light-theme default;
+	 * under a dark theme (light widget text) paint a dark card with
+	 * the theme's own text colour so the preview stays readable */
+	{
+		GdkRGBA fg;
+		gtk_widget_get_color(m_pDrawingArea, &fg);
+		if (0.299 * fg.red + 0.587 * fg.green + 0.114 * fg.blue > 0.5)
+		{
+			setColors(UT_RGBColor(0x2b, 0x2b, 0x2b),
+					  UT_RGBColor(static_cast<UT_Byte>(fg.red * 255),
+								  static_cast<UT_Byte>(fg.green * 255),
+								  static_cast<UT_Byte>(fg.blue * 255)));
+		}
+	}
 	gtk_drawing_area_set_draw_func(GTK_DRAWING_AREA(m_pDrawingArea),
 								   s_preview_draw, this, nullptr);
 

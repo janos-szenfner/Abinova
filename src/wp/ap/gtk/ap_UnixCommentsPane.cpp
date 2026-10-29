@@ -48,6 +48,16 @@ static const UT_uint8 s_colors[10][3] =
 	{8,179,248}, {4,206,195}, {4,133,195}, {7,18,195}, {255,0,0}
 };
 
+/* the author palette is tuned for the white page: several entries are
+ * too dark to read as the card's colour bar under a dark theme, so
+ * they are blended toward white until they pop on dark cards */
+static bool s_dark_theme(GtkWidget * w)
+{
+	GdkRGBA fg;
+	gtk_widget_get_color(w, &fg);
+	return 0.299 * fg.red + 0.587 * fg.green + 0.114 * fg.blue > 0.5;
+}
+
 AP_UnixCommentsPane::AP_UnixCommentsPane(XAP_Frame * pFrame)
 	: m_pFrame(pFrame)
 	, m_wList(nullptr)
@@ -231,6 +241,12 @@ GtkWidget * AP_UnixCommentsPane::_makeCard(UT_uint32 pid, UT_sint32 iIndex)
 			pRun->getLine()->getPage(), pid);
 		pc[0] = c.m_red; pc[1] = c.m_grn; pc[2] = c.m_blu;
 	}
+	if (s_dark_theme(m_wList))
+	{
+		pc[0] = pc[0] + (255 - pc[0]) * 11 / 20;
+		pc[1] = pc[1] + (255 - pc[1]) * 11 / 20;
+		pc[2] = pc[2] + (255 - pc[2]) * 11 / 20;
+	}
 
 	GtkWidget * row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	g_object_set_data(G_OBJECT(row), "pid", GUINT_TO_POINTER(pid));
@@ -252,14 +268,13 @@ GtkWidget * AP_UnixCommentsPane::_makeCard(UT_uint32 pid, UT_sint32 iIndex)
 	gtk_widget_set_hexpand(body, TRUE);
 	gtk_box_append(GTK_BOX(row), body);
 
-	/* author + date */
+	/* author + date; "(Resolved)" rides the dim-label line so it
+	 * tracks the theme instead of a hardcoded grey */
 	const char * szAuthor = pAL->getAuthor();
 	GtkWidget * author = gtk_label_new(nullptr);
 	gchar * esc = g_markup_escape_text(
 		(szAuthor && *szAuthor) ? szAuthor : "Unknown author", -1);
-	gchar * markup = g_strdup_printf(
-		"<b>%s</b>%s", esc,
-		bResolved ? "  <span foreground=\"gray\">(Resolved)</span>" : "");
+	gchar * markup = g_strdup_printf("<b>%s</b>", esc);
 	g_free(esc);
 	gtk_label_set_markup(GTK_LABEL(author), markup);
 	g_free(markup);
@@ -267,9 +282,12 @@ GtkWidget * AP_UnixCommentsPane::_makeCard(UT_uint32 pid, UT_sint32 iIndex)
 	gtk_box_append(GTK_BOX(body), author);
 
 	const char * szDate = pAL->getDate();
-	if (szDate && *szDate)
+	if ((szDate && *szDate) || bResolved)
 	{
-		GtkWidget * date = gtk_label_new(szDate);
+		std::string d = (szDate && *szDate) ? szDate : "";
+		if (bResolved)
+			d += d.empty() ? "(Resolved)" : "  (Resolved)";
+		GtkWidget * date = gtk_label_new(d.c_str());
 		gtk_widget_add_css_class(date, "dim-label");
 		gtk_label_set_xalign(GTK_LABEL(date), 0.0);
 		gtk_box_append(GTK_BOX(body), date);

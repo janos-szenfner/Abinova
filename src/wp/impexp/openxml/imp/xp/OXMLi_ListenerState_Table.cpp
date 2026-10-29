@@ -491,7 +491,10 @@ void OXMLi_ListenerState_Table::startElement (OXMLi_StartElementRequest * rqst)
 		{
 			/* Abinova edge styles: 0 none, 1 solid, 2 dotted,
 			 * 3 dashed, 4 double, 5 dashdot, 6 dashdotdot,
-			 * 7 longdash, 8 triple, 9 wave */
+			 * 7 longdash, 8 triple, 9 wave.  The thinThickThin*
+			 * family is three lines per ST_Border, so it maps to
+			 * triple -- it must be tested before the thinThick*
+			 * two-line prefix it also matches. */
 			if (!strcmp(val, "none") || !strcmp(val, "nil"))
 				styleValue = "0";
 			else if (!strcmp(val, "dotted"))
@@ -499,6 +502,9 @@ void OXMLi_ListenerState_Table::startElement (OXMLi_StartElementRequest * rqst)
 			else if (!strcmp(val, "dashed") ||
 					 !strcmp(val, "dashSmallGap"))
 				styleValue = "3";
+			else if (!strcmp(val, "triple") ||
+					 !strncmp(val, "thinThickThin", 13))
+				styleValue = "8";
 			else if (!strcmp(val, "double") ||
 					 !strncmp(val, "thinThick", 9) ||
 					 !strncmp(val, "thickThin", 9))
@@ -510,8 +516,6 @@ void OXMLi_ListenerState_Table::startElement (OXMLi_StartElementRequest * rqst)
 				styleValue = "6";
 			else if (!strcmp(val, "dashLargeGap"))
 				styleValue = "7";
-			else if (!strcmp(val, "triple"))
-				styleValue = "8";
 			else if (!strcmp(val, "wave") ||
 					 !strcmp(val, "doubleWave"))
 				styleValue = "9";

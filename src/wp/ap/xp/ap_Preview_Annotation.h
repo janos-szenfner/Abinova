@@ -65,6 +65,12 @@ public:
 	void            setOffset(UT_sint32 ioff);
 	virtual void	setActiveFrame(XAP_Frame *pFrame) override;
 	void			setSizeFromAnnotation(void);
+	/* theme-aware card colours; the platform front end calls this
+	 * once its widget exists so a dark theme gets a dark card with
+	 * light text instead of the fixed pale-yellow note */
+	void			setColors(const UT_RGBColor & bg,
+							  const UT_RGBColor & fg)
+		{ m_clrBackground = bg; m_clrForeground = fg; }
 
 protected:
 	void			_createAnnotationPreviewFromGC(GR_Graphics * gc, UT_uint32 width, UT_uint32 height);
@@ -75,6 +81,7 @@ protected:
 	UT_sint32       m_Offset;
 	void            ConstructWindowName(void);
 	UT_RGBColor		m_clrBackground;
+	UT_RGBColor		m_clrForeground;
 
 private:
 	UT_uint32			m_iAID;

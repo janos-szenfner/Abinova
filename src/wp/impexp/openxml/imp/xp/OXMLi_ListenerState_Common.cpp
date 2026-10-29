@@ -1013,7 +1013,10 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 
 		/* Abinova edge styles: 0 none, 1 solid, 2 dotted, 3 dashed,
 		 * 4 double, 5 dashdot, 6 dashdotdot, 7 longdash, 8 triple,
-		 * 9 wave.  Remaining OOXML values degrade to solid. */
+		 * 9 wave.  Remaining OOXML values degrade to solid.  The
+		 * thinThickThin* family is three lines per ST_Border, so it
+		 * maps to triple -- it must be tested before the thinThick*
+		 * two-line prefix it also matches. */
 		std::string style = "1";
 		if (val && *val)
 		{
@@ -1024,6 +1027,9 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			else if (!strcmp(val, "dashed") ||
 					 !strcmp(val, "dashSmallGap"))
 				style = "3";
+			else if (!strcmp(val, "triple") ||
+					 !strncmp(val, "thinThickThin", 13))
+				style = "8";
 			else if (!strcmp(val, "double") ||
 					 !strncmp(val, "thinThick", 9) ||
 					 !strncmp(val, "thickThin", 9))
@@ -1035,8 +1041,6 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 				style = "6";
 			else if (!strcmp(val, "dashLargeGap"))
 				style = "7";
-			else if (!strcmp(val, "triple"))
-				style = "8";
 			else if (!strcmp(val, "wave") ||
 					 !strcmp(val, "doubleWave"))
 				style = "9";

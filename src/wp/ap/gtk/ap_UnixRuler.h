@@ -48,6 +48,7 @@ public:
 protected:
     GtkWidget* _createWidget(gint w, gint h);
     void _setView(AV_View * pView, GR_UnixCairoGraphics* pG);
+    void _applyRulerColors(GR_UnixCairoGraphics* pG);
     void _aboutToDestroy(XAP_Frame* pFrame);
 
     virtual XAP_Frame* _getFrame() const = 0;
