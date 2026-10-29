@@ -74,6 +74,15 @@ static const std::set<std::string> & s_installedFamilies()
 	return families;
 }
 
+/* The same set, but mutable: document-embedded fonts registered with
+ * fontconfig mid-import must be visible to the substitution check even
+ * after the family list was snapshotted.  Force-builds the snapshot
+ * first so an early call can't lose registrations. */
+static std::set<std::string> & s_mutableFamilies()
+{
+	return const_cast<std::set<std::string> &>(s_installedFamilies());
+}
+
 static bool s_fontInstalled(const std::string & name)
 {
 	return s_installedFamilies().count(s_fontKey(name)) != 0;
@@ -170,6 +179,13 @@ std::string OXML_FontManager::getValidFont(OXML_FontLevel level, OXML_CharRange 
 
 std::string OXML_FontManager::getValidFont(std::string name)
 {
+	/* an embedded font is authoritative for its declared name even
+	 * when a same-named family is installed (Word prefers the
+	 * embedded payload) — map it onto the payload's real family */
+	auto eit = m_embeddedAliases.find(s_fontKey(name));
+	if (eit != m_embeddedAliases.end())
+		return eit->second;
+
 	if (name.empty() || s_fontInstalled(name))
 		return name;
 
@@ -196,6 +212,26 @@ void OXML_FontManager::addFontTableEntry(const std::string & name,
 	if (name.empty())
 		return;
 	m_fontTable[s_fontKey(name)] = entry;
+}
+
+void OXML_FontManager::noteInstalledFamily(const std::string & name)
+{
+	if (!name.empty())
+		s_mutableFamilies().insert(s_fontKey(name));
+}
+
+void OXML_FontManager::noteEmbeddedFont(const std::string & declared,
+										const std::string & family)
+{
+	if (family.empty())
+		return;
+	noteInstalledFamily(family);
+	if (!declared.empty())
+	{
+		noteInstalledFamily(declared);
+		if (s_fontKey(declared) != s_fontKey(family))
+			m_embeddedAliases[s_fontKey(declared)] = family;
+	}
 }
 
 void OXML_FontManager::mapRangeToScript(OXML_CharRange range, std::string script)

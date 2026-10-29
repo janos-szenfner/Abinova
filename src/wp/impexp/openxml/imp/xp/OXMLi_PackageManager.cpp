@@ -586,6 +586,40 @@ GsfInput* OXMLi_PackageManager::openPartByRelId(const char * id)
 	return getChildById(parent, id);
 }
 
+/* Embedded font parts are relationships of the *fontTable* part
+ * (word/_rels/fontTable.xml.rels), not of the main document part.
+ * libgsf resolves part-scoped rels on transitional packages; the
+ * manual rel map covers packages it cannot enumerate (ISO Strict). */
+GsfInput* OXMLi_PackageManager::openFontTableRelById(const char * id)
+{
+	UT_return_val_if_fail(id != nullptr, nullptr);
+	GsfInput * doc = _getDocumentStream();
+	UT_return_val_if_fail(doc != nullptr, nullptr);
+	GsfInput * fontTable = getChildByType(doc, FONTTABLE_PART);
+	if (fontTable)
+	{
+		GsfInput * in = getChildById(fontTable, id);
+		g_object_unref(fontTable);
+		if (in)
+			return in;
+	}
+	if (!m_fontRelsLoaded)
+	{
+		m_fontRelsLoaded = true;
+		_loadRels(_docDir() + "_rels/fontTable.xml.rels", m_fontRels);
+	}
+	auto it = m_fontRels.find(id);
+	if (it != m_fontRels.end() &&
+		!it->second.external && !it->second.target.empty())
+	{
+		std::string target = it->second.target;
+		if (target[0] == '/')
+			return _childByPath(target.substr(1));
+		return _childByPath(_docDir() + target);
+	}
+	return nullptr;
+}
+
 GsfInput* OXMLi_PackageManager::openPartByPath(const std::string & path)
 {
 	return _childByPath(path);

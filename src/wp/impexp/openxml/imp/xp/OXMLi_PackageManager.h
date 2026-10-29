@@ -114,6 +114,12 @@ public:
 	 *  resolve inside the package (missing rel or external target). */
 	GsfInput * openPartByRelId(const char * id);
 
+	//! Opens the package part targeted by a fontTable-part relationship
+	/*! id (embedded fonts: word/_rels/fontTable.xml.rels).  Returns a
+	 *  new-referenced GsfInput, or nullptr when the id does not resolve
+	 *  inside the package. */
+	GsfInput * openFontTableRelById(const char * id);
+
 	//! Opens a package member by its normalized '/'-separated zip path.
 	/*! Returns a new-referenced GsfInput or nullptr. */
 	GsfInput * openPartByPath(const std::string & path);
@@ -158,8 +164,10 @@ private:
 	std::map<std::string, bool> m_parsedParts;
 	std::map<std::string, _RelRec> m_rootRels;
 	std::map<std::string, _RelRec> m_docRels;
+	std::map<std::string, _RelRec> m_fontRels;
 	bool m_rootRelsLoaded = false;
 	bool m_docRelsLoaded = false;
+	bool m_fontRelsLoaded = false;
 	std::string m_docDir;
 };
 

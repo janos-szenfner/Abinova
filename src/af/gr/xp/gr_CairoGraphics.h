@@ -187,6 +187,14 @@ public:
 };
 
 
+/* Serial bumped each time a document-embedded font is registered
+ * with fontconfig: live PangoFcFontMaps snapshot the config's font
+ * sets on first use, so a font added mid-session is invisible to them
+ * until their caches are rebuilt.  GR_CairoGraphics checks this on
+ * fontmap access and refreshes stale maps lazily. */
+ABI_EXPORT unsigned int GR_embeddedFontSerial(void);
+ABI_EXPORT void GR_bumpEmbeddedFontSerial(void);
+
 class ABI_EXPORT GR_CairoGraphics : public GR_Graphics
 {
 	friend class GR_UnixImage;
@@ -254,10 +262,10 @@ public:
 	virtual void setColor(const UT_RGBColor& clr) override;
 	virtual void getColor(UT_RGBColor &clr) override;
 
-	PangoFontMap * getFontMap() const {return m_pFontMap;}
-	PangoContext * getContext() const {return m_pContext;}
-	PangoFontMap * getLayoutFontMap() const {return m_pLayoutFontMap;}
-	PangoContext * getLayoutContext() const {return m_pLayoutContext;}
+	PangoFontMap * getFontMap() const {_syncFontConfigMaps(); return m_pFontMap;}
+	PangoContext * getContext() const {_syncFontConfigMaps(); return m_pContext;}
+	PangoFontMap * getLayoutFontMap() const {_syncFontConfigMaps(); return m_pLayoutFontMap;}
+	PangoContext * getLayoutContext() const {_syncFontConfigMaps(); return m_pLayoutContext;}
 
 	virtual UT_uint32 getFontAscent() override;
 	virtual UT_uint32 getFontDescent() override;
@@ -403,6 +411,11 @@ public:
 	PangoContext *    m_pContext;
 	PangoFontMap *    m_pLayoutFontMap;
 	PangoContext *    m_pLayoutContext;
+	/* embedded fonts registered mid-session are invisible to pango
+	 * fontmaps that already snapshotted fontconfig's font sets;
+	 * _syncFontConfigMaps() refreshes them lazily on the next use */
+	mutable unsigned int m_fontConfigSerial = 0;
+	void              _syncFontConfigMaps() const;
 	GR_PangoFont* m_pPFont;
 	GR_PangoFont* m_pPFontGUI;
 

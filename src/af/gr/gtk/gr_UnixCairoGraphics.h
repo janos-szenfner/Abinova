@@ -23,8 +23,20 @@
 #pragma once
 
 #include <gdk/gdk.h>
+#include <string>
 
 #include "gr_CairoGraphics.h"
+
+/* Registers a de-obfuscated sfnt payload (a document-embedded font,
+ * e.g. a docx word/fonts/*.fntdata part) with fontconfig for the rest
+ * of the session so layout and PDF export can render with it.  An
+ * fc <alias> is installed when the font's real family differs from
+ * declaredName (the FontTable w:name the document's rFonts reference).
+ * Returns the embedded font's real family name, or "" when the
+ * payload was rejected (not sfnt, no faces, oversized). */
+ABI_EXPORT std::string GR_registerEmbeddedFont(const UT_Byte * data,
+											   size_t len,
+											   const std::string & declaredName);
 
 class ABI_EXPORT GR_UnixCairoAllocInfo : public GR_CairoAllocInfo
 {

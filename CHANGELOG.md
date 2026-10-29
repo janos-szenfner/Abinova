@@ -89,6 +89,13 @@ responsibility** — see `README.md`.
   DIB/PNG/JPEG blits, clips) and stored as raster images. `.wmf`
   support via libwmf was already registered; both now appear in the
   file-chooser filter automatically.
+- **Fonts embedded in .docx documents are now used for layout and
+  PDF export** — `w:embedRegular`/`w:embedBold`/`w:embedItalic`/
+  `w:embedBoldItalic` payloads (`word/fonts/*.fntdata`) are
+  de-obfuscated per the ECMA-376 `w:fontKey` scheme, vetted with
+  FreeType, and registered with fontconfig for the session, so
+  documents that carry their own fonts render with the intended
+  faces instead of a substitute.
 
 ### Maintenance
 

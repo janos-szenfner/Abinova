@@ -29,6 +29,9 @@
 #include <OXML_Types.h>
 #include <OXML_FontManager.h>
 
+// External includes
+#include <set>
+
 /* \class OXMLi_ListenerState_FontTable
  * \brief This ListenerState parses the Font Table part
  * (word/fontTable.xml, ECMA-376 CT_Fonts): each <w:font> declaration's
@@ -37,9 +40,8 @@
  * getValidFont() can pick the declared substitute when a referenced
  * family is not installed.  Embedded font payloads (w:embedRegular/
  * w:embedBold/w:embedItalic/w:embedBoldItalic -> odttf parts) are
- * deliberately never loaded: an attacker-controlled sfnt binary is a
- * FreeType attack surface, and the fidelity loss is covered by
- * w:altName substitution plus the bundled font collection.
+ * de-obfuscated per w:fontKey (ECMA-376 Part 4 §2.8.1) and registered
+ * with fontconfig for the session so layout/PDF can use them.
 */
 class OXMLi_ListenerState_FontTable : public OXMLi_ListenerState
 {
@@ -50,7 +52,7 @@ public:
 private:
 	std::string m_curName;
 	OXML_FontTableEntry m_curEntry;
-	bool m_bWarnedEmbed = false;
+	std::set<std::string> m_seenRelIds;
 };
 
 #endif //_OXMLI_LISTENERSTATE_FONTTABLE_H_

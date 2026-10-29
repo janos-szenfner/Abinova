@@ -31,6 +31,18 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
+
+/* \struct OXML_EmbeddedFontRef
+ * \brief One w:embed* declaration from a FontTable w:font entry:
+ * the r:id of the odttf (XOR-obfuscated) font part and the GUID
+ * used to obfuscate it (ECMA-376 Part 4 §2.8.1).
+ */
+struct OXML_EmbeddedFontRef
+{
+	std::string relId;	//!< r:id relationship of the font part
+	std::string fontKey;	//!< w:fontKey obfuscation GUID
+};
 
 /* \struct OXML_FontTableEntry
  * \brief The substitution metadata declared for one font in the
@@ -44,6 +56,7 @@ struct OXML_FontTableEntry
 	std::string charset;	//!< w:charset -- ANSI code page id
 	std::string family;		//!< w:family -- auto|decorative|modern|roman|script|swiss
 	std::string pitch;		//!< w:pitch -- default|fixed|variable
+	std::vector<OXML_EmbeddedFontRef> embedded;	//!< w:embed* part references
 };
 
 /* \class OXML_FontManager
@@ -74,6 +87,18 @@ public:
 	void addFontTableEntry(const std::string & name,
 						   const OXML_FontTableEntry & entry);
 
+	//! Records that an out-of-band registration (a document-embedded
+	/*! font payload handed to fontconfig) made the family resolvable,
+	 *  so getValidFont() must keep the name instead of substituting. */
+	static void noteInstalledFamily(const std::string & name);
+
+	//! Records a document-embedded font: family is the payload's real
+	/*! family name as FreeType reports it, declared the FontTable
+	 *  w:name the document references.  When they differ the declared
+	 *  name is aliased to the real family for getValidFont(). */
+	void noteEmbeddedFont(const std::string & declared,
+						  const std::string & family);
+
 private:
 	std::string m_defaultFont;
 
@@ -83,6 +108,9 @@ private:
 
 	//! FontTable declarations keyed by lower-cased font name
 	std::map<std::string, OXML_FontTableEntry> m_fontTable;
+
+	//! declared w:name -> real family of an embedded font payload
+	std::map<std::string, std::string> m_embeddedAliases;
 };
 
 typedef std::shared_ptr<OXML_FontManager> OXML_SharedFontManager;

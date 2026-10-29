@@ -21,7 +21,17 @@
  */
 
 #include <gtk/gtk.h>
+#include <glib/gstdio.h>
+#include <fontconfig/fontconfig.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+#include <set>
+#include <vector>
+
 #include "ut_bytebuf.h"
+#include "ut_path.h"
+#include "ut_string_class.h"
 
 #include "gr_UnixCairoGraphics.h"
 #include "gr_CairoImage.h"
@@ -31,6 +41,114 @@
 #include "xap_App.h"
 #include "xap_EncodingManager.h"
 #include "xap_GtkStyle.h"
+
+/* cap on one embedded-font payload — real embedded fonts top out in
+ * the tens of MB and the bytes are handed to FreeType, so bound them */
+#define GR_MAX_EMBEDDED_FONT_SIZE (64u * 1024u * 1024u)
+
+/* temp files carrying registered embedded fonts must outlive the
+ * document (fontconfig lazily re-reads them) — unlink at process exit */
+static std::vector<std::string> * s_embeddedFontPaths()
+{
+	static std::vector<std::string> * v = new std::vector<std::string>();
+	return v;
+}
+
+static void s_unlinkEmbeddedFonts()
+{
+	for (auto & p : *s_embeddedFontPaths())
+		g_unlink(p.c_str());
+	s_embeddedFontPaths()->clear();
+}
+
+static unsigned int s_embeddedFontSerial = 0;
+
+unsigned int GR_embeddedFontSerial(void)
+{
+	return s_embeddedFontSerial;
+}
+
+void GR_bumpEmbeddedFontSerial(void)
+{
+	s_embeddedFontSerial++;
+}
+
+std::string GR_registerEmbeddedFont(const UT_Byte * data, size_t len,
+									const std::string & declaredName)
+{
+	if (!data || len < 64 || len > GR_MAX_EMBEDDED_FONT_SIZE)
+		return "";
+	/* sfnt scalers: 0x00010000 (TTF), OTTO (CFF/OTF), true, typ1,
+	 * ttcf (TrueType collection) */
+	if (memcmp(data, "\x00\x01\x00\x00", 4) &&
+		memcmp(data, "OTTO", 4) && memcmp(data, "true", 4) &&
+		memcmp(data, "typ1", 4) && memcmp(data, "ttcf", 4))
+		return "";
+
+	/* let FreeType vet the payload and report the real family name(s)
+	 * instead of trusting tag bytes alone */
+	std::set<std::string> faces;	/* case-folded family names */
+	std::string primary;
+	FT_Library ft = nullptr;
+	if (FT_Init_FreeType(&ft) == 0)
+	{
+		for (FT_Long idx = 0; idx < 16; idx++)
+		{
+			FT_Face face = nullptr;
+			if (FT_New_Memory_Face(ft, data,
+								   static_cast<FT_Long>(len), idx, &face))
+				break;
+			FT_Long numFaces = face->num_faces;
+			if (face->family_name && face->family_name[0])
+			{
+				std::string fam(face->family_name);
+				if (primary.empty())
+					primary = fam;
+				for (auto & c : fam)
+					c = g_ascii_tolower(c);
+				faces.insert(fam);
+			}
+			FT_Done_Face(face);
+			if (idx + 1 >= numFaces)
+				break;
+		}
+		FT_Done_FreeType(ft);
+	}
+	if (faces.empty())
+		return "";
+
+	/* fontconfig works on files, so spill the payload to a tmp file */
+	std::string path = UT_createTmpFile("abinova-efont-", ".ttf");
+	if (path.empty() ||
+		!g_file_set_contents(path.c_str(),
+							 reinterpret_cast<const gchar *>(data),
+							 static_cast<gssize>(len), nullptr))
+		return "";
+	s_embeddedFontPaths()->push_back(path);
+	static bool cleanupHooked = false;
+	if (!cleanupHooked)
+	{
+		cleanupHooked = true;
+		atexit(s_unlinkEmbeddedFonts);
+	}
+
+	FcConfig * cfg = FcConfigGetCurrent();
+	if (!cfg)
+	{
+		FcInit();
+		cfg = FcConfigGetCurrent();
+	}
+	if (!cfg || !FcConfigAppFontAddFile(
+			cfg, reinterpret_cast<const FcChar8 *>(path.c_str())))
+		return "";
+
+	/* every live PangoFcFontMap snapshots the config's font sets the
+	 * first time it resolves a font; bump the serial so graphics can
+	 * refresh stale maps on their next use */
+	GR_bumpEmbeddedFontSerial();
+
+	return primary;
+}
 
 GR_UnixCairoGraphicsBase::~GR_UnixCairoGraphicsBase()
 {

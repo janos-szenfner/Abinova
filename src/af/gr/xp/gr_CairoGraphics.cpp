@@ -48,6 +48,7 @@
 #include <pango/pango-item.h>
 #include <pango/pango-engine.h>
 #include <pango/pangocairo.h>
+#include <pango/pangofc-fontmap.h>
 
 #include <math.h>
 
@@ -439,6 +440,20 @@ void GR_CairoGraphics::_initPango()
 	UT_DEBUGMSG(("Created LayoutFontMap %p Layout Context %p resolution %d device resolution %d \n", 
                  static_cast<void*>(m_pLayoutFontMap),	static_cast<void*>(m_pLayoutContext), getResolution(),
 				 m_iDeviceResolution));
+}
+
+void GR_CairoGraphics::_syncFontConfigMaps() const
+{
+	unsigned int s = GR_embeddedFontSerial();
+	if (s == m_fontConfigSerial)
+		return;
+	m_fontConfigSerial = s;
+	if (PANGO_IS_FC_FONT_MAP(m_pFontMap))
+		pango_fc_font_map_config_changed(
+			PANGO_FC_FONT_MAP(m_pFontMap));
+	if (PANGO_IS_FC_FONT_MAP(m_pLayoutFontMap))
+		pango_fc_font_map_config_changed(
+			PANGO_FC_FONT_MAP(m_pLayoutFontMap));
 }
 
 GR_CairoGraphics::~GR_CairoGraphics()
