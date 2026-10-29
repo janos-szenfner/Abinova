@@ -829,6 +829,13 @@ bool GR_CairoGraphics::shape(GR_ShapingInfo & si, GR_RenderInfo *& ri)
 				}
 			} // else si.m_TextTransform == GR_ShapingInfo::NONE
 			
+			// a no-break space is shaped as an ordinary space: Word sets
+			// it as wide as a space even in fonts whose own U+00A0 glyph
+			// is wider; only the shaping changes, line breaking still
+			// reads the document text
+			if(c == UCS_NBSP)
+				c = UCS_SPACE;
+			
 			utf8 += c;
 			previousWasSpace = g_unichar_isspace(c);
 		}
@@ -2415,7 +2422,11 @@ void GR_CairoGraphics::drawChars(const UT_UCS4Char* pChars,
 	}
 	else
 	{
-		utf8.appendUCS4(pChars + iCharOffset, iLength);
+		// a no-break space is drawn as an ordinary space (see ::shape)
+		for(int i = iCharOffset; i < iCharOffset + iLength; ++i)
+		{
+			utf8 += (pChars[i] == UCS_NBSP) ? UCS_SPACE : pChars[i];
+		}
 	}
 
 	// this function expect indexes in bytes !!! (stupid)
@@ -2554,7 +2565,11 @@ UT_uint32 GR_CairoGraphics::measureString(const UT_UCS4Char * pChars,
 	}
 	else
 	{
-		utf8.appendUCS4(pChars + iCharOffset, iLength);
+		// a no-break space measures as an ordinary space (see ::shape)
+		for(int i = iCharOffset; i < iCharOffset + iLength; ++i)
+		{
+			utf8 += (pChars[i] == UCS_NBSP) ? UCS_SPACE : pChars[i];
+		}
 	}
 
 	// this function expect indexes in bytes !!! (stupid)

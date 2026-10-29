@@ -2989,14 +2989,17 @@ void fp_BookmarkRun::_lookupProperties(const PP_AttrProp * /*pSpanAP*/,
 {
 }
 
+// a zero-width bookmark anchor is no line-break opportunity: breaking
+// next to it would split text at a position that is not a real break
+// point (e.g. mid-word)
 bool fp_BookmarkRun::canBreakAfter(void) const
 {
-	return true;
+	return false;
 }
 
 bool fp_BookmarkRun::canBreakBefore(void) const
 {
-	return true;
+	return false;
 }
 
 bool fp_BookmarkRun::_letPointPass(void) const

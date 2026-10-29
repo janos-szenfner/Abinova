@@ -134,7 +134,12 @@ void fb_Alignment_justify::initialize(fp_Line *pLine)
 	// an earlier justify — must not keep the stretched justification
 	pLine->resetJustification(false); // non-permanent reset
 
-	if (!pLine->isLastLineInBlock())
+	// a line ending in a manual line break is stretched like a wrapped
+	// one; a line ending in a page or column break plays last line, as
+	// in Word
+	if (!pLine->isLastLineInBlock()
+		&& !pLine->containsForcedPageBreak()
+		&& !pLine->containsForcedColumnBreak())
 	{
 		UT_sint32 iWidth = pLine->calculateWidthOfLine() - pLine->calculateWidthOfTrailingSpaces();
 

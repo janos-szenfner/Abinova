@@ -29,6 +29,14 @@ responsibility** — see `README.md`.
 - **Text typed right after a Zotero citation stays plain** — the
   citation field's `zotero-*` attributes no longer leak onto the
   following span in the saved document.
+- **Justified paragraphs stretch lines ending in a manual line
+  break (Shift+Enter) all the way to the margin**, like Word;
+  lines ending in a page or column break keep normal spacing.
+- **A non-breaking space is laid out exactly as wide as a regular
+  space**, even in fonts whose own U+00A0 glyph is wider, and it
+  still holds the line together.
+- **Bookmarks no longer create phantom line-break points** — text
+  can no longer wrap mid-word at a zero-width bookmark anchor.
 - **Window can be resized below the ribbon/status-bar width** — the
   status bar pinned every field's representative string as a hard
   size_request, summing to a ~1.5K px window-minimum-width floor.

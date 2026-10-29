@@ -3915,8 +3915,11 @@ UT_uint32 fp_Line::countJustificationPoints(void)
 		else if (pRun->getType () == FPRUN_FORCEDLINEBREAK || pRun->getType () == FPRUN_FORCEDPAGEBREAK ||
 				 pRun->getType () == FPRUN_FORCEDCOLUMNBREAK)
 		{
-			// why do we count these types of run as justifiable spaces? Tomas, Apr 8, 2004
-			iSpaceCount++;
+			// a forced break is line-terminal padding, not a justification
+			// point -- it cannot absorb any of the slack, so counting it
+			// left a share of iAmount undistributed and a justified line
+			// ending in a break never reached the margin
+			continue;
 		}
 		else if (   pRun->getType () == FPRUN_DIRECTIONMARKER || pRun->getType () == FPRUN_FMTMARK
 				 || pRun->getType () == FPRUN_BOOKMARK || pRun->getType () == FPRUN_HYPERLINK)
