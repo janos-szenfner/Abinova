@@ -127,6 +127,13 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	virtual bool isNavPaneVisible() const override;
 	void setNavPaneVisible(bool bVisible);
 
+	/* side-deck persistence: every set*PaneVisible routes through
+	 * _deckShow which records the open pane name in prefs; the next
+	 * launch's _createDocumentWindow reopens it via _restoreSidePane */
+	void _deckShow(const char * szPage, bool bVisible);
+	void _persistSidePane(const char * szPage);
+	void _restoreSidePane();
+
 	/* gridlines overlay on the document canvas (View > Gridlines) */
 	virtual void toggleGridlines() override;
 	virtual bool isGridlinesVisible() const override

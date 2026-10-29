@@ -6331,9 +6331,16 @@ void FV_View::_removeThisHdrFtr(fl_HdrFtrSectionLayout * pHdrFtr)
 	m_pDoc->deleteHdrFtrStrux(sdhHdrFtr);
 }
 
-void FV_View::_cmdEditHdrFtr(HdrFtrType hfType)
+void FV_View::_cmdEditHdrFtr(HdrFtrType hfType, fp_Page * pPage)
 {
-	fp_Page * pPage = getCurrentPage();
+//
+// pPage lets a caller target a specific page (e.g. the page the user
+// double-clicked on); fall back to the page holding the insertion point.
+//
+	if (!pPage)
+	{
+		pPage = getCurrentPage();
+	}
 	UT_return_if_fail(pPage);
 //
 // If there is no header/footer, insert it and start to edit it.
@@ -6343,7 +6350,7 @@ void FV_View::_cmdEditHdrFtr(HdrFtrType hfType)
 	pHFCon = pPage->getHdrFtrP(hfType);
 	if(pHFCon == nullptr)
 	{
-		insertHeaderFooter(hfType);
+		insertHeaderFooter(hfType, pPage);
 		return;
 	}
 	

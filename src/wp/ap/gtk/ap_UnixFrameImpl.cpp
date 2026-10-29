@@ -524,30 +524,47 @@ GtkWidget * AP_UnixFrameImpl::_createDocumentWindow()
 	gtk_paned_set_resize_end_child(GTK_PANED(m_wDocPaned), FALSE);
 	gtk_paned_set_shrink_end_child(GTK_PANED(m_wDocPaned), FALSE);
 
+	/* reopen whichever side-deck pane was open last launch */
+	_restoreSidePane();
+
 	return m_wDocPaned;
 }
 
 /* helpers for the deferred paned-position set: the widget is tracked
  * through a heap cell that a weak ref clears on destruction, so a
- * frame closed before the idle fires can't use a dead widget */
+ * frame closed before the timeout fires can't use a dead widget */
+struct AbiPanedPos
+{
+	GtkWidget * paned;	/* weak-ref'd; nullptr once destroyed */
+	int tries;
+};
+
 static void s_panedCellCleared(gpointer d, GObject * /*dead*/)
 {
-	*static_cast<GtkWidget **>(d) = nullptr;
+	static_cast<AbiPanedPos *>(d)->paned = nullptr;
 }
 
-static gboolean s_panedPositionIdle(gpointer data)
+static gboolean s_panedPositionTick(gpointer data)
 {
-	GtkWidget ** pp = static_cast<GtkWidget **>(data);
-	GtkWidget * w = *pp;
+	AbiPanedPos * pp = static_cast<AbiPanedPos *>(data);
+	GtkWidget * w = pp->paned;
 	if (w)
+	{
+		GtkWidget * end = gtk_paned_get_end_child(GTK_PANED(w));
+		int width = gtk_widget_get_width(w);
+		if (end && gtk_widget_get_visible(end) && width <= 400 &&
+			++pp->tries < 60)
+		{
+			/* the pane was (re)opened before the paned had an
+			 * allocation — keep retrying until it maps (a saved
+			 * pane restored at startup hits exactly this case) */
+			return G_SOURCE_CONTINUE;
+		}
+		if (end && gtk_widget_get_visible(end) && width > 400)
+			gtk_paned_set_position(GTK_PANED(w), width - 300);
 		g_object_weak_unref(G_OBJECT(w), s_panedCellCleared, pp);
+	}
 	delete pp;
-	if (!w)
-		return G_SOURCE_REMOVE;
-	GtkWidget * end = gtk_paned_get_end_child(GTK_PANED(w));
-	int width = gtk_widget_get_width(w);
-	if (end && gtk_widget_get_visible(end) && width > 400)
-		gtk_paned_set_position(GTK_PANED(w), width - 300);
 	return G_SOURCE_REMOVE;
 }
 
@@ -563,17 +580,64 @@ static void s_deckShow(GtkWidget * deck, const char * szPage,
 	/* the paned position must be set after the end child maps,
 	 * otherwise it clamps to 0 and the pane stays collapsed.
 	 * The widget is tracked through a heap cell + weak ref so a
-	 * frame closed before the idle fires can't UAF. */
-	GtkWidget ** pp = new GtkWidget *(paned);
+	 * frame closed before the timeout fires can't UAF. */
+	AbiPanedPos * pp = new AbiPanedPos{paned, 0};
 	g_object_weak_ref(G_OBJECT(paned), s_panedCellCleared, pp);
-	g_idle_add(s_panedPositionIdle, pp);
+	g_timeout_add(50, s_panedPositionTick, pp);
+}
+
+/* writes which side-deck pane is open ("" when closed) so the next
+ * launch can restore it; set*PaneVisible calls below all route here */
+void AP_UnixFrameImpl::_persistSidePane(const char * szPage)
+{
+	XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
+	if (!pPrefs)
+		return;
+	XAP_PrefsScheme * pScheme = pPrefs->getCurrentScheme(true);
+	if (pScheme)
+		pScheme->setValue(AP_PREF_KEY_SidePane, szPage ? szPage : "");
+}
+
+void AP_UnixFrameImpl::_deckShow(const char * szPage, bool bVisible)
+{
+	s_deckShow(m_wSideDeck, szPage, bVisible, m_wDocPaned);
+	_persistSidePane(bVisible ? szPage : "");
+}
+
+/* reopen the side pane saved by _persistSidePane; called at the end of
+ * _createDocumentWindow — the paned-position tick retries until the
+ * window is mapped so restore works before first allocation */
+void AP_UnixFrameImpl::_restoreSidePane()
+{
+	XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
+	if (!pPrefs)
+		return;
+	std::string sPane;
+	if (!pPrefs->getPrefsValue(AP_PREF_KEY_SidePane, sPane) ||
+		sPane.empty())
+		return;
+
+	if (sPane == "styles")
+		setStylesPaneVisible(true);
+	else if (sPane == "objects")
+		setSelPaneVisible(true);
+	else if (sPane == "icons")
+		setIconsPaneVisible(true);
+	else if (sPane == "comments")
+		setCommentsPaneVisible(true);
+	else if (sPane == "navigation")
+		setNavPaneVisible(true);
+	else if (sPane == "clipboard")
+		setClipPaneVisible(true);
+	else if (sPane == "formatting")
+		setFmtPaneVisible(true);
 }
 
 void AP_UnixFrameImpl::setStylesPaneVisible(bool bVisible)
 {
 	if (!m_wDocPaned || !m_wSideDeck)
 		return;
-	s_deckShow(m_wSideDeck, "styles", bVisible, m_wDocPaned);
+	_deckShow("styles", bVisible);
 	if (bVisible)
 	{
 		/* doc styles exist by the time the user can click the button;
@@ -595,7 +659,7 @@ void AP_UnixFrameImpl::setSelPaneVisible(bool bVisible)
 {
 	if (!m_wDocPaned || !m_wSideDeck)
 		return;
-	s_deckShow(m_wSideDeck, "objects", bVisible, m_wDocPaned);
+	_deckShow("objects", bVisible);
 	if (bVisible)
 		m_pSelPane->rebuildList();
 }
@@ -613,7 +677,7 @@ void AP_UnixFrameImpl::setIconsPaneVisible(bool bVisible)
 {
 	if (!m_wDocPaned || !m_wSideDeck)
 		return;
-	s_deckShow(m_wSideDeck, "icons", bVisible, m_wDocPaned);
+	_deckShow("icons", bVisible);
 }
 
 bool AP_UnixFrameImpl::isIconsPaneVisible() const
@@ -634,7 +698,7 @@ void AP_UnixFrameImpl::setCommentsPaneVisible(bool bVisible)
 {
 	if (!m_wDocPaned || !m_wSideDeck)
 		return;
-	s_deckShow(m_wSideDeck, "comments", bVisible, m_wDocPaned);
+	_deckShow("comments", bVisible);
 	if (bVisible && m_pCommentsPane)
 		m_pCommentsPane->refresh();
 	if (bVisible)
@@ -851,7 +915,7 @@ void AP_UnixFrameImpl::setNavPaneVisible(bool bVisible)
 {
 	if (!m_wDocPaned || !m_wSideDeck)
 		return;
-	s_deckShow(m_wSideDeck, "navigation", bVisible, m_wDocPaned);
+	_deckShow("navigation", bVisible);
 	if (bVisible && m_pNavPane)
 		m_pNavPane->rebuildList();
 }
@@ -882,7 +946,7 @@ void AP_UnixFrameImpl::setClipPaneVisible(bool bVisible)
 {
 	if (!m_wDocPaned || !m_wSideDeck)
 		return;
-	s_deckShow(m_wSideDeck, "clipboard", bVisible, m_wDocPaned);
+	_deckShow("clipboard", bVisible);
 	if (bVisible && m_pClipPane)
 		m_pClipPane->rebuildList();
 }
@@ -912,7 +976,7 @@ void AP_UnixFrameImpl::setFmtPaneVisible(bool bVisible)
 {
 	if (!m_wDocPaned || !m_wSideDeck)
 		return;
-	s_deckShow(m_wSideDeck, "formatting", bVisible, m_wDocPaned);
+	_deckShow("formatting", bVisible);
 	if (bVisible && m_pFmtPane)
 		m_pFmtPane->refresh();
 }

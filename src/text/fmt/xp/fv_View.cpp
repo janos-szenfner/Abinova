@@ -9444,6 +9444,29 @@ bool FV_View::cmdDoubleClick(UT_sint32 xPos, UT_sint32 yPos)
 
 	if (!pShadow || pos <= posEnd)
 	{
+		/* Word parity: a double-click in a page's top margin opens
+		 * header editing, bottom margin opens footer editing — on the
+		 * clicked page (creating the hdrftr when the section lacks
+		 * one), even when the caret sits on another page. */
+		if (xClick >= 0 && yClick >= 0 &&
+			xClick <= static_cast<UT_sint32>(pPage->getWidth()) &&
+			yClick <= static_cast<UT_sint32>(pPage->getHeight()))
+		{
+			fl_DocSectionLayout * pDSL = pPage->getOwningSection();
+			if (pDSL)
+			{
+				if (yClick < pDSL->getTopMargin())
+				{
+					_cmdEditHdrFtr(FL_HDRFTR_HEADER, pPage);
+					return true;
+				}
+				if (yClick >= pPage->getHeight() - pDSL->getBottomMargin())
+				{
+					_cmdEditHdrFtr(FL_HDRFTR_FOOTER, pPage);
+					return true;
+				}
+			}
+		}
 		// double-click in the body leaves header/footer editing; the
 		// bound action then proceeds against the body as usual
 		if (isHdrFtrEdit())
@@ -13845,7 +13868,7 @@ bool FV_View::getEditableBounds(bool isEnd, PT_DocPosition &posEOD, bool bOverid
 }
 
 
-void FV_View::insertHeaderFooter(HdrFtrType hfType)
+void FV_View::insertHeaderFooter(HdrFtrType hfType, fp_Page * pPage)
 {
 	const PP_PropertyVector block_props = {
 		"text-align", "left"
@@ -13859,7 +13882,12 @@ void FV_View::insertHeaderFooter(HdrFtrType hfType)
 //	edit mode.
 //
 	setCursorWait();
-	UT_uint32 iPageNo = getCurrentPageNumber() - 1;
+	// when a target page is supplied (e.g. the page the user clicked),
+	// create the strux in that page's section and re-locate the page by
+	// index afterwards, so we do not depend on the insertion point's page
+	UT_uint32 iPageNo = pPage && pPage->getPageIndex() >= 0
+		? static_cast<UT_uint32>(pPage->getPageIndex())
+		: getCurrentPageNumber() - 1;
 
 	m_pDoc->beginUserAtomicGlob(); // Begin the big undo block
 
@@ -13868,7 +13896,8 @@ void FV_View::insertHeaderFooter(HdrFtrType hfType)
 
 	m_pDoc->disableListUpdates();
 
-	insertHeaderFooter(block_props, hfType); // cursor is now in the header/footer
+	insertHeaderFooter(block_props, hfType,
+					   pPage ? pPage->getOwningSection() : nullptr); // cursor is now in the header/footer
 	if(isHdrFtrEdit())
 		clearHdrFtrEdit();
 
@@ -13888,16 +13917,16 @@ void FV_View::insertHeaderFooter(HdrFtrType hfType)
 //
 // Now extract the shadow section from this.
 //
-	fp_Page * pPage = m_pLayout->getNthPage(iPageNo);
-	if(!pPage)
-		pPage = m_pLayout->getNthPage(0);
-	UT_return_if_fail(pPage);
+	fp_Page * pTargetPage = m_pLayout->getNthPage(iPageNo);
+	if(!pTargetPage)
+		pTargetPage = m_pLayout->getNthPage(0);
+	UT_return_if_fail(pTargetPage);
 	fl_HdrFtrShadow * pShadow = nullptr;
 	fp_ShadowContainer * pHFCon = nullptr;
 	if(hfType >= FL_HDRFTR_FOOTER)
-		pHFCon = pPage->getHdrFtrP(FL_HDRFTR_FOOTER);
+		pHFCon = pTargetPage->getHdrFtrP(FL_HDRFTR_FOOTER);
 	else if (hfType < FL_HDRFTR_FOOTER)
-		pHFCon = pPage->getHdrFtrP(FL_HDRFTR_HEADER);
+		pHFCon = pTargetPage->getHdrFtrP(FL_HDRFTR_HEADER);
 	else
 	{
 		UT_ASSERT(UT_SHOULD_NOT_HAPPEN);

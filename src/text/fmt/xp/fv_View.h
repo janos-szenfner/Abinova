@@ -818,7 +818,7 @@ public:
 	void				clearSavedPosition(void);
 	void				markSavedPositionAsNeeded(void);
 	bool				needSavedPosition(void) const;
-	void				insertHeaderFooter(HdrFtrType hfType);
+	void				insertHeaderFooter(HdrFtrType hfType, fp_Page * pPage = nullptr);
 	bool				insertHeaderFooter(const PP_PropertyVector & props, HdrFtrType hfType, fl_DocSectionLayout * pDSL = nullptr);
 
 	void				cmdEditHeader(void);
@@ -1300,7 +1300,7 @@ protected:
 
 	bool				_isSpaceBefore(PT_DocPosition pos) const;
 	void				_removeThisHdrFtr(fl_HdrFtrSectionLayout * pHdrFtr);
-	void 				_cmdEditHdrFtr(HdrFtrType hfType);
+	void 				_cmdEditHdrFtr(HdrFtrType hfType, fp_Page * pPage = nullptr);
 
 	UT_Error			_deleteBookmark(const char* szName, bool bSignal, PT_DocPosition * pos1 = nullptr, PT_DocPosition * pos2 = nullptr);
 	UT_Error			_deleteHyperlink(PT_DocPosition &i, bool bSignal);

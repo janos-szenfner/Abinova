@@ -10,6 +10,16 @@ responsibility** — see `README.md`.
 
 ### Bug fixes
 
+- **Double-click in a page's top/bottom margin now opens in-place
+  header/footer editing** (Word parity): creates the header/footer
+  when the section lacks one, targets the clicked page's section,
+  and scrolls it into view.
+- **Side pane (Navigation, Styles, Comments, …) is restored at the
+  next launch** — the open deck pane is saved to the profile and
+  reopened when a window is created.
+- **"Check spelling as you type" now persists across restarts** —
+  the toggle previously wrote into the built-in prefs scheme, which
+  is discarded on load, so it was session-only on fresh profiles.
 - **Window can be resized below the ribbon/status-bar width** — the
   status bar pinned every field's representative string as a hard
   size_request, summing to a ~1.5K px window-minimum-width floor.

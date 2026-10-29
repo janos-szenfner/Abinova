@@ -116,6 +116,9 @@
 #define AP_PREF_KEY_ParaVisible                     "ParaVisible"               /* are the paragraphs/spaces/tats/etc. visible? {0,1} */
 #define AP_PREF_DEFAULT_ParaVisible                 "0"
 
+#define AP_PREF_KEY_SidePane                        "SidePane"                  /* side-deck pane to reopen at launch: "", styles, objects, icons, comments, navigation, clipboard, formatting */
+#define AP_PREF_DEFAULT_SidePane                    ""
+
 
 
 #define AP_PREF_DEFAULT_StringSet					"en-US"
@@ -238,6 +241,7 @@ dcl(ExtraBarVisible)
 dcl(TableBarVisible)
 dcl(StatusBarVisible)
 dcl(ParaVisible)
+dcl(SidePane)
 dcl(KeyBindings)
 dcl(KeyBindingsCycle)
 dcl(InsertMode)

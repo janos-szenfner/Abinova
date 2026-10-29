@@ -1932,7 +1932,11 @@ Defun1(toggleAutoSpell)
 	XAP_Prefs * pPrefs = pApp->getPrefs();
 	UT_return_val_if_fail (pPrefs, false);
 
-	XAP_PrefsScheme *pPrefsScheme = pPrefs->getCurrentScheme();
+	/* bCreate so a fresh profile (whose current scheme is the
+	 * read-only-in-file builtin one) gets a writable user scheme —
+	 * writing into _builtin_ is discarded on next load, which made
+	 * the toggle session-only */
+	XAP_PrefsScheme *pPrefsScheme = pPrefs->getCurrentScheme(true);
 	UT_return_val_if_fail (pPrefsScheme, false);
 
 	bool b = false;
