@@ -1077,6 +1077,7 @@ public:
 	bool                cmdMergeCellsDir(UT_sint32 iDir);
 	bool                cmdTableToText(PT_DocPosition posSource,UT_sint32 iSepType);
 	bool                cmdSplitTable(void);
+	bool                cmdInsertPageBreak(void);
 	bool                cmdTableCellAlign(UT_sint32 iVert, const char * szAlign);
 	bool                cmdCellTextDirection(const char * szDir);
 	bool                cmdAutoFitWindow(void);

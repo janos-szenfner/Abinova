@@ -6756,3 +6756,7 @@ responsibility** — see `README.md`.
   `w:documentProtection` (including its password verifier), `.abwn`
   keeps it as document properties, and a status-bar notice explains
   blocked typing.
+- **Ctrl+Enter** inserts a page break directly (no dialog), like Word.
+  Inside a table it splits the table at the caret row and the lower
+  half continues on the next page; in the first row or a single-row
+  table the break lands in a paragraph above the table instead.

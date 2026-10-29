@@ -9105,12 +9105,9 @@ Defun1(insertPageBreak)
 		return true;
 	if(pView->isInTable())
 	{
-		XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
-		UT_return_val_if_fail(pFrame, false);
-		pFrame->showMessageBox(AP_STRING_ID_MSG_NoBreakInsideTable,
-							   XAP_Dialog_MessageBox::b_O,
-							   XAP_Dialog_MessageBox::a_OK);
-		return true;
+		// Word parity: Ctrl+Enter splits the table at the caret row and
+		// breaks the page between the halves (or above a top/single row)
+		return pView->cmdInsertPageBreak();
 	}
 	if(pView->isInFrame(pView->getPoint()))
 	{

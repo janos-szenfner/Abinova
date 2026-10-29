@@ -2673,6 +2673,94 @@ bool FV_View::cmdSplitTable(void)
 }
 
 /*!
+ * Ctrl+Enter page break (Word parity): a plain caret gets a UCS_FF break
+ * char.  Inside a table the table is split at the caret row and the
+ * break lands in the empty paragraph cmdSplitTable leaves between the
+ * halves, so the lower half starts on a fresh page; splitting at the
+ * top row -- or a single-row table that cannot split -- only leaves an
+ * empty paragraph above the table, which takes the break instead.  The
+ * whole operation is one atomic glob so a single undo restores it.
+ */
+bool FV_View::cmdInsertPageBreak(void)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if (!isInTable())
+	{
+		UT_UCS4Char c = UCS_FF;
+		cmdCharInsert(&c, 1);
+		return true;
+	}
+
+	m_pDoc->beginUserAtomicGlob();
+	if (cmdSplitTable())
+	{
+		if (isInTable())
+		{
+			/* top-row split leaves the caret inside the first cell;
+			 * the empty paragraph just created above the table takes
+			 * the break -- its caret position coincides with the
+			 * table strux position */
+			const pf_Frag_Strux * tableSDH = nullptr;
+			if (m_pDoc->getStruxOfTypeFromPosition(getPoint(),
+												   PTX_SectionTable,
+												   &tableSDH) && tableSDH)
+			{
+				setPoint(m_pDoc->getStruxPosition(tableSDH));
+			}
+		}
+		/* a raw span, not cmdCharInsert: that one appends a paragraph
+		 * break after UCS_FF, which would leave a stray empty
+		 * paragraph between the halves — Word keeps just the single
+		 * break paragraph */
+		PT_DocPosition posIns = getPoint();
+		_saveAndNotifyPieceTableChange();
+		UT_UCS4Char c = UCS_FF;
+		m_pDoc->insertSpan(posIns, &c, 1);
+		_restorePieceTableState();
+		_generalUpdate();
+		m_pDoc->endUserAtomicGlob();
+		m_pDoc->updateDirtyLists();
+		// caret follows the break char, at the paragraph end before the
+		// next table half
+		setPoint(posIns + 1);
+		_fixInsertionPointCoords();
+		_ensureInsertionPointOnScreen();
+		notifyListeners(AV_CHG_MOTION);
+		return true;
+	}
+
+	/* single-row table: split is impossible -- leave an empty
+	 * paragraph holding the break above the table */
+	const pf_Frag_Strux * tableSDH = nullptr;
+	if (!m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable,
+										  &tableSDH) || !tableSDH)
+	{
+		m_pDoc->endUserAtomicGlob();
+		return false;
+	}
+	PT_DocPosition posPoint = getPoint();
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH);
+
+	_saveAndNotifyPieceTableChange();
+	pf_Frag_Strux * pfsNew = nullptr;
+	m_pDoc->insertStrux(posTable, PTX_Block, PP_NOPROPS, PP_NOPROPS,
+						&pfsNew);
+	UT_UCS4Char c = UCS_FF;
+	m_pDoc->insertSpan(posTable + 1, &c, 1);
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->endUserAtomicGlob();
+	m_pDoc->updateDirtyLists();
+	// the two inserts pushed the caret's content right by two positions
+	setPoint(posPoint + 2);
+	_fixInsertionPointCoords();
+	_ensureInsertionPointOnScreen();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/*!
  * Apply cell alignment to the cell(s) under the selection (or the current
  * cell): iVert is the cell "vert-align" percentage (0 top, 50 middle,
  * 100 bottom) and szAlign is the paragraph "text-align" value applied to

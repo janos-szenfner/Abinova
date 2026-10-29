@@ -5683,6 +5683,11 @@ bool FV_View::getAttributes(const PP_AttrProp ** ppSpanAP, const PP_AttrProp ** 
 	fp_Run* pRun;
 
 	_findPositionCoords(posStart, false, xPoint, yPoint, xPoint2, yPoint2, iPointHeight, bDirection, &pBlock, &pRun);
+	if(!pBlock)
+	{
+		return false;
+	}
+
 
 //
 // Look if our selection starts just before a paragraph break
