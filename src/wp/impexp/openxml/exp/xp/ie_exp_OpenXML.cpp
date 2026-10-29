@@ -24,6 +24,7 @@
 
 // Class definition include
 #include "ie_exp_OpenXML.h"
+#include "ut_docprotect.h"
 
 // Abiword includes
 #include "ut_std_string.h"
@@ -3113,6 +3114,46 @@ UT_Error IE_Exp_OpenXML::startSettings()
 	}
 	if(bTrack)
 		str += "<w:trackChanges/>";
+
+	/* w:documentProtection: the enforced flag + edit mode come from
+	 * the document-protected/-protection-mode doc props; every other
+	 * attribute (crypt* hash verifier, formatting, newer fields)
+	 * splats back out of the packed document-protection-attrs so a
+	 * docx -> docx round-trip carries the element whole */
+	if(m_pDoc && m_pDoc->getAttrProp())
+	{
+		const gchar * prot = nullptr, * mode = nullptr, * attrs = nullptr;
+		const PP_AttrProp * ap = m_pDoc->getAttrProp();
+		ap->getProperty("document-protected", prot);
+		ap->getProperty("document-protection-mode", mode);
+		ap->getProperty("document-protection-attrs", attrs);
+		const bool bProtected = prot &&
+			(!strcmp(prot, "1") || !strcmp(prot, "true") ||
+			 !strcmp(prot, "on"));
+		if(bProtected || (mode && *mode) || (attrs && *attrs))
+		{
+			str += "<w:documentProtection";
+			if(mode && *mode)
+			{
+				str += " w:edit=\"";
+				str += UT_escapeXML(mode);
+				str += "\"";
+			}
+			if(bProtected)
+				str += " w:enforcement=\"1\"";
+			std::vector<std::pair<std::string, std::string>> extra;
+			UT_dp_unpackAttrs(attrs ? attrs : "", extra);
+			for(const auto & kv : extra)
+			{
+				str += " w:";
+				str += kv.first;
+				str += "=\"";
+				str += UT_escapeXML(kv.second);
+				str += "\"";
+			}
+			str += "/>";
+		}
+	}
 
 	return writeTargetStream(TARGET_SETTINGS, str.c_str());
 }

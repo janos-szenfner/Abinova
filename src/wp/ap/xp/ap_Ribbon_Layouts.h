@@ -628,6 +628,12 @@ static const AP_RibbonItem s_ribbon_review_compare[] =
 	AP_RIBBON_END
 };
 
+static const AP_RibbonItem s_ribbon_review_protect[] =
+{
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_TOOLS_RESTRICT_EDITING),
+	AP_RIBBON_END
+};
+
 static const AP_RibbonGroup s_ribbon_review_groups[] =
 {
 	{ "proofing",	s_ribbon_review_proofing },
@@ -635,6 +641,7 @@ static const AP_RibbonGroup s_ribbon_review_groups[] =
 	{ "comments",	s_ribbon_review_comments },
 	{ "tracking",	s_ribbon_review_tracking },
 	{ "compare",	s_ribbon_review_compare },
+	{ "protect",	s_ribbon_review_protect },
 	{ nullptr,		nullptr }
 };
 

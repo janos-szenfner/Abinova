@@ -138,6 +138,7 @@ static PP_Property _props[] =
 	{ "document-list-separator",        "",       false, PP_LEVEL_DOC},  // OOXML w:listSeparator
 	{ "document-mirror-margins",        "0",      false, PP_LEVEL_DOC},  // OOXML w:mirrorMargins
 	{ "document-protected",             "0",      false, PP_LEVEL_DOC},  // OOXML w:documentProtection
+	{ "document-protection-attrs",      "",       false, PP_LEVEL_DOC},  // OOXML w:documentProtection crypto attrs (packed)
 	{ "document-protection-mode",       "",       false, PP_LEVEL_DOC},  // OOXML w:documentProtection@edit
 	{ "document-remove-date-info",      "0",      false, PP_LEVEL_DOC},  // OOXML w:removeDateAndTime
 	{ "document-remove-personal-info",  "0",      false, PP_LEVEL_DOC},  // OOXML w:removePersonalInformation

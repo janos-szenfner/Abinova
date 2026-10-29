@@ -32,10 +32,12 @@
 
 // Abinova includes
 #include "ut_assert.h"
+#include "ut_docprotect.h"
 #include "ut_misc.h"
 
 // External includes
 #include <string>
+#include <vector>
 
 void OXMLi_ListenerState_DocSettings::startElement (OXMLi_StartElementRequest * rqst)
 {
@@ -158,6 +160,22 @@ void OXMLi_ListenerState_DocSettings::startElement (OXMLi_StartElementRequest * 
 			doc->setDocProperty("document-protected",
 				(en && strcmp(edit, "none")) ? "1" : "0");
 		}
+		/* every other attribute (crypt* hash verifier, formatting,
+		 * anything newer) rides through packed so a save round-trip
+		 * can re-emit the element whole; keys are "NS:local" — keep
+		 * the local name */
+		std::vector<std::pair<std::string, std::string>> extra;
+		for (const auto & kv : *rqst->ppAtts) {
+			const std::string::size_type colon = kv.first.rfind(':');
+			const std::string local = colon == std::string::npos
+				? kv.first : kv.first.substr(colon + 1);
+			if (local == "edit" || local == "enforcement")
+				continue;
+			extra.emplace_back(local, kv.second);
+		}
+		if (!extra.empty())
+			doc->setDocProperty("document-protection-attrs",
+								UT_dp_packAttrs(extra));
 		rqst->handled = true;
 	}
 	else if (nameMatches(rqst->pName, NS_W_KEY, "writeProtection")) {

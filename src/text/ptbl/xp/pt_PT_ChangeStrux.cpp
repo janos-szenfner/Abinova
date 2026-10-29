@@ -443,7 +443,7 @@ bool pt_PieceTable::_realChangeStruxFmt(PTChangeFmt ptc,
 										bool bRevisionDelete)
 {
 	UT_return_val_if_fail (m_pts==PTS_Editing,false);
-	UT_return_val_if_fail (!m_bEditLocked, false);
+	UT_return_val_if_fail (!isEditingLocked(), false);
 	bool bDoAll = (pts == PTX_StruxDummy);
 	// apply a strux-level formatting change to the given region.
 

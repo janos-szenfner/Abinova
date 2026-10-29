@@ -286,6 +286,10 @@ Properties added beyond the AbiWord registry, all round-tripped:
 - **Block**: `shading-*`, border `*-style`/`*-color`/`*-space`/
   `*-thickness`, `keep-lines`, `widow-ctrl`, `list-*`, `outline-level`.
 - **Document**: `document-*` settings mapped from `settings.xml`.
+  `document-protection-attrs` packs the remaining
+  `w:documentProtection` attributes (the `crypt*` password verifier,
+  `formatting`, anything newer) as `name=value;name=value;` so a
+  round-trip re-emits the element whole.
 - **Other**: `altchunk-path`/`altchunk-format` (unresolved
   `w:altChunk` references kept as links), `comment-*`,
   `textmeta-xmlid`/`rdfa-*` (RDFa), `col-space`, `table-row-*`,
@@ -296,7 +300,7 @@ Properties added beyond the AbiWord registry, all round-tripped:
 The complete registry (default values and inheritance) is generated
 from `src/text/ptbl/xp/pp_Property.cpp`:
 
-### Document-level properties (20)
+### Document-level properties (21)
 
 | Property | Default | Inherited |
 |---|---|---|
@@ -315,6 +319,7 @@ from `src/text/ptbl/xp/pp_Property.cpp`:
 | `document-list-separator` | `*(empty)*` | no |
 | `document-mirror-margins` | `0` | no |
 | `document-protected` | `0` | no |
+| `document-protection-attrs` | `*(empty)*` | no |
 | `document-protection-mode` | `*(empty)*` | no |
 | `document-remove-date-info` | `0` | no |
 | `document-remove-personal-info` | `0` | no |

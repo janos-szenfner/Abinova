@@ -72,6 +72,21 @@ pt_PieceTable::~pt_PieceTable()
 	UT_map_delete_all_second(m_hashStyles);
 }
 
+/* The editing lock combines the transient view lock (read mode,
+ * set via setEditingLocked) with the document's persisted
+ * protection (OOXML w:documentProtection -> document-protected /
+ * document-protection-mode doc props).  Protection only binds in
+ * the editing state: while loading, the importer's own inserts
+ * run through the same mutators and must not be refused. */
+bool pt_PieceTable::isEditingLocked() const
+{
+	if (m_bEditLocked)
+		return true;
+	if (m_pts == PTS_Loading)
+		return false;
+	return m_pDocument && m_pDocument->isProtectionReadOnly();
+}
+
 void pt_PieceTable::setPieceTableState(PTState pts)
 {
 	UT_return_if_fail (pts >= m_pts);

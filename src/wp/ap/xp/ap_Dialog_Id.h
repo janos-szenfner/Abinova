@@ -75,6 +75,7 @@ enum AP_Dialog_Id: uint16_t
 	AP_DIALOG_ID_RDF_EDITOR,
 	AP_DIALOG_ID_DOC_INSPECTOR, /* privacy inspector: strip personal/hidden data */
 	AP_DIALOG_ID_ZOTERO, /* Zotero citation search + insert */
+	AP_DIALOG_ID_RESTRICT_EDITING, /* document protection start */
 
 	/* ... add others here ... */
 

@@ -411,7 +411,7 @@ bool pt_PieceTable::_realChangeSpanFmt(PTChangeFmt ptc,
 	// apply a span-level formatting change to the given region.
 
 	UT_return_val_if_fail (m_pts==PTS_Editing,false);
-	UT_return_val_if_fail (!m_bEditLocked, false);
+	UT_return_val_if_fail (!isEditingLocked(), false);
     _tweakFieldSpan(dpos1,dpos2);
 //
 // Deal with case of exactly selecting the endOfFootnote

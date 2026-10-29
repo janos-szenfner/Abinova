@@ -1859,6 +1859,18 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_ReviewingPane)
 		? EV_MIS_Toggled : EV_MIS_ZERO;
 }
 
+/* Restrict Editing reads pressed while the document carries an
+ * enforced protection mode */
+Defun_EV_GetMenuItemState_Fn(ap_GetState_Protection)
+{
+	UT_UNUSED(id);
+	ABIWORD_VIEW;
+	UT_return_val_if_fail (pView, EV_MIS_Gray);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail (pDoc, EV_MIS_Gray);
+	return pDoc->isProtectionEnforced() ? EV_MIS_Toggled : EV_MIS_ZERO;
+}
+
 Defun_EV_GetMenuItemState_Fn(ap_GetState_ToggleRDFAnchorHighlight)
 {
 	UT_UNUSED(id);

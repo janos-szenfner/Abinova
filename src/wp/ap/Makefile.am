@@ -87,6 +87,8 @@ libap_la_SOURCES = \
 	xp/ap_Dialog_MergeCells.h \
 	xp/ap_Dialog_TextToTable.cpp \
 	xp/ap_Dialog_TextToTable.h \
+	xp/ap_Dialog_RestrictEditing.cpp \
+	xp/ap_Dialog_RestrictEditing.h \
 	xp/ap_Dialog_MetaData.h \
 	xp/ap_Dialog_New.cpp \
 	xp/ap_Dialog_New.h \
@@ -361,6 +363,8 @@ libap_la_SOURCES += \
 	gtk/ap_UnixDialog_SplitCells.h \
 	gtk/ap_UnixDialog_TextToTable.cpp \
 	gtk/ap_UnixDialog_TextToTable.h \
+	gtk/ap_UnixDialog_RestrictEditing.cpp \
+	gtk/ap_UnixDialog_RestrictEditing.h \
 	gtk/ap_UnixDialog_Styles.cpp \
 	gtk/ap_UnixDialog_Styles.h \
 	gtk/ap_UnixDialog_Stylist.cpp \
@@ -472,6 +476,7 @@ EXTRA_DIST = \
 	gtk/ap_UnixDialog_HdrFtr.ui \
 	gtk/ap_UnixDialog_InsertTable.ui \
 	gtk/ap_UnixDialog_TextToTable.ui \
+	gtk/ap_UnixDialog_RestrictEditing.ui \
 	gtk/ap_UnixDialog_Insert_DateTime.ui \
 	gtk/ap_UnixDialog_MetaData.ui \
 	gtk/ap_UnixDialog_Options.ui \

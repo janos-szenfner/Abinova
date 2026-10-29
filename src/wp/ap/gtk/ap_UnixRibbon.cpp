@@ -161,6 +161,7 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "language",    "Language" },
 	{ "tracking",    "Tracking" },
 	{ "compare",     "Compare" },
+	{ "protect",     "Protect" },
 	{ "ink",         "Ink" },
 	{ "revisions",   "Revisions" },
 	{ "annotations", "Annotations" },
@@ -4354,6 +4355,27 @@ static void _overlay_size_arrows(cairo_t * cr, double /*w*/, double h)
 	cairo_stroke(cr);
 }
 
+static void _overlay_padlock(cairo_t * cr, double w, double h)
+{
+	/* closed padlock badge — document protection */
+	cairo_set_source_rgb(cr, 0.35, 0.4, 0.55);
+	const double cx = w - 8.0, cy = h - 6.5;
+	cairo_set_line_width(cr, 1.4);
+	cairo_arc(cr, cx, cy - 2.5, 3.0, M_PI, 2 * M_PI);
+	cairo_stroke(cr);
+	cairo_rectangle(cr, cx - 4.5, cy - 2.5, 9.0, 7.0);
+	cairo_fill(cr);
+	cairo_set_source_rgb(cr, 0.9, 0.9, 0.92);
+	cairo_arc(cr, cx, cy + 0.4, 1.1, 0, 2 * M_PI);
+	cairo_fill(cr);
+	cairo_move_to(cr, cx - 0.5, cy + 1.2);
+	cairo_line_to(cr, cx + 0.5, cy + 1.2);
+	cairo_line_to(cr, cx + 0.8, cy + 3.2);
+	cairo_line_to(cr, cx - 0.8, cy + 3.2);
+	cairo_close_path(cr);
+	cairo_fill(cr);
+}
+
 static void _overlay_break_dash(cairo_t * cr, double w, double h)
 {
 	/* dashed mid-line + small arrow - a page/section break */
@@ -4843,6 +4865,7 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS):
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MENUPOP_COMPARE):
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_COMBINE_DOCUMENTS):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_RESTRICT_EDITING):
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_FIND_PREV):
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_FIND_NEXT):
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_HEADER):
@@ -4943,6 +4966,9 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_ROTATE):
 		extra = _overlay_rotate;
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_RESTRICT_EDITING):
+		extra = _overlay_padlock;
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_FMT_BACKGROUND_PAGE_COLOR):
 		extra = _overlay_color_drop;

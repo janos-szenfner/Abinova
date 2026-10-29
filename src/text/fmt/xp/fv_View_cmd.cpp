@@ -5254,6 +5254,23 @@ bool FV_View::cmdCharInsert(const UT_UCS4Char * text, UT_uint32 count, bool bFor
 {
 	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
 
+	/* the piece table refuses silently while the document is
+	 * protected — say so once in the status bar instead of letting
+	 * keystrokes vanish */
+	if (m_pDoc->isEditingLocked())
+	{
+		XAP_Frame * pFrame =
+			static_cast<XAP_Frame *>(getParentData());
+		if (pFrame && m_pDoc->isProtectionEnforced())
+		{
+			std::string s;
+			XAP_App::getApp()->getStringSet()->getValueUTF8(
+				AP_STRING_ID_MSG_ProtectedDoc, s);
+			pFrame->setStatusMessage(s);
+		}
+		return false;
+	}
+
 	//
 	// Look if we should insert a pargraph before the table
 	//

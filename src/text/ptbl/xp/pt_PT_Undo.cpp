@@ -638,7 +638,7 @@ bool pt_PieceTable::undoCmd(void)
 {
 	// do a user-atomic undo.
 	// return false if we can't.
-	UT_return_val_if_fail (!m_bEditLocked, false);
+	UT_return_val_if_fail (!isEditingLocked(), false);
 
 	PX_ChangeRecord * pcr;
 	if (!m_history.getUndo(&pcr))
@@ -683,7 +683,7 @@ bool pt_PieceTable::redoCmd(void)
 {
 	// do a user-atomic redo.
 	// return false if we can't.
-	UT_return_val_if_fail (!m_bEditLocked, false);
+	UT_return_val_if_fail (!isEditingLocked(), false);
         m_history.setScanningUndoGLOB(false);	
 	PX_ChangeRecord * pcr;
 	if (!m_history.getRedo(&pcr))

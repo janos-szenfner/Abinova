@@ -327,6 +327,25 @@ public:
 	void                    setEditingLocked(bool bLocked);
 	bool                    isEditingLocked() const;
 
+	/* document protection (OOXML w:documentProtection /
+	 * document-protected + document-protection-mode doc props):
+	 * enforced with edit mode "readOnly" (or the unimplemented
+	 * comments/forms modes, approximated as read-only) locks the
+	 * piece table outright; mode "trackedChanges" instead forces
+	 * revision marking. */
+	bool                    isProtectionEnforced() const;
+	std::string             getProtectionMode() const;
+	std::string             getProtectionAttrs() const;
+	bool                    isProtectionTrackedOnly() const;
+	bool                    isProtectionReadOnly() const;
+	/* writes the protection doc props (non-undoable, marks the doc
+	 * dirty); szMode is the OOXML w:edit token, szAttrs the packed
+	 * "name=value;..." attribute string for the crypto fields
+	 * (empty when unpassworded) */
+	void                    setProtection(const char * szMode,
+										  const std::string & szAttrs);
+	void                    clearProtection();
+
 	// Caret Methods
 
 	void                    removeCaret(const std::string& sCaretID);

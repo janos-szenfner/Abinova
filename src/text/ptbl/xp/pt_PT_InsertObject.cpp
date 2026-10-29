@@ -141,7 +141,7 @@ bool pt_PieceTable::_realInsertObject(PT_DocPosition dpos,
 	// TODO bogus for things like Fields.
 
 	UT_return_val_if_fail (m_pts==PTS_Editing, false);
-	UT_return_val_if_fail (!m_bEditLocked, false);
+	UT_return_val_if_fail (!isEditingLocked(), false);
 
 	// store the attributes and properties and get an index to them.
 	PT_AttrPropIndex apiOld = 0, indexAP;
@@ -238,7 +238,7 @@ bool pt_PieceTable::_realInsertObject(PT_DocPosition dpos,
 	// TODO bogus for things like Fields.
 
 	UT_return_val_if_fail (m_pts==PTS_Editing,false);
-	UT_return_val_if_fail (!m_bEditLocked, false);
+	UT_return_val_if_fail (!isEditingLocked(), false);
 
 	// store the attributes and properties and get an index to them.
 	std::string sProps;

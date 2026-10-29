@@ -87,6 +87,7 @@
 #include "ap_Prefs.h"
 #include "ut_string_class.h"
 #include "ut_uuid.h"
+#include "ut_docprotect.h"
 #include <ctype.h>
 
 #include "ap_Dialog_Id.h"
@@ -126,6 +127,7 @@
 #include "ap_Dialog_MergeCells.h"
 #include "ap_Dialog_SplitCells.h"
 #include "ap_Dialog_TextToTable.h"
+#include "ap_Dialog_RestrictEditing.h"
 #include "ap_Dialog_FormatTable.h"
 //	Maleesh 6/8/2010 - 
 #include "ap_Dialog_Border_Shading.h"
@@ -159,6 +161,7 @@
 #include "xap_Dlg_Zoom.h"
 #include "xap_Dlg_Insert_Symbol.h"
 #include "xap_Dlg_Language.h"
+#include "xap_Dlg_Password.h"
 #include "xap_Dlg_Image.h"
 #include "xap_Dlg_ListDocuments.h"
 
@@ -925,6 +928,7 @@ public:
 	static EV_EditMethod_Fn toggleShowRevisionsAfter;
 	static EV_EditMethod_Fn toggleShowRevisionsAfterPrevious;
 	static EV_EditMethod_Fn revisionCompareDocuments;
+	static EV_EditMethod_Fn restrictEditing;
 	
     static EV_EditMethod_Fn insAnnotation;
     static EV_EditMethod_Fn insAnnotationFromSel;
@@ -1479,6 +1483,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(replace),				0,	""),
 	EV_EditMethod(NF(replaceChar),			_D_,""),
 	EV_EditMethod(NF(resolveAnnotation),	0,	""),
+	EV_EditMethod(NF(restrictEditing),	0,	""),
 	EV_EditMethod(NF(revisionAccept),		0,  ""),
 	EV_EditMethod(NF(revisionAcceptAll),	0,  ""),
 	EV_EditMethod(NF(revisionAcceptAllShown),	0,  ""),
@@ -19137,6 +19142,152 @@ Defun(revisionPurge)
 
 	pDoc->purgeAllRevisions(pView);
 	return true;
+}
+
+/* ask for the protection password and, when it verifies, lift the
+ * restriction.  bInteractive pops the XAP password dialog when no
+ * password was supplied by call data; a stored verifier that fails
+ * shows the wrong-password box. */
+static bool s_stopProtection(FV_View * pView, PD_Document * pDoc,
+							 const std::string & password,
+							 bool bInteractive)
+{
+	UT_return_val_if_fail(pView && pDoc, false);
+	const std::string attrs = pDoc->getProtectionAttrs();
+	std::string pw = password;
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pView->getParentData());
+	if (pw.empty() && bInteractive && UT_dp_needsPassword(attrs))
+	{
+		UT_return_val_if_fail(pFrame, false);
+		pFrame->raise();
+		XAP_DialogFactory * pDialogFactory =
+			static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+		XAP_Dialog_Password * pDialog =
+			static_cast<XAP_Dialog_Password *>(
+				pDialogFactory->requestDialog(
+					static_cast<XAP_Dialog_Id>(XAP_DIALOG_ID_PASSWORD)));
+		UT_return_val_if_fail(pDialog, false);
+		pDialog->runModal(pFrame);
+		const bool bOK = pDialog->getAnswer() == XAP_Dialog_Password::a_OK;
+		if (bOK)
+			pw = pDialog->getPassword().utf8_str();
+		pDialogFactory->releaseDialog(pDialog);
+		if (!bOK)
+			return true;   /* cancelled: handled, nothing changed */
+	}
+	if (!UT_dp_verifyPassword(attrs, pw))
+	{
+		if (bInteractive && pFrame)
+			pFrame->showMessageBox(AP_STRING_ID_MSG_ProtectWrongPassword,
+								   XAP_Dialog_MessageBox::b_O,
+								   XAP_Dialog_MessageBox::a_OK);
+		return false;
+	}
+	pDoc->clearProtection();
+	return true;
+}
+
+/* the interactive "Start Enforcing Protection" loop — mismatched
+ * password confirmation keeps the dialog up */
+static bool s_startProtectionDlg(FV_View * pView, PD_Document * pDoc)
+{
+	UT_return_val_if_fail(pView && pDoc, false);
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	pFrame->raise();
+	XAP_DialogFactory * pDialogFactory =
+		static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+	AP_Dialog_RestrictEditing * pDialog =
+		static_cast<AP_Dialog_RestrictEditing *>(
+			pDialogFactory->requestDialog(
+				static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_RESTRICT_EDITING)));
+	UT_return_val_if_fail(pDialog, false);
+
+	bool bDone = false;
+	while (!bDone)
+	{
+		pDialog->runModal(pFrame);
+		if (pDialog->getAnswer() != AP_Dialog_RestrictEditing::a_OK)
+			break;
+		const std::string pw = pDialog->getPassword().utf8_str();
+		if (pw != pDialog->getConfirm().utf8_str())
+		{
+			pFrame->showMessageBox(AP_STRING_ID_MSG_ProtectPasswordMismatch,
+								   XAP_Dialog_MessageBox::b_O,
+								   XAP_Dialog_MessageBox::a_OK);
+			continue;
+		}
+		pDoc->setProtection(pDialog->getModeName(),
+							pw.empty() ? "" : UT_dp_makePasswordAttrs(pw));
+		bDone = true;
+	}
+	pDialogFactory->releaseDialog(pDialog);
+	return true;
+}
+
+/*!
+	Word's Restrict Editing: enforce a document-protection mode.
+	With call data the grammar is
+
+	  "stop[:<password>]"          lift the restriction
+	  "start[:<mode>[:<password>]]"   enforce; <mode> is the OOXML
+									w:edit token ("readOnly" or
+									"trackedChanges", default
+									"readOnly")
+
+	With no call data the Start Enforcing Protection dialog opens —
+	or, when the document is already protected, the stop-password
+	prompt (skipped when no verifier is stored).
+*/
+Defun(restrictEditing)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	std::string sVerb, sArg1, sArg2;
+	if (pCallData && pCallData->m_pData && pCallData->m_dataLength)
+	{
+		UT_UCS4String sArg(pCallData->m_pData, pCallData->m_dataLength);
+		const UT_UCS4Char * p = sArg.ucs4_str();
+		std::vector<UT_UCS4String> parts;
+		size_t iFrom = 0;
+		for (size_t i = 0; i <= sArg.size(); i++)
+		{
+			if (i < sArg.size() && p[i] != ':')
+				continue;
+			parts.push_back(sArg.substr(iFrom, i - iFrom));
+			iFrom = i + 1;
+		}
+		if (!parts.empty())
+			sVerb = parts[0].utf8_str();
+		if (parts.size() > 1)
+			sArg1 = parts[1].utf8_str();
+		if (parts.size() > 2)
+			sArg2 = parts[2].utf8_str();
+	}
+
+	if (sVerb == "stop")
+		return s_stopProtection(pView, pDoc, sArg1, false);
+	if (sVerb == "start")
+	{
+		const char * mode =
+			!strcmp(sArg1.c_str(), "trackedChanges") ? "trackedChanges" :
+			!strcmp(sArg1.c_str(), "comments") ? "comments" :
+			!strcmp(sArg1.c_str(), "forms") ? "forms" : "readOnly";
+		pDoc->setProtection(mode,
+							sArg2.empty() ? "" : UT_dp_makePasswordAttrs(sArg2));
+		return true;
+	}
+
+	/* no call data: interactive flow */
+	if (pDoc->isProtectionEnforced())
+		return s_stopProtection(pView, pDoc, "", true);
+	return s_startProtectionDlg(pView, pDoc);
 }
 
 /*!

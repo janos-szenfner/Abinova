@@ -88,6 +88,8 @@ libimpexp_la_SOURCES = \
 	xp/ie_exp_XML.h \
 	xp/ut_abwncrypt.cpp \
 	xp/ut_abwncrypt.h \
+	xp/ut_docprotect.cpp \
+	xp/ut_docprotect.h \
 	xp/ie_FileInfo.cpp \
 	xp/ie_FileInfo.h \
 	xp/ie_imp_Abinova_1.cpp \

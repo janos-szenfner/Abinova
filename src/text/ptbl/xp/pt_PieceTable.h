@@ -90,9 +90,11 @@ public:
 	/* editing lock (read mode / document protection): the _real*
 	 * mutators and undo/redo refuse while set.  Internal
 	 * append- and NoUpdate paths bypass it so background machinery
-	 * keeps working. */
+	 * keeps working.  isEditingLocked() also reports the
+	 * document's persisted protection (OOXML w:documentProtection)
+	 * but never during loading, when mutators must still run. */
 	void                    setEditingLocked(bool bLocked) { m_bEditLocked = bLocked; }
-	bool                    isEditingLocked() const { return m_bEditLocked; }
+	bool                    isEditingLocked() const;
 
     static void		s_getLocalisedStyleName(const char *szStyle, std::string &utf8);
 	static const char *s_getUnlocalisedStyleName(const char *szLocStyle);

@@ -438,7 +438,7 @@ bool pt_PieceTable::_realInsertStrux(PT_DocPosition dpos,
 	// document.
 
 	UT_return_val_if_fail (m_pts==PTS_Editing, false);
-	UT_return_val_if_fail (!m_bEditLocked, false);
+	UT_return_val_if_fail (!isEditingLocked(), false);
 
 	// get the fragment at the doc postion containing the given
 	// document position.

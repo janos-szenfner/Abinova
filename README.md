@@ -786,6 +786,17 @@ automation.
   another open document's paragraphs to the current one as
   tracked insertions for review (deleted-revision spans in the
   source are skipped).
+- **Protect group**: **Restrict Editing** enforces Word-style
+  document protection — **Tracked changes** (every edit must be a
+  marked revision; marking cannot be turned off) or **Read only**
+  (the document is locked against all edits), optionally sealed
+  with a password (SHA-256 AG_Password verifier, the same hash
+  Word writes). The button stays pressed while protection is
+  enforced; clicking it again prompts for the password and lifts
+  the restriction. The state is stored in the document — `.abwn`
+  keeps it as `document-protected`/`document-protection-*`
+  properties, and `.docx` exports and re-imports
+  `w:documentProtection` with its attributes intact.
 
 #### View tab
 

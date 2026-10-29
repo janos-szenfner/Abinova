@@ -6702,3 +6702,12 @@ responsibility** — see `README.md`.
   `Hebrew List` reading out of bounds) in the style table, and the
   Arabic-Indic digit list exporting under the `arabicAbjad` name it
   doesn't satisfy — it now exports `decimal`.
+- **Restrict Editing** (Review > Protect): enforce Word-style document
+  protection — *Tracked changes* (all edits forced through revision
+  marking, which cannot be switched off) or *Read only* (the document
+  is locked against edits), optionally sealed with a password using
+  the same SHA-256 `documentProtection` hash Word writes. The state
+  travels with the document: `.docx` exports/re-imports
+  `w:documentProtection` (including its password verifier), `.abwn`
+  keeps it as document properties, and a status-bar notice explains
+  blocked typing.

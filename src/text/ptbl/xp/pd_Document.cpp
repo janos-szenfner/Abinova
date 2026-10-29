@@ -942,6 +942,12 @@ UT_Error PD_Document::_importFile(GsfInput * input, int ieft,
 	m_pPieceTable->setPieceTableState(PTS_Editing);
 	updateFields();
 
+	/* a doc loaded with trackedChanges protection enforced starts
+	 * marking revisions immediately — the restriction has nothing
+	 * to bite on while the flag is off */
+	if (isProtectionTrackedOnly())
+		setMarkRevisions(true);
+
 	if(markClean)
 		_setClean();
 	else
@@ -5668,6 +5674,75 @@ bool PD_Document::isEditingLocked() const
 	return m_pPieceTable->isEditingLocked();
 }
 
+static bool s_docPropTruthy(const PP_AttrProp * pAP, const char * szName)
+{
+	const gchar * v = nullptr;
+	return pAP && pAP->getProperty(szName, v) && v &&
+		   (!strcmp(v, "1") || !strcmp(v, "true") || !strcmp(v, "on"));
+}
+
+bool PD_Document::isProtectionEnforced() const
+{
+	return s_docPropTruthy(getAttrProp(), "document-protected");
+}
+
+std::string PD_Document::getProtectionMode() const
+{
+	const PP_AttrProp * pAP = getAttrProp();
+	const gchar * v = nullptr;
+	if (pAP && pAP->getProperty("document-protection-mode", v) && v)
+		return v;
+	return "";
+}
+
+std::string PD_Document::getProtectionAttrs() const
+{
+	const PP_AttrProp * pAP = getAttrProp();
+	const gchar * v = nullptr;
+	if (pAP && pAP->getProperty("document-protection-attrs", v) && v)
+		return v;
+	return "";
+}
+
+bool PD_Document::isProtectionTrackedOnly() const
+{
+	return isProtectionEnforced() && getProtectionMode() == "trackedChanges";
+}
+
+/* Word's comments/forms restriction modes have no editable-region
+ * machinery here, so every enforced mode except trackedChanges is
+ * approximated as a full read-only lock. */
+bool PD_Document::isProtectionReadOnly() const
+{
+	return isProtectionEnforced() && getProtectionMode() != "trackedChanges";
+}
+
+void PD_Document::setProtection(const char * szMode,
+								const std::string & szAttrs)
+{
+	PP_PropertyVector props = {
+		"document-protected", "1",
+		"document-protection-mode",
+			(szMode && *szMode) ? szMode : "readOnly",
+		"document-protection-attrs", szAttrs
+	};
+	setProperties(props);
+	if (isProtectionTrackedOnly())
+		setMarkRevisions(true);
+	forceDirty();
+}
+
+void PD_Document::clearProtection()
+{
+	PP_PropertyVector props = {
+		"document-protected", "0",
+		"document-protection-mode", "",
+		"document-protection-attrs", ""
+	};
+	setProperties(props);
+	forceDirty();
+}
+
 ///////////////////////////////////////////////////////////////////
 // DataItems represent opaque (and probably binary) data found in
 // the data-section of the document.  These are used, for example,
@@ -8841,6 +8916,12 @@ bool PD_Document::areDocumentFormatsEqual(const AD_Document &D, UT_uint32 &pos) 
 
 void PD_Document::setMarkRevisions(bool bMark)
 {
+	/* a trackedChanges-protected document cannot stop marking —
+	 * that would open an untracked edit path around the
+	 * restriction */
+	if (!bMark && isProtectionTrackedOnly())
+		return;
+
 	if(isMarkRevisions() != bMark)
 	{
 		AD_Document::setMarkRevisions(bMark);
