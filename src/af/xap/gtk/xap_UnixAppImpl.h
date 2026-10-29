@@ -35,6 +35,7 @@ protected:
 	virtual bool openURL(const char * url) override;
 	virtual bool openHelpURL(const char * url) override;
 	virtual void checkForUpdates(XAP_Frame * pFrame) override;
+	virtual void autoCheckForUpdates() override;
 	virtual void openHelpWindow(XAP_Frame * pFrame, const char * page,
 								bool bFocusSearch) override;
 

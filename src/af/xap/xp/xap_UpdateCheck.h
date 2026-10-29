@@ -21,6 +21,8 @@
 
 #include "ut_export.h"
 
+#include <glib.h>
+
 #include <string>
 
 /* outcome of a "check for updates" query */
@@ -38,9 +40,22 @@ struct XAP_UpdateInfo
 ABI_EXPORT void XAP_updateCheckQuery(XAP_UpdateInfo & info,
 									 const char * currentVersion);
 
+/* one release feed endpoint, split for the socket client */
+struct XAP_UpdateFeed
+{
+	std::string	host;
+	guint16		port = 443;
+	std::string	path = "/";
+	bool		tls = true;
+};
+
 /* helpers, exported for the unit tests */
+ABI_EXPORT bool XAP_httpGet(const char * host, guint16 port,
+							const char * path, bool useTls,
+							std::string & bodyOut, std::string & errOut);
 ABI_EXPORT bool XAP_httpsGet(const char * host, const char * path,
 							 std::string & bodyOut, std::string & errOut);
+ABI_EXPORT bool XAP_parseFeedUrl(const char * url, XAP_UpdateFeed & feed);
 ABI_EXPORT bool XAP_parseVersionTag(const std::string & tag, int out[3]);
 ABI_EXPORT std::string XAP_jsonStringValue(const std::string & json,
 										   const char * key);

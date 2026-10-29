@@ -177,6 +177,20 @@
 #define XAP_PREF_KEY_ToolPaletteVisible "ToolPaletteVisible"
 #define XAP_PREF_DEFAULT_ToolPaletteVisible "1"
 
+/* opt-in update check against the GitHub releases feed; OFF by
+ * default for privacy (enabling it phones out once a day) */
+#define XAP_PREF_KEY_CheckForUpdates "CheckForUpdates"
+#define XAP_PREF_DEFAULT_CheckForUpdates "0"
+
+/* bookkeeping for the automatic check: unix-seconds of the last
+ * attempted check (throttles to at most once/day) and the release
+ * the user chose to skip, so the notice does not nag */
+#define XAP_PREF_KEY_UpdateLastCheck "UpdateLastCheck"
+#define XAP_PREF_DEFAULT_UpdateLastCheck ""
+
+#define XAP_PREF_KEY_UpdateDismissedVersion "UpdateDismissedVersion"
+#define XAP_PREF_DEFAULT_UpdateDismissedVersion ""
+
 #else /* XAP_PREFS_SCHEMEID_H */
 #ifdef dcl
 
@@ -225,5 +239,8 @@ dcl(DirMarkerAfterClosingParenthesis)
 dcl(NoMACinUUID)
 dcl(DefaultGraphics)
 dcl(ToolPaletteVisible)
+dcl(CheckForUpdates)
+dcl(UpdateLastCheck)
+dcl(UpdateDismissedVersion)
 #endif /* dcl */
 #endif /* XAP_PREFS_SCHEMEID_H */

@@ -194,6 +194,10 @@ void AP_Dialog_Options::_storeWindowData(void)
 	Save_Pref_Bool( pPrefsScheme, AP_PREF_KEY_SpellCheckInternet, _gatherSpellCheckInternet() );
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+	// update check (opt-in; see XAP_UnixAppImpl::autoCheckForUpdates)
+	Save_Pref_Bool( pPrefsScheme, XAP_PREF_KEY_CheckForUpdates, _gatherCheckForUpdates() );
+
+	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// allow XAP_Prefs to notify all the listeners of changes
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -345,6 +349,11 @@ void AP_Dialog_Options::_storeDataForControl (tControl id)
 					_gatherSpellCheckInternet());
 			break;
 
+		case id_CHECK_CHECK_FOR_UPDATES:
+			Save_Pref_Bool (pPrefsScheme, XAP_PREF_KEY_CheckForUpdates,
+					_gatherCheckForUpdates());
+			break;
+
 		case id_NOTEBOOK:
 		{
 			std::string stPage;
@@ -491,6 +500,11 @@ void AP_Dialog_Options::_populateWindowData(void)
 	}
 	if (pPrefs->getPrefsValueBool(AP_PREF_KEY_SpellCheckInternet, b)) {
 		_setSpellCheckInternet(b);
+	}
+
+	// ------------ update check
+	if (pPrefs->getPrefsValueBool(XAP_PREF_KEY_CheckForUpdates, b)) {
+		_setCheckForUpdates(b);
 	}
 
 	// ------------ the visible page

@@ -87,6 +87,7 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 				   id_CHECK_SPELL_CAPS,
 				   id_CHECK_SPELL_NUMBERS,
 				   id_CHECK_SPELL_INTERNET,
+				   id_CHECK_CHECK_FOR_UPDATES,
 				   id_last };
 
 	// stable page identifiers for the options dialog's stacked pages;
@@ -180,6 +181,8 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 	SET_GATHER			(SpellCheckCaps,	bool);
 	SET_GATHER			(SpellCheckNumbers,	bool);
 	SET_GATHER			(SpellCheckInternet,	bool);
+
+	SET_GATHER			(CheckForUpdates,	bool);
 
 	// so we can save and restore to the same page - pages are addressed
 	// by their stable PAGE_ID_* name, never by index

@@ -83,39 +83,44 @@ abi_tls_event(GSocketClient *, GSocketClientEvent event,
 									  G_TLS_DATABASE(db));
 }
 
-/* blocking HTTPS GET; true when the server gave a 2xx response (body
- * may still be empty, e.g. an empty JSON list), false on any
+/* blocking HTTP(S) GET; true when the server gave a 2xx response
+ * (body may still be empty, e.g. an empty JSON list), false on any
  * transport or HTTP error. On false errOut names the cause */
-bool XAP_httpsGet(const char * host, const char * path,
-				  std::string & bodyOut, std::string & errOut)
+bool XAP_httpGet(const char * host, guint16 port, const char * path,
+				 bool useTls, std::string & bodyOut, std::string & errOut)
 {
 	bodyOut.clear();
 	errOut.clear();
 
-	/* GSocketClient's TLS path is a GIO extension point - it needs a
-	 * runtime module (glib-networking / openssl backend) plus a CA
-	 * bundle. Bundled builds must ship both (see PACK06) or there is
-	 * simply no TLS at all; name the cause instead of a generic
-	 * failure */
-	GTlsBackend * tls = g_tls_backend_get_default();
-	if (!tls || !g_tls_backend_supports_tls(tls))
-	{
-		errOut = "TLS support is unavailable - the GLib TLS module "
-				 "(glib-networking) is missing from this installation.";
-		return false;
-	}
-
 	GError * err = nullptr;
 	GSocketClient * client = g_socket_client_new();
-	g_socket_client_set_tls(client, TRUE);
 	g_socket_client_set_timeout(client, 15);
 
-	// give the TLS connection the bundled CA store, when there is one
-	if (GTlsDatabase * db = abi_update_tls_database())
-		g_signal_connect(client, "event", G_CALLBACK(abi_tls_event), db);
+	if (useTls)
+	{
+		/* GSocketClient's TLS path is a GIO extension point - it
+		 * needs a runtime module (glib-networking / openssl backend)
+		 * plus a CA bundle. Bundled builds must ship both (see
+		 * PACK06) or there is simply no TLS at all; name the cause
+		 * instead of a generic failure */
+		GTlsBackend * tls = g_tls_backend_get_default();
+		if (!tls || !g_tls_backend_supports_tls(tls))
+		{
+			errOut = "TLS support is unavailable - the GLib TLS "
+					 "module (glib-networking) is missing from this "
+					 "installation.";
+			g_object_unref(client);
+			return false;
+		}
+		g_socket_client_set_tls(client, TRUE);
+
+		// give the TLS connection the bundled CA store, when there is one
+		if (GTlsDatabase * db = abi_update_tls_database())
+			g_signal_connect(client, "event", G_CALLBACK(abi_tls_event), db);
+	}
 
 	GSocketConnection * conn = g_socket_client_connect_to_host(
-		client, host, 443, nullptr, &err);
+		client, host, port, nullptr, &err);
 	g_object_unref(client);
 	if (!conn)
 	{
@@ -202,6 +207,94 @@ bool XAP_httpsGet(const char * host, const char * path,
 	return ok;
 }
 
+/* TLS-on-443 shorthand kept for callers/tests written against the
+ * original API */
+bool XAP_httpsGet(const char * host, const char * path,
+				  std::string & bodyOut, std::string & errOut)
+{
+	return XAP_httpGet(host, 443, path, true, bodyOut, errOut);
+}
+
+/* split "http(s)://host[:port][/path]" into a feed; only http and
+ * https are usable transports, anything else is rejected */
+bool XAP_parseFeedUrl(const char * url, XAP_UpdateFeed & feed)
+{
+	if (!url || !*url)
+		return false;
+	std::string u = url;
+	size_t p = u.find("://");
+	if (p == std::string::npos)
+		return false;
+	std::string scheme = u.substr(0, p);
+	if (scheme == "https")
+	{
+		feed.tls = true;
+		feed.port = 443;
+	}
+	else if (scheme == "http")
+	{
+		feed.tls = false;
+		feed.port = 80;
+	}
+	else
+		return false;
+
+	size_t hostStart = p + 3;
+	size_t slash = u.find('/', hostStart);
+	std::string authority = u.substr(
+		hostStart, slash == std::string::npos
+			? std::string::npos : slash - hostStart);
+	feed.path = (slash == std::string::npos) ? "/" : u.substr(slash);
+
+	size_t colon = authority.rfind(':');
+	if (colon != std::string::npos)
+	{
+		const char * portStr = authority.c_str() + colon + 1;
+		if (!*portStr)
+			return false;
+		char * end = nullptr;
+		long port = strtol(portStr, &end, 10);
+		if (end == portStr || *end || port <= 0 || port > 65535)
+			return false;
+		feed.port = static_cast<guint16>(port);
+		authority.resize(colon);
+	}
+	if (authority.empty())
+		return false;
+	feed.host = authority;
+	return true;
+}
+
+/* the real feed, or the test override: ABINOVA_UPDATE_URL replaces
+ * the "latest release" endpoint wholesale and
+ * ABINOVA_UPDATE_TAGS_URL the tag-list fallback (unset = the
+ * equivalent GitHub endpoint; an empty tags endpoint = no fallback).
+ * The override exists so tests can point the check at a plain-HTTP
+ * mock without shipping code that phones anywhere but GitHub. */
+static void abi_update_feeds(XAP_UpdateFeed & latest, XAP_UpdateFeed & tags,
+							 bool & tagsValid)
+{
+	latest.host = "api.github.com";
+	latest.port = 443;
+	latest.path = "/repos/janos-szenfner/Abinova/releases/latest";
+	latest.tls = true;
+
+	tags = latest;
+	tags.path = "/repos/janos-szenfner/Abinova/tags";
+	tagsValid = true;
+
+	const char * env = g_getenv("ABINOVA_UPDATE_URL");
+	if (env && *env)
+	{
+		tagsValid = false;
+		if (!XAP_parseFeedUrl(env, latest))
+			latest.host.clear();	/* poisoned: query fails fast */
+		const char * envTags = g_getenv("ABINOVA_UPDATE_TAGS_URL");
+		if (envTags && *envTags)
+			tagsValid = XAP_parseFeedUrl(envTags, tags);
+	}
+}
+
 /* minimal "key":"value" extraction - good enough for tag names/URLs */
 std::string XAP_jsonStringValue(const std::string & json, const char * key)
 {
@@ -254,11 +347,21 @@ bool XAP_parseVersionTag(const std::string & tag, int out[3])
 
 void XAP_updateCheckQuery(XAP_UpdateInfo & info, const char * currentVersion)
 {
+	XAP_UpdateFeed latest, tags;
+	bool tagsValid;
+	abi_update_feeds(latest, tags, tagsValid);
+
 	/* newest published release first... */
 	std::string body, err;
-	bool answered = XAP_httpsGet(
-		"api.github.com",
-		"/repos/janos-szenfner/Abinova/releases/latest", body, err);
+	bool answered = false;
+	if (!latest.host.empty())
+	{
+		answered = XAP_httpGet(latest.host.c_str(), latest.port,
+							   latest.path.c_str(), latest.tls,
+							   body, err);
+	}
+	else
+		err = "the update feed URL is not a valid http(s) URL";
 	if (answered)
 	{
 		info.version = XAP_jsonStringValue(body, "tag_name");
@@ -267,13 +370,12 @@ void XAP_updateCheckQuery(XAP_UpdateInfo & info, const char * currentVersion)
 
 	/* ...otherwise fall back to the newest git tag (a repo with no
 	 * releases at all answers 404 on releases/latest) */
-	if (info.version.empty())
+	if (info.version.empty() && tagsValid)
 	{
 		body.clear();
 		err.clear();
-		if (XAP_httpsGet("api.github.com",
-						 "/repos/janos-szenfner/Abinova/tags",
-						 body, err))
+		if (XAP_httpGet(tags.host.c_str(), tags.port,
+						tags.path.c_str(), tags.tls, body, err))
 		{
 			answered = true;
 			info.version = XAP_jsonStringValue(body, "name");

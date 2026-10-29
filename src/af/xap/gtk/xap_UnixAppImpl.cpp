@@ -32,6 +32,7 @@
 #include "xap_UnixAppImpl.h"
 #include "xap_UnixHelpWindow.h"
 #include "xap_UpdateCheck.h"
+#include "xap_Prefs.h"
 #include "xap_Frame.h"
 #include "xap_UnixFrameImpl.h"
 #include "ut_string_class.h"
@@ -228,6 +229,169 @@ void XAP_UnixAppImpl::checkForUpdates(XAP_Frame * pFrame)
 	ui->link = static_cast<GtkWidget *>(g_object_ref(link));
 
 	GTask * task = g_task_new(nullptr, nullptr, abi_update_check_done, ui);
+	g_task_run_in_thread(task, abi_update_check_thread);
+	g_object_unref(task);
+}
+
+/* --------------------------------- automatic (opt-in) update check --- */
+
+namespace
+{
+
+/* at most one feed hit per day, counted from the last attempt */
+constexpr gint64 ABI_UPDATE_CHECK_INTERVAL_SECS = 24 * 60 * 60;
+
+static void abi_update_dismiss_version(const std::string & version)
+{
+	XAP_Prefs * prefs = XAP_App::getApp()->getPrefs();
+	if (!prefs)
+		return;
+	if (XAP_PrefsScheme * scheme = prefs->getCurrentScheme(true))
+	{
+		scheme->setValue(XAP_PREF_KEY_UpdateDismissedVersion, version);
+		prefs->savePrefsFile();
+	}
+}
+
+/* "Skip This Version" - remember it so this release stops asking */
+static void abi_update_skip_clicked(GtkWidget *, gpointer win)
+{
+	if (const gchar * v = static_cast<const gchar *>(
+			g_object_get_data(G_OBJECT(win), "abinova-update-version")))
+		abi_update_dismiss_version(v);
+	gtk_window_destroy(GTK_WINDOW(win));
+}
+
+/* non-modal "a new release is out" notice: a link to the release
+ * page, "Remind Me Later" to close without prejudice and "Skip This
+ * Version" to silence it for this release */
+static void abi_update_show_notice(const XAP_UpdateInfo & info)
+{
+	GtkWidget * win = gtk_window_new();
+	gtk_window_set_title(GTK_WINDOW(win), "Update Available");
+	gtk_window_set_resizable(GTK_WINDOW(win), FALSE);
+	gtk_window_set_default_size(GTK_WINDOW(win), 360, -1);
+
+	/* stay attached to whichever frame is frontmost now, without
+	 * being modal - this is a notice, not a demand */
+	if (XAP_Frame * f = XAP_App::getApp()->getLastFocussedFrame())
+	{
+		XAP_UnixFrameImpl * impl =
+			static_cast<XAP_UnixFrameImpl *>(f->getFrameImpl());
+		if (impl && impl->getTopLevelWindow())
+			gtk_window_set_transient_for(
+				GTK_WINDOW(win),
+				GTK_WINDOW(impl->getTopLevelWindow()));
+	}
+
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
+	gtk_widget_set_margin_start(box, 24);
+	gtk_widget_set_margin_end(box, 24);
+	gtk_widget_set_margin_top(box, 20);
+	gtk_widget_set_margin_bottom(box, 20);
+
+	std::string text = "Abinova " + info.version +
+		" is available.\nYou are running " + PACKAGE_VERSION + ".";
+	GtkWidget * label = gtk_label_new(text.c_str());
+	gtk_label_set_wrap(GTK_LABEL(label), TRUE);
+	gtk_label_set_justify(GTK_LABEL(label), GTK_JUSTIFY_CENTER);
+	gtk_widget_set_halign(label, GTK_ALIGN_CENTER);
+	gtk_box_append(GTK_BOX(box), label);
+
+	GtkWidget * link = gtk_link_button_new_with_label(
+		info.url.c_str(), "Download the latest version");
+	gtk_widget_set_halign(link, GTK_ALIGN_CENTER);
+	gtk_box_append(GTK_BOX(box), link);
+
+	GtkWidget * btns = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+	gtk_widget_set_halign(btns, GTK_ALIGN_CENTER);
+	GtkWidget * later = gtk_button_new_with_label("Remind Me Later");
+	g_signal_connect_swapped(later, "clicked",
+							 G_CALLBACK(gtk_window_destroy), win);
+	gtk_box_append(GTK_BOX(btns), later);
+	GtkWidget * skip = gtk_button_new_with_label("Skip This Version");
+	g_signal_connect(skip, "clicked",
+					 G_CALLBACK(abi_update_skip_clicked), win);
+	gtk_box_append(GTK_BOX(btns), skip);
+	gtk_box_append(GTK_BOX(box), btns);
+
+	/* the skip button reads the version back off the window; freed
+	 * with it */
+	g_object_set_data_full(G_OBJECT(win), "abinova-update-version",
+						   g_strdup(info.version.c_str()), g_free);
+
+	gtk_window_set_child(GTK_WINDOW(win), box);
+	gtk_window_present(GTK_WINDOW(win));
+}
+
+static void abi_auto_update_check_done(GObject * /*source*/,
+									   GAsyncResult * res,
+									   gpointer /*data*/)
+{
+	std::unique_ptr<XAP_UpdateInfo> info(
+		static_cast<XAP_UpdateInfo *>(
+			g_task_propagate_pointer(G_TASK(res), nullptr)));
+
+	/* no answer, transport error, or nothing newer: the automatic
+	 * check stays silent - only a genuinely newer release speaks */
+	if (!info || !info->fetched || !info->newer)
+		return;
+
+	/* a release the user already skipped does not nag again */
+	std::string dismissed;
+	if (XAP_Prefs * prefs = XAP_App::getApp()->getPrefs())
+		prefs->getPrefsValue(XAP_PREF_KEY_UpdateDismissedVersion,
+						   dismissed);
+	if (!dismissed.empty() && dismissed == info->version)
+		return;
+
+	try
+	{
+		abi_update_show_notice(*info);
+	}
+	catch (...)
+	{
+		UT_DEBUGMSG(("abi_auto_update_check_done: exception while "
+					 "showing the update notice\n"));
+	}
+}
+
+} // anonymous namespace
+
+void XAP_UnixAppImpl::autoCheckForUpdates()
+{
+	XAP_Prefs * prefs = XAP_App::getApp()->getPrefs();
+	if (!prefs)
+		return;
+
+	/* strictly opt-in - the key defaults to off, so an unset or
+	 * false value means the user never asked to be phoned home */
+	bool enabled = false;
+	prefs->getPrefsValueBool(XAP_PREF_KEY_CheckForUpdates, enabled);
+	if (!enabled)
+		return;
+
+	/* at most once a day, counted from the last attempt (a skewed
+	 * clock reading in the future is treated as due) */
+	std::string lastStr;
+	gint64 last = 0;
+	if (prefs->getPrefsValue(XAP_PREF_KEY_UpdateLastCheck, lastStr))
+		last = g_ascii_strtoll(lastStr.c_str(), nullptr, 10);
+	gint64 now = g_get_real_time() / G_USEC_PER_SEC;
+	if (last > 0 && now >= last &&
+		now - last < ABI_UPDATE_CHECK_INTERVAL_SECS)
+		return;
+
+	/* record the attempt now so even an offline failure throttles */
+	if (XAP_PrefsScheme * scheme = prefs->getCurrentScheme(true))
+	{
+		scheme->setValue(XAP_PREF_KEY_UpdateLastCheck,
+						 std::to_string(now));
+		prefs->savePrefsFile();
+	}
+
+	GTask * task = g_task_new(nullptr, nullptr,
+							  abi_auto_update_check_done, nullptr);
 	g_task_run_in_thread(task, abi_update_check_thread);
 	g_object_unref(task);
 }

@@ -248,6 +248,7 @@ public:
 	bool						openURL(const char * url) { return m_pImpl->openURL(url); }
 	bool						openHelpURL(const char * url) { return m_pImpl->openHelpURL(url); }
 	void						checkForUpdates(XAP_Frame * pFrame) { m_pImpl->checkForUpdates(pFrame); }
+	void						autoCheckForUpdates() { m_pImpl->autoCheckForUpdates(); }
 	void						openHelpWindow(XAP_Frame * pFrame, const char * page,
 											   bool bFocusSearch)
 							{ m_pImpl->openHelpWindow(pFrame, page, bFocusSearch); }

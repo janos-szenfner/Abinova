@@ -48,6 +48,12 @@ void XAP_AppImpl::checkForUpdates(XAP_Frame * /*pFrame*/)
 	openURL("https://github.com/janos-szenfner/Abinova/releases");
 }
 
+void XAP_AppImpl::autoCheckForUpdates()
+{
+	/* nothing in the base impl - platforms with an async query +
+	 * notification UI override this (see xap_UnixAppImpl.cpp) */
+}
+
 void XAP_AppImpl::openHelpWindow(XAP_Frame * /*pFrame*/, const char * page,
 								 bool /*bFocusSearch*/)
 {

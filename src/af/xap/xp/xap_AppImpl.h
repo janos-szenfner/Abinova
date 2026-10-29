@@ -45,6 +45,9 @@ protected:
 	/* check the project site for a newer version; default just opens
 	 * the download page, toolkit impls may show an in-app dialog */
 	virtual void checkForUpdates(XAP_Frame * pFrame);
+	/* once-per-day background check driven by the CheckForUpdates
+	 * preference; default does nothing (no feed impl) */
+	virtual void autoCheckForUpdates();
 	/* show the built-in help browser; page is a path relative to the
 	 * language dir ("index.html"), bFocusSearch focuses the search
 	 * field; default opens the localized help URL externally */

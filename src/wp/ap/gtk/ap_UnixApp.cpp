@@ -1138,6 +1138,9 @@ void AP_UnixApp::_appActivate()
 		if (AP_Args::m_sFiles == nullptr)
 			m_pPristineFrame = getLastFocussedFrame();
 		recoverAutosavedDocs();
+		/* opt-in "check for updates" - reads the pref and throttles
+		 * itself to one feed hit a day; no-op when disabled */
+		autoCheckForUpdates();
 		return;
 	}
 
@@ -1160,6 +1163,7 @@ void AP_UnixApp::_appOpen(GFile* files[], gint n_files)
 		 * files opened below ARE the command line. */
 		m_bFirstActivationDone = true;
 		recoverAutosavedDocs();
+		autoCheckForUpdates();
 	}
 	for (gint i = 0; i < n_files; i++) {
 		char* uri = g_file_get_uri(files[i]);

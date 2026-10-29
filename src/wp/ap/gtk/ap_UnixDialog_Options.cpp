@@ -271,6 +271,10 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
 
     m_switchEnableOverwrite = WID ( "swOverwrite" );
 
+    // Updates - the label text lives in the .ui like the
+    // default-format label
+    m_switchCheckForUpdates = WID ( "swCheckForUpdates" );
+
     // Documents
 
     // Auto Save
@@ -508,6 +512,11 @@ GtkWidget *AP_UnixDialog_Options::_lookupWidget ( tControl id )
         case id_CHECK_SPELL_INTERNET:
             return m_switchSpellCheckInternet;
 
+            // - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            // updates
+        case id_CHECK_CHECK_FOR_UPDATES:
+            return m_switchCheckForUpdates;
+
             // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             // general
 
@@ -585,6 +594,8 @@ DEFINE_GET_SET_BOOL ( SpellCheckAuto )
 DEFINE_GET_SET_BOOL ( SpellCheckCaps )
 DEFINE_GET_SET_BOOL ( SpellCheckNumbers )
 DEFINE_GET_SET_BOOL ( SpellCheckInternet )
+
+DEFINE_GET_SET_BOOL ( CheckForUpdates )
 
 // dummy implementations. XP pref backend isn't very smart.
 #define DEFINE_GET_SET_BOOL_DUMMY(Bool)     \

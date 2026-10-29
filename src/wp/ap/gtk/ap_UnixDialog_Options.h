@@ -98,6 +98,10 @@ public:
 		SET_GATHER (SpellCheckNumbers,  bool);
 		SET_GATHER (SpellCheckInternet, bool);
 
+	// Updates
+
+		SET_GATHER (CheckForUpdates,    bool);
+
 	// unimplemented UI-wise. We need dummy implementations to satisfy the XP framework, though
 
 	SET_GATHER			(PrefsAutoSave,			bool);
@@ -167,6 +171,10 @@ public:
 		GtkWidget *m_switchSpellCheckCaps;
 		GtkWidget *m_switchSpellCheckNumbers;
 		GtkWidget *m_switchSpellCheckInternet;
+
+	// Updates
+
+		GtkWidget *m_switchCheckForUpdates;
 
     		// Dummy
 		bool m_boolEnableSmoothScrolling;

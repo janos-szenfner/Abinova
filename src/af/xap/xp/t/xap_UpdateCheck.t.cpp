@@ -62,6 +62,35 @@ TFTEST_MAIN("XAP_parseVersionTag")
 	TFPASS(v[0] == INT_MAX);
 }
 
+TFTEST_MAIN("XAP_parseFeedUrl")
+{
+	XAP_UpdateFeed f;
+
+	TFPASS(XAP_parseFeedUrl("https://api.github.com/r/x/releases/latest", f));
+	TFPASS(f.tls && f.port == 443 && f.host == "api.github.com" &&
+		   f.path == "/r/x/releases/latest");
+
+	/* plain-HTTP mock endpoints carry an explicit port */
+	TFPASS(XAP_parseFeedUrl("http://127.0.0.1:18099/latest", f));
+	TFPASS(!f.tls && f.port == 18099 && f.host == "127.0.0.1" &&
+		   f.path == "/latest");
+
+	/* defaults: https->443, http->80, missing path->"/" */
+	TFPASS(XAP_parseFeedUrl("https://example.com", f));
+	TFPASS(f.tls && f.port == 443 && f.path == "/");
+	TFPASS(XAP_parseFeedUrl("http://example.com/x", f));
+	TFPASS(!f.tls && f.port == 80 && f.path == "/x");
+
+	/* junk is rejected, not silently treated as a feed */
+	TFFAIL(XAP_parseFeedUrl("", f));
+	TFFAIL(XAP_parseFeedUrl(nullptr, f));
+	TFFAIL(XAP_parseFeedUrl("ftp://example.com/x", f));
+	TFFAIL(XAP_parseFeedUrl("https:///x", f));
+	TFFAIL(XAP_parseFeedUrl("https://example.com:0/x", f));
+	TFFAIL(XAP_parseFeedUrl("https://example.com:99999/x", f));
+	TFFAIL(XAP_parseFeedUrl("example.com/x", f));
+}
+
 TFTEST_MAIN("XAP_jsonStringValue")
 {
 	const std::string doc =

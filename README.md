@@ -832,7 +832,11 @@ automation.
   dedicated macOS System Settings or Windows WinHTTP/WinINET
   integration, so on those platforms behind a corporate proxy
   either set `https_proxy` or the check reports it cannot reach
-  the server.
+  the server. An opt-in **"Check for updates automatically"**
+  switch in Preferences runs the same query at most once a day in
+  the background and shows a non-modal notice — with a "Skip This
+  Version" choice — only when a newer release exists; it is off
+  by default.
 
 #### Contextual tabs
 

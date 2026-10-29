@@ -107,6 +107,15 @@ responsibility** — see `README.md`.
   also reachable via control-channel call data
   (`textToTable` `tabs`/`commas`/`paras:N`/`other:C[:N]` and
   `splitCellsInto` `rows,cols`).
+- **Optional automatic update check** — Preferences gains a
+  "Check for updates automatically" switch, off by default so the
+  app never contacts the network unless asked. When enabled it
+  queries the GitHub releases feed at most once a day on a
+  background thread; a newer release pops a non-modal notice with a
+  download link, a "Remind Me Later" button and a "Skip This
+  Version" button that silences just that release. The last-check
+  timestamp and the skipped version persist in the profile, and an
+  offline or failed check stays silent.
 
 ### Maintenance
 
