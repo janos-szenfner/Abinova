@@ -127,6 +127,8 @@
 #include "ap_Dialog_MergeCells.h"
 #include "ap_Dialog_SplitCells.h"
 #include "ap_Dialog_TextToTable.h"
+#include "ap_Dialog_SortTable.h"
+#include "ap_Dialog_CellMargins.h"
 #include "ap_Dialog_Tabs.h"
 #include "ap_Dialog_RestrictEditing.h"
 #include "ap_Dialog_FormatTable.h"
@@ -459,6 +461,9 @@ public:
 	static EV_EditMethod_Fn tableCellWidth;
 	static EV_EditMethod_Fn tableCellHeight;
 	static EV_EditMethod_Fn sortTable;
+	static EV_EditMethod_Fn sortTableDialog;
+	static EV_EditMethod_Fn cellMargins;
+	static EV_EditMethod_Fn cellMarginsDialog;
 	static EV_EditMethod_Fn repeatHeaderRows;
 	static EV_EditMethod_Fn tableToTextParas;
 	static EV_EditMethod_Fn toggleTableGridlines;
@@ -1047,6 +1052,8 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(cellAlignTopCenter),	0,	""),
 	EV_EditMethod(NF(cellAlignTopLeft),		0,	""),
 	EV_EditMethod(NF(cellAlignTopRight),	0,	""),
+	EV_EditMethod(NF(cellMargins),          0,  ""),
+	EV_EditMethod(NF(cellMarginsDialog),    0,  ""),
 	EV_EditMethod(NF(cellTextDirection),	_D_,""),
 	EV_EditMethod(NF(clearFormatting),		0,	""),
 	EV_EditMethod(NF(clearParaFormatting),	0,	""),
@@ -1555,6 +1562,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(sortRowsAscend),       0,  ""),
 	EV_EditMethod(NF(sortRowsDescend),      0,  ""),
 	EV_EditMethod(NF(sortTable),            0,  ""),
+	EV_EditMethod(NF(sortTableDialog),      0,  ""),
 #ifdef ENABLE_SPELL
 	EV_EditMethod(NF(spellAdd), 			0,	""),
 	EV_EditMethod(NF(spellIgnoreAll),		0,	""),
@@ -19753,8 +19761,9 @@ Defun(tableCellHeight)
 }
 
 /*!
- * Table sort from the Sort popover; pCallData is
- * "asc"/"desc", optionally with ":h" to keep a header row in place.
+ * Table sort from the Sort popover; pCallData is "asc"/"desc",
+ * optionally with ":h" to keep a header row in place, ":c=N" for the
+ * 1-based sort column and ":t=text|num|date|auto" for the key type.
  */
 Defun(sortTable)
 {
@@ -19765,7 +19774,197 @@ Defun(sortTable)
 	const char * sz = arg.utf8_str();
 	bool bAsc = strncmp(sz, "desc", 4) != 0;
 	bool bHeader = strstr(sz, ":h") != nullptr;
-	return pView->cmdSortTableRows(bAsc, -1, bHeader);
+	UT_sint32 iCol = -1;
+	UT_sint32 iType = FV_View::TABLE_SORT_AUTO;
+	const char * pC = strstr(sz, ":c=");
+	if (pC)
+	{
+		iCol = atoi(pC + 3) - 1;
+	}
+	const char * pT = strstr(sz, ":t=");
+	if (pT)
+	{
+		if (!strncmp(pT + 3, "num", 3))       iType = FV_View::TABLE_SORT_NUMBER;
+		else if (!strncmp(pT + 3, "date", 4)) iType = FV_View::TABLE_SORT_DATE;
+		else if (!strncmp(pT + 3, "text", 4)) iType = FV_View::TABLE_SORT_TEXT;
+	}
+	return pView->cmdSortTableRows(bAsc, iCol, bHeader, iType);
+}
+
+/*!
+ * Word's Table Layout Sort dialog: column, type (text/number/date),
+ * direction, header-row option.
+ */
+static bool s_doSortTableDlg(FV_View * pView)
+{
+	UT_return_val_if_fail(pView, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	pFrame->raise();
+
+	XAP_DialogFactory * pDialogFactory
+		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+
+	AP_Dialog_SortTable * pDialog
+		= static_cast<AP_Dialog_SortTable *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_SORT_TABLE)));
+	UT_return_val_if_fail(pDialog, false);
+
+	UT_sint32 numRows = 0, numCols = 0;
+	if (pView->getTableRowsCols(&numRows, &numCols))
+	{
+		pDialog->setNumColumns(numCols);
+	}
+	UT_sint32 cL = 0, cR = 0, cT = 0, cB = 0;
+	if (pView->getCellParams(pView->getPoint(), &cL, &cR, &cT, &cB))
+	{
+		pDialog->setColumn(cL + 1);
+	}
+	pDialog->runModal(pFrame);
+
+	if (pDialog->getAnswer() == AP_Dialog_SortTable::a_OK)
+	{
+		pView->cmdSortTableRows(pDialog->isAscending(),
+								pDialog->getColumn() - 1,
+								pDialog->hasHeader(),
+								pDialog->mapSortType());
+	}
+
+	pDialogFactory->releaseDialog(pDialog);
+	return true;
+}
+
+Defun1(sortTableDialog)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return s_doSortTableDlg(pView);
+}
+
+/* Word's Table Options cell-margin presets: sides first */
+static bool s_cellMarginPreset(const char * sz, std::string & t,
+							   std::string & r, std::string & b,
+							   std::string & l)
+{
+	if (!strcmp(sz, "none"))
+	{
+		t = r = b = l = "0in";
+		return true;
+	}
+	if (!strcmp(sz, "normal"))
+	{
+		t = b = "0in"; r = l = "0.08in";
+		return true;
+	}
+	if (!strcmp(sz, "narrow"))
+	{
+		t = b = "0in"; r = l = "0.02in";
+		return true;
+	}
+	if (!strcmp(sz, "wide"))
+	{
+		t = b = "0in"; r = l = "0.15in";
+		return true;
+	}
+	return false;
+}
+
+/*!
+ * Cell padding from the Cell Margins popover; pCallData is a preset
+ * ("none"|"normal"|"narrow"|"wide") or four comma-separated dimension
+ * strings "top,right,bottom,left" (an empty edge clears it).
+ */
+Defun(cellMargins)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	std::string t, r, b, l;
+	const char * sz = arg.utf8_str();
+	if (!s_cellMarginPreset(sz, t, r, b, l))
+	{
+		char buf[256];
+		strncpy(buf, sz, sizeof(buf) - 1);
+		buf[sizeof(buf) - 1] = 0;
+		char * save = nullptr;
+		char * tok = strtok_r(buf, ",", &save);
+		UT_return_val_if_fail(tok, false);
+		t = tok;
+		tok = strtok_r(nullptr, ",", &save);
+		if (tok) r = tok;
+		tok = strtok_r(nullptr, ",", &save);
+		if (tok) b = tok;
+		tok = strtok_r(nullptr, ",", &save);
+		if (tok) l = tok;
+	}
+	return pView->cmdSetCellMargins(t.c_str(), r.c_str(),
+									b.c_str(), l.c_str());
+}
+
+/*!
+ * Word's Table Layout Cell Margins dialog: per-edge cell padding in
+ * the current ruler units.
+ */
+static bool s_doCellMarginsDlg(FV_View * pView)
+{
+	UT_return_val_if_fail(pView, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	pFrame->raise();
+
+	XAP_DialogFactory * pDialogFactory
+		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+
+	AP_Dialog_CellMargins * pDialog
+		= static_cast<AP_Dialog_CellMargins *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_CELL_MARGINS)));
+	UT_return_val_if_fail(pDialog, false);
+
+	/* prefill the caret cell's margins; the layout default is 0.03in */
+	static const char * edgeProps[4] = {
+		"cell-margin-top", "cell-margin-right",
+		"cell-margin-bottom", "cell-margin-left"
+	};
+	for (int e = 0; e < 4; ++e)
+	{
+		gchar * szVal = nullptr;
+		if (pView->getCellProperty(pView->getPoint(), edgeProps[e],
+								   szVal) && szVal && *szVal)
+		{
+			/* borrowed pointer - the piece table owns the value */
+			pDialog->setMarginInches(e, UT_convertToInches(szVal));
+		}
+		else
+		{
+			pDialog->setMarginInches(e, 0.03);
+		}
+	}
+	pDialog->runModal(pFrame);
+
+	if (pDialog->getAnswer() == AP_Dialog_CellMargins::a_OK)
+	{
+		std::string dims[4];
+		for (int e = 0; e < 4; ++e)
+		{
+			dims[e] = UT_std_string_sprintf("%.4gin",
+											pDialog->getMarginInches(e));
+		}
+		pView->cmdSetCellMargins(dims[0].c_str(), dims[1].c_str(),
+								 dims[2].c_str(), dims[3].c_str());
+	}
+
+	pDialogFactory->releaseDialog(pDialog);
+	return true;
+}
+
+Defun1(cellMarginsDialog)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return s_doCellMarginsDlg(pView);
 }
 
 /* directional merge for the Table Layout Merge Cells popover:

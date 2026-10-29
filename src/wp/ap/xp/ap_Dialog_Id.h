@@ -77,6 +77,8 @@ enum AP_Dialog_Id: uint16_t
 	AP_DIALOG_ID_ZOTERO, /* Zotero citation search + insert */
 	AP_DIALOG_ID_RESTRICT_EDITING, /* document protection start */
 	AP_DIALOG_ID_TABS, /* tab stops (ruler double-click / Format) */
+	AP_DIALOG_ID_SORT_TABLE, /* Table Layout: Sort dialog */
+	AP_DIALOG_ID_CELL_MARGINS, /* Table Layout: cell margins (padding) */
 
 	/* ... add others here ... */
 

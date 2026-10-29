@@ -92,6 +92,8 @@
 #   include "ap_UnixDialog_MergeCells.h"
 #   include "ap_UnixDialog_SplitCells.h"
 #   include "ap_UnixDialog_TextToTable.h"
+#   include "ap_UnixDialog_SortTable.h"
+#   include "ap_UnixDialog_CellMargins.h"
 #   include "ap_UnixDialog_RestrictEditing.h"
 #   include "ap_UnixDialog_FormatTable.h"
 #   include "ap_UnixDialog_FormatFootnotes.h"
@@ -184,6 +186,8 @@
 	DeclareDialog(AP_DIALOG_ID_MERGE_CELLS,		AP_UnixDialog_MergeCells)
 	DeclareDialog(AP_DIALOG_ID_SPLIT_CELLS,		AP_UnixDialog_SplitCells)
 	DeclareDialog(AP_DIALOG_ID_TEXT_TO_TABLE,		AP_UnixDialog_TextToTable)
+	DeclareDialog(AP_DIALOG_ID_SORT_TABLE,		AP_UnixDialog_SortTable)
+	DeclareDialog(AP_DIALOG_ID_CELL_MARGINS,	AP_UnixDialog_CellMargins)
 	DeclareDialog(AP_DIALOG_ID_RESTRICT_EDITING,	AP_UnixDialog_RestrictEditing)
 	DeclareDialog(AP_DIALOG_ID_FORMAT_TABLE,	AP_UnixDialog_FormatTable)
 	DeclareDialog(AP_DIALOG_ID_FORMAT_FOOTNOTES,AP_UnixDialog_FormatFootnotes)

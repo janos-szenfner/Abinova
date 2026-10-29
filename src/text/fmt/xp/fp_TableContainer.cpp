@@ -73,6 +73,7 @@
 #include "fp_FootnoteContainer.h"
 #include "fp_FrameContainer.h"
 #include "gr_Painter.h"
+#include "gr_CairoGraphics.h"
 #include "pd_Document.h"
 #if BENCHLAYOUT
 #include <time.h>
@@ -158,6 +159,185 @@ fp_CellContainer::~fp_CellContainer()
 bool fp_CellContainer::isRepeated(void) const
 {
 	return m_bIsRepeated;
+}
+
+/*!
+ * Clockwise rotation of the cell's text stack in degrees, from the
+ * "cell-text-direction" property (the raw OOXML w:textDirection
+ * token).  tbRl (and the *V wordArt-style variants) run lines top to
+ * bottom stacking right to left (90 degrees); btLr runs bottom to top
+ * stacking left to right (270 degrees).  Mirrored on
+ * fp_FrameContainer::getTextRotation: the content is laid out in a
+ * logical space whose wrap axis is the cell's physical height and
+ * drawn rotated into the box.
+ */
+int fp_CellContainer::getTextRotation(void) const
+{
+	fl_CellLayout * pCL = static_cast<fl_CellLayout *>(getSectionLayout());
+	const PP_AttrProp * pAP = nullptr;
+	if (pCL)
+	{
+		pCL->getAP(pAP);
+	}
+	const gchar * sz = nullptr;
+	if (!pAP || !pAP->getProperty("cell-text-direction", sz) ||
+		!sz || !*sz)
+	{
+		return 0;
+	}
+	if (!strcmp(sz, "btLr"))
+	{
+		return 270;
+	}
+	if (!strcmp(sz, "tbRl") || !strcmp(sz, "lrTbV") ||
+		!strcmp(sz, "tbRlV") || !strcmp(sz, "tbLrV"))
+	{
+		return 90;
+	}
+	return 0;
+}
+
+UT_sint32 fp_CellContainer::getWidth(void) const
+{
+	/* vertical text: the logical wrap axis is the cell's physical
+	 * height, which the row sizing derives from this same content -
+	 * an unresolved circle.  Bound it by the page's column height:
+	 * paragraphs then run to one vertical line each and the physical
+	 * height grows to the logical extent (sizeRequest/layout swap
+	 * the axes).  Physical callers want getFullWidth(). */
+	if (getTextRotation() != 0)
+	{
+		fl_DocSectionLayout * pDSL =
+			getSectionLayout()->getDocSectionLayout();
+		if (pDSL)
+		{
+			UT_sint32 iColH = pDSL->getActualColumnHeight();
+			if (iColH > 0)
+			{
+				return iColH;
+			}
+		}
+		return UT_LAYOUT_RESOLUTION * 10;
+	}
+	return fp_VerticalContainer::getWidth();
+}
+
+/* the physical box for damage/selection - the base implementation
+ * would report the logical wrap bound as the box width */
+std::optional<UT_Rect> fp_CellContainer::getScreenRect() const
+{
+	if (getTextRotation() == 0)
+	{
+		return fp_VerticalContainer::getScreenRect();
+	}
+	UT_sint32 xoff, yoff;
+	getScreenOffsets(this, xoff, yoff);
+	return std::optional<UT_Rect>(std::in_place_t(), xoff, yoff,
+								  getFullWidth(), getFullHeight());
+}
+
+/* inverse of the vertical-text paint transform: maps a rect in the
+ * cell's physical (screen) space to the logical space the content is
+ * laid out in - same mapping fp_FrameContainer's s_unrotateFrameRect
+ * uses for "frame-text-direction".  (ox,oy) is the box origin in
+ * draw-arg screen coords, iw/ih the physical box extents. */
+static void s_unrotateCellRect(UT_Rect & r, UT_sint32 ox, UT_sint32 oy,
+							   UT_sint32 iw, UT_sint32 ih, int rot)
+{
+	UT_Rect t;
+	if (rot == 90)
+	{
+		t.left = ox + r.top - oy;
+		t.top = oy + ox + iw - (r.left + r.width);
+		t.width = r.height;
+		t.height = r.width;
+	}
+	else
+	{
+		t.left = ox + oy + ih - (r.top + r.height);
+		t.top = oy + r.left - ox;
+		t.width = r.height;
+		t.height = r.width;
+	}
+	r = t;
+}
+
+/* shared prologue for the rotated-content draw paths: returns the
+ * cairo context under the logical->physical transform, or nullptr
+ * (screen paints outside a paint cycle keep iTextRot at 0 too).
+ * Applies the inherited clip in logical space so the lazy GR clip
+ * lands on the physical box. */
+static cairo_t * s_cellTextRotateBegin(fp_CellContainer * pCell,
+									   dg_DrawArgs * pDA,
+									   GR_Graphics * pG, int iTextRot)
+{
+	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
+	if (!pCG ||
+		(pCG->getPaintCount() <= 0 &&
+		 pG->queryProperties(GR_Graphics::DGP_SCREEN)))
+	{
+		return nullptr;
+	}
+	cairo_t * cr = pCG->getCairo();
+	if (!cr)
+	{
+		return nullptr;
+	}
+	UT_sint32 iCellX = pDA->xoff + pCell->getX();
+	UT_sint32 iCellY = pDA->yoff + pCell->getY();
+	UT_sint32 iInnerW = pCell->getFullWidth();
+	UT_sint32 iInnerH = pCell->getFullHeight();
+
+	/* intersect the inherited clip with the cell box, then unrotate
+	 * it into the logical space so children clip to the cell edges */
+	const UT_Rect * pClip = pG->getClipRect();
+	UT_Rect box(iCellX, iCellY, iInnerW, iInnerH);
+	UT_Rect rClip;
+	if (pClip && pClip->intersectsRect(&box))
+	{
+		rClip = *pClip;
+		UT_sint32 r = UT_MIN(pClip->left + pClip->width,
+							 box.left + box.width);
+		UT_sint32 b = UT_MIN(pClip->top + pClip->height,
+							 box.top + box.height);
+		rClip.left = UT_MAX(pClip->left, box.left);
+		rClip.top = UT_MAX(pClip->top, box.top);
+		rClip.width = r - rClip.left;
+		rClip.height = b - rClip.top;
+	}
+	else if (!pClip)
+	{
+		rClip = box;
+	}
+	else
+	{
+		rClip = box;
+	}
+	s_unrotateCellRect(rClip, iCellX, iCellY, iInnerW, iInnerH, iTextRot);
+	pG->setClipRect(&rClip);
+
+	double ox = pG->tdu(iCellX), oy = pG->tdu(iCellY);
+	cairo_save(cr);
+	if (iTextRot == 90)
+	{
+		cairo_translate(cr, pG->tdu(iCellX + iInnerW), oy);
+	}
+	else
+	{
+		cairo_translate(cr, ox, pG->tdu(iCellY + iInnerH));
+	}
+	cairo_rotate(cr, (iTextRot == 90 ? 1.0 : -1.0) * M_PI_2);
+	cairo_translate(cr, -ox, -oy);
+	return cr;
+}
+
+static void s_cellTextRotateEnd(fp_CellContainer * /*pCell*/,
+								dg_DrawArgs * pDA,
+								GR_Graphics * pG, cairo_t * cr,
+								const UT_Rect * pSavedClip)
+{
+	cairo_restore(cr);
+	pG->setClipRect(pSavedClip);
 }
 
 void fp_CellContainer::setHeight(UT_sint32 iHeight)
@@ -775,7 +955,9 @@ void fp_CellContainer::_clear(fp_TableContainer * pBroke)
  */
 void fp_CellContainer::setWidth(UT_sint32 iWidth)
 {
-	UT_sint32 myWidth = getWidth();
+	/* physical width - getWidth() reports the logical wrap bound
+	 * for vertical-text cells */
+	UT_sint32 myWidth = getFullWidth();
 	if (iWidth == myWidth)
 	{
 		return;
@@ -1697,10 +1879,18 @@ void fp_CellContainer::draw(dg_DrawArgs* pDA)
 
 	UT_sint32 count = countCons();
 	const UT_Rect * pClipRect = pDA->pG->getClipRect();
+	UT_Rect savedClip;
+	if (pClipRect)
+	{
+		savedClip = *pClipRect;
+	}
+	int iTextRot = getTextRotation();
+	cairo_t * crT = iTextRot
+		? s_cellTextRotateBegin(this, pDA, pG, iTextRot) : nullptr;
 	UT_sint32 ytop,ybot;
 	UT_sint32 i;
 	UT_sint32 imax = std::numeric_limits<UT_sint32>::max();
-	if(pClipRect)
+	if(pClipRect && !crT)
 	{
 		ybot = UT_MAX(pClipRect->height,_getMaxContainerHeight());
 		ytop = pClipRect->top;
@@ -1709,6 +1899,8 @@ void fp_CellContainer::draw(dg_DrawArgs* pDA)
 	}
 	else
 	{
+		/* vertical text: the y-clip runs along the logical x axis -
+		 * culling on it would drop horizontally-stacked lines */
 		ytop = 0;
 		ybot = imax;
 	}
@@ -1747,6 +1939,11 @@ void fp_CellContainer::draw(dg_DrawArgs* pDA)
 		{
 			bStop = true;
 		}
+	}
+	if (crT)
+	{
+		s_cellTextRotateEnd(this, pDA, pG, crT,
+							pClipRect ? &savedClip : nullptr);
 	}
 	if(i == count)
 	{
@@ -2168,6 +2365,23 @@ void fp_CellContainer::drawBroken(dg_DrawArgs* pDA,
 //
 
 	xxx_UT_DEBUGMSG(("number containers %d \n",countCons()));
+	int iTextRot = getTextRotation();
+	UT_Rect savedClip;
+	bool bHadClip = false;
+	if (pClipRect)
+	{
+		savedClip = *pClipRect;
+		bHadClip = true;
+	}
+	cairo_t * crT = iTextRot
+		? s_cellTextRotateBegin(this, pDA, pG, iTextRot) : nullptr;
+	if (crT)
+	{
+		/* vertical text: the y-clip culls on the logical x axis -
+		 * draw every child in the broken table instead */
+		ytop = 0;
+		ybot = imax;
+	}
 	UT_sint32 iLastDraw = 0;
 	for ( i = 0; (i< countCons() && !bStop); i++)
 	{
@@ -2262,6 +2476,11 @@ void fp_CellContainer::drawBroken(dg_DrawArgs* pDA,
 		{
 			bStop = true;
 		}
+	}
+	if (crT)
+	{
+		s_cellTextRotateEnd(this, pDA, pG, crT,
+							bHadClip ? &savedClip : nullptr);
 	}
 	if((iLastDraw >= countCons()-1) && !bStop)
 	{
@@ -2566,6 +2785,15 @@ void fp_CellContainer::sizeRequest(fp_Requisition * pRequest)
 	{
 		width = maxwidth;
 	}
+	if (getTextRotation() != 0)
+	{
+		/* swap the axes: the logical line width is the physical
+		 * height the row needs, the line stack is the physical
+		 * width the column needs */
+		UT_sint32 tmp = width;
+		width = height;
+		height = tmp;
+	}
 	if(pRequest)
 	{
 		pRequest->width = width;
@@ -2677,6 +2905,24 @@ void fp_CellContainer::layout(void)
 		pPrevContainer->setAssignedScreenHeight(iY - iPrevY + 1);
 	}
 
+	if (getTextRotation() != 0)
+	{
+		/* vertical text: the logical line width is the physical
+		 * height the row needs (the stack lands along the fixed
+		 * column width instead) */
+		UT_sint32 iXMax = 0;
+		for (UT_sint32 i = 0; i < static_cast<UT_sint32>(countCons()); ++i)
+		{
+			fp_Container * pCon = static_cast<fp_Container*>(getNthCon(i));
+			iXMax = UT_MAX(iXMax,
+						   pCon->getX() + pCon->getWidth());
+		}
+		if (getHeight() != iXMax)
+		{
+			setHeight(iXMax);
+		}
+		return;
+	}
 	if (getHeight() == iY)
 	{
 		return;

@@ -6757,6 +6757,7 @@ responsibility** — see `README.md`.
   keeps it as document properties, and a status-bar notice explains
   blocked typing.
 - **Ctrl+Enter** inserts a page break directly (no dialog), like Word.
+- Table Layout tab parity: sort dialog (column, text/number/date type, ascending/descending, header-row option), cell-margins dialog with None/Normal/Narrow/Wide presets, vertical cell text (top-to-bottom/bottom-to-top directions render rotated), plus the existing AutoFit and Distribute Rows/Columns actions.
   Inside a table it splits the table at the caret row and the lower
   half continues on the next page; in the first row or a single-row
   table the break lands in a paragraph above the table instead.

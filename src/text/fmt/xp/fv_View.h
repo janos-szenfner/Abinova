@@ -1060,6 +1060,7 @@ public:
 	bool                _deleteCellAt(PT_DocPosition posTable,UT_sint32 row, UT_sint32 col);
 	bool                _restoreCellParams(PT_DocPosition posTable, const pf_Frag_Strux* tableSDH);
 	bool                _changeCellParams(PT_DocPosition posTable, const pf_Frag_Strux* tableSDH );
+	UT_sint32           _cellsInSelection(std::vector<const pf_Frag_Strux*> & vCells) const;
 	bool                deleteCellAt(PT_DocPosition posTable,UT_sint32 row, UT_sint32 col);
 	bool                cmdDeleteCell(PT_DocPosition pos);
 	bool                cmdDeleteCol(PT_DocPosition pos);
@@ -1080,6 +1081,10 @@ public:
 	bool                cmdInsertPageBreak(void);
 	bool                cmdTableCellAlign(UT_sint32 iVert, const char * szAlign);
 	bool                cmdCellTextDirection(const char * szDir);
+	bool                cmdSetCellMargins(const char * szTop,
+										const char * szRight,
+										const char * szBottom,
+										const char * szLeft);
 	bool                cmdAutoFitWindow(void);
 	bool                cmdFixColumnWidths(void);
 	bool                cmdDistributeCols(void);
@@ -1091,7 +1096,15 @@ public:
 	bool                getTableCellDims(UT_Dimension unit,
 										 double & dHeight,
 										 double & dWidth);
-	bool                cmdSortTableRows(bool bAsc, UT_sint32 iSortCol, bool bSkipHeader);
+	enum TableSortType
+	{
+		TABLE_SORT_AUTO = 0,	/* numeric when both keys parse, else text */
+		TABLE_SORT_TEXT,
+		TABLE_SORT_NUMBER,
+		TABLE_SORT_DATE
+	};
+	bool                cmdSortTableRows(bool bAsc, UT_sint32 iSortCol, bool bSkipHeader,
+										UT_sint32 iSortType = TABLE_SORT_AUTO);
 	bool                cmdToggleRepeatHeader(void);
 	bool                isRepeatHeaderOn(void) const;
 	bool                cmdEraseTableBorder(UT_sint32 xPos, UT_sint32 yPos);
@@ -1099,6 +1112,8 @@ public:
 	bool                _MergeCells( PT_DocPosition posDestination,PT_DocPosition posSource, bool bBefore);
 	bool                getCellParams(PT_DocPosition posCol, UT_sint32 *iLeft,
 									  UT_sint32 *iRight,UT_sint32 *iTop, UT_sint32 *iBot) const;
+	bool                getTableRowsCols(UT_sint32 * numRows,
+										 UT_sint32 * numCols) const;
 	bool				getCellLineStyle(PT_DocPosition posCell, UT_sint32 * pLeft, UT_sint32 * pRight,
 										 UT_sint32 * pTop, UT_sint32 * pBot) const;
 	bool				setCellFormat(const PP_PropertyVector & properties, FormatTable applyTo, const FG_ConstGraphicPtr & pFG, const std::string& sDataID);

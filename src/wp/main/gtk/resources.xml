@@ -201,6 +201,8 @@
     <file alias="ap_UnixDialog_PageSetup.ui">wp/ap/gtk/ap_UnixDialog_PageSetup.ui</file>
     <file alias="ap_UnixDialog_InsertTable.ui">wp/ap/gtk/ap_UnixDialog_InsertTable.ui</file>
     <file alias="ap_UnixDialog_TextToTable.ui">wp/ap/gtk/ap_UnixDialog_TextToTable.ui</file>
+    <file alias="ap_UnixDialog_SortTable.ui">wp/ap/gtk/ap_UnixDialog_SortTable.ui</file>
+    <file alias="ap_UnixDialog_CellMargins.ui">wp/ap/gtk/ap_UnixDialog_CellMargins.ui</file>
     <file alias="ap_UnixDialog_Tabs.ui">wp/ap/gtk/ap_UnixDialog_Tabs.ui</file>
     <file alias="ap_UnixDialog_RestrictEditing.ui">wp/ap/gtk/ap_UnixDialog_RestrictEditing.ui</file>
     <file alias="ap_UnixDialog_MetaData.ui">wp/ap/gtk/ap_UnixDialog_MetaData.ui</file>

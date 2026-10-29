@@ -87,6 +87,10 @@ libap_la_SOURCES = \
 	xp/ap_Dialog_MergeCells.h \
 	xp/ap_Dialog_TextToTable.cpp \
 	xp/ap_Dialog_TextToTable.h \
+	xp/ap_Dialog_SortTable.cpp \
+	xp/ap_Dialog_SortTable.h \
+	xp/ap_Dialog_CellMargins.cpp \
+	xp/ap_Dialog_CellMargins.h \
 	xp/ap_Dialog_Tabs.cpp \
 	xp/ap_Dialog_Tabs.h \
 	xp/ap_Dialog_RestrictEditing.cpp \
@@ -365,6 +369,10 @@ libap_la_SOURCES += \
 	gtk/ap_UnixDialog_SplitCells.h \
 	gtk/ap_UnixDialog_TextToTable.cpp \
 	gtk/ap_UnixDialog_TextToTable.h \
+	gtk/ap_UnixDialog_SortTable.cpp \
+	gtk/ap_UnixDialog_SortTable.h \
+	gtk/ap_UnixDialog_CellMargins.cpp \
+	gtk/ap_UnixDialog_CellMargins.h \
 	gtk/ap_UnixDialog_Tabs.cpp \
 	gtk/ap_UnixDialog_Tabs.h \
 	gtk/ap_UnixDialog_RestrictEditing.cpp \
@@ -480,6 +488,8 @@ EXTRA_DIST = \
 	gtk/ap_UnixDialog_HdrFtr.ui \
 	gtk/ap_UnixDialog_InsertTable.ui \
 	gtk/ap_UnixDialog_TextToTable.ui \
+	gtk/ap_UnixDialog_SortTable.ui \
+	gtk/ap_UnixDialog_CellMargins.ui \
 	gtk/ap_UnixDialog_Tabs.ui \
 	gtk/ap_UnixDialog_RestrictEditing.ui \
 	gtk/ap_UnixDialog_Insert_DateTime.ui \

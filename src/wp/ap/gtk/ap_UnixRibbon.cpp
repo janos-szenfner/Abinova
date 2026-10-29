@@ -9211,6 +9211,12 @@ GtkWidget * AP_UnixRibbon::_makeTableSortPopover()
 	w = _presetRow("Keep Header Row", "Sort, leaving the first row in place",
 				   nullptr, "sortTable", "asc:h");
 	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	w = _presetRow("Sort\xE2\x80\xA6",
+				   "Choose the column, key type and direction",
+				   nullptr, "sortTableDialog", nullptr);
+	if (w) gtk_box_append(GTK_BOX(box), w);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
 }
@@ -9245,6 +9251,12 @@ GtkWidget * AP_UnixRibbon::_makeTableTextDirPopover()
 	w = _presetRow("Right to Left", "Right-to-left horizontal text direction",
 				   nullptr, "cellTextDirection", "rtl");
 	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Top to Bottom", "Vertical text, lines stack right to left",
+				   nullptr, "cellTextDirection", "tbRl");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Bottom to Top", "Vertical text, lines stack left to right",
+				   nullptr, "cellTextDirection", "btLr");
+	if (w) gtk_box_append(GTK_BOX(box), w);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
 }
@@ -9254,9 +9266,25 @@ GtkWidget * AP_UnixRibbon::_makeCellMarginsPopover()
 	GtkWidget * box;
 	GtkWidget * popover = _popover_new_box(&box);
 	GtkWidget * w;
+	gtk_box_append(GTK_BOX(box),
+				   _popover_section_label("Preset Cell Margins"));
+	w = _presetRow("None", "No padding inside the cells",
+				   nullptr, "cellMargins", "none");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Normal", "The standard padding used in new tables",
+				   nullptr, "cellMargins", "normal");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Narrow", "Tighter padding for dense tables",
+				   nullptr, "cellMargins", "narrow");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	w = _presetRow("Wide", "Generous padding around the cell contents",
+				   nullptr, "cellMargins", "wide");
+	if (w) gtk_box_append(GTK_BOX(box), w);
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 	w = _presetRow("Custom Margins\xE2\x80\xA6",
-				   "Set cell padding in the Format Table dialog",
-				   nullptr, "formatTable", nullptr);
+				   "Set the cell padding edge by edge",
+				   nullptr, "cellMarginsDialog", nullptr);
 	if (w) gtk_box_append(GTK_BOX(box), w);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;

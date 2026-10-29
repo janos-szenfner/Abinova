@@ -158,6 +158,17 @@ public:
 	UT_sint32           getCellX(fp_Line * pLine) const;
 	UT_sint32           getSpannedHeight(void) const;
 	void                setLineMarkers(void);
+
+	/* "cell-text-direction" (OOXML w:textDirection): vertical text is
+	 * laid out in a logical space rotated against the cell box, like
+	 * fp_FrameContainer's "frame-text-direction" */
+	int                 getTextRotation(void) const;
+	virtual UT_sint32	getWidth(void) const override;
+	UT_sint32           getFullWidth(void) const
+		{ return fp_VerticalContainer::getWidth(); }
+	UT_sint32           getFullHeight(void) const
+		{ return fp_VerticalContainer::getHeight(); }
+	virtual std::optional<UT_Rect> getScreenRect() const override;
 	using fp_VerticalContainer::deleteBrokenAfter;
 
 	void                deleteBrokenTables(bool bClearFirst=true);

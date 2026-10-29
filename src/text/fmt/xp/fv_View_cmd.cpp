@@ -2870,24 +2870,16 @@ bool FV_View::cmdTableCellAlign(UT_sint32 iVert, const char * szAlign)
 }
 
 /*!
- * Set the dominant text direction ("ltr"/"rtl") on every block in the
- * cells covered by the selection, or the cell containing the caret.
+ * Collect the cell struxes covered by the selection, or the cell
+ * containing the caret when the selection is empty.
  */
-bool FV_View::cmdCellTextDirection(const char * szDir)
+UT_sint32 FV_View::_cellsInSelection(std::vector<const pf_Frag_Strux*> & vCells) const
 {
-	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
-
-	UT_return_val_if_fail(szDir, false);
-	if (strcmp(szDir, "ltr") != 0 && strcmp(szDir, "rtl") != 0)
-	{
-		return false;
-	}
+	vCells.clear();
 	if (!isInTable())
 	{
-		return false;
+		return 0;
 	}
-
-	std::vector<const pf_Frag_Strux*> vCells;
 	PT_DocPosition posStart = getPoint();
 	PT_DocPosition posEnd = posStart;
 	if (!isSelectionEmpty())
@@ -2913,7 +2905,7 @@ bool FV_View::cmdCellTextDirection(const char * szDir)
 	else
 	{
 		std::vector<fl_BlockLayout*> vBlock;
-		getBlocksInSelection(&vBlock);
+		const_cast<FV_View *>(this)->getBlocksInSelection(&vBlock);
 		for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vBlock.size()); ++i)
 		{
 			const pf_Frag_Strux* cellSDH = nullptr;
@@ -2925,12 +2917,69 @@ bool FV_View::cmdCellTextDirection(const char * szDir)
 			}
 		}
 	}
-	UT_return_val_if_fail(!vCells.empty(), false);
+	return static_cast<UT_sint32>(vCells.size());
+}
 
-	_saveAndNotifyPieceTableChange();
-	m_pDoc->disableListUpdates();
-	m_pDoc->beginUserAtomicGlob();
-	m_pDoc->setDontImmediatelyLayout(true);
+/*!
+ * Set the text direction on the cells covered by the selection (or the
+ * caret's cell).  "ltr"/"rtl" set the dominant paragraph direction on
+ * every block; "tbRl"/"btLr" set the cell-text-direction strux property
+ * (OOXML w:textDirection top-to-bottom / bottom-to-top), which rotates
+ * the cell contents in fp_CellContainer.
+ */
+bool FV_View::cmdCellTextDirection(const char * szDir)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	UT_return_val_if_fail(szDir, false);
+	const bool bVert = !strcmp(szDir, "tbRl") || !strcmp(szDir, "btLr");
+	if (!bVert && strcmp(szDir, "ltr") != 0 && strcmp(szDir, "rtl") != 0)
+	{
+		return false;
+	}
+	if (!isInTable())
+	{
+		return false;
+	}
+
+	const pf_Frag_Strux* tableSDH = nullptr;
+	UT_return_val_if_fail(
+		m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable,
+										 &tableSDH) && tableSDH, false);
+
+	std::vector<const pf_Frag_Strux*> vCells;
+	UT_return_val_if_fail(_cellsInSelection(vCells) > 0, false);
+
+	/* _changeCellParams/_restoreCellParams are the complete glob +
+	 * wait-index pair (they do _saveAndNotifyPieceTableChange,
+	 * beginUserAtomicGlob, the layout freeze and the unwind) */
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	_changeCellParams(posTable, tableSDH);
+
+	if (bVert)
+	{
+		const PP_PropertyVector props = { "cell-text-direction", szDir };
+		for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vCells.size()); ++i)
+		{
+			PT_DocPosition posCell =
+				m_pDoc->getStruxPosition(vCells[i]) + 1;
+			m_pDoc->changeStruxFmt(PTC_AddFmt, posCell, posCell,
+								   PP_NOPROPS, props, PTX_SectionCell);
+		}
+		_restoreCellParams(posTable, tableSDH);
+		notifyListeners(AV_CHG_MOTION);
+		return true;
+	}
+
+	/* back to horizontal: drop any vertical direction on the cells */
+	const PP_PropertyVector clrProps = { "cell-text-direction", "" };
+	for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vCells.size()); ++i)
+	{
+		PT_DocPosition posCell =
+			m_pDoc->getStruxPosition(vCells[i]) + 1;
+		m_pDoc->changeStruxFmt(PTC_RemoveFmt, posCell, posCell,
+							   PP_NOPROPS, clrProps, PTX_SectionCell);
+	}
 
 	const PP_PropertyVector blockProps = {
 		"dom-dir", szDir
@@ -2969,15 +3018,79 @@ bool FV_View::cmdCellTextDirection(const char * szDir)
 		}
 	}
 
-	m_pDoc->setDontImmediatelyLayout(false);
-	_restorePieceTableState();
-	_generalUpdate();
-	m_pDoc->endUserAtomicGlob();
-	m_pDoc->enableListUpdates();
-	m_pDoc->updateDirtyLists();
+	_restoreCellParams(posTable, tableSDH);
 	_fixInsertionPointCoords();
 	notifyListeners(AV_CHG_MOTION);
 	return true;
+}
+
+/*!
+ * Apply cell margins (padding) to the cells covered by the selection,
+ * or the caret's cell.  The arguments are dimension strings such as
+ * "0.05in"; an empty string clears that edge back to the default.
+ */
+bool FV_View::cmdSetCellMargins(const char * szTop, const char * szRight,
+								const char * szBottom, const char * szLeft)
+{
+	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
+
+	if (!isInTable())
+	{
+		return false;
+	}
+	const pf_Frag_Strux* tableSDH = nullptr;
+	UT_return_val_if_fail(
+		m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable,
+										 &tableSDH) && tableSDH, false);
+	std::vector<const pf_Frag_Strux*> vCells;
+	UT_return_val_if_fail(_cellsInSelection(vCells) > 0, false);
+
+	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
+	_changeCellParams(posTable, tableSDH);
+
+	const char * names[4] = { "cell-margin-top", "cell-margin-right",
+							  "cell-margin-bottom", "cell-margin-left" };
+	const char * vals[4] = { szTop, szRight, szBottom, szLeft };
+	for (UT_sint32 i = 0; i < static_cast<UT_sint32>(vCells.size()); ++i)
+	{
+		PT_DocPosition posCell = m_pDoc->getStruxPosition(vCells[i]) + 1;
+		for (int e = 0; e < 4; ++e)
+		{
+			if (!vals[e])
+			{
+				continue;
+			}
+			const PP_PropertyVector props = { names[e], vals[e] };
+			m_pDoc->changeStruxFmt(
+				(vals[e][0] ? PTC_AddFmt : PTC_RemoveFmt),
+				posCell, posCell, PP_NOPROPS, props, PTX_SectionCell);
+		}
+	}
+
+	_restoreCellParams(posTable, tableSDH);
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/*!
+ * Row/column counts of the table containing the caret - the Sort
+ * dialog needs them to bound its column spinner.
+ */
+bool FV_View::getTableRowsCols(UT_sint32 * numRows, UT_sint32 * numCols) const
+{
+	if (!isInTable())
+	{
+		return false;
+	}
+	const pf_Frag_Strux* tableSDH = nullptr;
+	if (!m_pDoc->getStruxOfTypeFromPosition(getPoint(), PTX_SectionTable,
+										  &tableSDH) || !tableSDH)
+	{
+		return false;
+	}
+	return m_pDoc->getRowsColsFromTableStrux(tableSDH, isShowRevisions(),
+										   getRevisionLevel(),
+										   numRows, numCols);
 }
 
 /* common tail for the table-geometry writers below */
@@ -3483,13 +3596,67 @@ bool FV_View::cmdTableRowHeight(const char * szDim, PT_DocPosition posCell)
 	return true;
 }
 
+/* sort-key comparison for cmdSortTableRows: type gates which parser
+ * runs; keys that don't parse for a typed sort fall back to text and
+ * sort after keys that did (Word puts numbers/dates before text) */
+static int s_sortKeyCmp(const char * sa, const char * sb, UT_sint32 iType)
+{
+	char * ea = nullptr;
+	char * eb = nullptr;
+	double da = strtod(sa, &ea);
+	double db = strtod(sb, &eb);
+	const bool bNumA = (ea != sa && *ea == 0);
+	const bool bNumB = (eb != sb && *eb == 0);
+	if (iType == FV_View::TABLE_SORT_DATE)
+	{
+		GDate gda, gdb;
+		g_date_clear(&gda, 1);
+		g_date_clear(&gdb, 1);
+		g_date_set_parse(&gda, sa);
+		g_date_set_parse(&gdb, sb);
+		const bool bDa = g_date_valid(&gda);
+		const bool bDb = g_date_valid(&gdb);
+		if (bDa && bDb)
+		{
+			return g_date_compare(&gda, &gdb);
+		}
+		if (bDa != bDb)
+		{
+			return bDa ? -1 : 1;
+		}
+	}
+	else if (iType == FV_View::TABLE_SORT_NUMBER)
+	{
+		if (bNumA && bNumB)
+		{
+			return (da < db) ? -1 : (da > db ? 1 : 0);
+		}
+		if (bNumA != bNumB)
+		{
+			return bNumA ? -1 : 1;
+		}
+	}
+	else if (bNumA && bNumB)
+	{
+		/* AUTO: numeric when both keys parse fully, TEXT never */
+		if (iType == FV_View::TABLE_SORT_TEXT)
+		{
+			return g_utf8_collate(sa, sb);
+		}
+		return (da < db) ? -1 : (da > db ? 1 : 0);
+	}
+	return g_utf8_collate(sa, sb);
+}
+
 /*!
  * Sort the rows of the table by the text in column iSortCol (the caret
  * column when negative).  Rows move as a whole: each target row's cells
  * are refilled with the source row's text, keeping cell/paragraph
- * formatting.  With bSkipHeader the first row stays put.
+ * formatting.  With bSkipHeader the first row stays put.  iSortType is
+ * one of TABLE_SORT_AUTO/TEXT/NUMBER/DATE (Word's Sort "Type" list).
  */
-bool FV_View::cmdSortTableRows(bool bAsc, UT_sint32 iSortCol, bool bSkipHeader)
+bool FV_View::cmdSortTableRows(bool bAsc, UT_sint32 iSortCol, bool bSkipHeader,
+							   UT_sint32 iSortType)
 {
 	STD_DOUBLE_BUFFERING_FOR_THIS_FUNCTION
 
@@ -3555,30 +3722,18 @@ bool FV_View::cmdSortTableRows(bool bAsc, UT_sint32 iSortCol, bool bSkipHeader)
 		}
 	}
 
-	// sort the row order: numeric compare when both keys parse fully
+	// sort the row order through the requested key type
 	std::vector<UT_sint32> order(iNumRows);
 	for (UT_sint32 i = 0; i < iNumRows; ++i)
 	{
 		order[i] = i;
 	}
 	std::stable_sort(order.begin() + iFirst, order.end(),
-		[&texts, iSortCol, bAsc](UT_sint32 a, UT_sint32 b)
+		[&texts, iSortCol, bAsc, iSortType](UT_sint32 a, UT_sint32 b)
 		{
-			const char * sa = texts[a][iSortCol].utf8_str();
-			const char * sb = texts[b][iSortCol].utf8_str();
-			char * ea = nullptr;
-			char * eb = nullptr;
-			double da = strtod(sa, &ea);
-			double db = strtod(sb, &eb);
-			int cmp;
-			if (ea != sa && eb != sb && *ea == 0 && *eb == 0)
-			{
-				cmp = (da < db) ? -1 : (da > db ? 1 : 0);
-			}
-			else
-			{
-				cmp = g_utf8_collate(sa, sb);
-			}
+			int cmp = s_sortKeyCmp(texts[a][iSortCol].utf8_str(),
+								   texts[b][iSortCol].utf8_str(),
+								   iSortType);
 			return bAsc ? (cmp < 0) : (cmp > 0);
 		});
 
@@ -3682,13 +3837,8 @@ bool FV_View::cmdToggleRepeatHeader(void)
 									&numRows, &numCols);
 	UT_return_val_if_fail(numRows > 0 && numCols > 0, false);
 
-	_saveAndNotifyPieceTableChange();
-	m_pDoc->disableListUpdates();
-	m_pDoc->beginUserAtomicGlob();
-	m_pDoc->setDontImmediatelyLayout(true);
-
-	/* bump the table's change index before touching cell struxes —
-	 * without it the incremental relayout crashes (see setCellFormat) */
+	/* _changeCellParams is the complete glob + wait-index pair opener
+	 * (an extra beginUserAtomicGlob here would leak a nesting level) */
 	PT_DocPosition posTable = m_pDoc->getStruxPosition(tableSDH) + 1;
 	_changeCellParams(posTable, tableSDH);
 
@@ -3788,8 +3938,8 @@ bool FV_View::cmdEraseTableBorder(UT_sint32 xPos, UT_sint32 yPos)
 	UT_Rect r;
 	r.left = xoff;
 	r.top = yoff;
-	r.width = getGraphics()->tdu(pCell->getWidth());
-	r.height = getGraphics()->tdu(pCell->getHeight());
+	r.width = getGraphics()->tdu(pCell->getFullWidth());
+	r.height = getGraphics()->tdu(pCell->getFullHeight());
 	r.left = getGraphics()->tdu(r.left);
 	r.top = getGraphics()->tdu(r.top);
 

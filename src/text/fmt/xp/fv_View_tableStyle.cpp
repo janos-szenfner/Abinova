@@ -684,8 +684,8 @@ bool FV_View::_borderEdgeAtXY(UT_sint32 xPos, UT_sint32 yPos,
 	UT_Rect r;
 	r.left = xoff;
 	r.top = yoff;
-	r.width = pCell->getWidth();
-	r.height = pCell->getHeight();
+	r.width = pCell->getFullWidth();
+	r.height = pCell->getFullHeight();
 
 	UT_sint32 dL = labs(xPos - r.left);
 	UT_sint32 dR = labs(xPos - (r.left + r.width));
