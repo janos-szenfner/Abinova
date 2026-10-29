@@ -37,6 +37,17 @@ responsibility** — see `README.md`.
   still holds the line together.
 - **Bookmarks no longer create phantom line-break points** — text
   can no longer wrap mid-word at a zero-width bookmark anchor.
+- **"Keep with next" is now honored** — a paragraph marked to keep
+  with the next one can no longer end a page alone; it moves to the
+  next page with its follower, like Word (headings keep their body).
+- **List numbers and bullets stay with their text when the paragraph
+  is centred or right-aligned** — the label no longer collapses onto
+  the text or stays behind at the margin; number, gap and text align
+  as one unit.
+- **Table rows share cell margins and keep their top inset when split
+  across pages** — every cell in a row uses the row's largest top and
+  bottom margins, and a row continued on the next page keeps its top
+  inset above the carried-over text.
 - **Window can be resized below the ribbon/status-bar width** — the
   status bar pinned every field's representative string as a hard
   size_request, summing to a ~1.5K px window-minimum-width floor.

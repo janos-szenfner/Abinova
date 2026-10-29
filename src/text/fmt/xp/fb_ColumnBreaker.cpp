@@ -1142,6 +1142,68 @@ UT_sint32 fb_ColumnBreaker::_breakSection(fp_Page * pStartPage)
 		bEquivColumnBreak = bEquivColumnBreak && ( iMaxColHeight < (iWorkingColHeight + iTotalContainerSpace));
 		if (pLastContainerToKeep)
 		{
+			// keep-with-next: a kept paragraph's last line may not end a
+			// column - Word moves the paragraph (or just its last line
+			// when it spills over from the previous column) on, so it
+			// shares the column with whatever follows.  The same check
+			// applies again to the block the boundary lands on, so a
+			// chain of kept paragraphs moves together.  As with the
+			// other fit checks above there is a little slack in the
+			// comparisons (here through the same integer arithmetic).
+			while(pLastContainerToKeep &&
+				  pLastContainerToKeep->getContainerType() == FP_CONTAINER_LINE)
+			{
+				fp_Line* pKeptLine = static_cast<fp_Line *>(pLastContainerToKeep);
+				fl_BlockLayout* pKeptBlock = pKeptLine->getBlock();
+				if(!pKeptBlock || !pKeptBlock->getProp_KeepWithNext() ||
+				   !pKeptLine->isLastLineInBlock() ||
+				   pKeptLine->containsForcedPageBreak() ||
+				   pKeptLine->containsForcedColumnBreak())
+				{
+					break;
+				}
+				// Find the last container before the kept block,
+				// stopping at the column's first container: a block
+				// that reaches the top of the column either starts
+				// there (nothing can move back) or spilled over from
+				// the previous column (only its last line moves on).
+				fp_Container* pScan = pKeptLine;
+				fp_Container* pBeforeBlock = nullptr;
+				bool bReachesTop = false;
+				while(pScan &&
+					  pScan->getContainerType() == FP_CONTAINER_LINE &&
+					  static_cast<fp_Line *>(pScan)->getBlock() == pKeptBlock)
+				{
+					if(pScan == pFirstContainerToKeep)
+					{
+						bReachesTop = true;
+						break;
+					}
+					pBeforeBlock = pScan->getPrevContainerInSection();
+					pScan = pBeforeBlock;
+				}
+				if(bReachesTop)
+				{
+					if(pKeptBlock->getFirstContainer() == pFirstContainerToKeep ||
+					   pKeptLine == pFirstContainerToKeep)
+					{
+						// The block starts (or is) the column's first
+						// container - keep it and cope.
+						break;
+					}
+					// The block spills into this column - only its last
+					// line has to go over with the next paragraph.
+					pLastContainerToKeep = pKeptLine->getPrevContainerInSection();
+					continue;
+				}
+				if(!pScan || pBeforeBlock == nullptr)
+				{
+					break;
+				}
+				// The whole block sits inside this column - move it
+				// to the next one, like Word.
+				pLastContainerToKeep = pBeforeBlock;
+			}
 		        while(pLastContainerToKeep && ((pLastContainerToKeep->getContainerType() == FP_CONTAINER_FOOTNOTE )
 						 || (pLastContainerToKeep->getContainerType() == FP_CONTAINER_ANNOTATION)))
 			{

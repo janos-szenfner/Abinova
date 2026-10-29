@@ -5659,6 +5659,33 @@ void  fp_TableContainer::_size_allocate_pass2(void)
 	}
 	UT_sint32 totalHeight = y;
 
+	// Word gives every cell in a row the row's largest top and bottom
+	// cell margins: a cell without its own margins still sits below the
+	// row's tallest top inset and above its tallest bottom inset.  Work
+	// the per-row maxima out once, then allocate with them.
+	std::vector<UT_sint32> vecRowTopPad(m_iRows, 0);
+	std::vector<UT_sint32> vecRowBotPad(m_iRows, 0);
+	{
+		fp_CellContainer * pPadCell =
+			static_cast<fp_CellContainer *>(getNthCon(0));
+		while (pPadCell)
+		{
+			UT_sint32 iT = pPadCell->getTopAttach();
+			UT_sint32 iB = pPadCell->getBottomAttach() - 1;
+			if(iT >= 0 && iT < m_iRows)
+			{
+				vecRowTopPad[iT] = UT_MAX(vecRowTopPad[iT],
+										  pPadCell->getTopPad());
+			}
+			if(iB >= 0 && iB < m_iRows)
+			{
+				vecRowBotPad[iB] = UT_MAX(vecRowBotPad[iB],
+										  pPadCell->getBotPad());
+			}
+			pPadCell = static_cast<fp_CellContainer *>(pPadCell->getNext());
+		}
+	}
+
 	fp_CellContainer * pCell = static_cast<fp_CellContainer *>(getNthCon(0));
 	while (pCell)
 	{
@@ -5682,18 +5709,22 @@ void  fp_TableContainer::_size_allocate_pass2(void)
 
 		UT_sint32 iTop = pCell->getTopAttach();
 		UT_sint32 iBottom = pCell->getBottomAttach();
+		UT_sint32 iRowTopPad = (iTop >= 0 && iTop < m_iRows)
+			? vecRowTopPad[iTop] : pCell->getTopPad();
+		UT_sint32 iRowBotPad = (iBottom-1 >= 0 && iBottom-1 < m_iRows)
+			? vecRowBotPad[iBottom-1] : pCell->getBotPad();
 		y = getNthRow(iTop)->position;
 		UT_sint32 yspace = getNthRow(iTop)->spacing;
 		max_height = ((iBottom < m_iRows) ? (getNthRow(iBottom)->position) : totalHeight) - (y + yspace);
 		if (pCell->getYfill())
 		{
-			allocation.height = UT_MAX (1, max_height - static_cast<UT_sint32>(pCell->getTopPad()) - pCell->getBotPad());
+			allocation.height = UT_MAX (1, max_height - iRowTopPad - iRowBotPad);
 		}
 		else
 		{
 			allocation.height = pCell_requisition.height;
 		}
-		allocation.y = y + pCell->getTopPad() + yspace/2;
+		allocation.y = y + iRowTopPad + yspace/2;
 
 		xxx_UT_DEBUGMSG(("SEVIOR!!!!!!: max_height = %d width =%d \n",max_height,allocation.width));
 		pCell->sizeAllocate( &allocation);

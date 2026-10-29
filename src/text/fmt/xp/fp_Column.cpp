@@ -236,6 +236,17 @@ UT_sint32 fp_VerticalContainer::getYoffsetFromTable(const fp_Container * pT,
 		if(bFound)
 		{
 			offset = -pTable->getYBreak();
+			// A cell whose row top is cut by this fragment resumes
+			// below its own top inset on the continuation, like Word:
+			// the repeated top border band and cell margin still sit
+			// above the carried-over text.
+			const fp_CellContainer * pCellCon =
+				static_cast<const fp_CellContainer *>(pCell);
+			if(pTable != pFirstTable &&
+			   pTable->getYOfRow(pCellCon->getTopAttach()) < pTable->getYBreak())
+			{
+				offset += pCellCon->getTopPad();
+			}
 		}
 		pTable = static_cast<fp_TableContainer *>(pTable->getNext());
 	}

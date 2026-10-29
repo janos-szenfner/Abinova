@@ -2475,6 +2475,50 @@ inline void fp_Line::_calculateWidthOfRun(	UT_sint32 &iX,
 			UT_uint32 iWidth = 0;
 			fp_TabRun* pTabRun = static_cast<fp_TabRun*>(pRun);
 
+			// The tab after a list label is part of the label: on an
+			// aligned line (right's backward sweep, center's fixed
+			// tabs) it keeps the advance it takes on a left-aligned
+			// line, so the label and the text move together like in
+			// Word instead of collapsing to nothing or stretching.
+			{
+				fp_Run* pLabRun = pTabRun->getPrevRun();
+				while(pLabRun &&
+					  (pLabRun->getType() == FPRUN_FMTMARK ||
+					   pLabRun->isHidden()))
+				{
+					pLabRun = pLabRun->getPrevRun();
+				}
+				bool bLabelTab = pLabRun &&
+					pLabRun->getType() == FPRUN_FIELD &&
+					static_cast<fp_FieldRun *>(pLabRun)->getFieldType() == FPFIELD_list_label;
+				if(bLabelTab &&
+				   (eWorkingDirection == WORK_BACKWARD ||
+					eUseTabStop == USE_FIXED_TABWIDTH))
+				{
+					// the label's right edge on a left-aligned line
+					UT_sint32 iLabelEnd = getLeftThick() + pLabRun->getWidth();
+					UT_sint32 iPos = 0;
+					eTabType iTabType = FL_TAB_LEFT;
+					eTabLeader iTabLeader = FL_LEADER_NONE;
+					if(iDomDirection == UT_BIDI_RTL)
+					{
+						UT_sint32 iStartPos = getContainer()->getWidth() - iLabelEnd;
+						findNextTabStop(iStartPos, iPos, iTabType, iTabLeader);
+						iPos = getContainer()->getWidth() - iPos;
+					}
+					else
+					{
+						findNextTabStop(iLabelEnd, iPos, iTabType, iTabLeader);
+					}
+					pTabRun->setLeader(iTabLeader);
+					pTabRun->setTabType(iTabType);
+					iWidth = abs(iPos - iLabelEnd);
+					iX += eWorkingDirection * iWidth;
+					pTabRun->setTabWidth(iWidth);
+					return;
+				}
+			}
+
 			// now we handle any Tab runs that are not meant to use a fixed width
 			if (eUseTabStop != USE_FIXED_TABWIDTH)
 			{
