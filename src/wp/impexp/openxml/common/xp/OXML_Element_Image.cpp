@@ -150,6 +150,42 @@ UT_Error OXML_Element_Image::serialize(IE_Exp_OpenXML* exporter)
 	}
 	const char * szNvPr = mediaNvPr.empty() ? nullptr : mediaNvPr.c_str();
 
+	/* the picture's accessibility text rides wp:docPr/pic:cNvPr as
+	 * descr/title — escape for the attribute context */
+	std::string docPrAttrs;
+	{
+		const gchar * szAlt = nullptr, * szTitle = nullptr;
+		getAttribute("alt", szAlt);
+		getAttribute("title", szTitle);
+		auto esc = [](const gchar * v, std::string & out) {
+			for (const char * c = v; c && *c; ++c)
+			{
+				switch (*c)
+				{
+				case '&':  out += "&amp;";  break;
+				case '<':  out += "&lt;";   break;
+				case '>':  out += "&gt;";   break;
+				case '"':  out += "&quot;"; break;
+				default:   out += *c;
+				}
+			}
+		};
+		if (szAlt && *szAlt)
+		{
+			docPrAttrs += " descr=\"";
+			esc(szAlt, docPrAttrs);
+			docPrAttrs += "\"";
+		}
+		if (szTitle && *szTitle)
+		{
+			docPrAttrs += " title=\"";
+			esc(szTitle, docPrAttrs);
+			docPrAttrs += "\"";
+		}
+	}
+	const char * szDocPrAttrs = docPrAttrs.empty() ? nullptr
+		: docPrAttrs.c_str();
+
 	if(bPositionedImage)
 	{
 		// positioned image
@@ -158,7 +194,7 @@ UT_Error OXML_Element_Image::serialize(IE_Exp_OpenXML* exporter)
 		getProperty("frame-width", width);
 		getProperty("xpos", xpos);
 		getProperty("ypos", ypos);
-		err = exporter->setPositionedImage(getId().c_str(), relId.c_str(), filename.c_str(), width, height, xpos, ypos, wrapMode, szNvPr);
+		err = exporter->setPositionedImage(getId().c_str(), relId.c_str(), filename.c_str(), width, height, xpos, ypos, wrapMode, szNvPr, szDocPrAttrs);
 		if(err != UT_OK)
 			return err;
 	}
@@ -202,7 +238,7 @@ UT_Error OXML_Element_Image::serialize(IE_Exp_OpenXML* exporter)
 			width = wFromSnap.empty() ? "1.0in" : wFromSnap.c_str();
 		if (!height || UT_convertToInches(height) <= 0)
 			height = hFromSnap.empty() ? "1.0in" : hFromSnap.c_str();
-		err = exporter->setImage(getId().c_str(), relId.c_str(), filename.c_str(), width, height, szNvPr);
+		err = exporter->setImage(getId().c_str(), relId.c_str(), filename.c_str(), width, height, szNvPr, szDocPrAttrs);
 		if(err != UT_OK)
 			return err;
 	}

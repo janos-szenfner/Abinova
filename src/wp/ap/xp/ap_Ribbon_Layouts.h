@@ -814,6 +814,40 @@ static const AP_RibbonGroup s_ribbon_tabledesign_groups[] =
 	{ nullptr,			nullptr }
 };
 
+/* ------------------------------------ Picture Format (contextual tab) --- */
+
+/* Word's Picture Tools: adjustments (corrections/color/compress),
+ * crop and rotate galleries, accessibility text */
+static const AP_RibbonItem s_ribbon_picture_adjust[] =
+{
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_PICTURE_CORRECTIONS),
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_PICTURE_COLOR),
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_PICTURE_COMPRESS),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_picture_crop[] =
+{
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_PICTURE_CROP),
+	AP_RIBBON_MENUPOP_LSWE(AP_MENU_ID_PICTURE_ROTATE),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_picture_alttext[] =
+{
+	AP_RIBBON_MENU_LSWE(AP_MENU_ID_PICTURE_ALTTEXT),
+	AP_RIBBON_MENU_LSWE(AP_MENU_ID_FMT_IMGPROPS),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonGroup s_ribbon_picture_groups[] =
+{
+	{ "adjust",		s_ribbon_picture_adjust },
+	{ "crop",		s_ribbon_picture_crop },
+	{ "alttext",	s_ribbon_picture_alttext },
+	{ nullptr,		nullptr }
+};
+
 /* -------------------------------------------- Equation (contextual) --- */
 
 static const AP_RibbonItem s_ribbon_equation_eq[] =
@@ -899,6 +933,7 @@ static const AP_RibbonTab s_ribbon_tabs[] =
 	{ "developer",	s_ribbon_developer_groups,	false },
 	{ "tabledesign",s_ribbon_tabledesign_groups, true  },
 	{ "table",		s_ribbon_table_groups,		true  },
+	{ "picture",	s_ribbon_picture_groups,	true  },
 	{ "equation",	s_ribbon_equation_groups,	true  },
 	{ "help",		s_ribbon_help_groups,		false },
 	{ nullptr,		nullptr,					false }

@@ -573,6 +573,64 @@ static void _g_design_setdefault(const _GlyphPen & p)
 	_pen_line_c(p, chk, 3, _GREEN);
 }
 
+/* ---- Picture Format tab icons ---- */
+
+/* corrections: picture with a half-tone sun badge */
+static void _g_pic_corrections(const _GlyphPen & p)
+{
+	_pen_rect(p, 2.5, 5.0, 14.0, 15.0, p.fg);
+	const double m[] = { 4.0, 13.5, 6.5, 10.0, 9.0, 13.5 };
+	_pen_fill(p, m, 3, p.ac);
+	_pen_circle(p, 14.0, 6.0, 3.2, _YELLOW);
+	_pen_line_c(p, (const double[]){ 14.0, 1.5, 14.0, 2.5,
+									 10.5, 6.0, 9.5, 6.0 }, 2, _YELLOW);
+}
+
+/* color modes: picture half-filled gray + tint */
+static void _g_pic_color(const _GlyphPen & p)
+{
+	_pen_rect(p, 2.5, 4.0, 17.5, 16.0, p.fg);
+	const double m[] = { 4.0, 14.0, 8.0, 8.5, 11.5, 14.0 };
+	_pen_fill(p, m, 3, p.ac);
+	_pen_fcircle(p, 13.0, 7.0, 1.5, _YELLOW);
+	_pen_fcircle(p, 16.0, 13.0, 2.6, _RED);
+	_pen_fcircle(p, 14.0, 16.0, 2.2, p.ac);
+}
+
+/* compress: picture with inward arrows */
+static void _g_pic_compress(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.5, 4.5, 16.5, 15.5, p.fg);
+	_pen_line_c(p, (const double[]){ 4.5, 6.5, 7.5, 9.5,
+									 15.5, 13.5, 12.5, 10.5 }, 2, p.ac);
+	_pen_line_c(p, (const double[]){ 4.5, 9.5, 4.5, 6.5, 7.5, 6.5,
+									 15.5, 10.5, 15.5, 13.5, 12.5, 13.5 }, 3, p.ac);
+}
+
+/* crop: corner ticks */
+static void _g_pic_crop(const _GlyphPen & p)
+{
+	_pen_line_c(p, (const double[]){ 5.0, 2.0, 5.0, 13.0, 16.0, 13.0,
+									 15.0, 18.0, 15.0, 7.0, 4.0, 7.0 }, 3, p.fg);
+	_pen_line_c(p, (const double[]){ 9.0, 5.0, 9.0, 10.0, 12.0, 10.0 }, 2, p.ac);
+}
+
+/* rotate: circular arrow */
+static void _g_pic_rotate(const _GlyphPen & p)
+{
+	_pen_arc(p, 10.0, 10.0, 6.0, 0.6, 4.9, p.fg);
+	const double ar[] = { 15.2, 11.0, 17.5, 7.5, 13.0, 7.5 };
+	_pen_fill(p, ar, 3, p.ac);
+}
+
+/* alt text: tag shape with "alt" */
+static void _g_pic_alttext(const _GlyphPen & p)
+{
+	const double tag[] = { 4.0, 4.0, 12.0, 4.0, 18.0, 10.0, 12.0, 16.0, 4.0, 16.0 };
+	_pen_closed(p, tag, 5, p.fg);
+	_pen_text(p, 8.5, 11.5, 7.0, "a", p.ac, TRUE);
+}
+
 /* ---------------- name table ---------------- */
 
 typedef void (*_GlyphDraw)(const _GlyphPen &);
@@ -633,6 +691,12 @@ static const _GlyphEntry _glyphs[] =
 	{ "abinova-design-pagecolor",	_g_design_pagecolor },
 	{ "abinova-design-pageborders",	_g_design_pageborders },
 	{ "abinova-design-setdefault",	_g_design_setdefault },
+	{ "abinova-picture-corrections",	_g_pic_corrections },
+	{ "abinova-picture-color",		_g_pic_color },
+	{ "abinova-picture-compress",	_g_pic_compress },
+	{ "abinova-picture-crop",		_g_pic_crop },
+	{ "abinova-picture-rotate",	_g_pic_rotate },
+	{ "abinova-picture-alttext",	_g_pic_alttext },
 	{ nullptr, nullptr }
 };
 

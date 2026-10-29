@@ -572,7 +572,8 @@ PT_AttrPropIndex            getAPIFromSOH(pf_Frag_Object* odh) const;
 										   const std::string & mime_type,
                                            PD_DataItemHandle* ppHandle) override;
 	[[nodiscard]] virtual bool            replaceDataItem(const char * szName,
-											const UT_ConstByteBufPtr & pByteBuf) override;
+											const UT_ConstByteBufPtr & pByteBuf,
+											const std::string & mime_type = std::string()) override;
 	virtual bool			getDataItemDataByName(const char * szName,
 												  UT_ConstByteBufPtr & pByteBuf,
                                                   std::string* pMimeType,

@@ -873,6 +873,7 @@ private:
 	UT_sint32               m_iImageHeight;
 	UT_String               m_sCachedWidthProp;
 	UT_String               m_sCachedHeightProp;
+	UT_String               m_sCachedFxProp;
 	UT_sint32               m_iPointHeight;
 	const PP_AttrProp *     m_pSpanAP;
 	UT_uint32               m_iGraphicTick;

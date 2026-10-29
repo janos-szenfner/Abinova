@@ -3640,10 +3640,84 @@ fp_ImageRun::~fp_ImageRun()
 	DELETEP(m_pImage);
 }
 
+/* the image-* props that change the generated pixels — folded into
+ * the cached-image invalidation so an applied correction recreates
+ * the pixbuf instead of repainting the stale one */
+static const char * const s_fxPropNames[] = {
+	"image-grayscale", "image-duotone", "image-lum", "image-alpha-mod",
+	"image-transparency", "image-bilevel", "image-blur",
+	"image-sharpen", "image-rotation", "image-flip",
+	"image-crop-shape", "image-color-mode", "image-src-rect",
+	"image-tile", "image-fill-rect"
+};
+
+static void s_fxSignature(const PP_AttrProp * pAP, UT_String & out)
+{
+	out.clear();
+	const gchar * v = nullptr;
+	for (const char * n : s_fxPropNames)
+	{
+		out += n;
+		out += "=";
+		if (pAP && pAP->getProperty(n, v) && v)
+			out += v;
+		out += ";";
+	}
+}
+
+/* a:srcRect picture crop on an inline image: window the generated
+ * image into a cropped sub-image whose display box stays the
+ * original size, so the remainder stretches to fill it (same
+ * semantic as the frame path's setSrcRectCrop) */
+static void s_applyInlineCrop(GR_Image *& rpImage, GR_Graphics * pG,
+							  const PP_AttrProp * pAP)
+{
+	if (!rpImage || !pG || !pAP)
+		return;
+	const gchar * szCrop = nullptr;
+	if (!pAP->getProperty("image-src-rect", szCrop) || !szCrop || !*szCrop)
+		return;
+	/* integer "l t r b" in 1000ths of a percent — strtol keeps the
+	 * parse locale-independent (sscanf %lf isn't) */
+	double c[4] = {0.0, 0.0, 0.0, 0.0};
+	{
+		char * end = const_cast<char *>(szCrop);
+		for (int i = 0; i < 4; ++i)
+		{
+			c[i] = strtol(end, &end, 10);
+			if (i < 3 && !*end)
+				return;
+		}
+	}
+	double keepW = 100000.0 - c[0] - c[2];
+	double keepH = 100000.0 - c[1] - c[3];
+	if (keepW >= 99999.0 && keepH >= 99999.0)
+		return;
+	if (keepW < 1.0) keepW = 1.0;
+	if (keepH < 1.0) keepH = 1.0;
+	const UT_sint32 dW = rpImage->getDisplayWidth();
+	const UT_sint32 dH = rpImage->getDisplayHeight();
+	if (dW <= 0 || dH <= 0)
+		return;
+	UT_Rect seg(pG->tlu(static_cast<UT_sint32>(dW * c[0] / 100000.0)),
+				pG->tlu(static_cast<UT_sint32>(dH * c[1] / 100000.0)),
+				pG->tlu(static_cast<UT_sint32>(dW * keepW / 100000.0)),
+				pG->tlu(static_cast<UT_sint32>(dH * keepH / 100000.0)));
+	GR_Image * pSeg = rpImage->createImageSegment(pG, seg);
+	if (pSeg)
+	{
+		/* the crop window fills the original display box */
+		pSeg->setDisplaySize(dW, dH);
+		delete rpImage;
+		rpImage = pSeg;
+	}
+}
+
 void fp_ImageRun::regenerateImage(GR_Graphics * pG)
 {
 	DELETEP(m_pImage);
 	m_pImage = m_pFGraphic->regenerateImage(pG);
+	s_applyInlineCrop(m_pImage, pG, m_pSpanAP);
 	m_bImageForPrinter = pG->queryProperties(GR_Graphics::DGP_PAPER);
 	m_iGraphicTick = getBlock()->getDocLayout()->getGraphicTick();
 
@@ -3711,14 +3785,18 @@ void fp_ImageRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 		maxH = pG->tlu(3);
 	}
 	UT_DEBUGMSG(("Image szWidth %s Image szHeight %s \n",szWidth,szHeight));
+	UT_String sFx;
+	s_fxSignature(pSpanAP, sFx);
 	if((pG->queryProperties(GR_Graphics::DGP_PAPER) != m_bImageForPrinter) ||
 		(strcmp(m_sCachedWidthProp.c_str(),szWidth) != 0) ||
 	   (strcmp(m_sCachedHeightProp.c_str(),szHeight) != 0) ||
+		(strcmp(m_sCachedFxProp.c_str(),sFx.c_str()) != 0) ||
 		UT_convertToLogicalUnits(szHeight) > maxH ||
 		UT_convertToLogicalUnits(szWidth) > maxW)
 	{
 		m_sCachedWidthProp = szWidth;
 		m_sCachedHeightProp = szHeight;
+		m_sCachedFxProp = sFx;
 		DELETEP(m_pImage);
 		UT_sint32 iH = UT_convertToLogicalUnits(szHeight);
 		UT_sint32 iW =  UT_convertToLogicalUnits(szWidth);
@@ -3733,6 +3811,7 @@ void fp_ImageRun::_lookupProperties(const PP_AttrProp * pSpanAP,
 			UT_DEBUGMSG(("Change Image Height to %d \n",maxH));
 		}
 		m_pImage = m_pFGraphic->generateImage(pG, pSpanAP, maxW, maxH);
+		s_applyInlineCrop(m_pImage, pG, pSpanAP);
 		if(m_pImage)
 		{
 			iW = pG->tlu(m_pImage->getDisplayWidth());

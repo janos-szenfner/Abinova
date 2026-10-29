@@ -34,22 +34,36 @@ class GR_Graphics;
 
 /*!
  * DrawingML a:blip picture effects (a:duotone/a:grayscl/a:lum/
- * a:alphaModFix) captured by the OOXML importer as image-* props and
- * applied to the raster pixels when an image is generated.
+ * a:alphaModFix/a:blur/a:biLevel) captured by the OOXML importer as
+ * image-* props, plus the Picture Format corrections/color modes the
+ * user applies — all applied to the raster pixels when an image is
+ * generated.
  */
 struct ABI_EXPORT GR_BlipEffects
 {
 	bool        grayscale = false;   // a:grayscl
+	bool        sepia = false;       // sepia-tone color mode
+	bool        bilevel = false;     // a:biLevel — black & white threshold
+	double      biThresh = 0.5;      //   0..1
 	bool        duotone = false;     // a:duotone — two-color remap
 	UT_RGBColor duoLo;               //   maps pixel luminance 0
 	UT_RGBColor duoHi;               //   maps pixel luminance 1
 	bool        lum = false;         // a:lum bright/contrast
 	double      lumBright = 0.0;     //   -1..1
 	double      lumContrast = 0.0;   //   -1..1
+	double      blur = -1.0;         // a:blur@rad in device px, <0 none
+	double      sharpen = 0.0;       // unsharp-mask amount, 0 none
+	int         rotate = 0;          // clockwise 90/180/270, 0 none
+	bool        flipH = false;       // mirror horizontally
+	bool        flipV = false;       // mirror vertically
+	int         cropShape = 0;       // 0 rect, 1 ellipse, 2 roundrect,
+	                                 // 3 diamond, 4 triangle — alpha mask
 	double      alphaMod = -1.0;     // a:alphaModFix@amt 0..1, <0 none
 
 	bool        any(void) const
-		{ return grayscale || duotone || lum || alphaMod >= 0.0; }
+		{ return grayscale || sepia || bilevel || duotone || lum ||
+		         blur >= 0.0 || sharpen > 0.0 || rotate != 0 ||
+		         flipH || flipV || cropShape != 0 || alphaMod >= 0.0; }
 };
 
 class ABI_EXPORT GR_Image_Point

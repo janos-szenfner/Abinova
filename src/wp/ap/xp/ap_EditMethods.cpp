@@ -177,6 +177,9 @@
 #include "ut_Script.h"
 #include "ut_path.h"
 #include "ut_screenshot.h"
+#include "ut_png.h"
+#include "ut_jpeg.h"
+#include <memory>
 #include "gr_Painter.h"
 #include "fp_FootnoteContainer.h"
 
@@ -373,6 +376,14 @@ public:
 
 
 	static EV_EditMethod_Fn iconsPane;
+	static EV_EditMethod_Fn imageAltText;
+	static EV_EditMethod_Fn imageColor;
+	static EV_EditMethod_Fn imageCompress;
+	static EV_EditMethod_Fn imageCorrections;
+	static EV_EditMethod_Fn imageCrop;
+	static EV_EditMethod_Fn imageCropShape;
+	static EV_EditMethod_Fn imageFlip;
+	static EV_EditMethod_Fn imageRotate;
 	static EV_EditMethod_Fn insert3DModel;
 	static EV_EditMethod_Fn insertBlankPage;
 	static EV_EditMethod_Fn insertIcon;
@@ -1289,6 +1300,14 @@ static EV_EditMethod s_arrayEditMethods[] =
 	// i
 	EV_EditMethod(NF(iconsPane),			0,	""),
 	EV_EditMethod(NF(importStyles),			0,		""),
+	EV_EditMethod(NF(imageAltText),			0,	""),
+	EV_EditMethod(NF(imageColor),			0,	""),
+	EV_EditMethod(NF(imageCompress),			0,	""),
+	EV_EditMethod(NF(imageCorrections),		0,	""),
+	EV_EditMethod(NF(imageCrop),			0,	""),
+	EV_EditMethod(NF(imageCropShape),		0,	""),
+	EV_EditMethod(NF(imageFlip),			0,	""),
+	EV_EditMethod(NF(imageRotate),			0,	""),
 	EV_EditMethod(NF(insAnnotation),		0,		""),
 	EV_EditMethod(NF(insAnnotationFromSel),	0,		""),
 	EV_EditMethod(NF(insBreak),				0,		""),
@@ -15468,6 +15487,393 @@ Defun(dlgImageProperties)
 	pView->setCharFormat(properties, attribs);
 	pView->updateScreen(true);
 	return true;
+}
+
+
+/* ================= Picture Format tab (image-* props) =========== */
+
+/*!
+ * Find the inline image run the command acts on: the image under the
+ * selection, else at the point or just before it (the context menu
+ * leaves the point next to the clicked object).
+ */
+static const fp_Run * s_findImageRun(FV_View * pView, PT_DocPosition & pos)
+{
+	const fp_Run * pRun = nullptr;
+	pos = pView->getSelectedImage(nullptr,&pRun);
+	if (pos && pRun)
+		return pRun;
+	pRun = s_imageRunAt(pView,pView->getPoint());
+	if (!pRun && pView->getPoint() > 0)
+		pRun = s_imageRunAt(pView,pView->getPoint() - 1);
+	if (!pRun)
+		return nullptr;
+	pos = pRun->getBlock()->getPosition() + pRun->getBlockOffset();
+	return pRun;
+}
+
+/*!
+ * Write image props on the current picture target: the active
+ * positioned frame takes strux props via setFrameFormat, an inline
+ * image run takes span props via setCharFormat.  The graphic tick is
+ * bumped so the blip effects regenerate instead of painting the
+ * cached pixbuf.
+ */
+static bool s_applyImageProps(FV_View * pView,
+							  const PP_PropertyVector & props,
+							  const PP_PropertyVector & attribs = PP_NOPROPS)
+{
+	if (pView->getFrameEdit()->isActive() && pView->getFrameLayout())
+	{
+		pView->setFrameFormat(attribs, props, nullptr);
+	}
+	else
+	{
+		PT_DocPosition pos = 0;
+		if (!s_findImageRun(pView, pos))
+			return false;
+		pView->cmdSelect(pos,pos+1);
+		pView->setCharFormat(props, attribs);
+	}
+	pView->getLayout()->incrementGraphicTick();
+	pView->updateScreen(true);
+	return true;
+}
+
+/* Word's Picture Format > Color gallery.  callData:
+ * none | grayscale | sepia | washout | blackwhite */
+Defun(imageColor)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const char * szMode = s.utf8_str();
+	static const char * modes[] = {
+		"grayscale", "sepia", "washout", "blackwhite", "none" };
+	bool bKnown = false;
+	for (const char * m : modes)
+		if (!strcmp(m, szMode)) { bKnown = true; break; }
+	if (!bKnown)
+		return false;
+	const PP_PropertyVector props = {
+		"image-color-mode", !strcmp(szMode, "none") ? "" : szMode,
+		/* a fresh color mode wins over an imported a:grayscl flag —
+		 * grayscale stays visually identical either way */
+		"image-grayscale", "0"
+	};
+	return s_applyImageProps(pView, props);
+}
+
+/* Word's Picture Format > Corrections gallery.  Each preset writes
+ * one axis: sharpen/soften (unsharp amount vs box-blur radius) or
+ * brightness/contrast (a:lum fractions); "reset" clears all three. */
+struct _ImgCorrection { const char * key; const char * lum; const char * blur; const char * sharp; };
+static const _ImgCorrection s_img_corrections[] = {
+	{ "soften25",  nullptr,    "1.5",   ""      },
+	{ "soften50",  nullptr,    "3",     ""      },
+	{ "sharpen25", nullptr,    "",      "0.5"   },
+	{ "sharpen50", nullptr,    "",      "1.0"   },
+	{ "b-40",      "-0.4 0",   nullptr, nullptr },
+	{ "b-20",      "-0.2 0",   nullptr, nullptr },
+	{ "b+20",      "0.2 0",    nullptr, nullptr },
+	{ "b+40",      "0.4 0",    nullptr, nullptr },
+	{ "c-40",      "0 -0.4",   nullptr, nullptr },
+	{ "c-20",      "0 -0.2",   nullptr, nullptr },
+	{ "c+20",      "0 0.2",    nullptr, nullptr },
+	{ "c+40",      "0 0.4",    nullptr, nullptr },
+	{ "b+40c-40",  "0.4 -0.4", nullptr, nullptr },
+	{ "b-40c+40",  "-0.4 0.4", nullptr, nullptr },
+};
+
+Defun(imageCorrections)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const char * szKey = s.utf8_str();
+	if (!strcmp(szKey, "reset"))
+	{
+		const PP_PropertyVector props = {
+			"image-lum", "", "image-blur", "", "image-sharpen", "" };
+		return s_applyImageProps(pView, props);
+	}
+	for (const _ImgCorrection & c : s_img_corrections)
+	{
+		if (!strcmp(c.key, szKey))
+		{
+			PP_PropertyVector props;
+			if (c.lum)   { props.push_back("image-lum");     props.push_back(c.lum); }
+			if (c.blur)  { props.push_back("image-blur");    props.push_back(c.blur); }
+			if (c.sharp) { props.push_back("image-sharpen"); props.push_back(c.sharp); }
+			return s_applyImageProps(pView, props);
+		}
+	}
+	return false;
+}
+
+/* Picture crop-to-rect: callData "l t r b" in whole percents of the
+ * source image, written out as a:srcRect 1000ths-of-a-percent; or
+ * "reset" to remove the crop window. */
+Defun(imageCrop)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string spec(s.utf8_str());
+	if (spec == "reset")
+	{
+		const PP_PropertyVector props = {
+			"image-src-rect", "", "image-crop-shape", "" };
+		return s_applyImageProps(pView, props);
+	}
+	long v[4] = {0, 0, 0, 0};
+	if (sscanf(spec.c_str(), "%ld %ld %ld %ld",
+			   &v[0], &v[1], &v[2], &v[3]) != 4)
+		return false;
+	for (long & e : v)
+	{
+		if (e < 0) e = 0;
+		if (e > 45) e = 45;   /* keep a visible remainder */
+	}
+	char buf[64];
+	snprintf(buf, sizeof(buf), "%ld %ld %ld %ld",
+			 v[0] * 1000, v[1] * 1000, v[2] * 1000, v[3] * 1000);
+	const PP_PropertyVector props = { "image-src-rect", buf };
+	return s_applyImageProps(pView, props);
+}
+
+/* Picture crop-to-shape: callData none|ellipse|roundrect|diamond|
+ * triangle — rendered as an alpha mask in the blip pass. */
+Defun(imageCropShape)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const char * szShape = s.utf8_str();
+	static const char * shapes[] = {
+		"ellipse", "roundrect", "diamond", "triangle", "none" };
+	bool bKnown = false;
+	for (const char * sh : shapes)
+		if (!strcmp(sh, szShape)) { bKnown = true; break; }
+	if (!bKnown)
+		return false;
+	const PP_PropertyVector props = {
+		"image-crop-shape", !strcmp(szShape, "none") ? "" : szShape };
+	return s_applyImageProps(pView, props);
+}
+
+/* Rotate the picture clockwise 90/180/-90.  Positioned frames use the
+ * frame-rotation machinery (whole box rotates); inline images get the
+ * pixel-level image-rotation prop and their w/h props swapped. */
+Defun(imageRotate)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const char * szDir = s.utf8_str();
+	double delta = 0.0;
+	if (!strcmp(szDir, "right"))      delta = 90.0;
+	else if (!strcmp(szDir, "left"))  delta = -90.0;
+	else if (!strcmp(szDir, "180"))   delta = 180.0;
+	else                              return false;
+	if (pView->getFrameEdit()->isActive() && pView->getFrameLayout())
+		return pView->rotateFrame(pView->getFrameLayout(), delta);
+
+	PT_DocPosition pos = 0;
+	const fp_Run * pRun = s_findImageRun(pView, pos);
+	if (!pRun)
+		return false;
+	const PP_AttrProp * pAP =
+		const_cast<fp_Run *>(pRun)->getSpanAP();
+	const gchar * szRot = nullptr;
+	long cur = 0;
+	if (pAP && pAP->getProperty("image-rotation", szRot) && szRot)
+		cur = strtol(szRot, nullptr, 10);
+	long next = (cur + static_cast<long>(delta)) % 360;
+	if (next < 0) next += 360;
+	char rotbuf[8];
+	snprintf(rotbuf, sizeof(rotbuf), "%ld", next);
+	PP_PropertyVector props = { "image-rotation", rotbuf };
+	/* a quarter turn changes the box's aspect: swap w/h */
+	if ((cur % 180 != 0) != (next % 180 != 0))
+	{
+		const gchar * szW = nullptr, * szH = nullptr;
+		if (pAP && pAP->getProperty("width", szW) && szW &&
+			pAP->getProperty("height", szH) && szH)
+		{
+			props.push_back("width");  props.push_back(szH);
+			props.push_back("height"); props.push_back(szW);
+		}
+	}
+	return s_applyImageProps(pView, props);
+}
+
+/* Mirror the picture: callData h|v.  Frames use the frame flip
+ * props, inline images the image-flip pixel prop. */
+Defun(imageFlip)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	const char * szAxis = s.utf8_str();
+	const bool bH = !strcmp(szAxis, "h");
+	const bool bV = !strcmp(szAxis, "v");
+	if (!bH && !bV)
+		return false;
+	if (pView->getFrameEdit()->isActive() && pView->getFrameLayout())
+		return pView->flipFrame(pView->getFrameLayout(), bH);
+
+	PT_DocPosition pos = 0;
+	const fp_Run * pRun = s_findImageRun(pView, pos);
+	if (!pRun)
+		return false;
+	const PP_AttrProp * pAP =
+		const_cast<fp_Run *>(pRun)->getSpanAP();
+	const gchar * szFlip = nullptr;
+	bool h = false, v = false;
+	if (pAP && pAP->getProperty("image-flip", szFlip) && szFlip)
+	{
+		h = strchr(szFlip, 'h') != nullptr;
+		v = strchr(szFlip, 'v') != nullptr;
+	}
+	if (bH) h = !h; else v = !v;
+	std::string flip;
+	if (h) flip += "h";
+	if (v) flip += "v";
+	const PP_PropertyVector props = { "image-flip", flip.c_str() };
+	return s_applyImageProps(pView, props);
+}
+
+/* Word's Compress Pictures: resample the image's data item down to
+ * its displayed size at the requested ppi so the document shrinks.
+ * callData: 96 | 150 | 220. */
+Defun(imageCompress)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	long dpi = strtol(s.utf8_str(), nullptr, 10);
+	if (dpi < 30 || dpi > 600)
+		return false;
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc, false);
+
+	const gchar * szDataID = nullptr;
+	const gchar * szW = nullptr, * szH = nullptr;
+	const PP_AttrProp * pAP = nullptr;
+	if (pView->getFrameEdit()->isActive() && pView->getFrameLayout())
+	{
+		pView->getFrameLayout()->getAP(pAP);
+		if (pAP)
+		{
+			pAP->getAttribute("strux-image-dataid", szDataID);
+			pAP->getProperty("frame-width", szW);
+			pAP->getProperty("frame-height", szH);
+		}
+	}
+	else
+	{
+		PT_DocPosition pos = 0;
+		const fp_Run * pRun = s_findImageRun(pView, pos);
+		if (!pRun)
+			return false;
+		pAP = const_cast<fp_Run *>(pRun)->getSpanAP();
+		if (pAP)
+		{
+			pAP->getAttribute("dataid", szDataID);
+			pAP->getProperty("width", szW);
+			pAP->getProperty("height", szH);
+		}
+	}
+	if (!szDataID || !*szDataID)
+		return false;
+
+	UT_ConstByteBufPtr pBB;
+	std::string mime;
+	if (!pDoc->getDataItemDataByName(szDataID, pBB, &mime, nullptr) ||
+		!pBB)
+		return false;
+	UT_sint32 natW = 0, natH = 0;
+	if (mime == "image/png")
+	{
+		if (!UT_PNG_getDimensions(pBB, natW, natH))
+			return false;
+	}
+	else if (mime == "image/jpeg")
+	{
+		if (!UT_JPEG_getDimensions(pBB, natW, natH))
+			return false;
+	}
+	else
+	{
+		/* vectors and other formats can't be resampled */
+		return true;
+	}
+	if (natW < 2 || natH < 2)
+		return false;
+	double dispW = szW ? UT_convertToInches(szW) : 0.0;
+	double dispH = szH ? UT_convertToInches(szH) : 0.0;
+	if (dispW <= 0.0) dispW = natW / 96.0;
+	if (dispH <= 0.0) dispH = natH / 96.0;
+	double sc = UT_MIN(dispW * dpi / natW, dispH * dpi / natH);
+	if (sc >= 1.0)
+		return true;   /* already at or below the target resolution */
+	const UT_sint32 newW = UT_MAX(1, static_cast<UT_sint32>(natW * sc));
+	const UT_sint32 newH = UT_MAX(1, static_cast<UT_sint32>(natH * sc));
+
+	GR_Graphics * pG = pView->getGraphics();
+	UT_return_val_if_fail(pG, false);
+	std::unique_ptr<GR_Image> pImg(
+		pG->createNewImage(szDataID, pBB, mime,
+						   pG->tlu(natW), pG->tlu(natH),
+						   GR_Image::GRT_Raster));
+	if (!pImg)
+		return false;
+	UT_Rect rec(0, 0, pG->tlu(newW), pG->tlu(newH));
+	pImg->scaleImageTo(pG, rec);
+	UT_ConstByteBufPtr pOut;
+	if (!pImg->convertToBuffer(pOut) || !pOut)
+		return false;
+	if (!pDoc->replaceDataItem(szDataID, pOut, "image/png"))
+		return false;
+	pView->getLayout()->incrementGraphicTick();
+	pView->updateScreen(true);
+	return true;
+}
+
+/* Set the picture's accessibility text: callData "title|alt" — the
+ * title part is optional ("alt" alone sets just the description). */
+Defun(imageAltText)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+	std::string spec(s.utf8_str());
+	std::string title, alt;
+	size_t bar = spec.find('|');
+	if (bar != std::string::npos)
+	{
+		title = spec.substr(0, bar);
+		alt = spec.substr(bar + 1);
+	}
+	else
+	{
+		alt = spec;
+	}
+	PP_PropertyVector attribs;
+	attribs.push_back("title");
+	attribs.push_back(title.c_str());
+	attribs.push_back("alt");
+	attribs.push_back(alt.c_str());
+	return s_applyImageProps(pView, PP_NOPROPS, attribs);
 }
 
 

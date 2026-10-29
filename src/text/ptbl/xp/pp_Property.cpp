@@ -204,11 +204,18 @@ static PP_Property _props[] =
 	{ "homogeneous",           "1",               false, PP_LEVEL_CHAR},
 
 	{ "image-alpha-mod",       "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:alphaModFix@amt alpha multiplier 0..1
+	{ "image-bilevel",         "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:biLevel@thresh black&white threshold 0..1
+	{ "image-blur",            "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:blur@rad blur radius in device px
+	{ "image-color-mode",      "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // Picture Format color mode: grayscale|sepia|washout|blackwhite
+	{ "image-crop-shape",      "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // Picture Format crop-to-shape: ellipse|roundrect|diamond|triangle
 	{ "image-duotone",         "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:duotone: "loRRGGBB hiRRGGBB"
 	{ "image-fill-rect",       "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:stretch/a:fillRect destination "l t r b" in 1000ths of percent
+	{ "image-flip",            "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // Picture Format mirror: h|v|hv
 	{ "image-grayscale",       "0",               false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:grayscl
 	{ "image-lum",             "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:lum: "bright contrast" fractions
-	{ "image-src-rect",        "",                false, PP_LEVEL_FRAME}, // OOXML a:srcRect crop: "l t r b" in 1000ths of percent
+	{ "image-rotation",        "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // Picture Format clockwise rotation: 90|180|270
+	{ "image-sharpen",         "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // Picture Format unsharp-mask amount 0..1
+	{ "image-src-rect",        "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:srcRect crop: "l t r b" in 1000ths of percent
 	{ "image-tile",            "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:tile: "tx ty sx sy flip algn" (EMU, 1000ths pct, tokens)
 	{ "image-transparency",    "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // transparency percent 0-100 (image dialog slider)
 

@@ -6761,3 +6761,4 @@ responsibility** — see `README.md`.
   Inside a table it splits the table at the caret row and the lower
   half continues on the next page; in the first row or a single-row
   table the break lands in a paragraph above the table instead.
+- Picture Format contextual ribbon tab: corrections (sharpen/soften, brightness/contrast), color modes (grayscale/sepia/washout/black-and-white), crop-to-rect and crop-to-shape, rotate/flip, picture compression to a target resolution, and Alt Text — plus DOCX import/export of picture alt text (wp:docPr/pic:cNvPr descr) and a:blur/a:biLevel effects

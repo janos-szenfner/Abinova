@@ -18,6 +18,8 @@
  */
 
 #include <stdlib.h>
+#include <math.h>
+#include <vector>
 
 #include "gr_UnixImage.h"
 #include "ut_assert.h"
@@ -418,19 +420,181 @@ bool GR_UnixImage::convertFromBuffer(const UT_ConstByteBufPtr & pBB,
 }
 
 
+/* single horizontal+vertical box-blur pass over a pixbuf's RGB
+ * channels in place; alpha is left untouched */
+static void s_pixbufBoxBlur(GdkPixbuf * pPixbuf, gint radius)
+{
+	const gint w = gdk_pixbuf_get_width(pPixbuf);
+	const gint h = gdk_pixbuf_get_height(pPixbuf);
+	const gint nc = gdk_pixbuf_get_n_channels(pPixbuf);
+	const gint stride = gdk_pixbuf_get_rowstride(pPixbuf);
+	guchar * px = gdk_pixbuf_get_pixels(pPixbuf);
+	if (radius < 1 || w < 2 || h < 2)
+		return;
+
+	std::vector<guchar> tmp(static_cast<size_t>(stride) * h);
+	const gint cch = nc > 3 ? 3 : nc;
+	/* horizontal pass */
+	for (gint y = 0; y < h; ++y)
+	{
+		guchar * row = px + y * stride;
+		guchar * dst = tmp.data() + y * stride;
+		for (gint c = 0; c < cch; ++c)
+		{
+			gint sum = 0, count = 0;
+			for (gint k = -radius; k <= radius; ++k)
+			{
+				if (k < w) { sum += row[k * nc + c]; ++count; }
+			}
+			for (gint x = 0; x < w; ++x)
+			{
+				dst[x * nc + c] = static_cast<guchar>(sum / count);
+				if (x + radius + 1 < w) { sum += row[(x + radius + 1) * nc + c]; ++count; }
+				if (x - radius >= 0)    { sum -= row[(x - radius) * nc + c];     --count; }
+			}
+		}
+	}
+	/* vertical pass back into the pixbuf */
+	for (gint x = 0; x < w; ++x)
+	{
+		for (gint c = 0; c < cch; ++c)
+		{
+			gint sum = 0, count = 0;
+			for (gint k = -radius; k <= radius; ++k)
+			{
+				if (k < h) { sum += tmp[k * stride + x * nc + c]; ++count; }
+			}
+			for (gint y = 0; y < h; ++y)
+			{
+				px[y * stride + x * nc + c] =
+					static_cast<guchar>(sum / count);
+				if (y + radius + 1 < h) { sum += tmp[(y + radius + 1) * stride + x * nc + c]; ++count; }
+				if (y - radius >= 0)    { sum -= tmp[(y - radius) * stride + x * nc + c];     --count; }
+			}
+		}
+	}
+}
+
+/* 1.0 when pixel (x+.5, y+.5) is inside the named crop shape, else 0 */
+static inline double s_cropShapeCover(int shape, double nx, double ny,
+									  double w, double h)
+{
+	switch (shape)
+	{
+	case 1: /* ellipse */
+	{
+		double dx = (nx - 0.5) * 2.0, dy = (ny - 0.5) * 2.0;
+		return (dx * dx + dy * dy <= 1.0) ? 1.0 : 0.0;
+	}
+	case 2: /* rounded rectangle — corner arcs at 15% of the short side */
+	{
+		double r = (w < h ? w : h) * 0.15;
+		double ax = nx * w, ay = ny * h;
+		double cx = ax < r ? r : (ax > w - r ? w - r : ax);
+		double cy = ay < r ? r : (ay > h - r ? h - r : ay);
+		double dx = ax - cx, dy = ay - cy;
+		if (ax >= r && ax <= w - r) dx = 0.0;
+		if (ay >= r && ay <= h - r) dy = 0.0;
+		return (dx * dx + dy * dy <= r * r) ? 1.0 : 0.0;
+	}
+	case 3: /* diamond */
+		return (fabs(nx - 0.5) + fabs(ny - 0.5) <= 0.5) ? 1.0 : 0.0;
+	case 4: /* triangle — apex at top centre, base along the bottom */
+		return (ny >= fabs(nx - 0.5) * 2.0) ? 1.0 : 0.0;
+	default:
+		return 1.0;
+	}
+}
+
 /*!
- * DrawingML a:blip picture effects: remap the pixbuf's pixels in place.
- * Applied in the canonical ECMA-376 order — luminance, grayscale,
- * duotone, then the fixed alpha modulation.
+ * DrawingML a:blip picture effects and Picture Format corrections:
+ * remap the pixbuf's pixels in place.  Order: geometry (flip, rotate)
+ * first, then blur/sharpen convolution, then the canonical ECMA-376
+ * color order — luminance, grayscale/sepia/biLevel, duotone — the
+ * crop-shape alpha mask, and finally the fixed alpha modulation.
  */
 void GR_UnixImage::applyBlipEffects(const GR_BlipEffects & fx)
 {
 	if (!m_image || !fx.any())
 		return;
 
-	/* a:alphaModFix on an opaque image still needs an alpha channel
-	 * to modulate — add one (all pixels start fully opaque) */
-	if (fx.alphaMod >= 0.0 && !gdk_pixbuf_get_has_alpha(m_image))
+	if (fx.flipH || fx.flipV)
+	{
+		if (fx.flipH)
+		{
+			GdkPixbuf * p = gdk_pixbuf_flip(m_image, TRUE);
+			if (p) { g_object_unref(G_OBJECT(m_image)); m_image = p; }
+		}
+		if (fx.flipV)
+		{
+			GdkPixbuf * p = gdk_pixbuf_flip(m_image, FALSE);
+			if (p) { g_object_unref(G_OBJECT(m_image)); m_image = p; }
+		}
+	}
+	if (fx.rotate)
+	{
+		/* our value is degrees clockwise; gdkpixbuf names the 90/180/
+		 * 270 constants counterclockwise-first */
+		GdkPixbufRotation rot = GDK_PIXBUF_ROTATE_NONE;
+		switch (((fx.rotate % 360) + 360) % 360)
+		{
+		case 90:  rot = GDK_PIXBUF_ROTATE_CLOCKWISE;        break;
+		case 180: rot = GDK_PIXBUF_ROTATE_UPSIDEDOWN;       break;
+		case 270: rot = GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE; break;
+		default: break;
+		}
+		if (rot != GDK_PIXBUF_ROTATE_NONE)
+		{
+			GdkPixbuf * p = gdk_pixbuf_rotate_simple(m_image, rot);
+			if (p) { g_object_unref(G_OBJECT(m_image)); m_image = p; }
+		}
+	}
+
+	const bool bSoft = (fx.blur >= 0.0) || (fx.sharpen > 0.0);
+	if (bSoft)
+	{
+		gint rad = static_cast<gint>(fx.blur >= 0.0 ? fx.blur + 0.5 : 1);
+		if (rad < 1) rad = 1;
+		if (fx.sharpen > 0.0)
+		{
+			/* unsharp mask: original + amount*(original - blurred) —
+			 * the blur radius tracks any declared soften so both
+			 * corrections compose like Word's gallery presets */
+			GdkPixbuf * pBlur = gdk_pixbuf_copy(m_image);
+			if (pBlur)
+			{
+				s_pixbufBoxBlur(pBlur, rad);
+				const gint w = gdk_pixbuf_get_width(m_image);
+				const gint h = gdk_pixbuf_get_height(m_image);
+				const gint nc = gdk_pixbuf_get_n_channels(m_image);
+				const gint stride = gdk_pixbuf_get_rowstride(m_image);
+				const gint bstride = gdk_pixbuf_get_rowstride(pBlur);
+				const gint bnc = gdk_pixbuf_get_n_channels(pBlur);
+				guchar * px = gdk_pixbuf_get_pixels(m_image);
+				const guchar * bpx = gdk_pixbuf_get_pixels(pBlur);
+				const gint cch = nc > 3 ? 3 : nc;
+				for (gint y = 0; y < h; ++y)
+					for (gint x = 0; x < w; ++x)
+						for (gint c = 0; c < cch; ++c)
+						{
+							double v = px[y * stride + x * nc + c] +
+								fx.sharpen * (px[y * stride + x * nc + c] -
+											  bpx[y * bstride + x * bnc + c]);
+							px[y * stride + x * nc + c] =
+								v < 0.0 ? 0 : (v > 255.0 ? 255
+								   : static_cast<guchar>(v + 0.5));
+						}
+				g_object_unref(pBlur);
+			}
+		}
+		if (fx.blur >= 0.0)
+			s_pixbufBoxBlur(m_image, rad);
+	}
+
+	/* a:alphaModFix or a crop-shape mask on an opaque image still
+	 * needs an alpha channel — add one (all pixels start opaque) */
+	if ((fx.alphaMod >= 0.0 || fx.cropShape) &&
+		!gdk_pixbuf_get_has_alpha(m_image))
 	{
 		GdkPixbuf * pAlpha = gdk_pixbuf_add_alpha(m_image,
 												  FALSE, 0, 0, 0);
@@ -484,6 +648,22 @@ void GR_UnixImage::applyBlipEffects(const GR_BlipEffects & fx)
 				r = g = b = lum;
 			}
 
+			/* sepia-tone color mode: the classic sepia matrix */
+			if (fx.sepia)
+			{
+				double tr = 0.393 * r + 0.769 * g + 0.189 * b;
+				double tg = 0.349 * r + 0.686 * g + 0.168 * b;
+				double tb = 0.272 * r + 0.534 * g + 0.131 * b;
+				r = tr; g = tg; b = tb;
+			}
+
+			/* a:biLevel: luminance threshold to pure black or white */
+			if (fx.bilevel)
+			{
+				double lum = 0.299 * r + 0.587 * g + 0.114 * b;
+				r = g = b = (lum >= fx.biThresh * 255.0) ? 255.0 : 0.0;
+			}
+
 			/* a:duotone: the pixel's luminance lerps between the two
 			 * declared colors */
 			if (fx.duotone)
@@ -497,9 +677,15 @@ void GR_UnixImage::applyBlipEffects(const GR_BlipEffects & fx)
 			p[0] = r < 0.0 ? 0 : (r > 255.0 ? 255 : static_cast<guchar>((r + 0.5)));
 			p[1] = g < 0.0 ? 0 : (g > 255.0 ? 255 : static_cast<guchar>((g + 0.5)));
 			p[2] = b < 0.0 ? 0 : (b > 255.0 ? 255 : static_cast<guchar>((b + 0.5)));
-			if (hasAlpha && fx.alphaMod >= 0.0)
+			if (hasAlpha)
 			{
-				double a = p[3] * fx.alphaMod;
+				double a = p[3];
+				if (fx.cropShape)
+					a *= s_cropShapeCover(fx.cropShape,
+										  (x + 0.5) / w, (y + 0.5) / h,
+										  w, h);
+				if (fx.alphaMod >= 0.0)
+					a *= fx.alphaMod;
 				p[3] = a < 0.0 ? 0 : (a > 255.0 ? 255 : static_cast<guchar>((a + 0.5)));
 			}
 		}

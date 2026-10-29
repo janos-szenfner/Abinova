@@ -105,6 +105,70 @@ static void s_applyBlipEffects(GR_Image * pImage, const PP_AttrProp * pAP)
 			fx.alphaMod = fx.alphaMod >= 0.0 ? fx.alphaMod * a : a;
 		}
 	}
+	if (pAP->getProperty("image-bilevel", sz) && sz && *sz)
+	{
+		/* a:biLevel@thresh in 1000ths of a percent */
+		double t = UT_convertDimensionless(sz) / 100000.0;
+		fx.bilevel = true;
+		fx.biThresh = t < 0.0 ? 0.0 : (t > 1.0 ? 1.0 : t);
+	}
+	if (pAP->getProperty("image-blur", sz) && sz && *sz)
+	{
+		double b = UT_convertDimensionless(sz);
+		if (b > 0.0)
+			fx.blur = b;
+	}
+	if (pAP->getProperty("image-sharpen", sz) && sz && *sz)
+	{
+		double a = UT_convertDimensionless(sz);
+		if (a > 0.0)
+			fx.sharpen = a;
+	}
+	if (pAP->getProperty("image-rotation", sz) && sz && *sz)
+	{
+		long deg = strtol(sz, nullptr, 10);
+		deg = ((deg % 360) + 360) % 360;
+		if (deg == 90 || deg == 180 || deg == 270)
+			fx.rotate = static_cast<int>(deg);
+	}
+	if (pAP->getProperty("image-flip", sz) && sz && *sz)
+	{
+		fx.flipH = strchr(sz, 'h') != nullptr;
+		fx.flipV = strchr(sz, 'v') != nullptr;
+	}
+	if (pAP->getProperty("image-crop-shape", sz) && sz && *sz)
+	{
+		if (!strcmp(sz, "ellipse"))       fx.cropShape = 1;
+		else if (!strcmp(sz, "roundrect")) fx.cropShape = 2;
+		else if (!strcmp(sz, "diamond"))  fx.cropShape = 3;
+		else if (!strcmp(sz, "triangle")) fx.cropShape = 4;
+	}
+	if (pAP->getProperty("image-color-mode", sz) && sz && *sz)
+	{
+		/* the Picture Format color gallery resolves to the same
+		 * pixel ops the OOXML effects use: grayscale maps to
+		 * a:grayscl, sepia to the tone matrix, black&white to
+		 * a:biLevel at 50%, washout to a light-gray fade */
+		if (!strcmp(sz, "grayscale"))
+			fx.grayscale = true;
+		else if (!strcmp(sz, "sepia"))
+			fx.sepia = true;
+		else if (!strcmp(sz, "blackwhite"))
+		{
+			fx.bilevel = true;
+			fx.biThresh = 0.5;
+		}
+		else if (!strcmp(sz, "washout"))
+		{
+			fx.grayscale = true;
+			if (!fx.lum)
+			{
+				fx.lum = true;
+				fx.lumBright = 0.55;
+				fx.lumContrast = -0.4;
+			}
+		}
+	}
 
 	if (fx.any())
 		pImage->applyBlipEffects(fx);

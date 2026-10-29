@@ -730,6 +730,31 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			rqst->handled = true;
 		}
 	}
+	else if(nameMatches(rqst->pName, NS_WP_KEY, "docPr") ||
+			nameMatches(rqst->pName, NS_PIC_KEY, "cNvPr"))
+	{
+		/* wp:docPr + pic:cNvPr carry the picture's accessibility text:
+		 * descr is the alt text, title the caption title.  docPr wins
+		 * (it precedes cNvPr), so cNvPr only fills what docPr left
+		 * unset */
+		if(!rqst->stck->empty() && OXMLi_elemTop(rqst->stck))
+		{
+			OXML_SharedElement _e = OXMLi_elemTop(rqst->stck);
+			const bool bPic = nameMatches(rqst->pName, NS_PIC_KEY,
+										  "cNvPr");
+			const char * ns = bPic ? NS_PIC_KEY : NS_WP_KEY;
+			const gchar * szDescr = attrMatches(ns, "descr", rqst->ppAtts);
+			const gchar * szTitle = attrMatches(ns, "title", rqst->ppAtts);
+			const gchar * szHas = nullptr;
+			if (szDescr && *szDescr &&
+				_e->getAttribute("alt", szHas) != UT_OK)
+				_e->setAttribute("alt", szDescr);
+			if (szTitle && *szTitle &&
+				_e->getAttribute("title", szHas) != UT_OK)
+				_e->setAttribute("title", szTitle);
+		}
+		rqst->handled = true;
+	}
 	else if(nameMatches(rqst->pName, NS_WP_KEY, "extent"))
 	{
 		if(rqst->stck->empty())
@@ -909,6 +934,32 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 					g_snprintf(buf, sizeof(buf), "%.4f %.4f", br, ct);
 					fxElem->setProperty("image-lum", buf);
 				}
+			}
+			else if (nameMatches(rqst->pName, NS_A_KEY, "blur"))
+			{
+				/* a:blur@rad is the radius in EMUs — our prop stores
+				 * device pixels (96dpi) */
+				const gchar * rad = attrMatches(NS_A_KEY, "rad",
+												rqst->ppAtts);
+				if (rad)
+				{
+					double px = UT_convertDimensionless(rad) / 9525.0;
+					if (px > 0.0)
+					{
+						char buf[24];
+						g_snprintf(buf, sizeof(buf), "%.2f", px);
+						fxElem->setProperty("image-blur", buf);
+					}
+				}
+			}
+			else if (nameMatches(rqst->pName, NS_A_KEY, "biLevel"))
+			{
+				/* a:biLevel@thresh in 1000ths of a percent — stored raw
+				 * like the other fraction props */
+				const gchar * thr = attrMatches(NS_A_KEY, "thresh",
+												rqst->ppAtts);
+				fxElem->setProperty("image-bilevel",
+									(thr && *thr) ? thr : "50000");
 			}
 			else if (nameMatches(rqst->pName, NS_A_KEY, "alphaModFix") ||
 					 nameMatches(rqst->pName, NS_A_KEY, "alphaMod"))

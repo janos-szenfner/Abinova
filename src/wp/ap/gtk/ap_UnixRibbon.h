@@ -111,6 +111,11 @@ private:
 	GtkWidget *		_makeThemesPopover();
 	GtkWidget *		_makeStyleSetsPopover();
 	GtkWidget *		_makeDesignParaSpacingPopover();
+	GtkWidget *		_makePictureCorrectionsPopover();
+	GtkWidget *		_makePictureColorPopover();
+	GtkWidget *		_makePictureCropPopover();
+	GtkWidget *		_makePictureRotatePopover();
+	GtkWidget *		_makePictureCompressPopover();
 	GtkWidget *		_makeThemeColorsPopover();
 	GtkWidget *		_makeThemeFontsPopover();
 	GtkWidget *		_makeWatermarkPopover();

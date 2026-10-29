@@ -1942,7 +1942,7 @@ UT_Error IE_Exp_OpenXML::setMultilevelType(int target, const char* type)
 /**
  * Sets the inline image
  */
-UT_Error IE_Exp_OpenXML::setImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* szNvPr)
+UT_Error IE_Exp_OpenXML::setImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* szNvPr, const char* szDocPrAttrs)
 {
 	std::string str("");
 	std::string h("");
@@ -1962,7 +1962,10 @@ UT_Error IE_Exp_OpenXML::setImage(const char* id, const char* relId, const char*
 	str += id;
 	str += "\" name=\"";
 	str += filename;
-	str += "\"/>";
+	str += "\"";
+	if (szDocPrAttrs && *szDocPrAttrs)
+		str += szDocPrAttrs;
+	str += "/>";
 	str += "<a:graphic>";
 	str += "<a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">";
 	str += "<pic:pic>";
@@ -1971,7 +1974,10 @@ UT_Error IE_Exp_OpenXML::setImage(const char* id, const char* relId, const char*
 	str += id;
 	str += "\" name=\"";
 	str += filename;
-	str += "\"/>";
+	str += "\"";
+	if (szDocPrAttrs && *szDocPrAttrs)
+		str += szDocPrAttrs;
+	str += "/>";
 	str += "<pic:cNvPicPr/>";
 	if (szNvPr && *szNvPr)
 		str += szNvPr;
@@ -2006,7 +2012,7 @@ UT_Error IE_Exp_OpenXML::setImage(const char* id, const char* relId, const char*
 /**
  * Sets the positioned image
  */
-UT_Error IE_Exp_OpenXML::setPositionedImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* xpos, const char* ypos, const char* wrapMode, const char* szNvPr)
+UT_Error IE_Exp_OpenXML::setPositionedImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* xpos, const char* ypos, const char* wrapMode, const char* szNvPr, const char* szDocPrAttrs)
 {
 	std::string str("");
 	std::string h("");
@@ -2055,7 +2061,10 @@ UT_Error IE_Exp_OpenXML::setPositionedImage(const char* id, const char* relId, c
 	str += id;
 	str += "\" name=\"";
 	str += filename;
-	str += "\"/>";
+	str += "\"";
+	if (szDocPrAttrs && *szDocPrAttrs)
+		str += szDocPrAttrs;
+	str += "/>";
 	str += "<wp:cNvGraphicFramePr>";
 	str += "<a:graphicFrameLocks noChangeAspect=\"1\"/>";
 	str += "</wp:cNvGraphicFramePr>";
@@ -2067,7 +2076,10 @@ UT_Error IE_Exp_OpenXML::setPositionedImage(const char* id, const char* relId, c
 	str += id;
 	str += "\" name=\"";
 	str += filename;
-	str += "\"/>";
+	str += "\"";
+	if (szDocPrAttrs && *szDocPrAttrs)
+		str += szDocPrAttrs;
+	str += "/>";
 	str += "<pic:cNvPicPr/>";
 	if (szNvPr && *szNvPr)
 		str += szNvPr;

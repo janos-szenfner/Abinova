@@ -228,6 +228,12 @@ static struct AbiStockMapping {
   { "abinova-design-pageborders",	AP_MENU_ID_DESIGN_PAGEBORDERS,		"abinova-design-pageborders" },
   { "abinova-design-paraspacing",	AP_MENU_ID_DESIGN_PARASPACING,		"abinova-design-paraspacing" },
   { "abinova-design-setdefault",	AP_MENU_ID_DESIGN_SETDEFAULT,			"abinova-design-setdefault" },
+  { "abinova-picture-corrections",	AP_MENU_ID_PICTURE_CORRECTIONS,		"abinova-picture-corrections" },
+  { "abinova-picture-color",		AP_MENU_ID_PICTURE_COLOR,			"abinova-picture-color" },
+  { "abinova-picture-compress",	AP_MENU_ID_PICTURE_COMPRESS,		"abinova-picture-compress" },
+  { "abinova-picture-crop",		AP_MENU_ID_PICTURE_CROP,			"abinova-picture-crop" },
+  { "abinova-picture-rotate",	AP_MENU_ID_PICTURE_ROTATE,			"abinova-picture-rotate" },
+  { "abinova-picture-alttext",	AP_MENU_ID_PICTURE_ALTTEXT,			"abinova-picture-alttext" },
   { nullptr, 					static_cast<_Ap_Menu_Id>(0),					nullptr }
 };
 

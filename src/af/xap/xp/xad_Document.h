@@ -220,7 +220,8 @@ public:
 										   const std::string & mime_type,
 										   PD_DataItemHandle* ppHandle) = 0;
 	[[nodiscard]] virtual bool            replaceDataItem(const char * szName,
-											const UT_ConstByteBufPtr & pByteBuf) = 0;
+											const UT_ConstByteBufPtr & pByteBuf,
+											const std::string & mime_type = std::string()) = 0;
 	virtual bool			getDataItemDataByName(const char * szName,
 												  UT_ConstByteBufPtr& pByteBuf,
 												  std::string * mime_type,

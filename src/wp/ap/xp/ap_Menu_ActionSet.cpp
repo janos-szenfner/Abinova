@@ -262,6 +262,12 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_DESIGN_PAGEBORDERS,	0,0,0,0,	nullptr,		nullptr,					nullptr);
 	_s(AP_MENU_ID_DESIGN_PARASPACING,	0,0,0,0,	nullptr,		nullptr,					nullptr);
 	_s(AP_MENU_ID_DESIGN_SETDEFAULT,	0,0,0,0,	"designSetDefault",	nullptr,				nullptr);
+	_s(AP_MENU_ID_PICTURE_CORRECTIONS,	0,0,0,0,	nullptr,		ap_GetState_InImage,			nullptr);
+	_s(AP_MENU_ID_PICTURE_COLOR,		0,0,0,0,	nullptr,		ap_GetState_InImage,			nullptr);
+	_s(AP_MENU_ID_PICTURE_COMPRESS,	0,0,0,0,	nullptr,		ap_GetState_InImage,			nullptr);
+	_s(AP_MENU_ID_PICTURE_CROP,		0,0,0,0,	nullptr,		ap_GetState_InImage,			nullptr);
+	_s(AP_MENU_ID_PICTURE_ROTATE,		0,0,0,0,	nullptr,		ap_GetState_InImage,			nullptr);
+	_s(AP_MENU_ID_PICTURE_ALTTEXT,		0,1,0,0,	"dlgImageProperties",	ap_GetState_InImage,			nullptr);
 	_s(AP_MENU_ID_REF_TOCPOP,		0,0,0,0,	"insTOC",		ap_GetState_TOCOK,		nullptr);
 	_s(AP_MENU_ID_REF_ADDTEXT,		0,0,0,0,	"tocAddText",		ap_GetState_TOCOK,		nullptr);
 	_s(AP_MENU_ID_REF_NEXTFN,		0,0,0,0,	"footnoteNext",		nullptr,					nullptr);

@@ -5820,7 +5820,8 @@ bool PD_Document::createDataItem(const char * szName, bool bBase64,
  * Replace the contents of the pre-existing data item with this new
  * data item (pByteBuf). Used when updating a preview of an embedded object.
  */
-bool PD_Document::replaceDataItem(const char * szName, const UT_ConstByteBufPtr & pByteBuf)
+bool PD_Document::replaceDataItem(const char * szName, const UT_ConstByteBufPtr & pByteBuf,
+								  const std::string & mime_type)
 {
 	// verify data item exists
 
@@ -5838,6 +5839,12 @@ bool PD_Document::replaceDataItem(const char * szName, const UT_ConstByteBufPtr 
 	pOldBuf->truncate(0);
 	if (!pOldBuf->ins(0,pByteBuf->getPointer(0),pByteBuf->getLength()))
 		return false;
+
+	if (!mime_type.empty())
+	{
+		g_free(const_cast<gpointer>(pPair->pToken));
+		pPair->pToken = g_strdup(mime_type.c_str());
+	}
 
 	return true;
 }

@@ -111,6 +111,7 @@ static const _ribbon_kv s_ribbon_tab_labels[] =
 	{ "review",     "Review" },
 	{ "view",       "View" },
 	{ "tabledesign","Table Design" },
+	{ "picture",    "Picture Format" },
 	{ "developer",  "Developer" },
 	{ "table",      "Table Layout" },
 	{ "equation",   "Equation" },
@@ -180,6 +181,9 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "tblstyles",   "Table Styles" },
 	{ "borders",     "Borders" },
 	{ "equation",    "Equation" },
+	{ "adjust",      "Adjust" },
+	{ "crop",        "Crop" },
+	{ "alttext",     "Alt Text" },
 	{ "controls",    "Controls" },
 	{ "structures",  "Structures" },
 	{ "help",        "Help" },
@@ -2464,6 +2468,21 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_LAYOUT_ROTATE):
 		popover = _makeRotatePopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_PICTURE_CORRECTIONS):
+		popover = _makePictureCorrectionsPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_PICTURE_COLOR):
+		popover = _makePictureColorPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_PICTURE_COMPRESS):
+		popover = _makePictureCompressPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_PICTURE_CROP):
+		popover = _makePictureCropPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_PICTURE_ROTATE):
+		popover = _makePictureRotatePopover();
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_COVERPAGE):
 		popover = _makeCoverPagePopover();
@@ -9142,6 +9161,124 @@ GtkWidget * AP_UnixRibbon::_makeWindowPopover()
 	return popover;
 }
 
+/* ================= Picture Format tab: contextual popovers ========= */
+
+GtkWidget * AP_UnixRibbon::_makePictureCorrectionsPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Sharpen/Soften"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Soften: 50%", nullptr, nullptr,
+		"imageCorrections", "soften50"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Soften: 25%", nullptr, nullptr,
+		"imageCorrections", "soften25"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Sharpen: 25%", nullptr, nullptr,
+		"imageCorrections", "sharpen25"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Sharpen: 50%", nullptr, nullptr,
+		"imageCorrections", "sharpen50"));
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Brightness/Contrast"));
+	static const char * const bc[][2] = {
+		{ "Brightness: -40%", "b-40" }, { "Brightness: -20%", "b-20" },
+		{ "Brightness: +20%", "b+20" }, { "Brightness: +40%", "b+40" },
+		{ "Contrast: -40%",   "c-40" }, { "Contrast: -20%",   "c-20" },
+		{ "Contrast: +20%",   "c+20" }, { "Contrast: +40%",   "c+40" },
+		{ "Brighten",         "b+40c-40" }, { "Darken",      "b-40c+40" } };
+	for (const auto & r : bc)
+		gtk_box_append(GTK_BOX(box), _presetRow(r[0], nullptr, nullptr,
+			"imageCorrections", r[1]));
+
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box), _presetRow("Reset Corrections", nullptr,
+		nullptr, "imageCorrections", "reset"));
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makePictureColorPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Recolor"));
+	static const char * const modes[][2] = {
+		{ "No Recolor",      "none"       },
+		{ "Grayscale",       "grayscale"  },
+		{ "Sepia",           "sepia"      },
+		{ "Washout",         "washout"    },
+		{ "Black and White", "blackwhite" } };
+	for (const auto & m : modes)
+		gtk_box_append(GTK_BOX(box), _presetRow(m[0], nullptr, nullptr,
+			"imageColor", m[1]));
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makePictureCropPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Crop"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Trim 5% All Edges", nullptr,
+		nullptr, "imageCrop", "5 5 5 5"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Trim 10% All Edges", nullptr,
+		nullptr, "imageCrop", "10 10 10 10"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Trim 25% All Edges", nullptr,
+		nullptr, "imageCrop", "25 25 25 25"));
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Crop to Shape"));
+	static const char * const shapes[][2] = {
+		{ "Ellipse",          "ellipse"   },
+		{ "Rounded Rectangle", "roundrect" },
+		{ "Diamond",          "diamond"   },
+		{ "Triangle",         "triangle"  } };
+	for (const auto & sh : shapes)
+		gtk_box_append(GTK_BOX(box), _presetRow(sh[0], nullptr, nullptr,
+			"imageCropShape", sh[1]));
+
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box), _presetRow("Remove Crop", nullptr, nullptr,
+		"imageCrop", "reset"));
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makePictureRotatePopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _presetRow("Rotate Right 90Â°",
+		nullptr, nullptr, "imageRotate", "right"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Rotate Left 90Â°",
+		nullptr, nullptr, "imageRotate", "left"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Rotate 180Â°",
+		nullptr, nullptr, "imageRotate", "180"));
+	gtk_box_append(GTK_BOX(box), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box), _presetRow("Flip Horizontal", nullptr,
+		nullptr, "imageFlip", "h"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Flip Vertical", nullptr,
+		nullptr, "imageFlip", "v"));
+	return popover;
+}
+
+GtkWidget * AP_UnixRibbon::_makePictureCompressPopover()
+{
+	GtkWidget * box;
+	GtkWidget * popover = _popover_new_box(&box);
+
+	gtk_box_append(GTK_BOX(box), _popover_section_label("Target Resolution"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Print (220 ppi)",
+		"Full detail for printed output", nullptr,
+		"imageCompress", "220"));
+	gtk_box_append(GTK_BOX(box), _presetRow("Screen (150 ppi)",
+		"Good for on-screen documents", nullptr,
+		"imageCompress", "150"));
+	gtk_box_append(GTK_BOX(box), _presetRow("E-mail (96 ppi)",
+		"Smallest file for sending", nullptr,
+		"imageCompress", "96"));
+	return popover;
+}
+
 /* ================= Table Layout tab: contextual popovers =========== */
 
 GtkWidget * AP_UnixRibbon::_makeTableSelectPopover()
@@ -12619,6 +12756,14 @@ void AP_UnixRibbon::_refreshContextualTabs()
 		  view->getTableAtPos(view->getSelectionAnchor())) ||
 		 _selectionTouchesTable(view));
 	bool bInMath = view && view->isInMath();
+	/* the Picture tab shows for a selected inline image or an active
+	 * positioned image frame (text boxes keep the Shape tools) */
+	bool bInImage = view &&
+		(view->isImageSelected() ||
+		 (view->getFrameEdit()->isActive() &&
+		  view->getFrameLayout() &&
+		  view->getFrameLayout()->getFrameType() ==
+			  FL_FRAME_WRAPPER_IMAGE));
 
 	UT_sint32 count = m_vecContextualPages.size();
 	for (UT_sint32 i = 0; i < count; ++i)
@@ -12629,6 +12774,8 @@ void AP_UnixRibbon::_refreshContextualTabs()
 		bool vis = bInTable;
 		if (key && !strcmp(key, "equation"))
 			vis = bInMath;
+		else if (key && !strcmp(key, "picture"))
+			vis = bInImage;
 
 		/* when the current tab is about to hide, GTK would flip to
 		 * an adjacent page (usually the last one — Help); land back
@@ -13052,6 +13199,7 @@ _kt_tab_keys[] =
 	{ "W",  "view" },
 	{ "JD", "tabledesign" },
 	{ "JT", "table" },
+	{ "JP", "picture" },
 	{ "JE", "equation" },
 	{ "Y",  "help" },
 	{ nullptr, nullptr }

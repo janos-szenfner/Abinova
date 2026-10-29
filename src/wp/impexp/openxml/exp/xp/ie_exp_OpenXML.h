@@ -182,8 +182,8 @@ public:
 	UT_Error setAbstractNumberingId(int target, UT_uint32 id);
 	UT_Error setMultilevelType(int target, const char* type);
 	UT_Error setHyperlinkRelation(int target, const char* id, const char* addr, const char* mode);
-	UT_Error setImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* szNvPr = nullptr);
-	UT_Error setPositionedImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* xpos, const char* ypos, const char* wrapMode, const char* szNvPr = nullptr);
+	UT_Error setImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* szNvPr = nullptr, const char* szDocPrAttrs = nullptr);
+	UT_Error setPositionedImage(const char* id, const char* relId, const char* filename, const char* width, const char* height, const char* xpos, const char* ypos, const char* wrapMode, const char* szNvPr = nullptr, const char* szDocPrAttrs = nullptr);
 	UT_Error setImageRelation(const char* filename, const char* id);
 	UT_Error setMediaRelation(const char* filename, const char* id, const char* szRelType);
 	UT_Error writeImage(const char* filename, const UT_ConstByteBufPtr & data);

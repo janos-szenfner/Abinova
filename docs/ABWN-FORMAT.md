@@ -170,6 +170,13 @@ described by FRAME-level properties.
 | `image-grayscale` | `1` to convert to gray (OOXML `a:grayscl`) |
 | `image-lum` | `bright contrast` fractions (OOXML `a:lum`) |
 | `image-alpha-mod` | alpha multiplier 0..1 (OOXML `a:alphaModFix@amt`) |
+| `image-bilevel` | black&white threshold 0..1 in 1000ths % (OOXML `a:biLevel@thresh`) |
+| `image-blur` | blur radius in device px (OOXML `a:blur@rad`) |
+| `image-color-mode` | color mode `grayscale|sepia|washout|blackwhite` (Picture Format) |
+| `image-crop-shape` | crop-to-shape `ellipse|roundrect|diamond|triangle` (Picture Format) |
+| `image-flip` | mirror `h|v|hv` (Picture Format) |
+| `image-rotation` | clockwise `90|180|270` (Picture Format) |
+| `image-sharpen` | unsharp-mask amount 0..1 (Picture Format) |
 | `image-tile` | tile the blip instead of stretching: `tx ty sx sy flip algn` — `tx`/`ty` offset in EMU, `sx`/`sy` scale in 1000ths of a percent, `flip` = `x`/`y`/`xy`/`none` alternation, `algn` = anchor (OOXML `a:tile`) |
 | `image-transparency` | transparency percent 0–100 applied multiplicatively to the image alpha (Image Properties slider) |
 | `image-fill-rect` | destination rect `l,t,r,b` in 1000ths of a percent inside the frame (OOXML `a:stretch`/`a:fillRect`) |
@@ -273,7 +280,9 @@ Properties added beyond the AbiWord registry, all round-tripped:
   `frame-text-dir-flag`, `frame-page-xpos/ypos`,
   `frame-column-xpos/ypos`, `position-to`, `wrap-mode`,
   `fill-gradient`, `fill-alpha`, `shape-path`, `image-src-rect`,
-  `image-duotone`, `image-grayscale`, `image-lum`, `image-alpha-mod`
+  `image-duotone`, `image-grayscale`, `image-lum`, `image-alpha-mod`,
+  `image-bilevel`, `image-blur`, `image-color-mode`, `image-crop-shape`,
+  `image-flip`, `image-rotation`, `image-sharpen`
   (OOXML `a:blip` effects), `image-tile`, `image-fill-rect`
   (OOXML `a:blipFill` tiling/stretch),
   `line-*`, `outline-gradient` (OOXML `a:ln` stroke extras, §4.4),
