@@ -595,6 +595,8 @@ public:
 	static EV_EditMethod_Fn docProps;
 	static EV_EditMethod_Fn arrangePosition;
 	static EV_EditMethod_Fn wrapObject;
+	static EV_EditMethod_Fn positionObject;
+	static EV_EditMethod_Fn moveWithText;
 	static EV_EditMethod_Fn prevComment;
 	static EV_EditMethod_Fn print;
 	static EV_EditMethod_Fn printTB;
@@ -1409,6 +1411,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(mergeCells),			0,		""),
 	EV_EditMethod(NF(mergeCellsDir),		0,		""),
 	EV_EditMethod(NF(middleSpace),			0,		""),
+	EV_EditMethod(NF(moveWithText),			0,		""),
 
 	// n
 	EV_EditMethod(NF(newWindow),			0,	""),
@@ -1448,6 +1451,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(pasteSelection),		0,	""),
 	EV_EditMethod(NF(pasteSpecial), 		0,	""),
 	EV_EditMethod(NF(pasteVisualText), 		0,	""),
+	EV_EditMethod(NF(positionObject),		0,	""),
 	EV_EditMethod(NF(prevComment),			0,	""),
 	EV_EditMethod(NF(print),				0,	""),
 #ifdef ENABLE_PRINT
@@ -12257,8 +12261,10 @@ Defun(arrangePosition)
 }
 
 /*!
- * pCallData: wrap-mode value for the selected frame/image
- * (wrapped-both|wrapped-topbot|above-text|below-text)
+ * pCallData: wrap mode for the selected frame/image - the engine
+ * tokens (wrapped-both|wrapped-topbot|above-text|below-text|
+ * wrapped-to-left|wrapped-to-right) or the Wrap Text gallery names
+ * (square|tight|through|topAndBottom|behindText|inFrontOfText)
  */
 Defun(wrapObject)
 {
@@ -12267,15 +12273,40 @@ Defun(wrapObject)
 	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
 
 	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
-	const char * mode = arg.utf8_str();
-	if (strcmp(mode, "wrapped-both") && strcmp(mode, "wrapped-topbot") &&
-		strcmp(mode, "above-text") && strcmp(mode, "below-text"))
-		return false;
-	const PP_PropertyVector props = {
-		"wrap-mode", mode
-	};
-	pView->setFrameFormat(props);
-	return true;
+	return pView->setObjectWrap(arg.utf8_str());
+}
+
+/*!
+ * pCallData: Position gallery preset name
+ * (topLeft..bottomRight) for the selected frame/image
+ */
+Defun(positionObject)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	return pView->positionObject(arg.utf8_str());
+}
+
+/*!
+ * pCallData: "move"/"fix" (1/0 and true/false also accepted) -
+ * Wrap Text > Move with Text / Fix Position on Page
+ */
+Defun(moveWithText)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+
+	UT_UTF8String arg(pCallData->m_pData, pCallData->m_dataLength);
+	const char * s = arg.utf8_str();
+	if (!strcmp(s, "move") || !strcmp(s, "1") || !strcmp(s, "true"))
+		return pView->objectMoveWithText(true);
+	if (!strcmp(s, "fix") || !strcmp(s, "0") || !strcmp(s, "false"))
+		return pView->objectMoveWithText(false);
+	return false;
 }
 
 /*!

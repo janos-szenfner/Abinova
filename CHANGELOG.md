@@ -6772,3 +6772,4 @@ responsibility** — see `README.md`.
   half continues on the next page; in the first row or a single-row
   table the break lands in a paragraph above the table instead.
 - Picture Format contextual ribbon tab: corrections (sharpen/soften, brightness/contrast), color modes (grayscale/sepia/washout/black-and-white), crop-to-rect and crop-to-shape, rotate/flip, picture compression to a target resolution, and Alt Text — plus DOCX import/export of picture alt text (wp:docPr/pic:cNvPr descr) and a:blur/a:biLevel effects
+- Layout tab Arrange galleries: Position is now the full 3×3 margin-anchored preset grid (top/middle/bottom × left/center/right, square wrap) — the previous entries silently wrote page offsets of 50–100 inches onto the document section. Wrap Text gains Tight, Through, left/right wrap sides, and Move with Text / Fix Position on Page. The Position, Wrap and Align buttons now also enable for text-box frames, not just pictures.

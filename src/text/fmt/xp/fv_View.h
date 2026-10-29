@@ -796,6 +796,16 @@ public:
 	 * plus the active frame); a single object aligns to the page
 	 * margins.  distribute needs at least three objects */
 	bool            alignObjects(const char * szHow);
+	/* Wrap Text gallery: engine wrap-mode tokens plus the Word-side
+	 * names (square/tight/through/topAndBottom/behindText/
+	 * inFrontOfText); tight/through also set the tight-wrap flag */
+	bool            setObjectWrap(const char * szMode);
+	/* Position gallery presets (topLeft..bottomRight) - lands the
+	 * frame at the slot of the text area with square wrapping */
+	bool            positionObject(const char * szPreset);
+	/* Wrap Text > Move with Text (true) / Fix Position on Page
+	 * (false): re-anchors the frame keeping its current position */
+	bool            objectMoveWithText(bool bMove);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG, UT_sint32 mouseX, UT_sint32 mouseY);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG);
 

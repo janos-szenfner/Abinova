@@ -6557,46 +6557,83 @@ GtkWidget * AP_UnixRibbon::_makePageBordersPopover()
 	return popover;
 }
 
-/* Wrap Text popover: frame wrap modes the engine supports */
+/* Wrap Text popover: Word's wrap gallery — the seven OOXML wrap
+ * kinds (In Line stays greyed: a floating frame can't be pushed
+ * back into the text flow) plus the vertical-anchor pair at the
+ * bottom */
 GtkWidget * AP_UnixRibbon::_makeWrapPopover()
 {
 	GtkWidget * box;
 	GtkWidget * popover = _popover_new_box(&box);
+	g_object_set_data(G_OBJECT(popover), "abi-box", box);
+	g_signal_connect(popover, "map",
+					 G_CALLBACK(_s_arrange_popover_map), this);
 
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("In Line with Text", nullptr, nullptr,
+							  nullptr, nullptr, false));
 	static const struct { const char * name; const char * data; } modes[] = {
-		{ "Square",            "wrapped-both" },
-		{ "Top and Bottom",    "wrapped-topbot" },
-		{ "Behind Text",       "below-text" },
-		{ "In Front of Text",  "above-text" },
+		{ "Square",            "square" },
+		{ "Tight",             "tight" },
+		{ "Through",           "through" },
+		{ "Top and Bottom",    "topAndBottom" },
+		{ "Behind Text",       "behindText" },
+		{ "In Front of Text",  "inFrontOfText" },
 	};
 	for (const auto & m : modes)
 		gtk_box_append(GTK_BOX(box),
 					   _presetRow(m.name, nullptr, nullptr,
 								  "wrapObject", m.data));
 	gtk_box_append(GTK_BOX(box),
-				   _presetRow("In Line with Text", nullptr, nullptr,
-							  nullptr, nullptr, false));
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Move with Text",
+							  "Anchor follows its paragraph",
+							  nullptr, "moveWithText", "move"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Fix Position on Page",
+							  "Anchor locked to the page",
+							  nullptr, "moveWithText", "fix"));
 	return popover;
 }
 
-/* Position popover: frame position-to choices + the full dialog */
+/* Position popover: Word's margin-anchored 3x3 preset gallery with
+ * square wrapping + the full dialog */
 GtkWidget * AP_UnixRibbon::_makePositionPopover()
 {
 	GtkWidget * box;
 	GtkWidget * popover = _popover_new_box(&box);
+	g_object_set_data(G_OBJECT(popover), "abi-box", box);
+	g_signal_connect(popover, "map",
+					 G_CALLBACK(_s_arrange_popover_map), this);
 
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("In Line with Text", nullptr, nullptr,
+							  nullptr, nullptr, false));
 	static const struct { const char * name; const char * data; } modes[] = {
 		{ "Position in Top Left with Square Text Wrapping",
-		  "frame-page-xpos:0in;frame-page-ypos:0in;wrap-mode:wrapped-both;position-to:page-above-text" },
+		  "topLeft" },
 		{ "Position in Top Center with Square Text Wrapping",
-		  "frame-page-xpos:50%;frame-page-ypos:0in;wrap-mode:wrapped-both;position-to:page-above-text;frame-horiz-align:center" },
+		  "topCenter" },
 		{ "Position in Top Right with Square Text Wrapping",
-		  "frame-page-xpos:100%;frame-page-ypos:0in;wrap-mode:wrapped-both;position-to:page-above-text;frame-horiz-align:right" },
+		  "topRight" },
+		{ "Position in Middle Left with Square Text Wrapping",
+		  "middleLeft" },
+		{ "Position in Middle Center with Square Text Wrapping",
+		  "middleCenter" },
+		{ "Position in Middle Right with Square Text Wrapping",
+		  "middleRight" },
+		{ "Position in Bottom Left with Square Text Wrapping",
+		  "bottomLeft" },
+		{ "Position in Bottom Center with Square Text Wrapping",
+		  "bottomCenter" },
+		{ "Position in Bottom Right with Square Text Wrapping",
+		  "bottomRight" },
 	};
 	for (const auto & m : modes)
 		gtk_box_append(GTK_BOX(box),
 					   _presetRow(m.name, nullptr, nullptr,
-								  "sectProps", m.data));
+								  "positionObject", m.data));
 	gtk_box_append(GTK_BOX(box),
 				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 	gtk_box_append(GTK_BOX(box),
@@ -6844,6 +6881,9 @@ GtkWidget * AP_UnixRibbon::_makeZOrderPopover(bool bForward)
 {
 	GtkWidget * box;
 	GtkWidget * popover = _popover_new_box(&box);
+	g_object_set_data(G_OBJECT(popover), "abi-box", box);
+	g_signal_connect(popover, "map",
+					 G_CALLBACK(_s_arrange_popover_map), this);
 
 	if (bForward)
 	{

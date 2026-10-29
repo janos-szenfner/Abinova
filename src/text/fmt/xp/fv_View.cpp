@@ -2497,6 +2497,189 @@ bool FV_View::alignObjects(const char * szHow)
 	return true;
 }
 
+/*! Word's Wrap Text gallery on the selected frame: accepts the
+ * engine wrap-mode tokens, the gallery names
+ * (square/tight/through/topAndBottom/behindText/inFrontOfText) and
+ * the wrap-side modes wrapped-to-left/wrapped-to-right.  tight and
+ * through both map onto wrapped-both + tight-wrap (our single
+ * tight flag is the closest the engine gets to Through).  Any
+ * non-tight mode also clears a stale tight-wrap flag. */
+bool FV_View::setObjectWrap(const char * szMode)
+{
+	if (!szMode || !*szMode)
+		return false;
+	fl_FrameLayout * pFL = getFrameLayout();
+	if (!pFL)
+		return false;
+
+	const char * szWrap = nullptr;
+	bool bTight = false;
+	if (!strcmp(szMode, "square") ||
+		!strcmp(szMode, "wrapped-both"))
+		szWrap = "wrapped-both";
+	else if (!strcmp(szMode, "tight") ||
+			 !strcmp(szMode, "through"))
+	{
+		szWrap = "wrapped-both";
+		bTight = true;
+	}
+	else if (!strcmp(szMode, "topAndBottom") ||
+			 !strcmp(szMode, "wrapped-topbot"))
+		szWrap = "wrapped-topbot";
+	else if (!strcmp(szMode, "behindText") ||
+			 !strcmp(szMode, "below-text"))
+		szWrap = "below-text";
+	else if (!strcmp(szMode, "inFrontOfText") ||
+			 !strcmp(szMode, "above-text"))
+		szWrap = "above-text";
+	else if (!strcmp(szMode, "wrapped-to-left") ||
+			 !strcmp(szMode, "wrapped-to-right"))
+		szWrap = szMode;
+	else
+		return false;   /* "inline" isn't a frame operation */
+
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	if (!bTight)
+		_writeFrameProp(pFL, "tight-wrap", nullptr);
+	PP_PropertyVector props = { "wrap-mode", szWrap };
+	if (bTight)
+	{
+		props.push_back("tight-wrap");
+		props.push_back("1");
+	}
+	_writeFrameProps(pFL, props);
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/*! Word's Position gallery presets - the 3x3 grid of margin-anchored
+ * slots with square wrapping.  Our anchor model has no margin
+ * anchor, so the presets write column-anchored offsets (identical
+ * in single-column sections, the anchor's column otherwise), which
+ * also keeps Word's move-with-the-paragraph behaviour. */
+bool FV_View::positionObject(const char * szPreset)
+{
+	if (!szPreset)
+		return false;
+	int iCol = -1, iRow = -1;
+	if (strstr(szPreset, "Left"))        iCol = 0;
+	else if (strstr(szPreset, "Right"))  iCol = 2;
+	else if (strstr(szPreset, "Center")) iCol = 1;
+	if (!strncmp(szPreset, "top", 3))         iRow = 0;
+	else if (!strncmp(szPreset, "middle", 6)) iRow = 1;
+	else if (!strncmp(szPreset, "bottom", 6)) iRow = 2;
+	if (iCol < 0 || iRow < 0)
+		return false;
+	fl_FrameLayout * pFL = getFrameLayout();
+	if (!pFL)
+		return false;
+	fl_DocSectionLayout * pDSL = pFL->getDocSectionLayout();
+	if (!pDSL)
+		return false;
+
+	const UT_sint32 iColW = pDSL->getActualColumnWidth();
+	const UT_sint32 iColH = pDSL->getActualColumnHeight();
+	const UT_sint32 iFW = pFL->getFrameWidth();
+	const UT_sint32 iFH = pFL->getFrameHeight();
+	UT_sint32 x = iCol == 0 ? 0 : iCol == 1 ? (iColW - iFW) / 2
+										  : iColW - iFW;
+	UT_sint32 y = iRow == 0 ? 0 : iRow == 1 ? (iColH - iFH) / 2
+										  : iColH - iFH;
+	if (x < 0) x = 0;
+	if (y < 0) y = 0;
+
+	const PP_PropertyVector props = {
+		"position-to",    "column-above-text",
+		"wrap-mode",      "wrapped-both",
+		"frame-col-xpos", UT_convertInchesToDimensionString(
+			DIM_IN, static_cast<double>(x) / UT_LAYOUT_RESOLUTION),
+		"frame-col-ypos", UT_convertInchesToDimensionString(
+			DIM_IN, static_cast<double>(y) / UT_LAYOUT_RESOLUTION)
+	};
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	_writeFrameProp(pFL, "tight-wrap", nullptr);
+	_writeFrameProps(pFL, props);
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
+/*! Wrap Text > Move with Text / Fix Position on Page: switches the
+ * frame's anchor to its paragraph (block) or to the page while
+ * keeping it where it is on screen. */
+bool FV_View::objectMoveWithText(bool bMove)
+{
+	fl_FrameLayout * pFL = getFrameLayout();
+	if (!pFL)
+		return false;
+	fp_FrameContainer * pFC =
+		static_cast<fp_FrameContainer *>(pFL->getFirstContainer());
+	if (!pFC || !pFC->getPage())
+		return false;
+	const double fx = static_cast<double>(pFC->getFullX())
+		/ UT_LAYOUT_RESOLUTION;
+	const double fy = static_cast<double>(pFC->getFullY())
+		/ UT_LAYOUT_RESOLUTION;
+
+	PP_PropertyVector props;
+	if (bMove)
+	{
+		/* block anchor: xpos is the offset from the column's left
+		 * edge, ypos the offset from the anchor block's first line */
+		fl_ContainerLayout * pCL = pFL->getParentContainer();
+		fl_BlockLayout * pBL = (pCL &&
+			pCL->getContainerType() == FL_CONTAINER_BLOCK)
+			? static_cast<fl_BlockLayout *>(pCL) : nullptr;
+		fp_Container * pC0 = pBL ? pBL->getFirstContainer() : nullptr;
+		fp_Line * pLine = (pC0 &&
+			pC0->getContainerType() == FP_CONTAINER_LINE)
+			? static_cast<fp_Line *>(pC0) : nullptr;
+		fp_Container * pC1 = pLine ? pLine->getContainer() : nullptr;
+		fp_VerticalContainer * pVCon = (pC1 &&
+			(pC1->getContainerType() == FP_CONTAINER_COLUMN ||
+			 pC1->getContainerType() == FP_CONTAINER_CELL))
+			? static_cast<fp_VerticalContainer *>(pC1) : nullptr;
+		if (!pVCon)
+			return false;
+		UT_sint32 xLineOff = 0, yLineOff = 0;
+		pVCon->getOffsets(pLine, xLineOff, yLineOff);
+		const double colX = static_cast<double>(xLineOff - pLine->getX())
+			/ UT_LAYOUT_RESOLUTION;
+		const double blkY = static_cast<double>(yLineOff)
+			/ UT_LAYOUT_RESOLUTION;
+		props = {
+			"position-to", "block-above-text",
+			"xpos",        UT_convertInchesToDimensionString(
+							   DIM_IN, fx - colX),
+			"ypos",        UT_convertInchesToDimensionString(
+							   DIM_IN, fy - blkY)
+		};
+	}
+	else
+	{
+		props = {
+			"position-to",      "page-above-text",
+			"frame-page-xpos",  UT_convertInchesToDimensionString(
+									DIM_IN, fx),
+			"frame-page-ypos",  UT_convertInchesToDimensionString(
+									DIM_IN, fy)
+		};
+	}
+	_saveAndNotifyPieceTableChange();
+	_writeFrameProps(pFL, props);
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION);
+	return true;
+}
+
 /*!
  * image/table/embed wrappers) in document order - the Selection
  * pane's object list.  Frames hosted by blocks are found by walking
