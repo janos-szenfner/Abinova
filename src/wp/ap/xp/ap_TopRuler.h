@@ -387,6 +387,7 @@ protected:
 	virtual void	_drawMarginProperties(const UT_Rect * pClipRect,
 									  AP_TopRulerInfo * pInfo, GR_Graphics::GR_Color3D clr);
 
+	bool		_isDroppedOff(UT_sint32 y) const;
 	void		_xorGuide(bool bClear=false);
 
 	void		_ignoreEvent(bool bDone);

@@ -1,0 +1,234 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<interface>
+  <requires lib="gtk" version="4.0" />
+  <object class="GtkDialog" id="ap_UnixDialog_Tabs">
+    <property name="title" translatable="yes">Tabs</property>
+    <property name="resizable">0</property>
+    <property name="modal">1</property>
+        <child><object class="GtkBox" id="vbDialog">
+          <property name="margin-start">12</property>
+          <property name="margin-end">12</property>
+          <property name="margin-top">12</property>
+          <property name="margin-bottom">12</property>
+        <property name="visible">1</property>
+        <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
+        <child>
+          <object class="GtkGrid" id="grContent">
+            <property name="visible">1</property>
+            <property name="row-spacing">6</property>
+            <property name="column-spacing">12</property>
+            <child>
+              <object class="GtkLabel" id="lbPos">
+                <property name="visible">1</property>
+                <property name="label" translatable="yes">Tab stop position:</property>
+                <property name="xalign">0</property>
+              <layout><property name="column">0</property><property name="row">0</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkEntry" id="enPos">
+                <property name="visible">1</property>
+                <property name="can-focus">1</property>
+                <property name="hexpand">1</property>
+                <property name="activates-default">1</property>
+              <layout><property name="column">1</property><property name="row">0</property><property name="column-span">2</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkScrolledWindow" id="swStops">
+                <property name="visible">1</property>
+                <property name="height-request">110</property>
+                <property name="hexpand">1</property>
+                <property name="has-frame">1</property>
+                <property name="hscrollbar-policy">never</property>
+                <child><object class="GtkListBox" id="lstStops">
+                  <property name="visible">1</property>
+                  <property name="selection-mode">single</property>
+                </object></child>
+              <layout><property name="column">0</property><property name="row">1</property><property name="column-span">2</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkBox" id="vbStopButtons">
+                <property name="visible">1</property>
+                <property name="orientation">vertical</property>
+                <property name="spacing">6</property>
+                <property name="valign">start</property>
+                <child><object class="GtkButton" id="btSet">
+                  <property name="label" translatable="yes">_Set</property>
+                  <property name="visible">1</property>
+                  <property name="can-focus">1</property>
+                  <property name="use-underline">1</property>
+                  <property name="width-request">96</property>
+                </object></child>
+                <child><object class="GtkButton" id="btClear">
+                  <property name="label" translatable="yes">C_lear</property>
+                  <property name="visible">1</property>
+                  <property name="can-focus">1</property>
+                  <property name="use-underline">1</property>
+                </object></child>
+                <child><object class="GtkButton" id="btClearAll">
+                  <property name="label" translatable="yes">Clear A_ll</property>
+                  <property name="visible">1</property>
+                  <property name="can-focus">1</property>
+                  <property name="use-underline">1</property>
+                </object></child>
+              <layout><property name="column">2</property><property name="row">1</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkFrame" id="frAlign">
+                <property name="visible">1</property>
+                <property name="label" translatable="yes">Alignment</property>
+                <property name="hexpand">1</property>
+                <child><object class="GtkBox" id="vbAlign">
+                  <property name="visible">1</property>
+                  <property name="orientation">vertical</property>
+                  <property name="spacing">2</property>
+                  <property name="margin-start">6</property>
+                  <property name="margin-end">6</property>
+                  <property name="margin-top">4</property>
+                  <property name="margin-bottom">4</property>
+                  <child><object class="GtkBox" id="hbAlign1">
+                    <property name="visible">1</property>
+                    <property name="spacing">12</property>
+                    <child><object class="GtkCheckButton" id="rbAlignLeft">
+                      <property name="label" translatable="yes">_Left</property>
+                      <property name="visible">1</property>
+                      <property name="can-focus">1</property>
+                      <property name="use-underline">1</property>
+                      <property name="active">1</property>
+                    </object></child>
+                    <child><object class="GtkCheckButton" id="rbAlignDecimal">
+                      <property name="label" translatable="yes">_Decimal</property>
+                      <property name="visible">1</property>
+                      <property name="can-focus">1</property>
+                      <property name="use-underline">1</property>
+                      <property name="group">rbAlignLeft</property>
+                    </object></child>
+                  </object></child>
+                  <child><object class="GtkBox" id="hbAlign2">
+                    <property name="visible">1</property>
+                    <property name="spacing">12</property>
+                    <child><object class="GtkCheckButton" id="rbAlignCenter">
+                      <property name="label" translatable="yes">_Center</property>
+                      <property name="visible">1</property>
+                      <property name="can-focus">1</property>
+                      <property name="use-underline">1</property>
+                      <property name="group">rbAlignLeft</property>
+                    </object></child>
+                    <child><object class="GtkCheckButton" id="rbAlignBar">
+                      <property name="label" translatable="yes">_Bar</property>
+                      <property name="visible">1</property>
+                      <property name="can-focus">1</property>
+                      <property name="use-underline">1</property>
+                      <property name="group">rbAlignLeft</property>
+                    </object></child>
+                  </object></child>
+                  <child><object class="GtkCheckButton" id="rbAlignRight">
+                    <property name="label" translatable="yes">_Right</property>
+                    <property name="visible">1</property>
+                    <property name="can-focus">1</property>
+                    <property name="use-underline">1</property>
+                    <property name="group">rbAlignLeft</property>
+                  </object></child>
+                </object></child>
+              <layout><property name="column">0</property><property name="row">2</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkFrame" id="frLeader">
+                <property name="visible">1</property>
+                <property name="label" translatable="yes">Leader</property>
+                <property name="hexpand">1</property>
+                <child><object class="GtkBox" id="vbLeader">
+                  <property name="visible">1</property>
+                  <property name="orientation">vertical</property>
+                  <property name="spacing">2</property>
+                  <property name="margin-start">6</property>
+                  <property name="margin-end">6</property>
+                  <property name="margin-top">4</property>
+                  <property name="margin-bottom">4</property>
+                  <child><object class="GtkBox" id="hbLeader1">
+                    <property name="visible">1</property>
+                    <property name="spacing">12</property>
+                    <child><object class="GtkCheckButton" id="rbLeaderNone">
+                      <property name="label" translatable="yes">_None</property>
+                      <property name="visible">1</property>
+                      <property name="can-focus">1</property>
+                      <property name="use-underline">1</property>
+                      <property name="active">1</property>
+                    </object></child>
+                    <child><object class="GtkCheckButton" id="rbLeaderHyphens">
+                      <property name="label" translatable="yes">_Hyphens</property>
+                      <property name="visible">1</property>
+                      <property name="can-focus">1</property>
+                      <property name="use-underline">1</property>
+                      <property name="group">rbLeaderNone</property>
+                    </object></child>
+                  </object></child>
+                  <child><object class="GtkBox" id="hbLeader2">
+                    <property name="visible">1</property>
+                    <property name="spacing">12</property>
+                    <child><object class="GtkCheckButton" id="rbLeaderDots">
+                      <property name="label" translatable="yes">D_ots</property>
+                      <property name="visible">1</property>
+                      <property name="can-focus">1</property>
+                      <property name="use-underline">1</property>
+                      <property name="group">rbLeaderNone</property>
+                    </object></child>
+                    <child><object class="GtkCheckButton" id="rbLeaderUnderline">
+                      <property name="label" translatable="yes">_Underline</property>
+                      <property name="visible">1</property>
+                      <property name="can-focus">1</property>
+                      <property name="use-underline">1</property>
+                      <property name="group">rbLeaderNone</property>
+                    </object></child>
+                  </object></child>
+                </object></child>
+              <layout><property name="column">1</property><property name="row">2</property><property name="column-span">2</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkLabel" id="lbDefault">
+                <property name="visible">1</property>
+                <property name="label" translatable="yes">Default tab stops:</property>
+                <property name="xalign">0</property>
+              <layout><property name="column">0</property><property name="row">3</property></layout></object>
+              </child>
+            <child>
+              <object class="GtkEntry" id="enDefault">
+                <property name="visible">1</property>
+                <property name="can-focus">1</property>
+                <property name="width-request">120</property>
+                <property name="activates-default">1</property>
+              <layout><property name="column">1</property><property name="row">3</property></layout></object>
+              </child>
+          </object>
+          </child>
+              <child>
+          <object class="GtkBox" id="aaDialog">
+                    <property name="halign">end</property>
+                    <property name="spacing">6</property>
+                    <property name="margin-top">6</property>
+                      <property name="visible">1</property>
+                      <child>
+                        <object class="GtkButton" id="btCancel">
+                          <property name="label">_Cancel</property>
+                          <property name="use-underline">1</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                        </object>
+                        </child>
+                      <child>
+                        <object class="GtkButton" id="btOK">
+                          <property name="label">_OK</property>
+                          <property name="visible">1</property>
+                          <property name="can-focus">1</property>
+                          <property name="use-underline">1</property>
+                        </object>
+                        </child>
+                    </object>
+        </child>
+</object>
+    </child><action-widgets>
+      <action-widget response="-6">btCancel</action-widget>
+      <action-widget response="1">btOK</action-widget>
+    </action-widgets>
+  </object>
+</interface>

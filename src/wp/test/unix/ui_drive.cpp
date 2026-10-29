@@ -94,6 +94,7 @@
 #include "xap_Dialog_Id.h"
 #include "ap_Dialog_Id.h"
 #include "ap_Menu_Id.h"
+#include "ap_Prefs.h"
 #include "xap_UnixFrameImpl.h"
 #include "ev_UnixMenu.h"
 #include "ev_EditMethod.h"
@@ -422,6 +423,9 @@ struct DriveCtx {
 										 * answered — the ruler leg
 										 * asserts its double-click
 										 * dialog by watching this */
+	char lastStrayTitle[160];           /* title of the last dialog the
+										 * sweep closed (ruler leg's
+										 * dbl-click assertion) */
 };
 
 /* GTK's own system toplevels (print/file dialogs) are not our
@@ -450,9 +454,14 @@ static void sweep_strays(DriveCtx &ctx)
 		if (!w)
 			continue;
 		if (w != ctx.root && !contains(ctx.preexisting, w)) {
-			if (GTK_IS_DIALOG(w))
+			if (GTK_IS_DIALOG(w)) {
+				const char *t = gtk_window_get_title(GTK_WINDOW(w));
+				snprintf(ctx.lastStrayTitle,
+						 sizeof(ctx.lastStrayTitle), "%s",
+						 t ? t : "");
 				g_signal_emit_by_name(w, "response",
 									  GTK_RESPONSE_DELETE_EVENT);
+			}
 			else if (GTK_IS_WINDOW(w))
 				gtk_window_close(GTK_WINDOW(w));
 			closed = true;
@@ -1495,14 +1504,6 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 		g_printerr("ruler: ruler widgets not realized\n");
 		return 77;
 	}
-	int tw_w = gtk_widget_get_width(tw), tw_h = gtk_widget_get_height(tw);
-	int lw_w = gtk_widget_get_width(lw), lw_h = gtk_widget_get_height(lw);
-	if (tw_w < 200 || tw_h < 10 || lw_h < 200 || lw_w < 10) {
-		g_printerr("ruler: rulers not laid out (%dx%d / %dx%d)\n",
-				   tw_w, tw_h, lw_w, lw_h);
-		return 1;
-	}
-
 	GtkWidget *native = GTK_WIDGET(gtk_widget_get_native(tw));
 	GdkSurface *surf = gtk_native_get_surface(GTK_NATIVE(native));
 	if (!surf || !GDK_IS_X11_SURFACE(surf)) {
@@ -1510,6 +1511,20 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 		return 77;
 	}
 	RulerInject inj { dpy, xap_gdk_x11_surface_get_xid(surf), fakeBtn };
+
+	/* a freshly-mapped frame can come up smaller than the leg's
+	 * minimums under Xvfb — grow the toplevel through the WM before
+	 * measuring anything; do it unconditionally so a remembered small
+	 * size can't flake the run */
+	XResizeWindow(dpy, inj.xid, 1100, 800);
+	tf_guard::pump_for(500);
+	int tw_w = gtk_widget_get_width(tw), tw_h = gtk_widget_get_height(tw);
+	int lw_w = gtk_widget_get_width(lw), lw_h = gtk_widget_get_height(lw);
+	if (tw_w < 200 || tw_h < 10 || lw_h < 200 || lw_w < 10) {
+		g_printerr("ruler: rulers not laid out (%dx%d / %dx%d)\n",
+				   tw_w, tw_h, lw_w, lw_h);
+		return 1;
+	}
 
 	/* let the freshly-mapped window finish resizing before measuring
 	 * anything — each resize moves the column origin mid-run */
@@ -1794,6 +1809,22 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 						   what, d, rg->tlu(30), rg->tlu(400));
 				fails++;
 			}
+
+			/* W49: with inch ruler units every drag lands on the 1/16"
+			 * grid — the applied delta is a 90-layout-unit multiple */
+			std::string ru;
+			if (!XAP_App::getApp()->getPrefsValue(
+					AP_PREF_KEY_RulerUnits, ru) ||
+				ru.empty() || !strcmp(ru.c_str(), "in")) {
+				if (d % 90 == 0) {
+					g_print("ruler: %s drag snapped to 1/16in grid "
+							"(delta %d lu)\n", what, d);
+				} else {
+					g_printerr("FAIL ruler: %s drag off the 1/16in "
+							   "grid (delta %d lu)\n", what, d);
+					fails++;
+				}
+			}
 		}
 	}
 
@@ -1865,25 +1896,202 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 		}
 	}
 
-	/* ---- double-click opens the Paragraph dialog ---- */
+	/* ---- tab-kind selector cycles all five kinds ---- */
+	set_phase("ruler: tab-kind selector");
+	{
+		/* locate the toggle in the fixed zone at the ruler's left
+		 * edge.  Each probe press on it cycles the kind (harmless —
+		 * five successive placements cycle through every kind
+		 * regardless of where the scan leaves it) and a free-zone
+		 * miss only drops a pending tab. */
+		int tgx = -1, tgy = -1;
+		for (int px = 2; px < 40 && tgx < 0; px++)
+			for (int py = 2; py < tw_h - 2; py++)
+				if (probe_top_ruler(tr, px, py, nullptr) ==
+						AP_TopRuler::DW_TABTOGGLE) {
+					tgx = px;
+					tgy = py;
+					break;
+				}
+		if (tgx < 0) {
+			g_printerr("FAIL ruler: no tab-kind toggle found\n");
+			fails++;
+		} else {
+			/* five successive placements with one toggle press between
+			 * each must commit all five kinds (Word order
+			 * Left,Center,Right,Decimal,Bar — reaching Bar proves the
+			 * selector doesn't stop at the classic three) */
+			const int baseX = tw_w / 4;
+			for (int k = 0; k < 5; k++) {
+				wait_pt_idle(view);
+				probe_top_ruler(tr, tgx, tgy, nullptr);
+				wait_pt_idle(view);
+				int x = baseX + k * (tw_w / 10);
+				rul_move(inj, tw, x, tw_h / 2);
+				wait_pt_idle(view);
+				rul_btn(inj, true);
+				rul_btn(inj, false);
+				rul_gap();
+			}
+			AP_TopRulerInfo ti4;
+			view->getTopRulerInfo(&ti4);
+			bool seen[6] = {};
+			int found = 0;
+			for (UT_sint32 i = 0; i < ti4.m_iTabStops; i++) {
+				fl_TabStop ts;
+				if (ti4.m_pfnEnumTabStops(ti4.m_pVoidEnumTabStopsData,
+										  i, &ts)) {
+					int t = static_cast<int>(ts.getType());
+					if (t >= 1 && t <= 5 && !seen[t]) {
+						seen[t] = true;
+						found++;
+					}
+				}
+			}
+			if (found == 5)
+				g_print("ruler: selector cycled all 5 tab kinds\n");
+			else {
+				g_printerr("FAIL ruler: selector produced %d distinct "
+						   "tab kinds (%d stops)\n", found, ti4.m_iTabStops);
+				fails++;
+			}
+			/* restore the blank block for the table leg */
+			const PP_PropertyVector clearTabs = { "tabstops", "" };
+			view->setBlockFormat(clearTabs);
+			wait_pt_idle(view);
+		}
+	}
+
+	/* ---- caret in a table: column-boundary marks drag on the ruler ---- */
+	set_phase("ruler: table cell marks");
+	{
+		wait_pt_idle(view);
+		view->cmdInsertTable(2, 2, PP_NOPROPS);
+		tf_guard::pump_for(400);
+		wait_pt_idle(view);
+		AP_TopRulerInfo tti;
+		view->getTopRulerInfo(&tti);
+		if (tti.m_mode != AP_TopRulerInfo::TRI_MODE_TABLE ||
+			tti.tableCellInfoCount() < 2) {
+			g_printerr("FAIL ruler: caret in table gave mode %d, "
+					   "%d cells\n", tti.m_mode,
+					   tti.tableCellInfoCount());
+			fails++;
+		} else {
+			const AP_TopRulerTableInfo *c0 = tti.tableCellInfo(0);
+			UT_sint32 w0 = c0
+				? c0->m_iRightCellPos - c0->m_iLeftCellPos : 0;
+			/* collect the marks left to right: mark 0 is the table's
+			 * left edge (its drag moves the whole table — column
+			 * widths unchanged by design), the interior mark is a
+			 * column boundary and the one whose drag resizes a cell */
+			int markX = -1;
+			{
+				int centers[8] = {}, nC = 0;
+				for (int py = 3; py < tw_h - 3 && nC < 2; py += 4) {
+					int runStart = -1;
+					for (int px = 8; px < tw_w - 8 && nC < 8; px++) {
+						if (probe_top_ruler(tr, px, py, nullptr) ==
+								AP_TopRuler::DW_CELLMARK) {
+							if (runStart < 0)
+								runStart = px;
+						} else if (runStart >= 0) {
+							centers[nC++] = (runStart + px - 1) / 2;
+							runStart = -1;
+						}
+					}
+					if (runStart >= 0 && nC < 8)
+						centers[nC++] = (runStart + tw_w - 8) / 2;
+					if (nC)
+						break;
+				}
+				markX = (nC > 1) ? centers[1]
+								: (nC == 1 ? centers[0] : -1);
+			}
+			if (markX < 0) {
+				g_printerr("FAIL ruler: no cell-boundary marker on the "
+						   "ruler\n");
+				fails++;
+			} else {
+				bool dragged = false;
+				for (int attempt = 0; attempt < 4 && !dragged; attempt++) {
+					wait_pt_idle(view);
+					rul_move(inj, tw, markX, tw_h / 2);
+					wait_pt_idle(view);
+					rul_btn(inj, true);
+					if (tr->draggingWhatForTest() ==
+							AP_TopRuler::DW_CELLMARK) {
+						dragged = true;
+						break;
+					}
+					if (tr->draggingWhatForTest() ==
+							AP_TopRuler::DW_TABSTOP)
+						rul_move(inj, tw, markX, tw_h + 30);
+					rul_btn(inj, false);
+					rul_gap();
+					markX = 2 * markX - rg->tdu(tr->lastPressXForTest());
+					int cx2 = probe_top_center(tr, tw_h / 2,
+											   markX - 16, markX + 16,
+											   AP_TopRuler::DW_CELLMARK,
+											   false);
+					if (cx2 >= 0)
+						markX = cx2;
+				}
+				if (!dragged) {
+					g_printerr("FAIL ruler: real press did not grab a "
+							   "cell mark\n");
+					fails++;
+				} else {
+					rul_move(inj, tw, markX + 40, tw_h / 2);
+					rul_btn(inj, false);
+					rul_gap();
+					AP_TopRulerInfo tti2;
+					view->getTopRulerInfo(&tti2);
+					const AP_TopRulerTableInfo *c1 =
+						tti2.tableCellInfo(0);
+					UT_sint32 w1 = c1
+						? c1->m_iRightCellPos - c1->m_iLeftCellPos : 0;
+					UT_sint32 dw = w1 - w0;
+					if (dw < 0)
+						dw = -dw;
+					if (dw >= rg->tlu(10))
+						g_print("ruler: cell-boundary drag resized the "
+								"column (%d -> %d lu)\n", w0, w1);
+					else {
+						g_printerr("FAIL ruler: cell-mark drag left "
+								   "width %d -> %d lu\n", w0, w1);
+						fails++;
+					}
+				}
+			}
+		}
+	}
+
+	/* ---- double-click opens the Tabs dialog ---- */
 	set_phase("ruler: double-click");
 
 	{
 		/* the dialog runs modally inside the second press's dispatch;
-		 * the stray sweep answers it within ~150ms and bumps the
-		 * counter, which is also the proof the dialog appeared */
+		 * catch its title before the stray sweep answers it */
 		int closedBefore = sctx.straysClosed;
+		sctx.lastStrayTitle[0] = 0;
 		int cx = tabX >= 0 ? tabX : tw_w / 2;
 		rul_move(inj, tw, cx, tw_h / 2);
 		rul_btn(inj, true);
 		rul_btn(inj, false);
 		rul_btn(inj, true);
 		rul_btn(inj, false);
+		/* the dialog can open and be swept entirely inside the press
+		 * dispatch — the sweep records its title, which is the proof
+		 * it was the Tabs dialog and not a stale Paragraph one */
 		tf_guard::pump_for(800);
-		if (sctx.straysClosed > closedBefore)
-			g_print("ruler: double-click opened a dialog\n");
+		if (sctx.straysClosed > closedBefore &&
+			strstr(sctx.lastStrayTitle, "Tabs"))
+			g_print("ruler: double-click opened the Tabs dialog\n");
 		else {
-			g_printerr("FAIL ruler: double-click opened no dialog\n");
+			g_printerr("FAIL ruler: double-click opened '%s' "
+					   "(closed %d)\n", sctx.lastStrayTitle,
+					   sctx.straysClosed > closedBefore);
 			fails++;
 		}
 		tf_guard::pump_for(150);

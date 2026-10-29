@@ -63,6 +63,7 @@ enum TABINDEX
 
 const static UT_uint32 s_tr_AUTOSCROLL_PIXELS   = 25;
 const static UT_uint32 s_tr_AUTOSCROLL_INTERVAL = 300; // miliseconds
+const static UT_uint32 s_tr_DROPOFF_PIXELS      = 18; // px past the band before a tab drag is "off" (wordcraft DROP_OFF)
 
 /*****************************************************************/
 UT_uint32 AP_TopRuler::s_iFixedHeight = 22;
@@ -2606,7 +2607,7 @@ void AP_TopRuler::mouseRelease(EV_EditModifierState ems, EV_EditMouseButton /* e
 	// applies at the last tracked x (Word parity): the drag kept
 	// tracking horizontally while the pointer strayed vertically.
 
-	if ((getHeight() > 0) && ((y < 0) || (y > static_cast<UT_sint32>(getHeight ()))) &&
+	if ((getHeight() > 0) && _isDroppedOff(y) &&
 	    m_draggingWhat == DW_TABSTOP)
 	{
 		_ignoreEvent(true);
@@ -3542,7 +3543,7 @@ void AP_TopRuler::mouseMotion(EV_EditModifierState /*ems*/, UT_sint32 x, UT_sint
 	// horizontal position while the pointer strays off the band — Word
 	// applies those at the tracked x on release — so fall through.
 
-	if (m_pG && ((y < 0) || (y > static_cast<UT_sint32>(getHeight ()))) &&
+	if (m_pG && _isDroppedOff(y) &&
 	    m_draggingWhat == DW_TABSTOP)
 	{
 		if(!m_bEventIgnored)
@@ -4354,6 +4355,18 @@ UT_sint32 AP_TopRuler::_getFirstPixelInColumn(AP_TopRulerInfo * pInfo, UT_uint32
 	else
 
 	return xAbsLeft;
+}
+
+/* A dragged tab stop only counts as "off the ruler" once the pointer
+ * has strayed more than s_tr_DROPOFF_PIXELS device px past the band's
+ * edge — inside that margin it keeps tracking horizontally and a
+ * release applies the move, past it the release is the delete
+ * gesture. */
+bool AP_TopRuler::_isDroppedOff(UT_sint32 y) const
+{
+	const UT_sint32 iDrop = m_pG ? m_pG->tlu(s_tr_DROPOFF_PIXELS)
+							 : static_cast<UT_sint32>(s_tr_DROPOFF_PIXELS);
+	return (y < -iDrop) || (y > static_cast<UT_sint32>(getHeight()) + iDrop);
 }
 
 void AP_TopRuler::_ignoreEvent(bool bDone)

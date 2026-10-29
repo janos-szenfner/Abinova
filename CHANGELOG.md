@@ -26,6 +26,15 @@ responsibility** — see `README.md`.
   a white 1px edge, pixel-snapped at every display scale) instead of
   the theme glyph, which could disappear on white or dark paper;
   previously this was Windows-only.
+- **Word-parity top ruler** — dragging a tab stop now deletes it only
+  once the pointer strays more than 18px past the ruler band (a drop
+  just outside applies the move, like Word); double-clicking the
+  horizontal ruler opens a real *Tabs* dialog — position entry, the
+  paragraph's stop list, Left/Center/Right/Decimal/Bar alignment and
+  None/Dots/Hyphens/Underline leader pickers, Set / Clear / Clear All
+  and a default-interval field — also reachable as the `dlgTabs` edit
+  method; the corner selector cycles all five tab kinds and table
+  column-boundary marks on the ruler drag to resize cells.
 
 ### Bug fixes
 

@@ -127,6 +127,7 @@
 #include "ap_Dialog_MergeCells.h"
 #include "ap_Dialog_SplitCells.h"
 #include "ap_Dialog_TextToTable.h"
+#include "ap_Dialog_Tabs.h"
 #include "ap_Dialog_RestrictEditing.h"
 #include "ap_Dialog_FormatTable.h"
 //	Maleesh 6/8/2010 - 
@@ -686,6 +687,7 @@ public:
 
 	static EV_EditMethod_Fn dlgFont;
 	static EV_EditMethod_Fn dlgParagraph;
+	static EV_EditMethod_Fn dlgTabs;
 	static EV_EditMethod_Fn dlgBullets;
 	static EV_EditMethod_Fn dlgBorders;
 	static EV_EditMethod_Fn dlgColumns;
@@ -1151,6 +1153,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(dlgSpellPrefs), 		0,	""),
 #endif
 	EV_EditMethod(NF(dlgStyle), 			0,	""),
+	EV_EditMethod(NF(dlgTabs),				0,	""),
 	EV_EditMethod(NF(dlgToggleCase),		0,	""),
 	EV_EditMethod(NF(dlgWordCount), 		0,	""),
 	EV_EditMethod(NF(dlgZoom),				0,	""),
@@ -14759,6 +14762,50 @@ Defun1(dlgParagraph)
 		return true;
 
 	return s_doParagraphDlg(pView);
+}
+
+Defun1(dlgTabs)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+
+	UT_return_val_if_fail(pView, false);
+	if (pView->getDocument()->areStylesLocked())
+		return true;
+
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+
+	pFrame->raise();
+
+	XAP_DialogFactory * pDialogFactory
+		= static_cast<XAP_DialogFactory *>(pFrame->getDialogFactory());
+
+	AP_Dialog_Tabs * pDialog
+		= static_cast<AP_Dialog_Tabs *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_TABS)));
+	UT_return_val_if_fail(pDialog, false);
+	PP_PropertyVector props;
+
+	if (!pView->getBlockFormat(props))
+		return false;
+
+	if (!pDialog->setDialogData(props))
+		return false;
+
+	// run the dialog
+	pDialog->runModal(pFrame);
+
+	if (pDialog->getAnswer() == AP_Dialog_Tabs::a_OK)
+	{
+		PP_PropertyVector outProps;
+		pDialog->getDialogData(outProps);
+		if (!outProps.empty())
+			pView->setBlockFormat(outProps);
+	}
+
+	pDialogFactory->releaseDialog(pDialog);
+
+	return true;
 }
 
 static bool s_doBullets(FV_View *pView)

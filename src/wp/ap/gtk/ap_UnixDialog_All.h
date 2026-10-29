@@ -63,6 +63,7 @@
 #   include "ap_UnixDialog_PageNumbers.h"
 #   include "ap_UnixDialog_PageSetup.h"
 #	include "ap_UnixDialog_Paragraph.h"
+#	include "ap_UnixDialog_Tabs.h"
 #	include "ap_UnixDialog_Options.h"
 #ifdef ENABLE_SPELL
 #	include "ap_UnixDialog_Spell.h"
@@ -159,6 +160,7 @@
 	DeclareDialog(AP_DIALOG_ID_STYLIST,			AP_UnixDialog_Stylist)
 	DeclareDialog(AP_DIALOG_ID_PAGE_NUMBERS,    AP_UnixDialog_PageNumbers)
 	DeclareDialog(AP_DIALOG_ID_PARAGRAPH,		AP_UnixDialog_Paragraph)
+	DeclareDialog(AP_DIALOG_ID_TABS,			AP_UnixDialog_Tabs)
 	DeclareDialog(AP_DIALOG_ID_OPTIONS,			AP_UnixDialog_Options)
 	DeclareDialog(AP_DIALOG_ID_INSERT_DATETIME,	AP_UnixDialog_Insert_DateTime)
 	DeclareDialog(AP_DIALOG_ID_WORDCOUNT,		AP_UnixDialog_WordCount)

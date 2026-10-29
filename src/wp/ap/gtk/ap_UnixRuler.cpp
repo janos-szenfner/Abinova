@@ -28,6 +28,7 @@
 #include "gr_UnixCairoGraphics.h"
 #include "fv_View.h"
 #include "ap_Ruler.h"
+#include "ap_TopRuler.h"
 
 static void
 ruler_style_context_changed (GObject* /*w*/, GParamSpec* /*pspec*/,
@@ -264,17 +265,19 @@ void AP_UnixRuler::_fe::button_pressed(GtkGestureClick* g, gint n_press,
                        pG->tlu(static_cast<UT_sint32>(ev_x)),
                        pG->tlu(static_cast<UT_sint32>(ev_y)));
 
-    /* a double-click opens the paragraph dialog (the closest remaining
-     * equivalent of Word's ruler double-click — the dedicated Tabs
-     * dialog was removed in the classic-menu prune).  It runs modally,
-     * so it must come after the press bookkeeping above. */
+    /* a double-click opens a dialog, like Word: the Tabs dialog on the
+     * horizontal ruler (AP_Dialog_Tabs / dlgTabs, the W49 restore),
+     * the paragraph dialog on the vertical ruler where tab stops make
+     * no sense.  The dialog runs modally, so it must come after the
+     * press bookkeeping above. */
     if (n_press != 2 || emb != EV_EMB_BUTTON1) {
         return;
     }
     const EV_EditMethodContainer * pEMC =
         XAP_App::getApp()->getEditMethodContainer();
     UT_return_if_fail(pEMC);
-    EV_EditMethod * pEM = pEMC->findEditMethodByName("dlgParagraph");
+    EV_EditMethod * pEM = pEMC->findEditMethodByName(
+        dynamic_cast<AP_TopRuler*>(ruler) ? "dlgTabs" : "dlgParagraph");
     UT_return_if_fail(pEM);
     EV_EditMethodCallData emcd;
     pEM->Fn(pView, &emcd);

@@ -1210,6 +1210,84 @@ static bool _m_ui_click(const std::string & j, std::string & err)
 	XSync(dpy, False);
 	return true;
 }
+
+/* a pointer drag in frame coordinates: press at x,y, move to x2,y2 in
+ * "steps" hops (default 8 — enough motion events for GTK's drag
+ * threshold and any mid-drag tracking), release there.  The
+ * ctrl/shift/alt modifier params work like ui.click's — e.g. shift
+ * keeps a table-width constant during a ruler cell-mark drag. */
+static bool _m_ui_drag(const std::string & j, std::string & err)
+{
+	long x = 0, y = 0, x2 = 0, y2 = 0, button = 1, steps = 8;
+	if (!_json_num(j, "x", x) || !_json_num(j, "y", y) ||
+		!_json_num(j, "x2", x2) || !_json_num(j, "y2", y2) ||
+		x < 0 || y < 0 || x > 16384 || y > 16384 ||
+		x2 < 0 || y2 < 0 || x2 > 16384 || y2 > 16384)
+	{
+		err = "missing/bad params.x,params.y,params.x2,params.y2";
+		return false;
+	}
+	_json_num(j, "button", button);
+	if (button < 1 || button > 9)
+		button = 1;
+	_json_num(j, "steps", steps);
+	if (steps < 1)
+		steps = 1;
+	if (steps > 256)
+		steps = 256;
+	Display * dpy = _x_display();
+	Window xid = _x_frame_window();
+	if (!dpy || !xid)
+	{
+		err = "ui.drag requires the X11 backend";
+		return false;
+	}
+	Window root = DefaultRootWindow(dpy), child = 0;
+	int rx = 0, ry = 0, rx2 = 0, ry2 = 0;
+	if (!XTranslateCoordinates(dpy, xid, root, (int) x, (int) y, &rx, &ry, &child) ||
+		!XTranslateCoordinates(dpy, xid, root, (int) x2, (int) y2, &rx2, &ry2, &child))
+	{
+		err = "coordinate translation failed";
+		return false;
+	}
+	struct { const char * key; const char * sym; } const kMods[] = {
+		{ "ctrl", "Control_L" }, { "shift", "Shift_L" },
+		{ "alt", "Alt_L" }, { "meta", "Meta_L" }
+	};
+	KeyCode mods[G_N_ELEMENTS(kMods)];
+	unsigned nMods = 0;
+	for (const auto & m : kMods)
+	{
+		if (_json_bool(j, m.key))
+		{
+			mods[nMods++] =
+				XKeysymToKeycode(dpy, XStringToKeysym(m.sym));
+		}
+	}
+	XTestFakeMotionEvent(dpy, -1, rx, ry, CurrentTime);
+	XSync(dpy, False);
+	usleep(30000);
+	for (unsigned i = 0; i < nMods; ++i)
+		XTestFakeKeyEvent(dpy, mods[i], True, CurrentTime);
+	XTestFakeButtonEvent(dpy, (unsigned) button, True, CurrentTime);
+	XSync(dpy, False);
+	usleep(30000);
+	for (long s = 1; s <= steps; ++s)
+	{
+		const int ix = rx + (int) (((long) rx2 - rx) * s / steps);
+		const int iy = ry + (int) (((long) ry2 - ry) * s / steps);
+		XTestFakeMotionEvent(dpy, -1, ix, iy, CurrentTime);
+		XSync(dpy, False);
+		usleep(20000);
+	}
+	usleep(30000);
+	XTestFakeButtonEvent(dpy, (unsigned) button, False, CurrentTime);
+	XSync(dpy, False);
+	for (unsigned i = 0; i < nMods; ++i)
+		XTestFakeKeyEvent(dpy, mods[i], False, CurrentTime);
+	XSync(dpy, False);
+	return true;
+}
 #else
 static bool _m_ui_key(const std::string &, std::string & err)
 {
@@ -1219,6 +1297,11 @@ static bool _m_ui_key(const std::string &, std::string & err)
 static bool _m_ui_click(const std::string &, std::string & err)
 {
 	err = "ui.click requires the X11 backend";
+	return false;
+}
+static bool _m_ui_drag(const std::string &, std::string & err)
+{
+	err = "ui.drag requires the X11 backend";
 	return false;
 }
 #endif
@@ -1443,6 +1526,14 @@ static bool _dispatch(_Conn * c, const std::string & line)
 	if (method == "ui.click")
 	{
 		if (_m_ui_click(line, err))
+			_conn_send(c, id, "{\"ok\":true}", nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "ui.drag")
+	{
+		if (_m_ui_drag(line, err))
 			_conn_send(c, id, "{\"ok\":true}", nullptr);
 		else
 			_conn_send(c, id, nullptr, err.c_str());
