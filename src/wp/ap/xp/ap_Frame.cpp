@@ -804,10 +804,18 @@ void AP_Frame::_replaceView(GR_Graphics * pG, FL_DocLayout *pDocLayout,
 		pOldDoc = (static_cast<AP_FrameData*>(m_pData)->m_pDocLayout->getDocument());
 	}
 
-	REPLACEP(static_cast<AP_FrameData*>(m_pData)->m_pG, pG);
-	REPLACEP(static_cast<AP_FrameData*>(m_pData)->m_pDocLayout, pDocLayout);
-	
+	// Install the new graphics/layout but do not destroy the old ones
+	// yet: the replaced view's destructor still detaches from its
+	// document (removeEditPointTracker) and its layout (setView), so
+	// both must outlive it.  The same holds for the old document —
+	// its unref is deferred until after the old view is deleted.
+	GR_Graphics * pOldG = static_cast<AP_FrameData*>(m_pData)->m_pG;
+	FL_DocLayout * pOldLayout = static_cast<AP_FrameData*>(m_pData)->m_pDocLayout;
+	static_cast<AP_FrameData*>(m_pData)->m_pG = pG;
+	static_cast<AP_FrameData*>(m_pData)->m_pDocLayout = pDocLayout;
+
 	bool bSameDocument = false; // be cautious ...
+	bool bUnrefOldDoc = false;
 
 	if(!pOldDoc)
 	{
@@ -822,7 +830,7 @@ void AP_Frame::_replaceView(GR_Graphics * pG, FL_DocLayout *pDocLayout,
 	else if (pOldDoc != m_pDoc)
 	{
 	        static_cast<PD_Document *>(pOldDoc)->changeConnectedDocument(static_cast<PD_Document *>(m_pDoc));
-		UNREFP(pOldDoc);
+		bUnrefOldDoc = true;
 	}
 	else
 	{
@@ -899,8 +907,17 @@ void AP_Frame::_replaceView(GR_Graphics * pG, FL_DocLayout *pDocLayout,
 	{
 		pFrameImpl->notifyViewChanged(m_pView);
 	}
+	// Delete the replaced view first while its document and layout are
+	// still alive — ~FV_View unregisters itself from both.  Only then
+	// release the old layout, graphics and document.
 	DELETEP(pReplacedView);
-	
+	DELETEP(pOldLayout);
+	DELETEP(pOldG);
+	if(bUnrefOldDoc)
+	{
+		UNREFP(pOldDoc);
+	}
+
 	// notify our listeners
 	_signal(APF_ReplaceView);
 }

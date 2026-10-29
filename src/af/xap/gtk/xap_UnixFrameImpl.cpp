@@ -1606,6 +1606,32 @@ void XAP_UnixFrameImpl::_createTopLevelWindow(void)
 
 	gtk_widget_set_visible(m_wVBox, TRUE);
 
+	if (g_getenv("ABINOVA_DEBUG_LAYOUT") && GTK_IS_WINDOW(m_wTopLevelWindow))
+	{
+		GtkWidget * win = m_wTopLevelWindow;
+		g_signal_connect(win, "notify::mapped", G_CALLBACK(+[](GObject * w, GParamSpec *){
+			g_idle_add(+[](gpointer data) -> gboolean {
+				GtkWidget * win = GTK_WIDGET(data);
+				int mn = 0, nt = 0, mnb = 0, ntb = 0;
+				gtk_widget_measure(win, GTK_ORIENTATION_HORIZONTAL, -1,
+								   &mn, &nt, &mnb, &ntb);
+				fprintf(stderr, "LAYOUTDBG window min=%d nat=%d\n", mn, nt);
+				GtkWidget * vbox = GTK_WIDGET(g_object_get_data(
+					G_OBJECT(win), "vbox"));
+				for (GtkWidget * c = vbox ?
+						 gtk_widget_get_first_child(vbox) : nullptr;
+					 c; c = gtk_widget_get_next_sibling(c))
+				{
+					gtk_widget_measure(c, GTK_ORIENTATION_HORIZONTAL, -1,
+									   &mn, &nt, &mnb, &ntb);
+					fprintf(stderr, "LAYOUTDBG child %s min=%d nat=%d\n",
+							G_OBJECT_TYPE_NAME(c), mn, nt);
+				}
+				return G_SOURCE_REMOVE;
+			}, w);
+		}), nullptr);
+	}
+
 	// baseline a11y: give every nameless interactive control in the
 	// chrome (icon-only ribbon/toolbar buttons, dropdowns, sliders)
 	// an accessible name derived from its tooltip.

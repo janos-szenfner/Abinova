@@ -56,21 +56,8 @@ void ap_usb_TextListener::notify()
 
 	gtk_label_set_label(GTK_LABEL(m_pLabel), textInfo->getBuf().c_str());
 
-	// we conditionally update the size request, if the representative string (or an earlier
-	// size) wasn't large enough, if the element uses the representative string method
-	// and is aligned with the center
-	if (textInfo->getFillMethod() == REPRESENTATIVE_STRING && 
-	    textInfo->getAlignmentMethod() == CENTER) {
-		GtkRequisition requisition;
-		gint iOldWidthRequest, iOldHeightRequest;
-		gtk_widget_get_size_request(m_pLabel, &iOldWidthRequest, &iOldHeightRequest);
-		gtk_widget_set_size_request(m_pLabel, -1, -1);
-		gtk_widget_get_preferred_size(m_pLabel, &requisition, nullptr);
-		if (requisition.width > iOldWidthRequest)
-			gtk_widget_set_size_request(m_pLabel, requisition.width, -1);
-		else
-			gtk_widget_set_size_request(m_pLabel, iOldWidthRequest, -1);
-	}
+	/* no size_request growth here — the labels ellipsize instead, so
+	 * the status bar never re-establishes a window-width floor */
 }
 
 
@@ -256,10 +243,14 @@ GtkWidget * AP_UnixStatusBar::createWidget(void)
 
 			// size and place
 			if (pf_TextInfo->getFillMethod() == REPRESENTATIVE_STRING) {
-				GtkRequisition requisition;
-				gtk_widget_get_preferred_size(pStatusBarElementLabel, &requisition, nullptr);
-				gtk_widget_set_size_request(pStatusBarElementLabel, requisition.width, -1);
-
+				/* Ellipsize instead of pinning the representative
+				 * width as a size_request: the pinned requests summed
+				 * to a ~1.5K px window-minimum-width floor, so narrow
+				 * windows couldn't be resized.  With ellipsizing the
+				 * field keeps its natural width when space allows and
+				 * truncates under pressure. */
+				gtk_label_set_ellipsize(GTK_LABEL(pStatusBarElementLabel),
+										PANGO_ELLIPSIZE_END);
 				gtk_box_append(GTK_BOX(m_wStatusBar), pStatusBarElement);
 			}
 			else { // fill
