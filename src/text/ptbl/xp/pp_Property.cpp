@@ -209,6 +209,7 @@ static PP_Property _props[] =
 	{ "image-lum",             "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:lum: "bright contrast" fractions
 	{ "image-src-rect",        "",                false, PP_LEVEL_FRAME}, // OOXML a:srcRect crop: "l t r b" in 1000ths of percent
 	{ "image-tile",            "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // OOXML a:tile: "tx ty sx sy flip algn" (EMU, 1000ths pct, tokens)
+	{ "image-transparency",    "",                false, PP_LEVEL_IMG | PP_LEVEL_FRAME}, // transparency percent 0-100 (image dialog slider)
 
 	{ "keep-together",         "no",              false, PP_LEVEL_BLOCK},
 	{ "keep-with-next",        "no",              false, PP_LEVEL_BLOCK},

@@ -35,6 +35,7 @@ AM_CPPFLAGS = \
 	-I$(srcdir)/wpg \
 	-I$(srcdir)/mht \
 	-I$(srcdir)/wmf \
+	-I$(srcdir)/emf \
 	-DHAVE_LIBWPS \
 	-DXHTML_MULTIPART_SUPPORTED \
 	-I$(top_srcdir)/thirdparty/libwpd-0.10.3/inc \
@@ -475,6 +476,14 @@ libimpexp_la_SOURCES += \
 	mht/tidyReader.cpp \
 	mht/tidyReader.h
 endif
+
+# EMF image importer: self-contained EMR-record player rasterized
+# through cairo — always available, no external dependency
+libimpexp_la_SOURCES += \
+	emf/emf_render.cpp \
+	emf/emf_render.h \
+	emf/ie_impGraphic_EMF.cpp \
+	emf/ie_impGraphic_EMF.h
 
 # WMF image importer, formerly a plugin; only when libwmf is present
 if WITH_LIBWMF

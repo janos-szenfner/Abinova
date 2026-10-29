@@ -130,6 +130,15 @@ public:
 		return m_description;
 	}
 
+	/* picture transparency in percent, 0 (opaque) .. 100 (invisible);
+	 * written back as the image-transparency prop */
+	void setTransparency(int pct) {
+		m_iTransparency = pct < 0 ? 0 : (pct > 100 ? 100 : pct);
+	}
+	int getTransparency() const {
+		return m_iTransparency;
+	}
+
 
  protected:
 	void setAnswer ( tAnswer ans ) { m_answer = ans; }
@@ -150,6 +159,7 @@ public:
 
 	UT_UTF8String m_title;
 	UT_UTF8String m_description;
+	int m_iTransparency;
 
 	void setWidth (double w, bool checkaspect);
 	void setHeight (double h, bool checkaspect);

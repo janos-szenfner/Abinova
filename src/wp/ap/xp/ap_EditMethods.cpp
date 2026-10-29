@@ -15048,13 +15048,20 @@ Defun1(dlgFmtPosImage)
 	  pAP->getAttribute ("alt", szDescription);
 	}
 
-	if (szTitle) 
+	if (szTitle)
 	{
 	  pDialog->setTitle (szTitle);
 	}
-	if (szDescription) 
+	if (szDescription)
 	{
 	  pDialog->setDescription (szDescription);
+	}
+	{
+	  const gchar * szTransp = nullptr;
+	  if (pAP && pAP->getProperty("image-transparency", szTransp) && szTransp)
+	  {
+	    pDialog->setTransparency(static_cast<int>(UT_convertDimensionless(szTransp) + 0.5));
+	  }
 	}
 	const gchar * pszWidth = nullptr;
 	const gchar * pszHeight = nullptr;
@@ -15130,11 +15137,14 @@ Defun1(dlgFmtPosImage)
 		"alt", pDialog->getDescription().utf8_str()
 	};
 
+	std::string sTransparency = std::to_string(pDialog->getTransparency());
+
 	if(!bTextBox && pDialog->getWrapping() == WRAP_INLINE)
 	{
 		const PP_PropertyVector properties = {
 			"width", sWidth.c_str(),
-			"height", sHeight.c_str()
+			"height", sHeight.c_str(),
+			"image-transparency", sTransparency.c_str()
 		};
 
 		pView->convertPositionedToInLine(pPosObj);
@@ -15144,7 +15154,7 @@ Defun1(dlgFmtPosImage)
 	}
 	else
 	{
-	  POSITION_TO newFormatMode = pDialog->getPositionTo(); 
+	  POSITION_TO newFormatMode = pDialog->getPositionTo();
 	  WRAPPING_TYPE newWrapMode = pDialog->getWrapping();
 	  PP_PropertyVector properties = {
 		  "frame-width", sWidth.c_str(),
@@ -15224,6 +15234,12 @@ Defun1(dlgFmtPosImage)
 			  properties.push_back("frame-page-ypos");
 			  properties.push_back(FrameStrings.sPageYpos.c_str());
 		  }
+	  }
+
+	  if(!bTextBox)
+	  {
+		  properties.push_back("image-transparency");
+		  properties.push_back(sTransparency.c_str());
 	  }
 
 	  //
@@ -15344,6 +15360,13 @@ Defun(dlgImageProperties)
 	}
 	pDialog->setTitle(szTitle ? szTitle : "");
 	pDialog->setDescription(szDescription ? szDescription : "");
+	{
+		const gchar * szTransp = nullptr;
+		if(pAP && pAP->getProperty("image-transparency", szTransp) && szTransp)
+		{
+			pDialog->setTransparency(static_cast<int>(UT_convertDimensionless(szTransp) + 0.5));
+		}
+	}
 
 	const gchar * pszWidth = nullptr;
 	const gchar * pszHeight = nullptr;
@@ -15372,9 +15395,11 @@ Defun(dlgImageProperties)
 	// span format path - the same write path the positioned dialog
 	// uses for its inline conversion
 	pView->cmdSelect(pos,pos+1);
+	const std::string sTransparency = std::to_string(pDialog->getTransparency());
 	const PP_PropertyVector properties = {
 		"width", pDialog->getWidthString(),
-		"height", pDialog->getHeightString()
+		"height", pDialog->getHeightString(),
+		"image-transparency", sTransparency.c_str()
 	};
 	const PP_PropertyVector attribs = {
 		"title", pDialog->getTitle().utf8_str(),

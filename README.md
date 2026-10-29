@@ -76,6 +76,7 @@ compiled into `libabinova` and are always available:
 | `wpg` | `src/wp/impexp/wpg/` | `.wpg` images via vendored libwpg |
 | `mht` | `src/wp/impexp/mht/` | `.mht`/`.mhtm`/`.mhtml`; optional libtidy |
 | `wmf` | `src/wp/impexp/wmf/` | `.wmf`/`.apm` via system libwmf (`HAVE_LIBWMF`) |
+| `emf` | `src/wp/impexp/emf/` | `.emf` via in-tree EMR-record renderer (no deps) |
 | `latex` | `src/wp/impexp/xp/ie_*_LaTeX.cpp` | `.tex` import+export |
 | — (new) | `src/wp/impexp/xp/ie_*_Markdown.cpp` | `.md` import+export, was never a plugin |
 
@@ -381,7 +382,7 @@ all.
   a document). On a typical desktop that includes WebP
   (`libpixbufloader-webp`), HEIC/HEIF and AVIF from iPhone photos
   and modern cameras (`libpixbufloader-heif`, backed by libheif),
-  BMP, GIF, ICO, TIFF, TGA, XPM and WMF; JPEG XL (`.jxl`) works once
+  BMP, GIF, ICO, TIFF, TGA, XPM, WMF and EMF; JPEG XL (`.jxl`) works once
   the libjxl gdk-pixbuf loader package is installed. The Insert
   Picture type list is generated from the loaders actually present
   — whatever the list shows can really be imported — and images are

@@ -171,6 +171,7 @@ described by FRAME-level properties.
 | `image-lum` | `bright contrast` fractions (OOXML `a:lum`) |
 | `image-alpha-mod` | alpha multiplier 0..1 (OOXML `a:alphaModFix@amt`) |
 | `image-tile` | tile the blip instead of stretching: `tx ty sx sy flip algn` — `tx`/`ty` offset in EMU, `sx`/`sy` scale in 1000ths of a percent, `flip` = `x`/`y`/`xy`/`none` alternation, `algn` = anchor (OOXML `a:tile`) |
+| `image-transparency` | transparency percent 0–100 applied multiplicatively to the image alpha (Image Properties slider) |
 | `image-fill-rect` | destination rect `l,t,r,b` in 1000ths of a percent inside the frame (OOXML `a:stretch`/`a:fillRect`) |
 
 ### Grouped shapes
@@ -633,6 +634,7 @@ from `src/text/ptbl/xp/pp_Property.cpp`:
 | `image-lum` | `*(empty)*` | no |
 | `image-src-rect` | `*(empty)*` | no |
 | `image-tile` | `*(empty)*` | no |
+| `image-transparency` | `*(empty)*` | no |
 | `line-align` | `ctr` | no |
 | `line-cap` | `flat` | no |
 | `line-compound` | `sng` | no |

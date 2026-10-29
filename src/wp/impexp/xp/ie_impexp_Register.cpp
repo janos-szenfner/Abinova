@@ -56,6 +56,7 @@
 #ifdef HAVE_LIBWMF
 #include "wmf/ie_impGraphic_WMF.h"
 #endif
+#include "emf/ie_impGraphic_EMF.h"
 
 /* graphics */
 #include "ie_impGraphic.h"
@@ -85,6 +86,7 @@ void IE_ImpExp_RegisterXP ()
 #ifdef HAVE_LIBWMF
   IE_ImpGraphic::registerImporter(new IE_ImpGraphicWMF_Sniffer ());
 #endif
+  IE_ImpGraphic::registerImporter(new IE_ImpGraphicEMF_Sniffer ());
 
   /* now text-file types */
 

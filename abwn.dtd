@@ -261,7 +261,7 @@
   frame-font-scale, frame-linesp-reduction, frame-shadow-*,
   line-align/cap/compound/custom-dash/dash/join/miter-limit,
   line-start-arrow*/line-end-arrow*, outline-gradient,
-  image-src-rect, image-tile, image-fill-rect,
+  image-src-rect, image-tile, image-fill-rect, image-transparency,
   image-duotone, image-grayscale, image-lum, image-alpha-mod,
   signature-line, signature-id, signature-name, signature-title,
   signature-email, signature-instructions, signature-allow-comments,

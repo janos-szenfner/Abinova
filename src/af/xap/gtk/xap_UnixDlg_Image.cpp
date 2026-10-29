@@ -121,6 +121,7 @@ void XAP_UnixDialog_Image::event_Ok ()
 	setAnswer(XAP_Dialog_Image::a_OK);
 	setTitle (XAP_gtk_entry_get_text(GTK_EDITABLE(m_wTitleEntry)));
 	setDescription (XAP_gtk_entry_get_text(GTK_EDITABLE(m_wDescriptionEntry)));
+	setTransparency (static_cast<int>(gtk_range_get_value(GTK_RANGE(m_wTransparency)) + 0.5));
 	if(isFormatInline())
 	{
 		/* inline images have no wrap/placement controls */
@@ -517,6 +518,10 @@ GtkWidget * XAP_UnixDialog_Image::_constructWindow ()
 	m_wTitleEntry = GTK_WIDGET(gtk_builder_get_object(builder, "edTitle"));
 	m_wDescriptionEntry = GTK_WIDGET(gtk_builder_get_object(builder, "edDescription"));
 
+	m_wTransparency = GTK_WIDGET(gtk_builder_get_object(builder, "scTransparency"));
+	gtk_range_set_value(GTK_RANGE(m_wTransparency), getTransparency());
+	localizeLabel(GTK_WIDGET(gtk_builder_get_object(builder, "lbTransparency")), pSS, XAP_STRING_ID_DLG_Image_Transparency);
+
 	m_bAspect = getPreserveAspect();
 	gtk_check_button_set_active(GTK_CHECK_BUTTON(m_wAspectCheck), m_bAspect);
 	
@@ -589,6 +594,10 @@ GtkWidget * XAP_UnixDialog_Image::_constructWindow ()
 		localizeButton(GTK_WIDGET(gtk_builder_get_object(builder, "rbWrappedBoth")), pSS, XAP_STRING_ID_DLG_Image_FrameWrappedBoth);
 
 		gtk_widget_set_visible(m_wrbInLine, FALSE);
+
+		/* transparency applies to pictures only, not text boxes */
+		gtk_widget_set_visible(GTK_WIDGET(gtk_builder_get_object(builder, "lbTransparency")), FALSE);
+		gtk_widget_set_visible(m_wTransparency, FALSE);
 	}
 
 	/* inline images have no wrapping or placement: collapse the

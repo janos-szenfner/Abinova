@@ -340,6 +340,7 @@ dcl(DLG_Image_PlacePage, "Position relative to its Page")
 dcl(DLG_Image_WrapType, "Type of text wrapping")
 dcl(DLG_Image_SquareWrap, "Square text wrapping")
 dcl(DLG_Image_TightWrap, "Tight text wrapping")
+dcl(DLG_Image_Transparency, "Transparency:")
 /* frame/text box variants of the same dialog */
 dcl(DLG_Image_FrameTitle, "Frame Properties")
 dcl(DLG_Image_FrameSize, "Frame Size")

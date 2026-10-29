@@ -37,6 +37,7 @@ XAP_Dialog_Image::XAP_Dialog_Image(XAP_DialogFactory * pDlgFactory, XAP_Dialog_I
 	m_WidthString("0.0in"),
 	m_bHeightChanged(false),
 	m_bWidthChanged(false),
+	m_iTransparency(0),
 	m_PreferedUnits(DIM_IN),
 	m_iWrappingType(WRAP_INLINE),	
     m_iPositionTo(POSITION_TO_PARAGRAPH),

@@ -58,6 +58,7 @@ iegftForRTF(IE_Imp_RTF::PictFormat format)
 	case IE_Imp_RTF::picSVG:  return IEGFT_SVG;
 	case IE_Imp_RTF::picBMP:  return IEGFT_BMP;
 	case IE_Imp_RTF::picWMF:  return IEGFT_WMF;
+	case IE_Imp_RTF::picEMF:  return IEGFT_EMF;
 	default:
 		break;
 	}
@@ -407,6 +408,9 @@ bool IE_Imp_RTF::HandlePicture()
 				break;
 			case RTF_KW_wmetafile:
 				format = picWMF;
+				break;
+			case RTF_KW_emfblip:
+				format = picEMF;
 				break;
 			case RTF_KW_svgblip:
 				format = picSVG;

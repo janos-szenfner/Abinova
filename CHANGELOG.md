@@ -76,6 +76,19 @@ responsibility** — see `README.md`.
   Wingdings `F0A7` square and `F0FC` check bullets. List-level fonts
   (`w:lvl/w:rPr`) now style the label only and no longer leak onto
   the item text.
+- **Image Properties gains a transparency slider** — a 0–100%
+  "Transparency:" slider on the General tab writes an
+  `image-transparency` property (inline and positioned pictures
+  alike) that the renderer applies multiplicatively on top of any
+  `a:alphaModFix` alpha the document itself declares; corrections
+  are absolute from the original pixels, not cumulative.
+- **Insert > Picture now accepts EMF metafiles** — `.emf` files
+  (including `\emfblip` pictures in RTF and EMF parts inside OOXML
+  documents) are replayed through an in-tree EMR-record renderer
+  (pens, brushes, fills, polylines/polygons, paths, text, embedded
+  DIB/PNG/JPEG blits, clips) and stored as raster images. `.wmf`
+  support via libwmf was already registered; both now appear in the
+  file-chooser filter automatically.
 
 ### Maintenance
 

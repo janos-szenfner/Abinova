@@ -93,6 +93,18 @@ static void s_applyBlipEffects(GR_Image * pImage, const PP_AttrProp * pAP)
 		if (a >= 0.0)
 			fx.alphaMod = a > 1.0 ? 1.0 : a;
 	}
+	if (pAP->getProperty("image-transparency", sz) && sz && *sz)
+	{
+		/* transparency slider value in percent — an absolute
+		 * correction on the original, multiplying with any
+		 * a:alphaModFix the document itself declared */
+		double pct = UT_convertDimensionless(sz);
+		if (pct > 0.0)
+		{
+			double a = 1.0 - (pct > 100.0 ? 100.0 : pct) / 100.0;
+			fx.alphaMod = fx.alphaMod >= 0.0 ? fx.alphaMod * a : a;
+		}
+	}
 
 	if (fx.any())
 		pImage->applyBlipEffects(fx);
