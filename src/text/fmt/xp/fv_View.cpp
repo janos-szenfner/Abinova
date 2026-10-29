@@ -12921,6 +12921,44 @@ FV_DocCount FV_View::countWords(bool bActuallyCountWords) const
 				UT_ASSERT_HARMLESS(iMaxOffset <= len);
 				imax = UT_MIN(iMaxOffset,len);
 			}
+
+			// wordcraft parity: generated list labels count as words,
+			// as if the label text were prepended to the paragraph.
+			// Only when the block is counted from its start — a
+			// selection that begins inside it leaves the label out.
+			UT_UCS4Char boundaryPrev = UCS_UNKPUNK;
+			if (i == 0 && imax > 0 && pBL->isListItem())
+			{
+				const UT_UCS4Char * pLabel = pBL->getListLabel();
+				if (pLabel)
+				{
+					for (const UT_UCS4Char * q = pLabel; *q; ++q)
+					{
+						const UT_UCS4Char followChar =
+							q[1] ? q[1] : pSpan[i];
+						const UT_UCS4Char prevChar =
+							(q == pLabel) ? UCS_UNKPUNK : q[-1];
+
+						newWord = (delim &&
+								   !UT_isWordDelimiter(*q, followChar,
+													   prevChar));
+						delim = UT_isWordDelimiter(*q, followChar,
+												   prevChar);
+						if (delim && (*q=='-' || *q=='_'))
+							delim = false;
+
+						if (newWord ||
+							XAP_EncodingManager::get_instance()->
+							is_cjk_letter(*q))
+						{
+							wCount.word++;
+							wCount.words_no_notes++;
+						}
+						boundaryPrev = *q;
+					}
+				}
+			}
+
 			fl_ContainerLayout * pNoteCL = nullptr;
 			UT_sint32 iNote = pBL->getEmbeddedOffset(0,pNoteCL);
 			UT_sint32 iNoteEnd = -1;
@@ -12949,7 +12987,7 @@ FV_DocCount FV_View::countWords(bool bActuallyCountWords) const
 				}
 				UT_UCS4Char followChar, prevChar;
 				followChar = (static_cast<UT_uint32>(i+1) < len) ? pSpan[i+1] : UCS_UNKPUNK;
-				prevChar = i > 0 ? pSpan[i-1] : UCS_UNKPUNK;
+				prevChar = i > 0 ? pSpan[i-1] : boundaryPrev;
 
 				newWord = (delim && !UT_isWordDelimiter(pSpan[i], followChar, prevChar));
 

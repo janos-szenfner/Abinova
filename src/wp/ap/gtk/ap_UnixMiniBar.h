@@ -27,7 +27,7 @@ class XAP_Frame;
 class FV_View;
 
 /* Word-style mini toolbar: a small floating format strip (font, size,
- * bold/italic/underline, font colour) that hovers just above the
+ * bold/italic/underline, alignment, font colour) that hovers just above the
  * current text selection.  It is a plain overlay child of the
  * document canvas — never a grab — so it cannot steal keyboard focus;
  * the frame impl shows it when a selection gesture completes (mouse
@@ -94,6 +94,7 @@ private:
 	GtkWidget *		m_wBold;
 	GtkWidget *		m_wItalic;
 	GtkWidget *		m_wUnderline;
+	GtkWidget *		m_wAlign[4];
 	/* custom-colour chooser lives outside the bar's widget tree —
 	 * tracked so the destructor can kill it before 'this' goes away */
 	GtkWidget *		m_wColorDlg;

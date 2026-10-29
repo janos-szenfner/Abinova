@@ -516,7 +516,11 @@ bool pt_PieceTable::_realInsertSpan(PT_DocPosition dpos,
 				"sdt-title", "",
 				"sdt-tag", "",
 				"sdt-placeholder", "",
-				"sdt-items", ""
+				"sdt-items", "",
+				"zotero-key", "",
+				"zotero-style", "",
+				"zotero-mode", "",
+				"zotero-text", ""
 			};
 
 			const PP_AttrProp * pAP = nullptr;

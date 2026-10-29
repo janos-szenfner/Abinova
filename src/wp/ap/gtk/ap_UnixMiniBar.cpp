@@ -54,6 +54,10 @@ static const XAP_Toolbar_Id s_minibar_toggles[] =
 	static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_BOLD),
 	static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_ITALIC),
 	static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_FMT_UNDERLINE),
+	static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_ALIGN_LEFT),
+	static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_ALIGN_CENTER),
+	static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_ALIGN_RIGHT),
+	static_cast<XAP_Toolbar_Id>(AP_TOOLBAR_ID_ALIGN_JUSTIFY),
 };
 
 /* compact palette for the colour popover: neutrals + vivid row +
@@ -73,6 +77,7 @@ AP_UnixMiniBar::AP_UnixMiniBar(XAP_Frame * pFrame)
 	, m_wBold(nullptr)
 	, m_wItalic(nullptr)
 	, m_wUnderline(nullptr)
+	, m_wAlign{nullptr, nullptr, nullptr, nullptr}
 	, m_wColorDlg(nullptr)
 	, m_bSyncing(false)
 	, m_bDismissed(false)
@@ -96,6 +101,8 @@ AP_UnixMiniBar::~AP_UnixMiniBar()
 		m_wBar = nullptr;
 	}
 	m_wFont = m_wSize = m_wBold = m_wItalic = m_wUnderline = nullptr;
+	for (auto & w : m_wAlign)
+		w = nullptr;
 }
 
 FV_View * AP_UnixMiniBar::_view() const
@@ -301,7 +308,8 @@ void AP_UnixMiniBar::syncState()
 	m_bSyncing = true;
 
 	GtkWidget * toggles[G_N_ELEMENTS(s_minibar_toggles)] =
-		{ m_wBold, m_wItalic, m_wUnderline };
+		{ m_wBold, m_wItalic, m_wUnderline,
+		  m_wAlign[0], m_wAlign[1], m_wAlign[2], m_wAlign[3] };
 	for (guint i = 0; i < G_N_ELEMENTS(s_minibar_toggles); ++i)
 	{
 		EV_Toolbar_Action * pAction =
@@ -644,11 +652,18 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 	gtk_box_append(GTK_BOX(m_wBar),
 				   gtk_separator_new(GTK_ORIENTATION_VERTICAL));
 
-	GtkWidget ** toggles[] = { &m_wBold, &m_wItalic, &m_wUnderline };
+	GtkWidget ** toggles[] =
+		{ &m_wBold, &m_wItalic, &m_wUnderline,
+		  &m_wAlign[0], &m_wAlign[1], &m_wAlign[2], &m_wAlign[3] };
 	static const char * const fallbacks[] =
-		{ "Bold", "Italic", "Underline" };
+		{ "Bold", "Italic", "Underline",
+		  "Align Left", "Align Center", "Align Right", "Justify" };
 	for (guint i = 0; i < G_N_ELEMENTS(s_minibar_toggles); ++i)
 	{
+		/* the alignment cluster sits behind its own hairline */
+		if (i == 3)
+			gtk_box_append(GTK_BOX(m_wBar),
+						   gtk_separator_new(GTK_ORIENTATION_VERTICAL));
 		EV_Toolbar_Action * pAction =
 			pTBActions ? pTBActions->getAction(s_minibar_toggles[i])
 					   : nullptr;

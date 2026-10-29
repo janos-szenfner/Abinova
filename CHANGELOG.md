@@ -20,6 +20,15 @@ responsibility** — see `README.md`.
 - **"Check spelling as you type" now persists across restarts** —
   the toggle previously wrote into the built-in prefs scheme, which
   is discarded on load, so it was session-only on fresh profiles.
+- **Word count now includes generated list labels** — a numbered
+  item's "1." counts as a word, matching Word's count; labels are
+  left out when a selection starts inside the paragraph.
+- **Mini toolbar shows paragraph alignment** — left/centre/right/
+  justify buttons with the current paragraph's alignment marked
+  when the strip opens.
+- **Text typed right after a Zotero citation stays plain** — the
+  citation field's `zotero-*` attributes no longer leak onto the
+  following span in the saved document.
 - **Window can be resized below the ribbon/status-bar width** — the
   status bar pinned every field's representative string as a hard
   size_request, summing to a ~1.5K px window-minimum-width floor.
