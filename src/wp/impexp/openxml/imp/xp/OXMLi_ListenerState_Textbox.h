@@ -66,6 +66,7 @@ private:
 	bool m_inCustGeom = false;
 	char m_pathCmd = 0;
 	int m_pathPtN = 0;
+	int m_pathSegs = 0;
 	double m_custGeomW = 0.0;
 	double m_custGeomH = 0.0;
 	std::string m_shapePath;

@@ -554,12 +554,18 @@ static bool s_frameShapePath(cairo_t * cr, const gchar * szPath,
 	int nNums = 0;
 	double cx0 = 0.0, cy0 = 0.0; /* current point, for Q->C conversion */
 	bool bAny = false;
+	int nOps = 0;
 
 	gchar * copy = g_strdup(szPath);
 	gchar * save = nullptr;
 	for (gchar * tok = strtok_r(copy, " \t", &save); tok;
 		 tok = strtok_r(nullptr, " \t", &save))
 	{
+		/* wordcraft #3951: a hostile file can carry an arbitrarily
+		 * long path — bound the segments replayed */
+		if (nOps >= 10000)
+			break;
+
 		if ((tok[0] >= 'A' && tok[0] <= 'Z') ||
 			(tok[0] >= 'a' && tok[0] <= 'z'))
 		{
@@ -568,6 +574,7 @@ static bool s_frameShapePath(cairo_t * cr, const gchar * szPath,
 			if (cmd == 'Z' || cmd == 'z')
 			{
 				cairo_close_path(cr);
+				nOps++;
 				bAny = true;
 			}
 			continue;
@@ -585,7 +592,7 @@ static bool s_frameShapePath(cairo_t * cr, const gchar * szPath,
 				py = dy0 + nums[1] * dh / 1000.0;
 				cairo_move_to(cr, px, py);
 				cx0 = px; cy0 = py;
-				nNums = 0; bAny = true;
+				nNums = 0; nOps++; bAny = true;
 			}
 			break;
 		case 'L':
@@ -595,7 +602,7 @@ static bool s_frameShapePath(cairo_t * cr, const gchar * szPath,
 				py = dy0 + nums[1] * dh / 1000.0;
 				cairo_line_to(cr, px, py);
 				cx0 = px; cy0 = py;
-				nNums = 0; bAny = true;
+				nNums = 0; nOps++; bAny = true;
 			}
 			break;
 		case 'C':
@@ -610,7 +617,7 @@ static bool s_frameShapePath(cairo_t * cr, const gchar * szPath,
 							   dy0 + nums[5] * dh / 1000.0);
 				cx0 = dx0 + nums[4] * dw / 1000.0;
 				cy0 = dy0 + nums[5] * dh / 1000.0;
-				nNums = 0; bAny = true;
+				nNums = 0; nOps++; bAny = true;
 			}
 			break;
 		case 'Q':
@@ -629,7 +636,7 @@ static bool s_frameShapePath(cairo_t * cr, const gchar * szPath,
 							   ey + 2.0 * (qy - ey) / 3.0,
 							   ex, ey);
 				cx0 = ex; cy0 = ey;
-				nNums = 0; bAny = true;
+				nNums = 0; nOps++; bAny = true;
 			}
 			break;
 		default:

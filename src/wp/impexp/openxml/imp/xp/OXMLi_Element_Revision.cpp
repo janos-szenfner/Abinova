@@ -46,11 +46,40 @@ OXMLi_Element_Revision::~OXMLi_Element_Revision()
 {
 }
 
+/* wordcraft #3575: every xsd:dateTime field must be digits only —
+ * reject signs/junk before strptime gets a chance at a partial
+ * parse. Fields may be non-padded (strptime is lenient) and a year
+ * longer than 4 digits is rejected outright. */
+static bool _xsdDateFieldsDigits(const char * p)
+{
+	static const char seps[] = { '-', '-', 'T', ':', ':' };
+	for (int field = 0; field < 6; ++field)
+	{
+		int digits = 0;
+		while (*p >= '0' && *p <= '9')
+		{
+			++p;
+			++digits;
+		}
+		if (digits == 0 || digits > 4)
+			return false;
+		if (field < 5)
+		{
+			if (*p != seps[field])
+				return false;
+			++p;
+		}
+	}
+	return true;
+}
+
 /* w:date is xsd:dateTime, e.g. "2026-10-03T04:30:00Z" or with a
  * "+02:00" offset; UT_strptime parses the leading fixed part and the
  * zone tail is ignored (timestamps are informational only). */
 static time_t _parseRevisionDate(const std::string & date)
 {
+	if (!_xsdDateFieldsDigits(date.c_str()))
+		return 0;
 	struct tm tm;
 	memset(&tm, 0, sizeof(tm));
 	tm.tm_isdst = 0;

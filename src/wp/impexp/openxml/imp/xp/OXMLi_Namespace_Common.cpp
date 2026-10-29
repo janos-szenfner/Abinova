@@ -27,6 +27,12 @@
 // Internal includes
 #include <OXMLi_Types.h>
 
+/* wordcraft #3857: bound the attributes kept per element — hostile
+ * documents carry tens of thousands and every listener does lookups
+ * against the map. xmlns bindings are still processed past the cap
+ * so descendant namespace resolution keeps working. */
+#define OXMLI_MAX_ELEMENT_ATTRS 10000
+
 OXMLi_Namespace_Common::OXMLi_Namespace_Common()
 {
 	reset();
@@ -175,10 +181,17 @@ std::map<std::string, std::string>* OXMLi_Namespace_Common::processAttributes(co
 			
 		if(name_space.compare("xmlns") == 0)
 		{
-			m_nsToURI.insert(std::make_pair(tag_name,pp[1])); 
+			m_nsToURI.insert(std::make_pair(tag_name,pp[1]));
+		}
+		else if (m_attsMap.size() >= OXMLI_MAX_ELEMENT_ATTRS)
+		{
+			// element has too many attributes — truncate, but keep
+			// scanning the rest for xmlns declarations above
+			pp += 2;
+			continue;
 		}
 		else
-		{	
+		{
 			std::map<std::string, std::string>::iterator iter = m_nsToURI.find(name_space);
 			if(iter == m_nsToURI.end())
 			{

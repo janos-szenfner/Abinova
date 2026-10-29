@@ -47,11 +47,40 @@ ODi_TrackedChanges_ListenerState::ODi_TrackedChanges_ListenerState(
 {
 }
 
+/* wordcraft #3575: every xsd:dateTime field must be digits only —
+ * reject signs/junk before strptime gets a chance at a partial
+ * parse. Fields may be non-padded (strptime is lenient) and a year
+ * longer than 4 digits is rejected outright. */
+static bool _xsdDateFieldsDigits(const char * p)
+{
+	static const char seps[] = { '-', '-', 'T', ':', ':' };
+	for (int field = 0; field < 6; ++field)
+	{
+		int digits = 0;
+		while (*p >= '0' && *p <= '9')
+		{
+			++p;
+			++digits;
+		}
+		if (digits == 0 || digits > 4)
+			return false;
+		if (field < 5)
+		{
+			if (*p != seps[field])
+				return false;
+			++p;
+		}
+	}
+	return true;
+}
+
 /* dc:date is xsd:dateTime, e.g. "2024-03-02T11:00:00" or with a
  * nanosecond/offset tail; UT_strptime parses the leading fixed part
  * (timestamps are informational only). */
 static time_t _parseChangeDate(const std::string & date)
 {
+	if (!_xsdDateFieldsDigits(date.c_str()))
+		return 0;
 	struct tm tm;
 	memset(&tm, 0, sizeof(tm));
 	tm.tm_isdst = 0;

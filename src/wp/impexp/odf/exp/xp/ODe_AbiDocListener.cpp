@@ -1815,7 +1815,8 @@ void ODe_AbiDocListener::_outputData(const UT_UCS4Char* pData, UT_uint32 length)
             break;
 
         default:
-            if (*p < 0x20)         // Silently eat these characters.
+            if (*p < 0x20 ||       // Silently eat these characters.
+                *p == 0xFFFE || *p == 0xFFFF) // XML 1.0 noncharacters (wordcraft #3817)
             {
                 if(nSpaces > 1)
                     _appendSpaces(&sBuf, nSpaces);

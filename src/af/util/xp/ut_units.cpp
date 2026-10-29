@@ -395,6 +395,12 @@ double UT_convertDimensionless(const char * sz)
 		f = atof(norm.c_str());
 	}
 
+	/* wordcraft #3577: atof() has no error channel — huge exponents
+	 * ("1e999") overflow to inf and literal "inf"/"nan" parse too.
+	 * Propagate 0 so a hostile dimension can't poison layout math. */
+	if (!isfinite(f))
+		return 0.0;
+
 	return f;
 }
 

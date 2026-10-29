@@ -34,7 +34,14 @@
 #include "ut_units.h"
 
 // External includes
+#include <math.h>
 #include <string>
+
+/* wordcraft #3951 bounds the commands parsed out of a VML v= path;
+ * our equivalent mini-language is the custGeom -> shape-path stream,
+ * so cap the segments recorded here (the fp_FrameContainer painter
+ * applies the same bound when replaying it). */
+#define OXMLI_MAX_PATH_SEGMENTS 10000
 
 OXMLi_ListenerState_Textbox::OXMLi_ListenerState_Textbox():
 	OXMLi_ListenerState(), m_style("")
@@ -498,6 +505,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		m_shapePath.clear();
 		m_custGeomW = m_custGeomH = 0.0;
 		m_pathCmd = 0;
+		m_pathSegs = 0;
 		rqst->handled = true;
 		return;
 	}
@@ -530,7 +538,11 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 	}
 	if (m_inCustGeom && nameMatches(rqst->pName, NS_A_KEY, "close"))
 	{
-		m_shapePath += "Z ";
+		if (m_pathSegs < OXMLI_MAX_PATH_SEGMENTS)
+		{
+			m_shapePath += "Z ";
+			m_pathSegs++;
+		}
 		m_pathCmd = 0;
 		rqst->handled = true;
 		return;
@@ -539,7 +551,8 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 	{
 		const gchar * x = attrMatches(NS_A_KEY, "x", rqst->ppAtts);
 		const gchar * y = attrMatches(NS_A_KEY, "y", rqst->ppAtts);
-		if (m_pathCmd && x && y)
+		if (m_pathCmd && x && y &&
+			m_pathSegs < OXMLI_MAX_PATH_SEGMENTS)
 		{
 			//normalize into a 0..1000 box
 			double sx = m_custGeomW > 0.0 ?
@@ -556,6 +569,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 				g_snprintf(buf, sizeof(buf), "%.1f %.1f ", sx, sy);
 			m_shapePath += buf;
 			m_pathPtN++;
+			m_pathSegs++;
 		}
 		rqst->handled = true;
 		return;
@@ -1833,6 +1847,11 @@ double OXMLi_ListenerState_Textbox::_vmlLenToPt(const std::string & v) const
 	char * end = nullptr;
 	double n = strtod(v.c_str(), &end);
 	if (!end || end == v.c_str())
+		return 0.0;
+	/* wordcraft #3577: huge exponents overflow strtod to inf and
+	 * literal "inf"/"nan" parse — propagate 0 so the value can't
+	 * poison frame geometry downstream */
+	if (!isfinite(n))
 		return 0.0;
 	std::string u(end);
 	if (u.empty() || u == "pt")

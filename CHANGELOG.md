@@ -116,6 +116,14 @@ responsibility** — see `README.md`.
   Version" button that silences just that release. The last-check
   timestamp and the skipped version persist in the profile, and an
   offline or failed check stays silent.
+- **Hostile-document hardening** — the DOCX reader now truncates
+  elements carrying more than 10,000 attributes and bounds freeform
+  (`a:custGeom` / `shape-path`) geometry at 10,000 path segments;
+  ODT export drops the XML-illegal characters U+FFFE and U+FFFF so
+  the result stays well-formed; revision/tracked-change dates with
+  signed or non-numeric fields are rejected before parsing; and
+  dimension values that overflow a double (or literal `inf`/`nan`)
+  read as 0 instead of leaking non-finite numbers into layout.
 
 ### Maintenance
 
