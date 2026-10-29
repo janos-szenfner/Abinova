@@ -4755,8 +4755,6 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 	 **************************/
 
 	GR_Painter painter(m_pG);
-	
-	XAP_Frame * pFrame = static_cast<XAP_Frame*>(getParentData());
 
 	// CHECK_WINDOW_SIZE
 	// this can happen when the frame size is decreased and
@@ -4990,28 +4988,8 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 			m_pG->setColor(clr);
 		}
 
-		// two pixel drop shadow for pages in print view
-		if(!isPreview() && (getViewMode() == VIEW_PRINT) && (!pFrame || !pFrame->isMenuScrollHidden()) )
-		{
-			m_pG->setLineProperties(m_pG->tluD(1.0),
-					GR_Graphics::JOIN_MITER,
-					GR_Graphics::CAP_PROJECTING,
-					GR_Graphics::LINE_SOLID);
-
-			adjustedLeft += m_pG->tlu(3);
-			adjustedBottom += m_pG->tlu(1);
-			painter.drawLine(adjustedLeft, adjustedBottom, adjustedRight + m_pG->tlu(1), adjustedBottom);
-
-			adjustedBottom += m_pG->tlu(1);
-			painter.drawLine(adjustedLeft, adjustedBottom, adjustedRight + m_pG->tlu(1), adjustedBottom);
-
-			adjustedTop += m_pG->tlu(3);
-			adjustedRight += m_pG->tlu(1);
-			painter.drawLine(adjustedRight, adjustedTop, adjustedRight, adjustedBottom);
-
-			adjustedRight += m_pG->tlu(1);
-			painter.drawLine(adjustedRight, adjustedTop, adjustedRight, adjustedBottom);
-		}
+		// page drop shadow is painted under the paper fill in
+		// fp_Page::draw (wordcraft-style soft rect, screen only)
 
 		// advance to the next page
 		pPage = pPage -> getNext();

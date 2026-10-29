@@ -8,6 +8,18 @@ responsibility** — see `README.md`.
 
 ## [4.0.6] — unreleased
 
+### Added
+
+- **Soft drop shadow under the page paper** — a subtle darkened band
+  offset ~2px down and expanded ~1.5px around each page in Print
+  Layout, replacing the old hard 2px line edges; screen-only, so it
+  never appears in print or PDF output.
+- **Contrast-edged I-beam pointer on all platforms** — the text cursor
+  over the document is now an explicitly drawn I-beam (black fill with
+  a white 1px edge, pixel-snapped at every display scale) instead of
+  the theme glyph, which could disappear on white or dark paper;
+  previously this was Windows-only.
+
 ### Bug fixes
 
 - **Double-click in a page's top/bottom margin now opens in-place

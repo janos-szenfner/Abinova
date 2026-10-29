@@ -1919,6 +1919,27 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 		UT_sint32 width = getWidth();
 		UT_sint32 srcX = 0;
 		UT_sint32 srcY = 0;
+
+		/* wordcraft-style page shadow: a dark rect offset ~2px below
+		 * the paper and expanded ~1.5px on every side, blended ~40%
+		 * toward black over the margin colour.  DGP_SCREEN keeps it
+		 * out of print/PDF export. */
+		if (m_pView && !m_pView->isPreview() &&
+		    m_pView->getViewMode() == VIEW_PRINT &&
+		    pDA->pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		{
+			UT_RGBColor clrShadow;
+			if (!pDA->pG->getColor3D(GR_Graphics::CLR3D_BevelDown, clrShadow))
+				clrShadow = m_pView->getColorMargin();
+			clrShadow.m_red = static_cast<unsigned char>((clrShadow.m_red * 3) / 5);
+			clrShadow.m_grn = static_cast<unsigned char>((clrShadow.m_grn * 3) / 5);
+			clrShadow.m_blu = static_cast<unsigned char>((clrShadow.m_blu * 3) / 5);
+			const UT_sint32 iShOff = static_cast<UT_sint32>(pDA->pG->tluD(2.0) + 0.5);
+			const UT_sint32 iShExp = static_cast<UT_sint32>(pDA->pG->tluD(1.5) + 0.5);
+			GR_Painter(pDA->pG, false).fillRect(clrShadow, xmin - iShExp,
+							  ymin - iShExp + iShOff,
+							  width + 2 * iShExp, height + 2 * iShExp);
+		}
 		getFillType().Fill(pDA->pG,srcX,srcY,xmin,ymin,width,height);
 	}
 

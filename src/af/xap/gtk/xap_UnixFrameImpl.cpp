@@ -1610,38 +1610,48 @@ void XAP_UnixFrameImpl::_initialize()
 	UT_ASSERT(m_pMouse);
 }
 
-#ifdef G_OS_WIN32
-/* Windows' I-beam cursor inverts what lies under it, but over a
- * GPU-drawn surface it stays white and vanishes on white paper
- * (wordcraft #2230).  Wherever the text cursor would show, swap in an
- * explicitly drawn I-beam -- black fill edged in white, visible on
- * paper of any colour -- with the named cursor kept as fallback. */
-static GdkCursor * s_win32_ibeam_cursor(void)
+/* The themed "text" I-beam vanishes on paper of the wrong brightness:
+ * on Windows the inverting beam stays white over a GPU-drawn surface,
+ * and on X11/Wayland the theme glyph can sit invisibly on white or
+ * dark paper (wordcraft #2230).  Wherever the text cursor would show,
+ * swap in an explicitly drawn I-beam -- black fill edged in white,
+ * visible on paper of any colour -- with the named cursor kept as
+ * fallback.  GDK treats a texture cursor's pixels as device pixels on
+ * both X11 and Wayland, so the image is rendered at the widget scale
+ * factor and every stroke is centred so its coverage lands on whole
+ * physical pixels (wordcraft snap(p, ppp, w) semantics). */
+static GdkCursor * s_ibeam_cursor(int scale)
 {
-	static GdkCursor * s_cur = nullptr;
-	if (s_cur)
-		return s_cur;
+	static GdkCursor * s_cur[4] = {nullptr, nullptr, nullptr, nullptr};
+	const int s = (scale < 1) ? 1 : (scale > 4 ? 4 : scale);
+	if (s_cur[s - 1])
+		return s_cur[s - 1];
 
-	const int SZ = 24;
-	const double x = SZ / 2.0, top = 5.0, bot = SZ - 5.0, bar = 3.0;
+	const int SZ = 24 * s;
+	const double sw = s;                   /* 1 device px stroke unit */
+	const double xc = SZ / 2.0 + sw / 2.0; /* half-px centred for odd s */
+	const double top = 5.0 * sw + sw / 2.0;
+	const double bot = SZ - 5.0 * sw - sw / 2.0;
+	const double bar = 3.5 * sw;
 	cairo_surface_t * surf =
 		cairo_image_surface_create(CAIRO_FORMAT_ARGB32, SZ, SZ);
 	cairo_t * cr = cairo_create(surf);
+	cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
 	for (int pass = 0; pass < 2; ++pass)
 	{
 		if (pass == 0)
 		{
 			cairo_set_source_rgba(cr, 1, 1, 1, 1); /* white edge */
-			cairo_set_line_width(cr, 3.0);
+			cairo_set_line_width(cr, 3.0 * sw);
 		}
 		else
 		{
 			cairo_set_source_rgba(cr, 0, 0, 0, 1); /* black fill */
-			cairo_set_line_width(cr, 1.0);
+			cairo_set_line_width(cr, sw);
 		}
-		cairo_move_to(cr, x, top);       cairo_line_to(cr, x, bot);
-		cairo_move_to(cr, x - bar, top); cairo_line_to(cr, x + bar, top);
-		cairo_move_to(cr, x - bar, bot); cairo_line_to(cr, x + bar, bot);
+		cairo_move_to(cr, xc, top);       cairo_line_to(cr, xc, bot);
+		cairo_move_to(cr, xc - bar, top); cairo_line_to(cr, xc + bar, top);
+		cairo_move_to(cr, xc - bar, bot); cairo_line_to(cr, xc + bar, bot);
 		cairo_stroke(cr);
 	}
 	cairo_destroy(cr);
@@ -1650,15 +1660,14 @@ static GdkCursor * s_win32_ibeam_cursor(void)
 	GdkTexture * tex = pb ? xap_gdk_texture_new_from_pixbuf(pb) : nullptr;
 	g_clear_object(&pb);
 	GdkCursor * fallback = gdk_cursor_new_from_name("text", nullptr);
-	s_cur = tex ? gdk_cursor_new_from_texture(tex, SZ / 2, SZ / 2,
-											  fallback)
-	            : (fallback ? GDK_CURSOR(g_object_ref(fallback))
-	                        : nullptr);
+	s_cur[s - 1] = tex ? gdk_cursor_new_from_texture(tex, SZ / 2, SZ / 2,
+													 fallback)
+	                   : (fallback ? GDK_CURSOR(g_object_ref(fallback))
+	                               : nullptr);
 	g_clear_object(&tex);
 	g_clear_object(&fallback);
-	return s_cur;
+	return s_cur[s - 1];
 }
-#endif
 
 void XAP_UnixFrameImpl::_setCursor(GR_Graphics::Cursor c)
 {
@@ -1675,10 +1684,12 @@ void XAP_UnixFrameImpl::_setCursor(GR_Graphics::Cursor c)
 	if(getTopLevelWindow() == nullptr || (m_iFrameMode != XAP_NormalFrame))
 		return;
 
-#ifdef G_OS_WIN32
-	if (c == GR_CURSOR_IBEAM)
+	if (c == GR_Graphics::GR_CURSOR_IBEAM)
 	{
-		GdkCursor * cur = s_win32_ibeam_cursor();
+		int scale = 1;
+		if (getTopLevelWindow())
+			scale = gtk_widget_get_scale_factor(getTopLevelWindow());
+		GdkCursor * cur = s_ibeam_cursor(scale);
 		gtk_widget_set_cursor(getTopLevelWindow(), cur);
 		gtk_widget_set_cursor(getVBoxWidget(), cur);
 		gtk_widget_set_cursor(m_wSunkenBox, cur);
@@ -1686,7 +1697,6 @@ void XAP_UnixFrameImpl::_setCursor(GR_Graphics::Cursor c)
 			gtk_widget_set_cursor(m_wStatusBar, cur);
 		return;
 	}
-#endif
 
 	const char* cursor_name = GR_UnixCairoGraphics::_getCursor(c);
 	xxx_UT_DEBUGMSG(("Set cursor number in Frame %d to %s\n", c, cursor_name));
