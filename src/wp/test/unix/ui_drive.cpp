@@ -89,6 +89,7 @@
 #include "xap_UnixApp.h"
 #include "xap_Frame.h"
 #include "xap_Dialog.h"
+#include "xap_GtkUtils.h"
 #include "xap_DialogFactory.h"
 #include "xap_Dialog_Id.h"
 #include "ap_Dialog_Id.h"
@@ -1430,7 +1431,7 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 				   "Xvfb\n");
 		return 77;
 	}
-	Display *dpy = gdk_x11_display_get_xdisplay(gd);
+	Display *dpy = xap_gdk_x11_display_get_xdisplay(gd);
 	void *xt = dlopen("libXtst.so.6", RTLD_NOW | RTLD_LOCAL);
 	if (!xt)
 		xt = dlopen("libXtst.so", RTLD_NOW | RTLD_LOCAL);
@@ -1508,7 +1509,7 @@ static int drive_ruler(AP_UnixApp *app, const char *scratch)
 		g_printerr("ruler: no X11 surface\n");
 		return 77;
 	}
-	RulerInject inj { dpy, gdk_x11_surface_get_xid(surf), fakeBtn };
+	RulerInject inj { dpy, xap_gdk_x11_surface_get_xid(surf), fakeBtn };
 
 	/* let the freshly-mapped window finish resizing before measuring
 	 * anything — each resize moves the column origin mid-run */
@@ -2926,7 +2927,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 	EV_SECTION("real input",
 		GdkDisplay *gd = gdk_display_get_default();
 		if (GDK_IS_X11_DISPLAY(gd)) {
-			Display *dpy = gdk_x11_display_get_xdisplay(gd);
+			Display *dpy = xap_gdk_x11_display_get_xdisplay(gd);
 			void *xt = dlopen("libXtst.so.6", RTLD_NOW | RTLD_LOCAL);
 			if (!xt)
 				xt = dlopen("libXtst.so", RTLD_LOCAL);
@@ -2980,7 +2981,7 @@ static int drive_ev(AP_UnixApp *app, const char *scratch)
 					? gtk_native_get_surface(GTK_NATIVE(native))
 					: nullptr;
 				if (surf && GDK_IS_X11_SURFACE(surf)) {
-					Window xid = gdk_x11_surface_get_xid(surf);
+					Window xid = xap_gdk_x11_surface_get_xid(surf);
 					auto warp = [&](double px, double py) {
 						graphene_point_t in {(float)px, (float)py}, out;
 						if (gtk_widget_compute_point(canvas, native,
@@ -3258,7 +3259,7 @@ static int drive_keys(AP_UnixApp *app, const char *scratch)
 					   "(XTest injection unavailable)\n");
 			return 0;
 		}
-		Display *dpy = gdk_x11_display_get_xdisplay(gd);
+		Display *dpy = xap_gdk_x11_display_get_xdisplay(gd);
 		void *xt = dlopen("libXtst.so.6", RTLD_NOW | RTLD_LOCAL);
 		if (!xt)
 			xt = dlopen("libXtst.so", RTLD_LOCAL);
@@ -3326,7 +3327,7 @@ static int drive_keys(AP_UnixApp *app, const char *scratch)
 			g_printerr("keys: no X11 document canvas\n");
 			return 1;
 		}
-		Window xid = gdk_x11_surface_get_xid(surf);
+		Window xid = xap_gdk_x11_surface_get_xid(surf);
 		auto focus_canvas = [&] {
 			alarm(40);                  /* bounded work — re-arm */
 			graphene_point_t in {(float)(gtk_widget_get_width(canvas) / 2),
@@ -4755,7 +4756,7 @@ static bool toc_drive_doc(AP_UnixApp *app, DriveCtx &ctx,
 		std::optional<UT_Rect> rect2 = line2
 			? line2->getScreenRect() : std::optional<UT_Rect>();
 		if (rect2 && win && GDK_IS_X11_DISPLAY(gd)) {
-			Display *dpy = gdk_x11_display_get_xdisplay(gd);
+			Display *dpy = xap_gdk_x11_display_get_xdisplay(gd);
 			void *xt = dlopen("libXtst.so.6", RTLD_NOW | RTLD_LOCAL);
 			if (!xt)
 				xt = dlopen("libXtst.so", RTLD_LOCAL);
@@ -4790,7 +4791,7 @@ static bool toc_drive_doc(AP_UnixApp *app, DriveCtx &ctx,
 				? gtk_native_get_surface(GTK_NATIVE(native)) : nullptr;
 			if (fakeBtn && fakeKeyEv && surf &&
 				GDK_IS_X11_SURFACE(surf)) {
-				Window xid = gdk_x11_surface_get_xid(surf);
+				Window xid = xap_gdk_x11_surface_get_xid(surf);
 				GR_Graphics *pG = view->getGraphics();
 				graphene_point_t in {
 					(float)pG->tdu(rect2->left + rect2->width / 2),

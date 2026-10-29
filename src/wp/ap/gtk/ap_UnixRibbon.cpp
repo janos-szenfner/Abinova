@@ -499,7 +499,7 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		"  min-width: 12px; min-height: 12px; margin: -1px;"
 		"}";
 	GtkCssProvider * css = gtk_css_provider_new();
-	gtk_css_provider_load_from_data(css, ribbon_css, -1);
+	gtk_css_provider_load_from_string(css, ribbon_css);
 	gtk_style_context_add_provider_for_display(
 		gtk_widget_get_display(m_wNotebook),
 		GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);

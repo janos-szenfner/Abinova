@@ -74,7 +74,7 @@ void GR_UnixCroppedImage::cairoSetSource(cairo_t *cr)
 	                (1 - m_CropLeft - m_CropRight) * w,
 	                (1 - m_CropTop - m_CropBottom) * h);
 	cairo_clip(cr);
-	gdk_cairo_set_source_pixbuf(cr, image, -m_CropLeft * w,
+	xap_gdk_cairo_set_source_pixbuf(cr, image, -m_CropLeft * w,
 	                            -m_CropTop * h);
 }
 
@@ -512,5 +512,5 @@ void GR_UnixImage::cairoSetSource(cairo_t * cr)
 	double scaleX = static_cast<double>(getDisplayWidth() )/ static_cast<double>(gdk_pixbuf_get_width (m_image));
 	double scaleY = static_cast<double>(getDisplayHeight() )/ static_cast<double>(gdk_pixbuf_get_height(m_image));
 	cairo_scale(cr, scaleX, scaleY);
-	gdk_cairo_set_source_pixbuf(cr, m_image, 0, 0);
+	xap_gdk_cairo_set_source_pixbuf(cr, m_image, 0, 0);
 }

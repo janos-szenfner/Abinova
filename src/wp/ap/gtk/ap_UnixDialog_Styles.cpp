@@ -303,11 +303,9 @@ void AP_UnixDialog_Styles::runModal(XAP_Frame * pFrame)
 
 	// let the widget materialize
 
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(m_wParaPreviewArea, &allocation);
 	_createParaPreviewFromGC(m_pParaPreviewWidget,
-				 static_cast<UT_uint32>(allocation.width),
-				 static_cast<UT_uint32>(allocation.height));
+				 static_cast<UT_uint32>(gtk_widget_get_width(m_wParaPreviewArea)),
+				 static_cast<UT_uint32>(gtk_widget_get_height(m_wParaPreviewArea)));
 
 
 	UT_ASSERT(m_wCharPreviewArea && XAP_HAS_NATIVE_WINDOW(m_wCharPreviewArea));
@@ -322,10 +320,9 @@ void AP_UnixDialog_Styles::runModal(XAP_Frame * pFrame)
 
 	// let the widget materialize
 
-	gtk_widget_get_allocation(m_wCharPreviewArea, &allocation);
 	_createCharPreviewFromGC(m_pCharPreviewWidget,
-				 static_cast<UT_uint32>(allocation.width),
-				 static_cast<UT_uint32>(allocation.height));
+				 static_cast<UT_uint32>(gtk_widget_get_width(m_wCharPreviewArea)),
+				 static_cast<UT_uint32>(gtk_widget_get_height(m_wCharPreviewArea)));
 
 	// Populate the window's data items
 	_populateWindowData();
@@ -1290,11 +1287,9 @@ void  AP_UnixDialog_Styles::modifyRunModal(void)
 
 	// let the widget materialize
 
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(m_wModifyDrawingArea, &allocation);
 	_createAbiPreviewFromGC(m_pAbiPreviewWidget,
-				static_cast<UT_uint32>(allocation.width),
-				static_cast<UT_uint32>(allocation.height));
+				static_cast<UT_uint32>(gtk_widget_get_width(m_wModifyDrawingArea)),
+				static_cast<UT_uint32>(gtk_widget_get_height(m_wModifyDrawingArea)));
 	_populateAbiPreview(isNew());
 
 	bool inputValid;

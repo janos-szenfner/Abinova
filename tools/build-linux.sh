@@ -24,8 +24,11 @@
 # dictionary is installed best-effort because the grammar checker
 # loads dictionaries from the standard dirs (PORT04).
 #
-# Tested against: Debian 12+/Ubuntu 24.04+ (apt), openSUSE Leap and
+# Tested against: Ubuntu 26.04+ (apt), openSUSE Leap and
 # Tumbleweed (zypper).  Zorin OS resolves through ID_LIKE=ubuntu.
+# The GTK 4.22 floor means Ubuntu 24.04-derived hosts need a newer
+# GTK: build one into a private prefix first with
+# tools/build-gtk-prefix.sh and source the env.sh it writes.
 
 set -e
 
@@ -104,7 +107,7 @@ fi
 # ------------------------------------------------------------ deps
 # Package maps cover everything configure.ac requires:
 #   toolchain  (gcc/g++ for C++17, make, perl, autotools, pkg-config)
-#   gtk4 >= 4.14.5 + gtk4-unix-print, cairo, pango/pangocairo, librsvg
+#   gtk4 >= 4.22 + gtk4-unix-print, cairo, pango/pangocairo, librsvg
 #   fribidi, glib/gio, libgsf, libxslt(+libxml2), zlib
 #   libpng, libjpeg, libtiff (image loaders), libX11 (X11 backend)
 #   boost headers >= 1.83, enchant-2 (spell), hunspell dict data
@@ -187,6 +190,14 @@ if [ $skip_deps -eq 0 ]; then
 fi
 
 # -------------------------------------------------------- configure
+if ! pkg-config --atleast-version 4.22 gtk4 2>/dev/null; then
+	echo "build-linux: configure requires gtk4 >= 4.22 but pkg-config" >&2
+	echo "  resolves $(pkg-config --modversion gtk4 2>/dev/null || echo none)." >&2
+	echo "  On distros with an older GTK, run tools/build-gtk-prefix.sh and" >&2
+	echo "  source \$HOME/.local/abinova-gtk-dev/env.sh before this script." >&2
+	exit 1
+fi
+
 cfg="$top/configure"
 if [ ! -f "$cfg" ] || [ "$top/configure.ac" -nt "$cfg" ]; then
 	( cd "$top" && autoreconf -f -i )

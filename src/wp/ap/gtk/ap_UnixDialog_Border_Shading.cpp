@@ -259,11 +259,9 @@ void AP_UnixDialog_Border_Shading::runModeless(XAP_Frame * pFrame)
 
 	// let the widget materialize
 
-	GtkAllocation alloc;
-	gtk_widget_get_allocation(m_wPreviewArea, &alloc);
 	_createPreviewFromGC(m_pPreviewWidget,
-						 static_cast<UT_uint32>(alloc.width),
-						 static_cast<UT_uint32>(alloc.height));	
+						 static_cast<UT_uint32>(gtk_widget_get_width(m_wPreviewArea)),
+						 static_cast<UT_uint32>(gtk_widget_get_height(m_wPreviewArea)));	
 	
 	m_pBorderShadingPreview->queueDraw();
 

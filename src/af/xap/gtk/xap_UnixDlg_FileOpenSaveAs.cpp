@@ -1215,7 +1215,9 @@ gint XAP_UnixDialog_FileOpenSaveAs::previewPicture (cairo_t * cr)
 	   the widget size has notbeen allocated or if there is no room for it,
 	   that might freeze gdk_pixbuf */
 	GtkAllocation alloc;
-	gtk_widget_get_allocation (m_preview, &alloc);
+	alloc.x = alloc.y = 0;
+	alloc.width = gtk_widget_get_width(m_preview);
+	alloc.height = gtk_widget_get_height(m_preview);
 	if (alloc.width <= 1 || alloc.height <= 1)
 		return 0;
 

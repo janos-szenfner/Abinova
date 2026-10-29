@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "xap_UnixControlSocket.h"
+#include "xap_GtkUtils.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
 #include "xap_UnixFrameImpl.h"
@@ -1016,7 +1017,7 @@ static bool _m_ui_text(const std::string & j, std::string & err)
 static Display * _x_display()
 {
 	GdkDisplay * d = gdk_display_get_default();
-	return GDK_IS_X11_DISPLAY(d) ? GDK_DISPLAY_XDISPLAY(d) : nullptr;
+	return GDK_IS_X11_DISPLAY(d) ? xap_gdk_x11_display_get_xdisplay(d) : nullptr;
 }
 
 static Window _x_frame_window()
@@ -1025,7 +1026,7 @@ static Window _x_frame_window()
 	GdkSurface * s = win ? gtk_native_get_surface(GTK_NATIVE(win))
 					   : nullptr;
 	return s && GDK_IS_X11_SURFACE(s)
-		? gdk_x11_surface_get_xid(s) : 0;
+		? xap_gdk_x11_surface_get_xid(s) : 0;
 }
 
 static unsigned _x_keysym_for(const char * name)

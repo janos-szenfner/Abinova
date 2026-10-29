@@ -545,10 +545,9 @@ static gboolean s_panedPositionIdle(gpointer data)
 	if (!w)
 		return G_SOURCE_REMOVE;
 	GtkWidget * end = gtk_paned_get_end_child(GTK_PANED(w));
-	GtkAllocation alloc;
-	gtk_widget_get_allocation(w, &alloc);
-	if (end && gtk_widget_get_visible(end) && alloc.width > 400)
-		gtk_paned_set_position(GTK_PANED(w), alloc.width - 300);
+	int width = gtk_widget_get_width(w);
+	if (end && gtk_widget_get_visible(end) && width > 400)
+		gtk_paned_set_position(GTK_PANED(w), width - 300);
 	return G_SOURCE_REMOVE;
 }
 
@@ -990,8 +989,8 @@ void AP_UnixFrameImpl::_postDocDraw(GtkWidget * w, cairo_t * cr,
 		return;
 	if (m_bGridlines)
 	{
-	GtkAllocation alloc;
-	gtk_widget_get_allocation(w, &alloc);
+	int width = gtk_widget_get_width(w);
+	int height = gtk_widget_get_height(w);
 	double xoff = pG->tduD(pView->getXScrollOffset());
 	double yoff = pG->tduD(pView->getYScrollOffset());
 	double step = 37.8 * pG->getZoomPercentage() / 100.0;
@@ -1004,18 +1003,18 @@ void AP_UnixFrameImpl::_postDocDraw(GtkWidget * w, cairo_t * cr,
 	double sx = std::fmod(-xoff, step);
 	if (sx > 0)
 		sx -= step;
-	for (double x = sx; x <= alloc.width; x += step)
+	for (double x = sx; x <= width; x += step)
 	{
 		cairo_move_to(cr, x + 0.5, 0);
-		cairo_line_to(cr, x + 0.5, alloc.height);
+		cairo_line_to(cr, x + 0.5, height);
 	}
 	double sy = std::fmod(-yoff, step);
 	if (sy > 0)
 		sy -= step;
-	for (double y = sy; y <= alloc.height; y += step)
+	for (double y = sy; y <= height; y += step)
 	{
 		cairo_move_to(cr, 0, y + 0.5);
-		cairo_line_to(cr, alloc.width, y + 0.5);
+		cairo_line_to(cr, width, y + 0.5);
 	}
 	cairo_stroke(cr);
 	cairo_restore(cr);
@@ -1144,11 +1143,10 @@ static gboolean s_splitPositionIdle(gpointer data)
 	bool bDone = false;
 	if (w)
 	{
-		GtkAllocation alloc;
-		gtk_widget_get_allocation(w, &alloc);
-		if (alloc.height > 200)
+		int height = gtk_widget_get_height(w);
+		if (height > 200)
 		{
-			gtk_paned_set_position(GTK_PANED(w), alloc.height / 2);
+			gtk_paned_set_position(GTK_PANED(w), height / 2);
 			bDone = true;
 		}
 		else if (++c->tries > 120)
@@ -1228,9 +1226,8 @@ void AP_UnixFrameImpl::setScrollRange2()
 		return;
 	GR_Graphics * pGr = m_pView2->getGraphics();
 	int height = m_pDocLayout2->getHeight();
-	GtkAllocation alloc;
-	gtk_widget_get_allocation(m_dArea2, &alloc);
-	int windowHeight = static_cast<int>(pGr->tluD(alloc.height));
+	int windowHeight = static_cast<int>(
+		pGr->tluD(gtk_widget_get_height(m_dArea2)));
 
 	int newvalue = m_pView2->getYScrollOffset();
 	int newmax = height - windowHeight;
@@ -1637,7 +1634,7 @@ bool AP_UnixFrameImpl::arrangeAllWindows()
 		GdkSurface * s = gtk_native_get_surface(GTK_NATIVE(tl));
 		if (s && GDK_IS_X11_SURFACE(s))
 		{
-			wins.push_back(gdk_x11_surface_get_xid(s));
+			wins.push_back(xap_gdk_x11_surface_get_xid(s));
 			if (!firstSurface)
 				firstSurface = s;
 		}
@@ -1645,7 +1642,7 @@ bool AP_UnixFrameImpl::arrangeAllWindows()
 	if (wins.size() < 2)
 		return true;   // nothing to arrange
 
-	Display * xdpy = gdk_x11_display_get_xdisplay(
+	Display * xdpy = xap_gdk_x11_display_get_xdisplay(
 		GDK_X11_DISPLAY(display));
 
 	/* workarea of the monitor under the first window */
@@ -1654,7 +1651,7 @@ bool AP_UnixFrameImpl::arrangeAllWindows()
 		? gdk_display_get_monitor_at_surface(display, firstSurface)
 		: nullptr;
 	if (mon)
-		gdk_x11_monitor_get_workarea(mon, &geo);
+		xap_gdk_x11_monitor_get_workarea(mon, &geo);
 
 	int n = static_cast<int>(wins.size());
 	int cols = static_cast<int>(std::ceil(std::sqrt(n)));
@@ -1662,13 +1659,13 @@ bool AP_UnixFrameImpl::arrangeAllWindows()
 	int cw = geo.width / cols;
 	int ch = geo.height / rows;
 
-	Atom netState = gdk_x11_get_xatom_by_name_for_display(
+	Atom netState = xap_gdk_x11_get_xatom_by_name_for_display(
 		display, "_NET_WM_STATE");
-	Atom maxH = gdk_x11_get_xatom_by_name_for_display(
+	Atom maxH = xap_gdk_x11_get_xatom_by_name_for_display(
 		display, "_NET_WM_STATE_MAXIMIZED_HORZ");
-	Atom maxV = gdk_x11_get_xatom_by_name_for_display(
+	Atom maxV = xap_gdk_x11_get_xatom_by_name_for_display(
 		display, "_NET_WM_STATE_MAXIMIZED_VERT");
-	Atom fullscreen = gdk_x11_get_xatom_by_name_for_display(
+	Atom fullscreen = xap_gdk_x11_get_xatom_by_name_for_display(
 		display, "_NET_WM_STATE_FULLSCREEN");
 
 	for (int i = 0; i < n; ++i)

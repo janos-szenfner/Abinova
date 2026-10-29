@@ -2727,11 +2727,13 @@ following projects:
 **Build dependencies** (system, via pkg-config — minimum versions
 are enforced by `configure`)
 
-- [GTK 4](https://gtk.org/) **≥ 4.14.5** + gtk4-unix-print — UI
-  toolkit
-- [GLib](https://docs.gtk.org/glib/) / GIO **≥ 2.80.0** — core
+- [GTK 4](https://gtk.org/) **≥ 4.22** + gtk4-unix-print — UI
+  toolkit. Distros shipping an older GTK (Ubuntu 24.04 and
+  derivatives) can build a private GTK 4.22 dev prefix with
+  `tools/build-gtk-prefix.sh` and build against its `env.sh`
+- [GLib](https://docs.gtk.org/glib/) / GIO **≥ 2.84.0** — core
   platform library
-- [Pango](https://pango.gnome.org/) **≥ 1.52.1** — text shaping
+- [Pango](https://pango.gnome.org/) **≥ 1.56.0** — text shaping
 - [cairo](https://cairographics.org/) **≥ 1.18.0**
   (pdf/ps/fc/pangocairo) — rendering and PDF/PS export
 - [libgsf](https://gitlab.gnome.org/GNOME/libgsf) **≥ 1.14.51** —

@@ -30,6 +30,7 @@
 #include "ut_debugmsg.h"
 
 #include "xap_UnixDialogHelper.h"
+#include "xap_GtkUtils.h"
 
 #include "xap_App.h"
 #include "xap_UnixApp.h"
@@ -85,7 +86,7 @@ abi_clipart_item_new (const gchar *path, const gchar *name,
 	row->path = g_strdup (path);
 	row->name = g_strdup (name);
 	/* GdkPixbuf is not a GdkPaintable in GTK4 — go through a texture. */
-	row->texture = pixbuf ? gdk_texture_new_for_pixbuf (pixbuf) : nullptr;
+	row->texture = pixbuf ? xap_gdk_texture_new_from_pixbuf (pixbuf) : nullptr;
 	return row;
 }
 

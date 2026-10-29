@@ -21,9 +21,11 @@ env:
 jobs:
   # ------------------------------------------------------------------
   # Linux: self-contained bundle + .deb + .rpm
+  # ubuntu-26.04 is the floor — its gtk4 4.22.x satisfies the
+  # GTK_VERSION_REQ >= 4.22 configure check; 24.04 only ships 4.14.
   # ------------------------------------------------------------------
   linux:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
 

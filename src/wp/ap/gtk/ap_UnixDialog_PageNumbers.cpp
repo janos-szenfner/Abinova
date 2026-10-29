@@ -140,11 +140,9 @@ void AP_UnixDialog_PageNumbers::runModal(XAP_Frame * pFrame)
 	    static_cast<GR_UnixCairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 
 	// let the widget materialize
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(m_previewArea, &allocation);
 	_createPreviewFromGC(m_unixGraphics,
-		   static_cast<UT_uint32>(allocation.width),
-		   static_cast<UT_uint32>(allocation.height));
+		   static_cast<UT_uint32>(gtk_widget_get_width(m_previewArea)),
+		   static_cast<UT_uint32>(gtk_widget_get_height(m_previewArea)));
 
 	// Todo: we need a good widget to query with a probable
 	// Todo: non-white (i.e. gray, or a similar bgcolor as our parent widget)

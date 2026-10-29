@@ -1068,10 +1068,9 @@ void XAP_UnixDialog_FontChooser::runModal(XAP_Frame * pFrame)
 	
 	GR_UnixCairoAllocInfo ai(m_preview);
 	m_gc = static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
-	GtkAllocation alloc;
-
-	gtk_widget_get_allocation(m_preview, &alloc);
-	_createFontPreviewFromGC(m_gc,alloc.width,alloc.height);
+	_createFontPreviewFromGC(m_gc,
+							 gtk_widget_get_width(m_preview),
+							 gtk_widget_get_height(m_preview));
 //
 // This enables callbacks on the preview area with a widget pointer to
 // access this dialog.

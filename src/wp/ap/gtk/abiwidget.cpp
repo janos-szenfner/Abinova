@@ -47,6 +47,7 @@
 #include "ie_exp.h"
 #include "ie_impGraphic.h"
 #include "xap_UnixDialogHelper.h"
+#include "xap_GtkUtils.h"
 #include "ap_UnixFrameImpl.h"
 #include "ap_UnixApp.h"
 #include "ut_sleep.h"
@@ -1575,7 +1576,7 @@ abi_widget_render_page_to_image(AbiWidget *abi, int iPage)
 	cairo_destroy(cr);
 	DELETEP(pPaint);
 	DELETEP(pG);
-	GdkPixbuf *pixbuf = gdk_pixbuf_get_from_surface(surface, 0, 0, iWidth, iHeight);
+	GdkPixbuf *pixbuf = xap_gdk_pixbuf_get_from_surface(surface, 0, 0, iWidth, iHeight);
 	cairo_surface_destroy(surface);
 	return pixbuf;
 }

@@ -165,10 +165,14 @@ _fv_text_handle_emit_at_pointer (FvTextHandle         *handle,
   if (!gtk_gesture_get_point (GTK_GESTURE (gesture), nullptr, &px, &py))
     gtk_gesture_drag_get_start_point (gesture, &px, &py);
 
-  if (!gtk_widget_translate_coordinates (handle_widget->widget,
-                                         priv->overlay,
-                                         px, py, &ox, &oy))
+  graphene_point_t in_pt = { static_cast<float>(px), static_cast<float>(py) };
+  graphene_point_t out_pt;
+  if (!gtk_widget_compute_point (handle_widget->widget,
+                                 priv->overlay,
+                                 &in_pt, &out_pt))
     return;
+  ox = out_pt.x;
+  oy = out_pt.y;
 
   g_signal_emit (handle, signals[HANDLE_DRAGGED], 0, pos,
                  static_cast<gint>( (ox + handle_widget->adj_x)),
@@ -196,8 +200,15 @@ _fv_text_handle_drag_begin (GtkGestureDrag *gesture,
   handle_widget = &priv->windows[pos];
   handle_widget->dragged = TRUE;
 
-  if (!gtk_widget_translate_coordinates (widget, priv->overlay,
-                                         start_x, start_y, &px, &py))
+  graphene_point_t in_pt = { static_cast<float>(start_x),
+                             static_cast<float>(start_y) };
+  graphene_point_t out_pt;
+  if (gtk_widget_compute_point (widget, priv->overlay, &in_pt, &out_pt))
+    {
+      px = out_pt.x;
+      py = out_pt.y;
+    }
+  else
     {
       px = start_x;
       py = start_y;

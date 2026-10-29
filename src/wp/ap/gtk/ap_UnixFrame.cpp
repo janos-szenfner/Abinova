@@ -79,10 +79,8 @@ void AP_UnixFrame::setXScrollRange(void)
 		width = static_cast<AP_FrameData*>(m_pData)->m_pDocLayout->getWidth();
 
 	int windowWidth = 0;
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(GTK_WIDGET(pFrameImpl->m_dArea),&allocation);
 	if(pFrameImpl->m_dArea) //this isn't guaranteed in AbiCommand
-		windowWidth = static_cast<int>(pGr->tluD (allocation.width));
+		windowWidth = static_cast<int>(pGr->tluD (gtk_widget_get_width(GTK_WIDGET(pFrameImpl->m_dArea))));
 
 	int newvalue = ((pPaneView) ? pPaneView->getXScrollOffset() : 0);
 	int newmax = width - windowWidth; /* upper - page_size */
@@ -124,10 +122,8 @@ void AP_UnixFrame::setYScrollRange(void)
 		height = static_cast<AP_FrameData*>(m_pData)->m_pDocLayout->getHeight();
 
 	int windowHeight = 0;
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(GTK_WIDGET(pFrameImpl->m_dArea),&allocation);
 	if(pFrameImpl->m_dArea) //this isn't guaranteed in AbiCommand
-		windowHeight = static_cast<int>(pGr->tluD (allocation.height));
+		windowHeight = static_cast<int>(pGr->tluD (gtk_widget_get_height(GTK_WIDGET(pFrameImpl->m_dArea))));
 
 	int newvalue = ((pPaneView) ? pPaneView->getYScrollOffset() : 0);
 	int newmax = height - windowHeight;	/* upper - page_size */
@@ -666,29 +662,29 @@ bool AP_UnixFrame::_createScrollBarListeners(AV_View * pView, AV_ScrollObj *& pS
 
 UT_sint32 AP_UnixFrame::_getDocumentAreaWidth()
 {
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(GTK_WIDGET(static_cast<AP_UnixFrameImpl *>(getFrameImpl())->m_dArea), &allocation);
-	return static_cast<UT_sint32>(allocation.width);
+	return gtk_widget_get_width(GTK_WIDGET(static_cast<AP_UnixFrameImpl *>(getFrameImpl())->m_dArea));
 }
 
 UT_sint32 AP_UnixFrame::_getDocumentAreaHeight()
 {
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(GTK_WIDGET(static_cast<AP_UnixFrameImpl *>(getFrameImpl())->m_dArea), &allocation);
-	return static_cast<UT_sint32>(allocation.height);
+	return gtk_widget_get_height(GTK_WIDGET(static_cast<AP_UnixFrameImpl *>(getFrameImpl())->m_dArea));
 }
 
 
 UT_sint32 AP_UnixFrame::getDocumentAreaXoff()
 {
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(GTK_WIDGET(static_cast<AP_UnixFrameImpl *>(getFrameImpl())->m_dArea), &allocation);
-	return static_cast<UT_sint32>(allocation.x);
+	GtkWidget * area = GTK_WIDGET(static_cast<AP_UnixFrameImpl *>(getFrameImpl())->m_dArea);
+	GtkWidget * parent = gtk_widget_get_parent(area);
+	graphene_rect_t bounds;
+	return parent && gtk_widget_compute_bounds(area, parent, &bounds)
+		? static_cast<UT_sint32>(bounds.origin.x) : 0;
 }
 
 UT_sint32 AP_UnixFrame::getDocumentAreaYoff()
 {
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(GTK_WIDGET(static_cast<AP_UnixFrameImpl *>(getFrameImpl())->m_dArea), &allocation);
-	return static_cast<UT_sint32>(allocation.y);
+	GtkWidget * area = GTK_WIDGET(static_cast<AP_UnixFrameImpl *>(getFrameImpl())->m_dArea);
+	GtkWidget * parent = gtk_widget_get_parent(area);
+	graphene_rect_t bounds;
+	return parent && gtk_widget_compute_bounds(area, parent, &bounds)
+		? static_cast<UT_sint32>(bounds.origin.y) : 0;
 }

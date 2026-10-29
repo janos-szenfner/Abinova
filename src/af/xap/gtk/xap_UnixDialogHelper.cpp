@@ -420,9 +420,9 @@ static void s_center_window_x11(GtkWidget * child, GtkWidget * parent)
 							 : nullptr;
 	if (!cs || !ps || !GDK_IS_X11_SURFACE(cs) || !GDK_IS_X11_SURFACE(ps))
 		return;
-	Window cx = gdk_x11_surface_get_xid(cs);
-	Window px = gdk_x11_surface_get_xid(ps);
-	Display * dpy = gdk_x11_display_get_xdisplay(gdk_surface_get_display(cs));
+	Window cx = xap_gdk_x11_surface_get_xid(cs);
+	Window px = xap_gdk_x11_surface_get_xid(ps);
+	Display * dpy = xap_gdk_x11_display_get_xdisplay(gdk_surface_get_display(cs));
 	Window root; int px_ = 0, py_ = 0, cx_ = 0, cy_ = 0;
 	unsigned int pw = 0, ph = 0, cw_ = 0, ch_ = 0, bw = 0, depth = 0;
 	if (!XGetGeometry(dpy, px, &root, &px_, &py_, &pw, &ph, &bw, &depth))

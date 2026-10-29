@@ -24,6 +24,12 @@ responsibility** — see `README.md`.
 
 - **ABINOVA_DEBUG_LAYOUT=1** — diagnostic env var dumping each
   toplevel child's measured minimum width.
+- **GTK requirement raised to 4.22** — `configure` now requires
+  gtk4 ≥ 4.22 (Ubuntu 26.04, and the current Homebrew/MSYS2/FreeBSD
+  ports GTK). On distros shipping an older GTK (Ubuntu 24.04 and
+  derivatives) build a private GTK with `tools/build-gtk-prefix.sh`
+  and source the `env.sh` it writes. The Linux release build moved
+  to the `ubuntu-26.04` CI image for this.
 
 ## [4.0.5] — 2026-10-26
 

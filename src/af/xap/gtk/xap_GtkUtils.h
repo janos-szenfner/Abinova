@@ -102,3 +102,27 @@ void XAP_gtk_entry_set_text(GtkEditable* editable, const gchar* text)
   gtk_editable_set_text(editable, text);
 }
 
+
+/// GTK 4.20 deprecated the direct GdkPixbuf interop helpers
+/// (gdk_texture_new_for_pixbuf, gdk_cairo_set_source_pixbuf,
+/// gdk_pixbuf_get_from_surface). These replacements do the same
+/// conversions through the public GdkTexture / GdkTextureDownloader
+/// APIs.
+GdkTexture* xap_gdk_texture_new_from_pixbuf(GdkPixbuf* pixbuf);
+void xap_gdk_cairo_set_source_pixbuf(cairo_t* cr, const GdkPixbuf* pixbuf,
+                                     double x, double y);
+GdkPixbuf* xap_gdk_pixbuf_get_from_surface(cairo_surface_t* surface,
+                                           int x, int y, int w, int h);
+
+#ifdef GDK_WINDOWING_X11
+#include <gdk/x11/gdkx.h>
+/// GTK 4.18 deprecated the X11 backend accessors; they remain the
+/// only way to reach the X ids the XTest, raise and transient-hint
+/// paths need, so the deprecated calls are centralized here.
+Display* xap_gdk_x11_display_get_xdisplay(GdkDisplay* display);
+Window xap_gdk_x11_surface_get_xid(GdkSurface* surface);
+Atom xap_gdk_x11_get_xatom_by_name_for_display(GdkDisplay* display,
+                                             const char* name);
+void xap_gdk_x11_monitor_get_workarea(GdkMonitor* monitor,
+                                      GdkRectangle* workarea);
+#endif

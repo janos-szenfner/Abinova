@@ -25,8 +25,8 @@ AM_MAINTAINER_MODE([enable])
 #
 # versions requested.
 #
-GTK_VERSION_REQ=4.14.5
-GTK_ENCODED_VERSION="GDK_VERSION_4_14"
+GTK_VERSION_REQ=4.22.0
+GTK_ENCODED_VERSION="GDK_VERSION_4_22"
 
 # This check MUST be done early.
 #
@@ -68,7 +68,7 @@ AC_ARG_ENABLE([embedded],
 
 # cross platform deps
 fribidi_req='fribidi >= 1.0.13'
-glib_req='glib-2.0 >= 2.80.0 gthread-2.0 >= 2.80.0 gobject-2.0 >= 2.80.0'
+glib_req='glib-2.0 >= 2.84.0 gthread-2.0 >= 2.84.0 gobject-2.0 >= 2.84.0'
 gsf_req='libgsf-1 >= 1.14.51'
 zlib_req='zlib >= 1.3'
 
@@ -83,16 +83,16 @@ xp_pkgs="
 
 # optional deps
 enchant_req='enchant-2 >= 2.3.3'
-gio_req='gio-2.0 >= 2.80.0'
+gio_req='gio-2.0 >= 2.84.0'
 
 dnl libosso-gsf-1'
 # placeholder for accumulated optional deps
 opt_pkgs=''
 
 # gtk deps
-cairo_req='cairo-pdf >= 1.18.0 cairo-ps >= 1.18.0 pangocairo >= 1.52.1'
+cairo_req='cairo-pdf >= 1.18.0 cairo-ps >= 1.18.0 pangocairo >= 1.56.0'
 #
-gtk_req="gtk4 >= $GTK_VERSION_REQ librsvg-2.0 >= 2.58.0 pango >= 1.52.1"
+gtk_req="gtk4 >= $GTK_VERSION_REQ librsvg-2.0 >= 2.58.0 pango >= 1.56.0"
 dnl gtk4-unix-print only exists when GTK is built with the Unix
 dnl print backend (Linux/BSD); Quartz and Win32 GTK lack it
 PKG_CHECK_EXISTS([gtk4-unix-print], [gtk_req="$gtk_req gtk4-unix-print"],[])

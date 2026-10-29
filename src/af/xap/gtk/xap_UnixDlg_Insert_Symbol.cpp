@@ -134,9 +134,8 @@ void XAP_UnixDialog_Insert_Symbol::runModeless(XAP_Frame * pFrame)
 			static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 	}
 	// let the widget materialize
-	GtkAllocation alloc;
-	gtk_widget_get_allocation(m_SymbolMap, &alloc);
-	int allocW = alloc.width, allocH = alloc.height;
+	int allocW = gtk_widget_get_width(m_SymbolMap);
+	int allocH = gtk_widget_get_height(m_SymbolMap);
 	if (allocW <= 0 || allocH <= 0)
 	{
 		// Not allocated yet (GTK4 realizes lazily); use the requested size.
@@ -163,9 +162,8 @@ void XAP_UnixDialog_Insert_Symbol::runModeless(XAP_Frame * pFrame)
 			static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 	}
 	// let the widget materialize
-	gtk_widget_get_allocation(m_areaCurrentSym, &alloc);
-	allocW = alloc.width;
-	allocH = alloc.height;
+	allocW = gtk_widget_get_width(m_areaCurrentSym);
+	allocH = gtk_widget_get_height(m_areaCurrentSym);
 	if (allocW <= 0 || allocH <= 0)
 	{
 		int nat = 0;

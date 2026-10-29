@@ -154,9 +154,9 @@ static gboolean s_popover_raise_idle(gpointer data)
   if (GdkSurface * surf = gtk_native_get_surface(GTK_NATIVE(pop)))
     {
       if (GDK_IS_X11_SURFACE(surf))
-        XRaiseWindow(gdk_x11_display_get_xdisplay(
+        XRaiseWindow(xap_gdk_x11_display_get_xdisplay(
                          gdk_surface_get_display(surf)),
-                     gdk_x11_surface_get_xid(surf));
+                     xap_gdk_x11_surface_get_xid(surf));
     }
 #endif
   /* one shot is enough under a compositor; a continuous restack
@@ -386,3 +386,139 @@ GtkWidget* xap_gtk_popover_new(void)
   g_signal_connect(pop, "map", G_CALLBACK(s_popover_a11y_cb), nullptr);
   return pop;
 }
+
+GdkTexture* xap_gdk_texture_new_from_pixbuf(GdkPixbuf* pixbuf)
+{
+  /* what gdk_texture_new_for_pixbuf() did: wrap the pixbuf's own
+   * pixel store in a memory texture — no copy, the GBytes holds a
+   * pixbuf reference so the store outlives the texture */
+  g_return_val_if_fail(GDK_IS_PIXBUF(pixbuf), nullptr);
+  GBytes * bytes = g_bytes_new_with_free_func(
+      gdk_pixbuf_read_pixels(pixbuf),
+      gdk_pixbuf_get_height(pixbuf) * (gsize)gdk_pixbuf_get_rowstride(pixbuf),
+      (GDestroyNotify)g_object_unref, g_object_ref(pixbuf));
+  GdkTexture * texture = gdk_memory_texture_new(
+      gdk_pixbuf_get_width(pixbuf), gdk_pixbuf_get_height(pixbuf),
+      gdk_pixbuf_get_has_alpha(pixbuf) ? GDK_MEMORY_R8G8B8A8
+                                       : GDK_MEMORY_R8G8B8,
+      bytes, gdk_pixbuf_get_rowstride(pixbuf));
+  g_bytes_unref(bytes);
+  return texture;
+}
+
+void xap_gdk_cairo_set_source_pixbuf(cairo_t* cr, const GdkPixbuf* pixbuf,
+                                     double x, double y)
+{
+  /* gdk_cairo_set_source_pixbuf() replacement per GTK's own
+   * suggestion: texture download -> cairo_set_source_surface */
+  GdkTexture * texture =
+      xap_gdk_texture_new_from_pixbuf(const_cast<GdkPixbuf*>(pixbuf));
+  if (!texture)
+    return;
+  GdkTextureDownloader * dl = gdk_texture_downloader_new(texture);
+  /* premultiplied BGRA is cairo's ARGB32 in memory order */
+  gdk_texture_downloader_set_format(dl, GDK_MEMORY_B8G8R8A8_PREMULTIPLIED);
+  gsize stride = 0;
+  GBytes * bytes = gdk_texture_downloader_download_bytes(dl, &stride);
+  gdk_texture_downloader_free(dl);
+  g_object_unref(texture);
+  if (!bytes)
+    return;
+  cairo_surface_t * surface = cairo_image_surface_create_for_data(
+      const_cast<guchar*>(static_cast<const guchar*>(
+          g_bytes_get_data(bytes, nullptr))),
+      CAIRO_FORMAT_ARGB32,
+      gdk_pixbuf_get_width(pixbuf), gdk_pixbuf_get_height(pixbuf),
+      static_cast<int>(stride));
+  /* the surface reads the downloaded bytes — keep them alive until
+   * the surface is destroyed */
+  static cairo_user_data_key_t s_bytes_key;
+  cairo_surface_set_user_data(surface, &s_bytes_key, bytes,
+                              (cairo_destroy_func_t)g_bytes_unref);
+  cairo_set_source_surface(cr, surface, x, y);
+  cairo_surface_destroy(surface);
+}
+
+GdkPixbuf* xap_gdk_pixbuf_get_from_surface(cairo_surface_t* surface,
+                                           int x, int y, int w, int h)
+{
+  /* gdk_pixbuf_get_from_surface() replacement: flatten the region
+   * into an ARGB32 image surface, then undo cairo's premultiplied
+   * BGRA into the pixbuf's straight RGBA */
+  cairo_surface_t * img =
+      cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
+  cairo_t * cr = cairo_create(img);
+  cairo_set_source_surface(cr, surface, -x, -y);
+  cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+  cairo_paint(cr);
+  cairo_destroy(cr);
+  if (cairo_surface_status(img) != CAIRO_STATUS_SUCCESS)
+    {
+      cairo_surface_destroy(img);
+      return nullptr;
+    }
+  GdkPixbuf * pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8, w, h);
+  if (!pixbuf)
+    {
+      cairo_surface_destroy(img);
+      return nullptr;
+    }
+  const guchar * src = cairo_image_surface_get_data(img);
+  const int src_stride = cairo_image_surface_get_stride(img);
+  guchar * dst = gdk_pixbuf_get_pixels(pixbuf);
+  const int dst_stride = gdk_pixbuf_get_rowstride(pixbuf);
+  for (int j = 0; j < h; ++j)
+    {
+      const guint32 * srow =
+          reinterpret_cast<const guint32*>(src + j * src_stride);
+      guchar * drow = dst + j * dst_stride;
+      for (int i = 0; i < w; ++i)
+        {
+          const guint32 p = srow[i];
+          const guint a = p >> 24;
+          guint r = (p >> 16) & 0xff, g = (p >> 8) & 0xff, b = p & 0xff;
+          if (a != 0 && a != 255)
+            {
+              r = (r * 255 + a / 2) / a;
+              g = (g * 255 + a / 2) / a;
+              b = (b * 255 + a / 2) / a;
+            }
+          drow[4*i+0] = r; drow[4*i+1] = g;
+          drow[4*i+2] = b; drow[4*i+3] = a;
+        }
+    }
+  cairo_surface_destroy(img);
+  return pixbuf;
+}
+
+#ifdef GDK_WINDOWING_X11
+Display* xap_gdk_x11_display_get_xdisplay(GdkDisplay* display)
+{
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+  return gdk_x11_display_get_xdisplay(display);
+  G_GNUC_END_IGNORE_DEPRECATIONS
+}
+
+Window xap_gdk_x11_surface_get_xid(GdkSurface* surface)
+{
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+  return gdk_x11_surface_get_xid(surface);
+  G_GNUC_END_IGNORE_DEPRECATIONS
+}
+
+Atom xap_gdk_x11_get_xatom_by_name_for_display(GdkDisplay* display,
+                                             const char* name)
+{
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+  return gdk_x11_get_xatom_by_name_for_display(display, name);
+  G_GNUC_END_IGNORE_DEPRECATIONS
+}
+
+void xap_gdk_x11_monitor_get_workarea(GdkMonitor* monitor,
+                                      GdkRectangle* workarea)
+{
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+  gdk_x11_monitor_get_workarea(monitor, workarea);
+  G_GNUC_END_IGNORE_DEPRECATIONS
+}
+#endif

@@ -247,11 +247,9 @@ void AP_UnixDialog_FormatTable::runModeless(XAP_Frame * pFrame)
 
 	// let the widget materialize
 
-	GtkAllocation allocation;
-	gtk_widget_get_allocation(m_wPreviewArea, &allocation);
 	_createPreviewFromGC(m_pPreviewWidget,
-						 static_cast<UT_uint32>(allocation.width),
-						 static_cast<UT_uint32>(allocation.height));
+						 static_cast<UT_uint32>(gtk_widget_get_width(m_wPreviewArea)),
+						 static_cast<UT_uint32>(gtk_widget_get_height(m_wPreviewArea)));
 
 	m_pFormatTablePreview->queueDraw();
 

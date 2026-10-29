@@ -165,11 +165,9 @@ void AP_UnixDialog_Paragraph::runModal(XAP_Frame * pFrame)
 		    static_cast<GR_CairoGraphics*>( XAP_App::getApp()->newGraphics(ai));
 
 		// let the widget materialize
-		GtkAllocation allocation;
-		gtk_widget_get_allocation(m_drawingareaPreview, &allocation);
 		_createPreviewFromGC(m_unixGraphics,
-							 static_cast<UT_uint32>( allocation.width),
-							 static_cast<UT_uint32>( allocation.height));
+							 static_cast<UT_uint32>( gtk_widget_get_width(m_drawingareaPreview)),
+							 static_cast<UT_uint32>( gtk_widget_get_height(m_drawingareaPreview)));
 	}
 
 	// sync all controls once to get started
