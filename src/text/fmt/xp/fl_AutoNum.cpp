@@ -419,7 +419,7 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 	rightDelim[i - rTmp] = '\0';
 
 	fl_AutoNumPtr pParentForLabel = m_pParent.lock();
-	if(pParentForLabel != nullptr  && m_List_Type < BULLETED_LIST)
+	if(pParentForLabel != nullptr  && IS_NUMBERED_LIST_TYPE(m_List_Type))
 	{
 		pParentForLabel->_getLabelstr( labelStr, insPoint, depth+1,getParentItem(), maxlen);
 		if(*insPoint != 0)
@@ -535,6 +535,14 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 		}
 		break;
 
+	case ARABICALPHA_LIST:
+		dec2arabic(labelStr,insPoint,place,maxlen,false);
+		break;
+
+	case ARABICABJAD_LIST:
+		dec2arabic(labelStr,insPoint,place,maxlen,true);
+		break;
+
 	case HEBREW_LIST:
 		dec2hebrew(labelStr,insPoint,place,maxlen);
 		break;
@@ -592,7 +600,7 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 		break;
 	}
 
-	if( m_List_Type < BULLETED_LIST &&
+	if( IS_NUMBERED_LIST_TYPE(m_List_Type) &&
 	    (g_ascii_strncasecmp(m_pszDecimal,rightDelim,4) != 0 || depth == 0) )
 	{
 		psz = strlen(rightDelim);
@@ -1333,6 +1341,41 @@ void fl_AutoNum::dec2hebrew(UT_UCS4Char labelStr[], UT_uint32 * insPoint, UT_sin
 		} // if
 		value /= 1000;
 	} while (value >= 1);
+}
+
+/* OOXML w:numFmt arabicAlpha / arabicAbjad numbering (ECMA-376
+ * ST_NumberFormat). Both count through the 28 Arabic letters the way
+ * lowerLetter counts a..z: one letter per value, repeated once more for
+ * each full pass through the alphabet (29 -> أأ, 30 -> بب).
+ *   arabicAlpha: alphabetical (hijā'ī) order أ ب ت ث ج ...
+ *   arabicAbjad: abjad order أ ب ج د ه و ز ...
+ */
+void fl_AutoNum::dec2arabic(UT_UCS4Char labelStr[], UT_uint32 * insPoint,
+							UT_sint32 value, UT_uint32 maxlen, bool bAbjad)
+{
+	static const UT_UCS4Char s_alpha[28] =
+	{
+		0x0623, 0x0628, 0x062A, 0x062B, 0x062C, 0x062D, 0x062E,
+		0x062F, 0x0630, 0x0631, 0x0632, 0x0633, 0x0634, 0x0635,
+		0x0636, 0x0637, 0x0638, 0x0639, 0x063A, 0x0641, 0x0642,
+		0x0643, 0x0644, 0x0645, 0x0646, 0x0647, 0x0648, 0x064A
+	};
+	static const UT_UCS4Char s_abjad[28] =
+	{
+		0x0623, 0x0628, 0x062C, 0x062F, 0x0647, 0x0648, 0x0632,
+		0x062D, 0x0637, 0x064A, 0x0643, 0x0644, 0x0645, 0x0646,
+		0x0633, 0x0639, 0x0641, 0x0635, 0x0642, 0x0631, 0x0634,
+		0x062A, 0x062B, 0x062E, 0x0630, 0x0636, 0x0638, 0x063A
+	};
+
+	if (value <= 0)
+		return;
+	// keep the repeat count bounded for document-provided values
+	const UT_sint32 n = value > 28 * 30 ? 28 * 30 : value;
+	const UT_UCS4Char * alphabet = bAbjad ? s_abjad : s_alpha;
+	const UT_UCS4Char ch = alphabet[(n - 1) % 28];
+	for (UT_sint32 reps = (n - 1) / 28 + 1; reps > 0; reps--)
+		s_appendLabelChar(labelStr, insPoint, maxlen, ch);
 }
 
 void fl_AutoNum::getAttributes (std::vector<std::string> & v,

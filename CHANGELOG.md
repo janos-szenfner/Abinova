@@ -6682,3 +6682,23 @@ responsibility** — see `README.md`.
   navigate, and Escape returns to the previous layout and chrome.
 - Escape now unwinds the mode stack in Word's order: Read Mode, then
   Focus, then Full Screen.
+
+## List numbering (W43)
+
+- New list label generators for OOXML `arabicAlpha` (hijā'ī letter
+  order أ ب ت ث …) and `arabicAbjad` (abjad order أ ب ج د ه و …) —
+  letters repeat once per pass through the alphabet past 28, matching
+  Word (29 → أأ). Import maps `w:numFmt` names to the two new list
+  types; export writes them back, so the formats round-trip.
+- The Bullets & Numbering dialog and the ribbon Numbering Library can
+  apply both styles (new `ARABICALPHA`/`ARABICABJAD` `doListType`
+  arguments and preview tiles).
+- Fixed imported Hebrew/Arabic-Indic lists dropping their trailing
+  delimiter (e.g. the "." from `%1.` label text) and their parent-level
+  label prefix.
+- Fixed the `w:numFmt` importer never matching `arabicAbjad` (a typo
+  read `aravicAbjad`, so those lists silently became bullets), the
+  high-valued list types resolving to the wrong style names (and
+  `Hebrew List` reading out of bounds) in the style table, and the
+  Arabic-Indic digit list exporting under the `arabicAbjad` name it
+  doesn't satisfy — it now exports `decimal`.

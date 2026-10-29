@@ -353,8 +353,10 @@ void OXMLi_ListenerState_Numbering::handleFormattingType(const gchar* val)
 		m_currentList->setType(LOWERROMAN_LIST);
 	else if(!strcmp(val, "upperRoman"))
 		m_currentList->setType(UPPERROMAN_LIST);
-	else if(!strcmp(val, "aravicAbjad"))
-		m_currentList->setType(ARABICNUMBERED_LIST);
+	else if(!strcmp(val, "arabicAlpha"))
+		m_currentList->setType(ARABICALPHA_LIST);
+	else if(!strcmp(val, "arabicAbjad") || !strcmp(val, "aravicAbjad"))
+		m_currentList->setType(ARABICABJAD_LIST);
 	else if(!strcmp(val, "hebrew1"))
 		m_currentList->setType(HEBREW_LIST);
 	else //default

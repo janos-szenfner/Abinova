@@ -50,6 +50,8 @@ class ABI_EXPORT fl_AutoLists
 #define  XML_UPPERROMAN_LIST (static_cast<const gchar *>( "Upper Roman List"))
 #define  XML_HEBREW_LIST (static_cast<const gchar *>( "Hebrew List"))
 #define  XML_ARABICNUM_LIST (static_cast<const gchar *>( "Arabic List"))
+#define  XML_ARABICALPHA_LIST (static_cast<const gchar *>( "Arabic Alpha List"))
+#define  XML_ARABICABJAD_LIST (static_cast<const gchar *>( "Arabic Abjad List"))
 #define  XML_BULLETED_LIST (static_cast<const gchar *>( "Bullet List"))
 #define  XML_DASHED_LIST (static_cast<const gchar *>( "Dashed List"))
 #define  XML_SQUARE_LIST (static_cast<const gchar *>( "Square List"))
@@ -85,6 +87,8 @@ class ABI_EXPORT fl_AutoLists
 #define  fmt_DASHED_LIST (static_cast<const char *>("%c"))
 #define  fmt_HEBREW_LIST (static_cast<const char *>("%*%h"))
 #define  fmt_ARABICNUM_LIST (static_cast<const char *>("%*%i"))
+#define  fmt_ARABICALPHA_LIST (static_cast<const char *>("%*%q"))
+#define  fmt_ARABICABJAD_LIST (static_cast<const char *>("%*%j"))
 
 
 #endif

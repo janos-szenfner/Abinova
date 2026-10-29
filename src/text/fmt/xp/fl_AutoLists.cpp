@@ -44,13 +44,15 @@ static const gchar * xml_Lists[] = { XML_NUMBERED_LIST,
 				     XML_ARROWHEAD_LIST,
 				     XML_ARABICNUM_LIST,
 				     XML_HEBREW_LIST,
+				     XML_ARABICALPHA_LIST,
+				     XML_ARABICABJAD_LIST,
 };
 
 const gchar * fl_AutoLists::getXmlList(UT_uint32 i)
 {
     UT_uint32 j = i;
 	if(i > OTHER_NUMBERED_LISTS)
-		j -= (OTHER_NUMBERED_LISTS - LAST_BULLETED_LIST);
+		j -= (OTHER_NUMBERED_LISTS - LAST_BULLETED_LIST + 1);
 	return xml_Lists[j];
 }
 
@@ -67,7 +69,9 @@ static const char	  * fmt_Lists[] = { fmt_NUMBERED_LIST,
 										fmt_BULLETED_LIST,
 										fmt_DASHED_LIST,
 										fmt_ARABICNUM_LIST,
-										fmt_HEBREW_LIST
+										fmt_HEBREW_LIST,
+										fmt_ARABICALPHA_LIST,
+										fmt_ARABICABJAD_LIST
 };
 
 const char * fl_AutoLists::getFmtList(UT_uint32 i)

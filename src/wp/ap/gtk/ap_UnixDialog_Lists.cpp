@@ -64,7 +64,9 @@ static const FL_ListType s_numberedTypes[] =
 	LOWERROMAN_LIST,
 	UPPERROMAN_LIST,
 	ARABICNUMBERED_LIST,
-	HEBREW_LIST
+	HEBREW_LIST,
+	ARABICALPHA_LIST,
+	ARABICABJAD_LIST
 };
 
 static const FL_ListType s_bulletedTypes[] =
@@ -96,7 +98,9 @@ static const XAP_String_Id s_numberedStrings[] =
 	AP_STRING_ID_DLG_Lists_Lower_Roman_List,
 	AP_STRING_ID_DLG_Lists_Upper_Roman_List,
 	AP_STRING_ID_DLG_Lists_Arabic_List,
-	AP_STRING_ID_DLG_Lists_Hebrew_List
+	AP_STRING_ID_DLG_Lists_Hebrew_List,
+	AP_STRING_ID_DLG_Lists_Arabic_Alpha_List,
+	AP_STRING_ID_DLG_Lists_Arabic_Abjad_List
 };
 
 static const XAP_String_Id s_bulletedStrings[] =

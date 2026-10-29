@@ -290,6 +290,14 @@ UT_Error OXML_List::serialize(IE_Exp_OpenXML* exporter)
 				break;
 	
 			case ARABICNUMBERED_LIST:
+				listType = "decimal";
+				break;
+	
+			case ARABICALPHA_LIST:
+				listType = "arabicAlpha";
+				break;
+	
+			case ARABICABJAD_LIST:
 				listType = "arabicAbjad";
 				break;
 	

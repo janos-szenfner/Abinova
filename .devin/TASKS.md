@@ -1877,7 +1877,7 @@ read aloud (user opt-out). Ribbon lives in
 | W40 | Picture transparency slider + corrections; WMF/EMF insert — details below | done | 1 | image-transparency prop (IMG+FRAME, percent 0-100) registered; s_applyBlipEffects folds it multiplicatively into fx.alphaMod with image-alpha-mod — absolute on original pixels, non-cumulative; Image/Frame Properties dialog gains 0-100% GtkScale (hidden for text boxes) wired through XAP_Dlg_Image get/setTransparency into setCharFormat/setFrameFormat; new emf/ importer — self-contained EMR-record player (window/vp/map modes, world xforms, pens/brushes/fonts, polys/paths, clips, text, DIB/PNG/JPEG blits incl. RLE+bitfields, gradients) rasterized to PNG via cairo -> FG_GraphicRaster, content+suffix+mime sniffed and registered, RTF \emfblip -> picEMF -> IEGFT_EMF wired; verified: make -j2 clean (env.sh for recheck); synthetic test.emf (rect/ellipse/polyline/text/DIB) -> PDF renders all elements, RTF \emfblip + cov11.wmf convert rc=0; image-transparency:50 inline -> PDF 255,128,128 vs opaque 255,0,0; 60% frame-level -> 255,153,153; Badge.docx + Word97Test.doc regression rc=0 |
 | W41 | Fonts embedded in .docx used for layout + PDF export — details below | done | 1 | w:embed* r:id+w:fontKey captured in FontTable listener; OXMLi_PackageManager::openFontTableRelById resolves fontTable.xml.rels (libgsf + strict manual-rels fallback); s_deobfuscateFont XORs first 32 bytes with reversed GUID per ECMA-376 P4 §2.8.1; GR_registerEmbeddedFont vets payload via FreeType (sfnt magic + face enumeration, <=64MiB), spills to tmpfile (atexit cleanup), FcConfigAppFontAddFile; declared-name!=family handled by OXML_FontManager m_embeddedAliases (fc alias proved unreliable through pango's match path); stale pre-existing PangoFcFontMaps refreshed lazily via GR_embeddedFontSerial + _syncFontConfigMaps in the 4 fontmap accessors. Verified: synthetic docx (renamed-family ComicRelief payload, tools/mkembfont.py) — pdffonts embeds the payload's PS name for BOTH declared==family and declared!=family fixtures; bad fontKey falls back to DejaVuSans rc=0; PNG shows distinct faces; Badge/Austin rc=0; make -j2 clean |
 | W42 | Split Cells + Convert Text to Table dialogs — details below | done | 1 | existing coverage: SplitCells direction-panel + textToTable auto/calldata path already existed — gaps filled: FV_View::cmdSplitCellsInto(rows,cols) recursively composes binary mid-splits w/ proportional quotas + solid grid-line inserts (rows pass first so attaches stay valid, nested in one undo glob); conversion moved to FV_View::cmdTextToTable adding paras mode + other-char sep + forced cols w/ tail merge; new modal AP_Dialog_TextToTable (.ui, sep radios, auto/manual cols) opened on no-calldata; Split Cells dialog gains "Split into Counts" frame; new splitCellsInto edit method — verified: make -j2 clean (env.sh for recheck); xvfb control channel 10/10 (tabs 3x3, commas:2 tail-merge, paras:2->3x2, other ';' 2x3, split 2x3->9 cells, one-undo restore, split 3x1); abwn attaches contiguous; PDF shows 3x3 table + nested cell; corpus rc=0 |
-| W43 | arabicAlpha/arabicAbjad list numbering — details below | pending | 0 |  |
+| W43 | arabicAlpha/arabicAbjad list numbering — details below | done | 1 | ARABICALPHA_LIST=0x82/ARABICABJAD_LIST=0x83 + fl_AutoNum::dec2arabic (Word semantics: letter (n-1)%28 repeated ⌈n/28⌉ — hijā'ī order أبتث vs abjad أبجهوز); numFmt wired both ways + fixed 'aravicAbjad' typo (abjad lists imported as bullets!) + ARABICNUMBERED_LIST export changed to honest 'decimal'; fixed getXmlList off-by-one (hebrew read OOB, arabicnum resolved to 'Hebrew List') + getListTypeFromStyle inverse for >0x7f types; high types now get rightDelim + parent-label prefix (hebrew gains trailing '.'); Lists dialog + Numbering Library tiles + doListType args — verified: make -j2 clean; synthetic docx PDF shows أ ب ت ث/أ ب ج د ه و + أأ بب at 29-30; docx->docx round-trip keeps both numFmt; abwn stores type=130/131 + list-style names reimport to Arabic labels; 8 corpus docx rc=0 |
 | W44 | Restrict Editing (document protection) — details below | pending | 0 |  |
 | W45 | Update check against GitHub releases (opt-in) — details below | pending | 0 |  |
 | W46 | Import hardening: cap DOCX attrs, VML paths, U+FFFE/FFFF in ODT — details below | pending | 0 |  |
@@ -1897,6 +1897,10 @@ read aloud (user opt-out). Ribbon lives in
 | W60 | Smart quotes: guillemet/low-quote nesting, Hebrew logical order — details below | pending | 0 |  |
 | W61 | Editing keys: Alt+X codepoint toggle, Move Paragraph Up/Down, Ctrl+Alt+H, Ctrl+Tab-in-cell — details below | pending | 0 |  |
 | W62 | Track changes: next/prev nav, tracked formatting, accept/reject-all edge cases, tracking options — details below | pending | 0 |  |
+| W63 | Equation ribbon surface: structures/symbols galleries — details below | pending | 0 |  |
+| W64 | Draw/ink: pen annotation overlay — details below | pending | 0 |  |
+| W65 | Review leftovers: thesaurus, comment replies/resolve — details below | pending | 0 |  |
+| W66 | Backstage File view + Options dialog — details below | pending | 0 |  |
 
 ## WordCraft parity task details
 
@@ -3042,3 +3046,64 @@ Track Changes parity gaps (ours has redline basics; wordcraft
 Verify: `make -j2` clean; doc with tracked edits — next/prev
 navigates, accept-all on the edge-case doc doesn't join
 paragraphs, reject-all keeps the empty paragraph.
+
+### W63
+
+Equation ribbon surface (wordcraft `cmd/equation.rs`, 21 commands —
+the tab UX, not the engine): our MathML/equation import exists
+(`gr_MathTypesetter`) but there's no Insert/Equation ribbon UX.
+Port wordcraft's surface: Equation gallery of canned forms
+(area/circle, binomial, quadratic, expansion-of-sum, Fourier,
+Pythagorean, Taylor — their gallery list is in `equation.rs`), a
+structures group (fraction/radical/integral/large-op/bracket/
+function/accent/limit-log/matrix inserts), a symbols group (basic
+Greek/operators/arrows palette), and professional<->linear
+convert. Check whether our math layer can insert MathML fragments
+— if only whole-equation objects work, scope = gallery + linear
+edit entry + symbols insert, document the structures gap.
+
+Verify: `make -j2` clean; insert gallery equation + fraction via
+control channel; PDF renders them.
+
+### W64
+
+Draw/ink overlay (wordcraft `cmd/draw.rs` + `ink.rs`): a pen tool —
+toggle Draw mode, strokes captured over the canvas as a freeform
+annotation layer saved in the doc (draw objects, color+thickness,
+eraser, highlight-pen, lasso erase, "ink to shape" if cheap).
+Persist ink in .abwn (stroke list as a draw object) + docx
+(w:object/ink round-trip if the importer has a home for it, else
+document export-only). Their `ink_shape.rs` for stroke->shape is
+optional — skip if it doubles the work.
+
+Verify: `make -j2` clean; xvfb draw a stroke, save+reload keeps
+it, PDF shows strokes.
+
+### W65
+
+Review leftovers (wordcraft `cmd/review.rs`):
+- **Thesaurus** (`review.thesaurus`): lookup pane/dialog for the
+  word at caret — check what backend we have (AbiWord had a
+  thesaurus plugin; enchant has no thes API — if no backend, ship
+  the WordNet-free approach: a small offline synonyms file or mark
+  as deferred with reason).
+- **Comment replies + resolve** (`review.reply`, `review.resolveComment`):
+  our comments pane (W-era work) — add reply threads and a
+  resolve/unresolve toggle displayed dimmed, persisted in the doc.
+
+Verify: `make -j2` clean; reply+resolve on a comment round-trips
+.abwn; thesaurus opens (or deferred note in Notes).
+
+### W66
+
+Backstage File view + Options dialog (wordcraft `backstage/` —
+their File tab opens a full view not a menu): left column
+(Info/New/Open/Save/Save As/Print/Share/Options), Info pane shows
+doc stats + properties, Protect/Inspect buttons reuse our privacy
+inspector + W44 restrict-editing entries. And a real **Options
+dialog** (wordcraft File ▸ Options pages: General/Display/
+Proofing/Save/Advanced) writing the existing pref keys — our
+`dlgPrefs` is the base; align page list to theirs.
+
+Verify: `make -j2` clean; File backstage opens, Options writes
+pref values (check profile file), info pane shows real stats.

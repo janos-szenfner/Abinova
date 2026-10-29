@@ -169,6 +169,7 @@ public:
 	static char *				dec2roman(UT_sint32 value, bool lower);
 	static char *				dec2ascii(UT_sint32 value, UT_uint32 offset);
 	static void					dec2hebrew(UT_UCS4Char labelStr[], UT_uint32 * insPoint, UT_sint32 value, UT_uint32 maxlen);
+	static void					dec2arabic(UT_UCS4Char labelStr[], UT_uint32 * insPoint, UT_sint32 value, UT_uint32 maxlen, bool bAbjad);
 	void                        getAttributes(std::vector<std::string>&v,
 											  bool bEscapeXML) const;
 	PD_Document *				getDoc(void) const

@@ -9725,7 +9725,11 @@ FL_ListType fl_BlockLayout::getListTypeFromStyle( const gchar* style) const
 			break;
 	}
 	if(j < size_xml_lists)
+	{
+		if(j >= static_cast<UT_uint32>(LAST_BULLETED_LIST))
+			j += (OTHER_NUMBERED_LISTS - LAST_BULLETED_LIST + 1);
 		lType = static_cast<FL_ListType>(j);
+	}
 	return lType;
 }
 

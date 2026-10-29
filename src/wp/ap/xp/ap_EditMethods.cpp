@@ -16294,7 +16294,8 @@ Defun1(doDashedList)
  * pCallData->m_pData: "TYPE[:DECIMAL[:DELIM]]" where TYPE is one of
  * NONE, BULLETED, DASHED, SQUARE, TRIANGLE, DIAMOND, STAR, IMPLIES,
  * TICK, BOX, HAND, HEART, ARROWHEAD, NUMBERED, LOWERCASE, UPPERCASE,
- * LOWERROMAN, UPPERROMAN, HEBREW, ARABICNUM.  DECIMAL overrides the
+ * LOWERROMAN, UPPERROMAN, HEBREW, ARABICNUM, ARABICALPHA,
+ * ARABICABJAD.  DECIMAL overrides the
  * numbering format (e.g. "%*%d" for 1.1.1) and DELIM the suffix
  * (e.g. "%L)" for "1)").
  */
@@ -16338,6 +16339,8 @@ Defun(doListType)
 	else if (sType == "UPPERROMAN")  lType = UPPERROMAN_LIST;
 	else if (sType == "HEBREW")      lType = HEBREW_LIST;
 	else if (sType == "ARABICNUM")   lType = ARABICNUMBERED_LIST;
+	else if (sType == "ARABICALPHA") lType = ARABICALPHA_LIST;
+	else if (sType == "ARABICABJAD") lType = ARABICABJAD_LIST;
 	else if (sType == "NONE")
 	{
 		return pView->cmdRemoveListFormat();

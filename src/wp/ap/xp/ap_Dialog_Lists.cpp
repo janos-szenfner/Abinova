@@ -604,7 +604,9 @@ void  AP_Dialog_Lists::fillUncustomizedValues(void)
 		m_iStartValue = 1;
 		m_pszDelim = "%L";
 	}
-	else if( m_NewListType == ARABICNUMBERED_LIST)
+	else if( m_NewListType == ARABICNUMBERED_LIST ||
+			 m_NewListType == ARABICALPHA_LIST ||
+			 m_NewListType == ARABICABJAD_LIST)
 	{
 		m_pszFont = font_family;
 		m_pszDecimal = "";

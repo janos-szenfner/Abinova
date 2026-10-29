@@ -1846,7 +1846,8 @@ Older upstream history is not listed here.
   alignment, spacing dropdowns, borders and the paragraph dialog on
   row 2; Lists group merged in.
 - New library popovers behind each list arrow: Bullet Library (13
-  glyph tiles), Numbering Library (8 format tiles), List Library
+  glyph tiles), Numbering Library (10 format tiles, incl. Arabic
+  alphabetical/abjad letters), List Library
   (current + multilevel presets); "Define New ..." entries open the
   Bullets and Numbering dialog.
 - New `doListType` edit method + `FV_View::cmdApplyListType` /
