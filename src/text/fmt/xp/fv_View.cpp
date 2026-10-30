@@ -16030,6 +16030,130 @@ bool FV_View::isAnnotationResolved(UT_uint32 iAnnotation) const
 	return pszRes && (pszRes[0] == '1');
 }
 
+/* word bounds for thesaurus lookup/replace: the selection's own
+ * range, or the word under the insertion point. Returns false when
+ * the caret is not inside a word and nothing is selected. */
+static bool s_thesaurusWordRange(const FV_View * pView,
+								 PT_DocPosition & posB,
+								 PT_DocPosition & posE)
+{
+	if (!pView->isSelectionEmpty())
+	{
+		const PT_DocPosition a = pView->getSelectionAnchor();
+		const PT_DocPosition p = pView->getPoint();
+		posB = UT_MIN(a, p);
+		posE = UT_MAX(a, p);
+		return posE > posB;
+	}
+	const PT_DocPosition iPoint = pView->getPoint();
+	fl_BlockLayout * pBlock = pView->getBlockAtPosition(iPoint);
+	if (!pBlock)
+		return false;
+	UT_GrowBuf gb(1024);
+	if (!pBlock->getBlockBuf(&gb) || !gb.getLength())
+		return false;
+	const UT_UCS4Char * span =
+		reinterpret_cast<const UT_UCS4Char *>(gb.getPointer(0));
+	UT_uint32 offset = iPoint - pBlock->getPosition();
+	if (offset > gb.getLength())
+		return false;
+	/* a caret at a word's right edge still belongs to that word;
+	 * on pure whitespace there is no word */
+	bool bInWord = false;
+	if (offset < gb.getLength() &&
+		!UT_isWordDelimiter(span[offset], UCS_UNKPUNK,
+							offset ? span[offset - 1] : UCS_UNKPUNK))
+		bInWord = true;
+	else if (offset > 0 &&
+			 !UT_isWordDelimiter(span[offset - 1], UCS_UNKPUNK,
+								 offset > 1 ? span[offset - 2] : UCS_UNKPUNK))
+	{
+		bInWord = true;
+		offset--;
+	}
+	if (!bInWord)
+		return false;
+	UT_uint32 first = offset;
+	while (first > 0 &&
+		   !UT_isWordDelimiter(span[first - 1], UCS_UNKPUNK,
+							   first > 1 ? span[first - 2] : UCS_UNKPUNK))
+		--first;
+	UT_uint32 last = offset;
+	while (last + 1 < gb.getLength() &&
+		   !UT_isWordDelimiter(span[last + 1],
+							   last + 2 < gb.getLength()
+								   ? span[last + 2] : UCS_UNKPUNK,
+							   span[last]))
+		++last;
+	posB = pBlock->getPosition() + first;
+	posE = pBlock->getPosition() + last + 1;
+	return true;
+}
+
+/*!
+ * The word (or selected text) the thesaurus should look up.
+ */
+bool FV_View::getThesaurusWord(UT_UCS4String & sWord) const
+{
+	sWord.clear();
+	PT_DocPosition posB = 0, posE = 0;
+	if (!s_thesaurusWordRange(this, posB, posE))
+		return false;
+	UT_UCS4Char * buf = getTextBetweenPos(posB, posE);
+	if (!buf)
+		return false;
+	sWord = buf;
+	delete[] buf;
+	return sWord.length() > 0;
+}
+
+/*!
+ * Replace the word under the insertion point (or the selection)
+ * with szWord, matching the case of the replaced text like Word's
+ * thesaurus: ALL-CAPS stays all-caps, Capitalized stays capitalized,
+ * anything else takes the replacement as given.
+ */
+bool FV_View::replaceThesaurusWord(const UT_UCS4Char * szWord,
+								   UT_uint32 len)
+{
+	UT_return_val_if_fail(szWord && len, false);
+	PT_DocPosition posB = 0, posE = 0;
+	if (!s_thesaurusWordRange(this, posB, posE))
+		return false;
+	UT_UCS4Char * buf = getTextBetweenPos(posB, posE);
+	if (!buf)
+		return false;
+	UT_UCS4String orig(buf);
+	delete[] buf;
+	if (!orig.length())
+		return false;
+
+	UT_UCS4String repl(szWord, len);
+	bool bAllUpper = true, bFirstUpper = UT_UCS4_isupper(orig[0]);
+	for (UT_uint32 i = 0; i < orig.length(); ++i)
+	{
+		if (!UT_UCS4_isupper(orig[i]))
+			bAllUpper = false;
+		if (i > 0 && !UT_UCS4_islower(orig[i]))
+			bFirstUpper = false;
+	}
+	if (bAllUpper)
+	{
+		for (UT_uint32 i = 0; i < repl.length(); ++i)
+			repl[i] = UT_UCS4_toupper(repl[i]);
+	}
+	else if (bFirstUpper)
+	{
+		repl[0] = UT_UCS4_toupper(repl[0]);
+	}
+	_clearSelection();
+	_setPoint(posB);
+	_setSelectionAnchor();
+	_setPoint(posE);
+	_drawSelection();
+	return cmdCharInsert(repl.ucs4_str(), repl.length());
+}
+
 // RIVERA
 void FV_View::killAnnotationPreview()
 {

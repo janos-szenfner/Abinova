@@ -39,7 +39,10 @@
 #include "ie_types.h"
 #include "ie_exp.h"
 #include "pt_PieceTable.h"
+#include "pp_AttrProp.h"
 #include "ut_string.h"
+#include "ut_string_class.h"
+#include "ut_Thesaurus.h"
 #include "ut_path.h"
 #include "ut_go_file.h"
 
@@ -838,6 +841,127 @@ static bool _m_doc_autosave(std::string & out, std::string & err)
 	return true;
 }
 
+/* thesaurus lookup, headless-testable twin of the docked pane:
+ * params.word (optional, default = word at the caret), params.lang
+ * (optional override of the caret language tag); params.replace
+ * swaps the caret word for that term and reports the result */
+static bool _m_doc_thesaurus(const std::string & j, std::string & out,
+							 std::string & err)
+{
+	FV_View * view = _first_view();
+	if (!view)
+	{
+		err = "no view";
+		return false;
+	}
+	std::string replace;
+	const bool wantReplace =
+		_json_str(j, "replace", replace) && !replace.empty();
+	std::string word;
+	if (!wantReplace)
+	{
+		if (!_json_str(j, "word", word) || word.empty())
+		{
+			UT_UCS4String w;
+			if (view->getThesaurusWord(w) && w.length())
+				word = w.utf8_str();
+		}
+	}
+	else
+	{
+		UT_UCS4String w;
+		if (view->getThesaurusWord(w) && w.length())
+			word = w.utf8_str();
+	}
+
+	std::string lang;
+	if (!_json_str(j, "lang", lang) || lang.empty())
+	{
+		PP_PropertyVector props;
+		if (view->getCharFormat(props))
+			lang = PP_getAttribute("lang", props);
+		if (lang.empty())
+			lang = "en_US";
+	}
+	XAP_App * app = XAP_App::getApp();
+	std::string dir = app
+		? app->getAbiSuiteLibDir() + std::string("/thesaurus")
+		: std::string();
+	const UT_Thesaurus * thes = UT_Thesaurus::forLanguage(
+		lang.c_str(), dir.empty() ? nullptr : dir.c_str());
+
+	out = "{\"word\":\"" + _json_escape(word) +
+		  "\",\"lang\":\"" + _json_escape(lang) +
+		  "\",\"available\":" + std::string(thes ? "true" : "false");
+	if (wantReplace)
+	{
+		UT_UCS4String u(replace);
+		const bool ok = view->replaceThesaurusWord(u.ucs4_str(),
+												 u.length());
+		out += ",\"replaced\":" + std::string(ok ? "true" : "false");
+		out += "}";
+		return true;
+	}
+	out += ",\"meanings\":[";
+	if (thes && !word.empty())
+	{
+		std::vector<UT_Thesaurus::Meaning> meanings;
+		thes->lookup(word.c_str(), meanings);
+		bool firstM = true;
+		for (const UT_Thesaurus::Meaning & m : meanings)
+		{
+			if (!firstM)
+				out += ',';
+			firstM = false;
+			out += "{\"pos\":\"" + _json_escape(m.pos) +
+				   "\",\"synonyms\":[";
+			for (size_t i = 0; i < m.synonyms.size(); ++i)
+			{
+				if (i)
+					out += ',';
+				out += "\"" + _json_escape(m.synonyms[i]) + "\"";
+			}
+			out += "],\"antonyms\":[";
+			for (size_t i = 0; i < m.antonyms.size(); ++i)
+			{
+				if (i)
+					out += ',';
+				out += "\"" + _json_escape(m.antonyms[i]) + "\"";
+			}
+			out += "]}";
+		}
+	}
+	out += "]}";
+	return true;
+}
+
+/* which side-deck pane is showing — "" when the deck is hidden;
+ * only the panes reachable through the xp FrameImpl API are
+ * reported (styles/objects/icons have no xp getter yet) */
+static bool _m_ui_sidepane(std::string & out, std::string & err)
+{
+	XAP_Frame * f = _first_frame();
+	if (!f || !f->getFrameImpl())
+	{
+		err = "no frame";
+		return false;
+	}
+	XAP_FrameImpl * impl = f->getFrameImpl();
+	const char * pane = "";
+	if (impl->isCommentsPaneVisible())
+		pane = "comments";
+	else if (impl->isNavPaneVisible())
+		pane = "navigation";
+	else if (impl->isClipPaneVisible())
+		pane = "clipboard";
+	else if (impl->isFmtPaneVisible())
+		pane = "formatting";
+	else if (impl->isThesaurusPaneVisible())
+		pane = "thesaurus";
+	out = "{\"pane\":\"" + _json_escape(pane) + "\"}";
+	return true;
+}
+
 /* dialog-free save: params.path is the target file; honours the
  * automation write root when configured.  params.password (optional)
  * applies a save password for exporters that support encryption */
@@ -1537,6 +1661,24 @@ static bool _dispatch(_Conn * c, const std::string & line)
 	{
 		std::string out;
 		if (_m_doc_autosave(out, err))
+			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "document.thesaurus")
+	{
+		std::string out;
+		if (_m_doc_thesaurus(line, out, err))
+			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "ui.sidepane")
+	{
+		std::string out;
+		if (_m_ui_sidepane(out, err))
 			_conn_send(c, id, out.c_str(), nullptr);
 		else
 			_conn_send(c, id, nullptr, err.c_str());

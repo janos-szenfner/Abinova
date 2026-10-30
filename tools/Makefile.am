@@ -29,6 +29,7 @@ EXTRA_DIST = \
 	coverage-gate.sh \
 	coverage-report.sh \
 	vendor-check.py \
+	mkthesaurus.py \
 	portguard.sh \
 	portguard-baseline.txt \
 	lcov/README \

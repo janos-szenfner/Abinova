@@ -321,6 +321,7 @@ _s(AP_MENU_ID_LAYOUT_POSITION,		0,1,0,0,	"arrangePosition",	ap_GetState_ObjSelec
 	_s(AP_MENU_ID_TOOLS_SPELLPREFS, 0,1,0,0, "dlgSpellPrefs", nullptr, nullptr);
 	_s(AP_MENU_ID_TOOLS_AUTOSPELL,          0,0,1,0,  "toggleAutoSpell",      ap_GetState_Prefs, nullptr);
 #endif
+	_s(AP_MENU_ID_TOOLS_THESAURUS,	0,1,0,0,	"thesaurus",			nullptr,							nullptr);
 	_s(AP_MENU_ID_TOOLS_LANGUAGE, 1,0,0,0, nullptr, nullptr, nullptr);
 	_s(AP_MENU_ID_TOOLS_WORDCOUNT,		0,1,0,0,	"dlgWordCount",			nullptr,					nullptr);
 	_s(AP_MENU_ID_TOOLS_OPTIONS,		0,1,0,0,	"dlgOptions",		nullptr,					nullptr);
@@ -356,6 +357,7 @@ _s(AP_MENU_ID_LAYOUT_POSITION,		0,1,0,0,	"arrangePosition",	ap_GetState_ObjSelec
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE,			0,1,0,0,	"delAnnotation",			nullptr,							nullptr);
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_DELETE_ALL,		0,1,0,0,	"delAllAnnotations",		nullptr,							nullptr);
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_RESOLVE,		0,1,0,0,	"resolveAnnotation",		nullptr,							nullptr);
+	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_REPLY,			0,1,0,0,	"replyAnnotation",			nullptr,							nullptr);
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_DELETE,	0,1,0,0,	"delAnnotation",			nullptr,							nullptr);
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_MENUPOP_SHOW,		0,1,0,0,	"toggleDisplayAnnotations",	ap_GetState_ToggleAnnotations,		nullptr);
 	_s(AP_MENU_ID_TOOLS_ANNOTATIONS_TOGGLE_DISPLAY,	0,0,1,0,	"toggleDisplayAnnotations",	ap_GetState_ToggleAnnotations,		nullptr);

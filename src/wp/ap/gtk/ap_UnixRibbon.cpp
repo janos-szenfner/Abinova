@@ -9024,6 +9024,13 @@ GtkWidget * AP_UnixRibbon::_makeSpellingPopover()
 							 _layout_icon(
 								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_SPELL),
 								 16, 16)));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Thesaurus\xE2\x80\xA6",
+							  "Look up synonyms for the word at the insertion point",
+							  _layout_icon(
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_THESAURUS),
+								  16, 16),
+							  "thesaurus", nullptr));
 	g_signal_connect(popover, "show",
 					 G_CALLBACK(_s_popover_check_show), this);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);

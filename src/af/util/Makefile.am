@@ -107,6 +107,8 @@ libutil_la_SOURCES = \
 	xp/ut_test.cpp \
 	xp/ut_test.h \
 	xp/ut_TextIterator.h \
+	xp/ut_Thesaurus.cpp \
+	xp/ut_Thesaurus.h \
 	xp/ut_timer.cpp \
 	xp/ut_timer.h \
 	xp/ut_types.cpp \

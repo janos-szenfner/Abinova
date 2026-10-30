@@ -29,6 +29,14 @@ xsltml_DATA = \
 metainfodir = $(datarootdir)/metainfo
 metainfo_DATA = io.github.janos_szenfner.Abinova.metainfo.xml
 
+# reduced offline thesaurus (MyThes pair) — fallback when the system
+# has no mythes dictionary; regenerate with tools/mkthesaurus.py
+thesaurusdir = @ABINOVA_DATADIR@/thesaurus
+thesaurus_DATA = \
+	thesaurus/README \
+	thesaurus/th_en_US_v2.idx \
+	thesaurus/th_en_US_v2.dat
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = abinova-$(ABINOVA_SERIES).pc
 

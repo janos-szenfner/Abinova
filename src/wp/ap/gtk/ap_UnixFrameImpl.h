@@ -93,6 +93,11 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	bool			isFmtPaneVisible() const override;
 	void			setFmtPaneVisible(bool bVisible);
 	void			refreshFmtPane();
+	/* Thesaurus pane (Review > Proofing > Thesaurus): offline
+	 * MyThes synonym lookup + replace */
+	virtual void	toggleThesaurusPane() override;
+	bool			isThesaurusPaneVisible() const override;
+	virtual void	setThesaurusPaneVisible(bool bVisible) override;
 	/* moves keyboard focus back to the document canvas, e.g. after
 	 * a side-pane button was clicked so typing reaches the view */
 	void			focusDocument();
@@ -258,6 +263,8 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	class AP_UnixClipPane * m_pClipPane;
 	GtkWidget * m_wFmtPaneW;
 	class AP_UnixFmtPane * m_pFmtPane;
+	GtkWidget * m_wThesaurusPaneW;
+	class AP_UnixThesaurusPane * m_pThesaurusPane;
 
 	/* gridlines overlay toggle for the document canvas */
 	bool        m_bGridlines;

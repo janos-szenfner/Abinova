@@ -659,6 +659,8 @@ public:
 	static EV_EditMethod_Fn revisionNew;
 	static EV_EditMethod_Fn revisionSelect;
 	static EV_EditMethod_Fn resolveAnnotation;
+	static EV_EditMethod_Fn replyAnnotation;
+	static EV_EditMethod_Fn thesaurus;
 
 	static EV_EditMethod_Fn refCaption;
 	static EV_EditMethod_Fn refDeleteSource;
@@ -1577,6 +1579,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(repeatThisRow),		0,	""),
 	EV_EditMethod(NF(replace),				0,	""),
 	EV_EditMethod(NF(replaceChar),			_D_,""),
+	EV_EditMethod(NF(replyAnnotation),		0,	""),
 	EV_EditMethod(NF(resolveAnnotation),	0,	""),
 	EV_EditMethod(NF(restrictEditing),	0,	""),
 	EV_EditMethod(NF(revisionAccept),		0,  ""),
@@ -1694,6 +1697,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(textToTable),		0,		""),
 	EV_EditMethod(NF(themeColorsApply),	0,		""),
 	EV_EditMethod(NF(themeFontsApply),	0,		""),
+	EV_EditMethod(NF(thesaurus),			0,	""),
 	EV_EditMethod(NF(tocAddText),			0,		""),
 	EV_EditMethod(NF(tocGoTo),				0,		""),
 	EV_EditMethod(NF(tocInsert),			0,		""),
@@ -15313,6 +15317,33 @@ Defun1(resolveAnnotation)
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
 	return pView->resolveAnnotation();
+}
+
+Defun1(replyAnnotation)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	fl_AnnotationLayout * pAL =
+		pView->getClosestAnnotation(pView->getPoint());
+	UT_return_val_if_fail(pAL, false);
+	return pView->replyAnnotation(pAL);
+}
+
+// Thesaurus pane (wordcraft review.thesaurus; Word: Review >
+// Proofing > Thesaurus) — looks up the word at the caret in the
+// offline MyThes data
+Defun1(thesaurus)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+	pImpl->toggleThesaurusPane();
+	return true;
 }
 
 Defun1(toggleDisplayAnnotations)

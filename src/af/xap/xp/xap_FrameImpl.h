@@ -82,6 +82,10 @@ public:
 	/* reveal-formatting pane (Shift+F1, View > Reveal Formatting) */
 	virtual void toggleFmtPane() {}
 	virtual bool isFmtPaneVisible() const { return false; }
+	/* thesaurus pane (Review > Proofing > Thesaurus) */
+	virtual void toggleThesaurusPane() {}
+	virtual void setThesaurusPaneVisible(bool /*bVisible*/) {}
+	virtual bool isThesaurusPaneVisible() const { return false; }
 	/* in-window split view of the same document (View > Split) */
 	virtual void toggleSplitView() {}
 	virtual bool isSplitView() const { return false; }

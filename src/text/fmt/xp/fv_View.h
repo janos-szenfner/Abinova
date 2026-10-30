@@ -976,6 +976,12 @@ public:
 	fl_AnnotationLayout * getNthAnnotation(UT_sint32 i) const;
 	bool                isAnnotationResolved(UT_uint32 iAnnotation) const;
 
+	/* thesaurus: the word at the insertion point (or the selected
+	 * text) and case-preserving replacement of it */
+	bool                getThesaurusWord(UT_UCS4String & sWord) const;
+	bool                replaceThesaurusWord(const UT_UCS4Char * szWord,
+											 UT_uint32 len);
+
     FV_View_BubbleBlocker getBubbleBlocker();
     bool                  bubblesAreBlocked() const;
 // ----------------------

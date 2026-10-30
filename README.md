@@ -735,7 +735,13 @@ automation.
 - **Proofing group**: **Spelling and Grammar** opens the spell
   check and offers a **Check Grammar** toggle (grammar-as-you-type
   via the integrated Hunspell grammar checker); **Word Count**
-  shows the document statistics dialog.
+  shows the document statistics dialog; **Thesaurus** docks a
+  Word-style side pane that looks up the word under the caret (or
+  typed text) in offline MyThes data — system dictionaries under
+  `/usr/share/mythes` etc. are preferred, the bundled reduced
+  `thesaurus/th_en_US_v2` pair is the fallback — and **Replace**
+  swaps it in case-matched (`happy`→`glad`, `Happy`→`Glad`,
+  `HAPPY`→`GLAD`).
 - **Language group**: **Set Language** applies the selected
   language to the selection/caret, can make it the document
   default (`lang` document property), supports **Detect language
@@ -756,7 +762,9 @@ automation.
   `annotation-resolved:1`, rendered dimmed with a "(Resolved)"
   badge) and **Delete** (anchored text is always preserved).
 - The ribbon also has a Delete dropdown (Delete Comment /
-  Delete All Comments), Resolve, **Previous**/**Next**
+  Delete All Comments), Resolve, **Reply to comment**
+  (`replyAnnotation` — appends a reply paragraph at the caret's
+  comment, matching the pane button), **Previous**/**Next**
   navigation (**Ctrl+Alt+P** / **Ctrl+Alt+N**) and a Show
   comments dropdown (Contextual / List in the reviewing pane);
   right-click offers New Comment too.
@@ -1267,6 +1275,12 @@ abinova --control 7981            # or ABINOVA_CONTROL_PORT=7981
     `{"command":"insertData","data":"Hello"}`.
   - `document.text` / `document.inspect` — document content and
     caret/selection/word/page stats without screenshots.
+  - `document.thesaurus` — offline synonym lookup;
+    `params.word` (default: the word at the caret), `params.lang`,
+    `params.replace` (case-matched swap of the caret word).
+  - `ui.sidepane` — which side-deck pane is showing
+    (`comments`/`navigation`/`clipboard`/`formatting`/`thesaurus`,
+    or `""`).
   - `ui.screenshot` / `ui.render` — PNG of the whole window or the
     document view.
   - `ui.focus`, `ui.resize` — window management.
