@@ -34,6 +34,8 @@ python3 tools/typing-parity.py --only list
 | 13 | Typed-run undo granularity | keys `h`–`o`, Ctrl+Z | run coalesces into one record | undo 1 → `h`, undo 2 → `` (first insert into a fresh doc keeps its own record — `_canCoalesceInsertSpan` boundary) | `typed-run-coalesces-undo` |
 | 14 | Bulk-insert undo steps | `insertData("hel")` + `insertData("lo")`, Ctrl+Z | each call is a user-atomic glob → its own undo step | `hel` then `` | `bulk-insert-undo-steps` |
 | 15 | Smart quotes | type `"hi"` (pref `SmartQuotesEnable`, default on) | curly quotes | `say “hi” ok` | `smart-quotes` |
+| 15a | Smart quotes: nesting + delimiters | `"'nested'" '"inner"' ("'parens'")`; `"" ''`; `«'french'» „'german'“` | alternate-parity nesting; opens after `([{<–—«‹„‚`; empty quotes open+close | `“‘nested’” ‘“inner”’ (“‘parens’”)`; `“” ‘’`; `«‘french’» „‘german’“` | `smart-quotes-nesting` |
+| 15b | Smart quotes: Hebrew logical order | `הוא אמר "שלום" לי`; `"שלום"`; `צה"ל `; `ג'ירפה 'כן'` | decision is on the logical predecessor, so a quote after a letter closes even in RTL; acronym gets ” not gershayim | `הוא אמר “שלום” לי`; `“שלום”`; `צה”ל `; `ג’ירפה ‘כן’` | `smart-quotes-hebrew` |
 | 16 | List: Enter continues | `doNumbers`, `one` ⏎ `two` | next item auto-numbered | `\x07\tone\n\x07\ttwo` | `list-enter-continues` |
 | 17 | List: Enter on empty item | … ⏎ on empty item | exits the list | `\x07\tone\n` + plain paragraph | `list-enter-empty-stops` |
 | 18 | List: Tab demotes | ⇥ at a list item | demotes one level | context `level 1` → `level 2`, text unchanged | `list-tab-demotes` |

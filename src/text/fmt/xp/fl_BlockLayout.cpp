@@ -6408,11 +6408,13 @@ bool fl_BlockLayout::doclistener_insertSpan(const PX_ChangeRecord_Span * pcrs)
 			break;
 
 		default:
-			if ((i != len-1)  &&  UT_isSmartQuotableCharacter(pChars[i]))
+			if (UT_isSmartQuotableCharacter(pChars[i]))
 			{
 				// accumulate smart quote candidates and deal with them
 				// as a bunch below after the final text insertion has
-				// been dealt with
+				// been dealt with.  The open/close decision only needs
+				// the preceding character, so the span's last char is a
+				// candidate like any other — no deferred pending quote.
 				sqlist[sqcount++] = blockOffset + i;
 			}
 			if (!bNormal)
@@ -6476,10 +6478,6 @@ bool fl_BlockLayout::doclistener_insertSpan(const PX_ChangeRecord_Span * pcrs)
 					m_pLayout->considerSmartQuoteCandidateAt(this, sqlist[sdex]);
 				}
 				m_pDoc->endUserAtomicGlob();
-			}
-			if (UT_isSmartQuotableCharacter(pChars[len - 1]))
-			{
-				m_pLayout->setPendingSmartQuote(this, blockOffset + len - 1);
 			}
 		}
 	}

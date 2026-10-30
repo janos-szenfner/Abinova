@@ -76,7 +76,8 @@ class Channel:
         o = {"id": rid, "method": method, "key": KEY_G}
         if params:
             o["params"] = params
-        self.sock.sendall(json.dumps(o).encode() + b"\n")
+        self.sock.sendall(json.dumps(o, ensure_ascii=False).encode()
+                          + b"\n")
         old = self.sock.gettimeout()
         self.sock.settimeout(timeout)
         try:
@@ -413,6 +414,49 @@ def t_smart_quotes(c):
          'straight quotes promoted to “smart” quotes as typed')
 
 
+def t_smart_quotes_nesting_and_delimiters(c):
+    # wordcraft pin: nested quotes and opening delimiters
+    c.text("\"'nested'\" '\"inner\"' (\"'parens'\")")
+    c.eq(c.wait_text("“‘nested’” ‘“inner”’ (“‘parens’”)"),
+         "“‘nested’” ‘“inner”’ (“‘parens’”)",
+         "nested quotes alternate parity, '(' opens")
+    # Empty quotes preserve open then close
+    c.execute("selectAll")
+    c.execute("delRight")
+    c.text("\"\" ''")
+    c.eq(c.wait_text("“” ‘’"), "“” ‘’",
+         "empty quotes open then close")
+    # Quote opens after guillemets and low quotes
+    c.execute("selectAll")
+    c.execute("delRight")
+    c.text("«'french'» „'german'“")
+    c.eq(c.wait_text("«‘french’» „‘german’“"),
+         "«‘french’» „‘german’“",
+         "' opens after « and „")
+
+
+def t_smart_quotes_hebrew_logical_order(c):
+    # wordcraft #1670: the decision uses the logical predecessor, so a
+    # closing quote after a Hebrew letter is ” even though it displays
+    # before the opening one; inside an acronym it's ” not gershayim.
+    c.text("הוא אמר \"שלום\" לי")
+    c.eq(c.wait_text("הוא אמר “שלום” לי"), "הוא אמר “שלום” לי",
+         "Hebrew sentence quotes open/close")
+    c.execute("selectAll")
+    c.execute("delRight")
+    c.text("\"שלום\"")
+    c.eq(c.wait_text("“שלום”"), "“שלום”", "RTL-only quoted word")
+    c.execute("selectAll")
+    c.execute("delRight")
+    c.text("צה\"ל ")
+    c.eq(c.wait_text("צה”ל "), "צה”ל ", "acronym gets ” not gershayim")
+    c.execute("selectAll")
+    c.execute("delRight")
+    c.text("ג'ירפה 'כן'")
+    c.eq(c.wait_text("ג’ירפה ‘כן’"), "ג’ירפה ‘כן’",
+         "' after letter closes; after space opens")
+
+
 def t_list_enter_continues(c):
     c.execute("doNumbers")
     c.text("one")
@@ -553,8 +597,10 @@ def t_no_auto_capitalise(c):
 
 def t_autocorrect(c):
     # W59: as-you-type replacement — "teh" becomes "the" on the
-    # word-boundary space
-    c.text("teh quick")
+    # word-boundary space (trigger is the insert's last char, so the
+    # space has to land as its own insert)
+    c.text("teh ")
+    c.text("quick")
     c.eq(c.wait_text("the quick"), "the quick",
          "autocorrect 'teh' -> 'the' on word boundary")
 
@@ -575,6 +621,8 @@ CASES = [
     ("typed-run-coalesces-undo", t_typed_run_coalesces_undo),
     ("bulk-insert-undo-steps", t_bulk_insert_undo_steps),
     ("smart-quotes", t_smart_quotes),
+    ("smart-quotes-nesting", t_smart_quotes_nesting_and_delimiters),
+    ("smart-quotes-hebrew", t_smart_quotes_hebrew_logical_order),
     ("list-enter-continues", t_list_enter_continues),
     ("list-enter-empty-stops", t_list_enter_empty_stops),
     ("list-tab-demotes", t_list_tab_demotes_shift_promotes),

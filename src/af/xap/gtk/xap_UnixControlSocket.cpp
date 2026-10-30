@@ -420,6 +420,10 @@ static bool _cmd_writes_path(const char * cmd)
 	return false;
 }
 
+static bool _exec_named_emcd(const std::string & cmd,
+							 EV_EditMethodCallData & emcd,
+							 bool hasData, std::string & err);
+
 static bool _exec_named(const std::string & cmd,
 						const std::string & data, std::string & err)
 {
@@ -445,6 +449,19 @@ static bool _exec_named(const std::string & cmd,
 			return false;
 		}
 	}
+	EV_EditMethodCallData emcd(
+		static_cast<const char *>(data.c_str()),
+		static_cast<UT_uint32>(data.size()));
+	return _exec_named_emcd(cmd, emcd, !data.empty(), err);
+}
+
+/* shared tail of the _exec_named* frontends: method lookup, view and
+ * busy checks, then the actual Fn() call.  hasData stands in for a
+ * params.data presence check for calldata the caller built itself. */
+static bool _exec_named_emcd(const std::string & cmd,
+							 EV_EditMethodCallData & emcd,
+							 bool hasData, std::string & err)
+{
 	EV_EditMethodContainer * emc =
 		s_ctl.app ? s_ctl.app->getEditMethodContainer() : nullptr;
 	EV_EditMethod * em =
@@ -462,14 +479,11 @@ static bool _exec_named(const std::string & cmd,
 		err = "no view for document command";
 		return false;
 	}
-	if ((t & EV_EMT_REQUIREDATA) && data.empty())
+	if ((t & EV_EMT_REQUIREDATA) && !hasData)
 	{
 		err = "command requires params.data";
 		return false;
 	}
-	EV_EditMethodCallData emcd(
-		static_cast<const char *>(data.c_str()),
-		static_cast<UT_uint32>(data.size()));
 	/* Control-channel commands are not "frequent events": while the
 	 * frame is still busy (document loading, layout filling,
 	 * insertion point not placed yet), edit methods drop out through
@@ -1065,7 +1079,13 @@ static bool _m_ui_text(const std::string & j, std::string & err)
 		err = "missing params.text";
 		return false;
 	}
-	return _exec_named("insertData", text, err);
+	/* insertData takes UCS-4, and the char* calldata ctor widens
+	 * bytes — feeding the wire UTF-8 through it would mojibake
+	 * everything past ASCII.  Decode to UCS-4 first. */
+	UT_UCS4String u(text.c_str(), static_cast<UT_uint32>(text.size()));
+	EV_EditMethodCallData emcd(u.ucs4_str(),
+							   static_cast<UT_uint32>(u.length()));
+	return _exec_named_emcd("insertData", emcd, u.length() > 0, err);
 }
 
 #ifdef GDK_WINDOWING_X11

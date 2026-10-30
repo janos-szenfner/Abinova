@@ -634,10 +634,13 @@ bool FV_View::_autoCorrectRun(bool bOnEnter)
 	if (bGlob)
 	{
 		m_pDoc->endUserAtomicGlob();
-		if (iDelta != 0)
-		{
-			_setPoint(posCaret + iDelta);
-		}
+		/* every rewrite above ends with an insertSpan that leaves the
+		 * caret at the end of the inserted text — i.e. *before* the
+		 * boundary char the user just typed ('thequick ' instead of
+		 * 'the quick' when they type on).  Put it back where their
+		 * typing left it; same-length fixes (iDelta == 0) need this
+		 * just as much as length-changing ones. */
+		_setPoint(posCaret + iDelta);
 		_generalUpdate();
 		notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
 	}

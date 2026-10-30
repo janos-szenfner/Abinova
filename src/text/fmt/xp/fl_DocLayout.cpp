@@ -4296,317 +4296,64 @@ void FL_DocLayout::setPendingSmartQuote(fl_BlockLayout *bl, UT_uint32 of)
 	m_uOffsetForSmartQuote = of;
 }
 
-/* wjc sez....
+/*
+Smart-quote promotion.
 
-This algorithm is based on my observation of how people actually use
-quotation marks, sometimes in contravention of generally accepted
-principles of punctuation.  It is certainly also true that my
-observations are overwhelmingly of American English text, with a
-smattering of various other languages observed from time to time.  I
-don't believe that any algorithm for this can ever be perfect.  There
-are too many infrequently-occurring but legitimate cases where a user
-might want something else.  FWIW, I haven't tested out the specifics
-of the smart quote algorithm in ThatOtherWordProcessor.
+The open/close decision is Word's observed behaviour, ported from
+wordcraft's quote table (cmd/text/autoformat.rs, pinned by its typing
+suite incl. #1670 and the smart-quotes pins).  Only the character
+*preceding* the quote in logical order decides; the quote is always
+promoted, so there is no "don't convert" fallthrough:
 
-Some terms for the purpose of this discussion (I'm open to plenty of
-advice on what specific items should fit in each of these classes):
+  OPEN  - at a paragraph start (no preceding character)
+        - after whitespace (incl. the line/column/page break chars)
+        - after an opening delimiter: ( [ { < dashes (U+2013/2014) and
+          the guillemet / low-quote openers \u00AB \u2039 \u201E \u201A
+        - for nesting, a quote of one parity opens right after the
+          other parity's left form: ' (and `) after \u201C, " after \u2018
 
-sqBREAK  A structural break in a document.  For example, a paragraph
-  break, a column break, a page break, the beginning or end of a
-  document, etc.  Does not include font, size, bold/italic/underline
-  changes (which are completely ignored for the purposes of this
-  algorithm).
+  CLOSE - after anything else, including letters and digits (the
+          Hebrew acronym \u05E6\u05D4"\u05DC gets \u201D, not
+          gershayim) and same-parity left quotes ("" -> \u201C\u201D)
 
-sqFOLLOWPUNCT A subset of layman's "punctuation".  I include only
-  things that can normally occur after a quote mark with no intervening
-  white space.  Includes period, exclamation point, question mark,
-  semi-colon, colon, comma (but not parentheses, square and curly
-  brackets, which are treated specially below).  There may be a few
-  others that aren't on the kinds of keyboards I use, and there are
-  certainly Latin1 and other locale-specific variants, but the point
-  is that there are lots of random non-alphanumerics which aren't
-  included in *PUNCT for this algorithm.
+Because the decision looks at the logical predecessor only, it is
+identical in RTL text: the closing quote is typed *after* its letter
+in the buffer even though it displays before it (logical order).
+Direction marks (UCS_LRM/UCS_RLM, which e.g. the closing-parenthesis
+path inserts after ')' in RTL input) are invisible, so the scan sees
+through them.
 
-sqOPENPUNCT  The opening half of pairwise, non-quote punctuation.  Open
-  parenthesis, open square bracket, open curly brace.
+The chosen direction is mapped to the locale/custom quote pair by the
+smartQuoteStyles lookup below (German \u201E\u2026\u201C etc.), so only the
+open/close decision is made here.
 
-sqCLOSEPUNCT  The closing half of pairwise, non-quote punctuation.  Close
-  parenthesis, close square bracket, close curly brace.
-
-[[The idea about open and close punctuation was found in a mid-1980s
-note by Dave Dunham, brought to my attention by Leonard Rosenthol
-<leonardr@lazerware.com>.]]
-
-sqOTHERPUNCT  Punctuation which is not sqFOLLOWPUNCT, sqOPENPUNCT, or
-  sqCLOSEPUNCT.
-
-sqALPHA  Alphabetic characters in the C isalpha() sense, but there are
-  certainly some non-ASCII letter characters which belong in this
-  bucket, too.
-
-sqWHITE  White speace haracters in the C isspace() sense.
-
-QUOTE  Any of ASCII double quote, ASCII quote (which many people call
-  the ASCII single quote or the ASCII apostrophe), or ASCII backquote.
-  I take it as given that a significant minority of people randomly or
-  systematically interchange their use of ASCII quote and ASCII
-  backquote, so I treat them the same in the algorithm.  The majority
-  of people use ASCII quote for both opening and closing single quote.
-
-PARITY  Whether a quote is single or double.  For ease of description,
-  I'll say that the parity of single and double quotes are opposites
-  of each other.  When QUOTEs are converted to curly form, the parity
-  never changes.
-
-================================================================
-
-Given a QUOTE character, these conditions/rules are logically tested in
-order:
-
-0.  OK, first an easy exception case: If ASCII (single) quote (but not
-ASCII backquote) appears between two sqALPHAs, it may be treated as an
-apostrophe and converted to its curly form.  Otherwise, it is treated
-like all other QUOTEs and follows the normal algorithm.
-
-1.  If a QUOTE is immediately preceded by a curly quote of opposite
-parity, it is converted to a curly quote in the same direction.
-
-2.  If a QUOTE is immediately preceded by a curly quote of the same
-parity, it is converted to a curly quote of opposite direction.
-
-3.  If a QUOTE is immediately followed by a curly quote of opposite
-parity, it is converted to a curly quote in the same direction.
-
-4.  If a QUOTE is immediately followed by a curly quote of the same
-parity, it is converted to a curly quote of opposite direction.
-
-[[The above cases are intended to handle normal nested quotes or cases
-where quotes enclose empty strings.  Different cultures use different
-parities as start points for nested quotes, but the algorithm doesn't
-care.]]
-
-5.  If a QUOTE is immediately preceded by an sqOPENPUNCT, it is
-converted to a curly quote in the open direction.
-
-6.  If a QUOTE is immediately followed by a sqCLOSEPUNCT, it is
-converted to a curly quote in the close direction.
-
-7.  If a QUOTE is in isolation, it is converted to a curly quote
-in the open direction.  It is in isolation if it is immediately
-preceded and followed by either a sqBREAK or sqWHITE.  The things
-before and after it don't have to be of the same type.
-
-Rule 7 was originally that it didin't convert.  This does not make
-sense because the most common use of smart quotes is as you're typing
-where there is often a space before and nothing after (since it hasn't
-been written yet!) -- Bobby Weinmann Feb 4, 2008
-
-8.  If a QUOTE is immediately preceded by a sqBREAK or sqWHITE and
-is immediately followed by anything other than a sqBREAK or sqWHITE,
-it is converted to the opening form of curly quote.
-
-9.  If a QUOTE is immediately followed by a sqBREAK, sqWHITE, or
-sqFOLLOWPUNCT and is immediately preceded by anything other than sqBREAK
-or sqWHITE, it is converted to the closing form of curly quote.
-
-10.  Any other QUOTE is not converted.
-
-================================================================
-
-The algorithm doesn't make a special case of using ASCII double quote
-as an inches indicator (there are other uses, like lat/long minutes;
-ditto for the ASCII quote) because it is tough to tell if some numbers
-with an ASCII double quote after them are intended to be one of those
-"other things" or is just the end of a very long quote.  So, the
-algorithm will be wrong sometimes in those cases.
-
-It is otherwise sort of conservative, preferring to not convert things
-it doesn't feel confident about.  The reason for that is that there is
-a contemplated on-the-fly conversion to smart quotes, but there is no
-contemplated on-the-fly conversion to ASCII QUOTEs.  So, if the
-algorithm makes a mistake by not converting, the user can correct it
-by directly entering the appropriate smart quote character or by
-heuristically tricking Abinova into converting it for him/her and then
-fixing things up.  (That heuristic step shouldn't be necessary, you
-know, but I think we all use software for which we have become
-accustomed to such things.)
-
-What about the occasions when this algorithm (or any alternative
-algorithm) makes a mistake and converts a QUOTE to the curly form when
-it really isn't wanted, in a particular case, by the user?  Although
-the user can change it back, some contemplated implementation details
-might run around behind the barn and re-convert it when the user isn't
-looking.  I think we need a mechanism for dealing with that, but I
-want to save proposals for that to be separate from the basic
-algorithm.
+(An earlier table-driven version (wjc) consulted the character *after*
+the quote as well and declined to convert in unclassified contexts;
+that left straight quotes behind after \u00AB/\u201E and inside words,
+both of which Word converts.  The preceding-char rule is both simpler
+and what Word does.)
 */
-
-// The following are descriptions of the thing before or after a
-// character being considered for smart quote promotion.  The thing
-// is either a structural break in a document, or it is a literal
-// character that is part of some class (in some cases the class is
-// so small it has only one possible member).  The classes should
-// look familar from the algorithm above.  There is a special class
-// used only for the coding of rule:  sqDONTCARE in a rule means it
-// doesn't matter what occurs in that position.
-enum sqThingAt: uint8_t
+static bool sq_opensAfter(UT_UCS4Char prev, UT_UCS4Char c)
 {
-	sqDONTCARE     = 1,
-	sqQUOTEls      = 2,
-	sqQUOTErs      = 3,
-	sqQUOTEld      = 4,
-	sqQUOTErd      = 5,// the smart quotes, left/right single/double
-	sqBREAK        = 6,
-	sqFOLLOWPUNCT  = 7,
-	sqOPENPUNCT    = 8,
-	sqCLOSEPUNCT   = 9,
-	sqOTHERPUNCT   =10,
-	sqALPHA        =11,
-	sqWHITE        =12
-};
-
-// TODO:  This function probably needs tuning for non-Anglo locales.
-static sqThingAt whatKindOfChar(UT_UCS4Char thing)
-{
-	xxx_UT_DEBUGMSG(("what sort of character is %d 0x%x |%c|\n", thing, thing, thing));
-	switch (thing)
+	if (UT_UCS4_isspace(prev))
+		return true;
+	switch (prev)
 	{
-	case UCS_LQUOTE:     return sqQUOTEls;
-	case UCS_RQUOTE:     return sqQUOTErs;
-	case UCS_LDBLQUOTE:  return sqQUOTEld;
-	case UCS_RDBLQUOTE:  return sqQUOTErd;
-
-	case '(': case '{': case '[':  return sqOPENPUNCT;
-	case ')': case '}': case ']':  return sqCLOSEPUNCT;
-
-	case '.': case ',': case ';': case ':': case '!': case '?':  return sqFOLLOWPUNCT;
-
-		// see similar control characters in fl_BlockLayout.cpp
-	case UCS_FF:	// form feed, forced page break
-	case UCS_VTAB:	// vertical tab, forced column break
-	case UCS_LF:	// newline
-	case UCS_TAB:	// tab
-		return sqBREAK;
+	case '(': case '[': case '{': case '<':
+	case UCS_EN_DASH: case UCS_EM_DASH:
+	case 0x00AB:  // left-pointing double guillemet
+	case 0x2039:  // single left-pointing guillemet
+	case 0x201E:  // double low-9 quotation mark
+	case 0x201A:  // single low-9 quotation mark
+		return true;
+	case UCS_LDBLQUOTE:
+		return c == '\'' || c == '`';  // "\u201C'" opens a nested single
+	case UCS_LQUOTE:
+		return c == '"';                // "\u2018"" opens a nested double
+	default:
+		return false;
 	}
-	if (UT_UCS4_isalpha(thing)) return sqALPHA;
-	if (UT_UCS4_ispunct(thing)) return sqOTHERPUNCT;
-	if (UT_UCS4_isspace(thing)) return sqWHITE;
-
-	return sqBREAK;  // supposed to be a character, but...!
 }
-
-struct sqTable
-{
-	sqThingAt before;
-	UT_UCS4Char thing;
-	sqThingAt after;
-	UT_UCS4Char replacement;
-};
-// The idea of the table is to drive the algorithm without lots of
-// cluttery code.  Something using this table pre-computes what the
-// things are before and after the character in question, and then
-// dances through this table looking for a match on all three.
-// The final item in each row is the character to use to replace
-// the candidate character.
-//
-// (Yeah, this table is big, but it is only used when a quote character
-// shows up in typing or in a paste, and it goes pretty fast.)
-//
-// sqDONTCARE is like a wild card for the thing before or after, and
-// UCS_UNKPUNK in the replacement position means don't do a replacement.
-static struct sqTable sqTable_en[] =
-{
-	{sqALPHA,     '\'', sqALPHA,      UCS_RQUOTE},          // rule 0
-	{sqALPHA,     '`',  sqALPHA,      UCS_RQUOTE},          // rule 0
-
-	{sqQUOTEld,   '\'', sqDONTCARE,   UCS_LQUOTE},          // rule 1
-	{sqQUOTErd,   '\'', sqDONTCARE,   UCS_RQUOTE},          // rule 1
-
-	{sqQUOTEld,   '`',  sqDONTCARE,   UCS_LQUOTE},          // rule 1
-	{sqQUOTErd,   '`',  sqDONTCARE,   UCS_RQUOTE},          // rule 1
-
-	{sqQUOTEls,   '"',  sqDONTCARE,   UCS_LDBLQUOTE},       // rule 1
-	{sqQUOTErs,   '"',  sqDONTCARE,   UCS_RDBLQUOTE},       // rule 1
-
-	{sqQUOTEls,   '\'', sqDONTCARE,   UCS_RQUOTE},          // rule 2
-	{sqQUOTErs,   '\'', sqDONTCARE,   UCS_LQUOTE},          // rule 2
-
-	{sqQUOTEls,   '`',  sqDONTCARE,   UCS_RQUOTE},          // rule 2
-	{sqQUOTErs,   '`',  sqDONTCARE,   UCS_LQUOTE},          // rule 2
-
-	{sqQUOTEld,   '"',  sqDONTCARE,   UCS_RDBLQUOTE},       // rule 2
-	{sqQUOTErd,   '"',  sqDONTCARE,   UCS_LDBLQUOTE},       // rule 2
-
-	{sqDONTCARE,   '\'', sqQUOTEld,   UCS_LQUOTE},          // rule 3
-	{sqDONTCARE,   '\'', sqQUOTErd,   UCS_RQUOTE},          // rule 3
-
-	{sqDONTCARE,   '`',  sqQUOTEld,   UCS_LQUOTE},          // rule 3
-	{sqDONTCARE,   '`',  sqQUOTErd,   UCS_RQUOTE},          // rule 3
-
-	{sqDONTCARE,   '"',  sqQUOTEls,   UCS_LDBLQUOTE},       // rule 3
-	{sqDONTCARE,   '"',  sqQUOTErs,   UCS_RDBLQUOTE},       // rule 3
-
-	{sqDONTCARE,   '\'', sqQUOTEls,   UCS_RQUOTE},          // rule 4
-	{sqDONTCARE,   '\'', sqQUOTErs,   UCS_LQUOTE},          // rule 4
-
-	{sqDONTCARE,   '`',  sqQUOTEls,   UCS_RQUOTE},          // rule 4
-	{sqDONTCARE,   '`',  sqQUOTErs,   UCS_LQUOTE},          // rule 4
-
-	{sqDONTCARE,   '"',  sqQUOTEld,   UCS_RDBLQUOTE},       // rule 4
-	{sqDONTCARE,   '"',  sqQUOTErd,   UCS_LDBLQUOTE},       // rule 4
-
-	{sqOPENPUNCT,  '\'', sqDONTCARE,  UCS_LQUOTE},          // rule 5
-	{sqOPENPUNCT,  '`',  sqDONTCARE,  UCS_LQUOTE},          // rule 5
-	{sqOPENPUNCT,  '"',  sqDONTCARE,  UCS_LDBLQUOTE},       // rule 5
-
-	{sqDONTCARE, '\'', sqCLOSEPUNCT,  UCS_RQUOTE},          // rule 6
-	{sqDONTCARE, '`',  sqCLOSEPUNCT,  UCS_RQUOTE},          // rule 6
-	{sqDONTCARE, '"',  sqCLOSEPUNCT,  UCS_RDBLQUOTE},       // rule 6
-
-	{sqBREAK,      '\'', sqBREAK,     UCS_LQUOTE},         // rule 7
-	{sqWHITE,      '\'', sqBREAK,     UCS_LQUOTE},         // rule 7
-	{sqBREAK,      '\'', sqWHITE,     UCS_UNKPUNK},         // rule 7
-	{sqWHITE,      '\'', sqWHITE,     UCS_UNKPUNK},         // rule 7
-
-	{sqBREAK,      '`',  sqBREAK,     UCS_LQUOTE},         // rule 7
-	{sqWHITE,      '`',  sqBREAK,     UCS_LQUOTE},         // rule 7
-	{sqBREAK,      '`',  sqWHITE,     UCS_UNKPUNK},         // rule 7
-	{sqWHITE,      '`',  sqWHITE,     UCS_UNKPUNK},         // rule 7
-
-	{sqBREAK,      '"',  sqBREAK,     UCS_LDBLQUOTE},         // rule 7
-	{sqWHITE,      '"',  sqBREAK,     UCS_LDBLQUOTE},         // rule 7
-	{sqBREAK,      '"',  sqWHITE,     UCS_LDBLQUOTE},         // rule 7
-	{sqWHITE,      '"',  sqWHITE,     UCS_LDBLQUOTE},         // rule 7
-
-	{sqBREAK,      '\'', sqDONTCARE,  UCS_LQUOTE},          // rule 8
-	{sqWHITE,      '\'', sqDONTCARE,  UCS_LQUOTE},          // rule 8
-
-	{sqBREAK,      '`',  sqDONTCARE,  UCS_LQUOTE},          // rule 8
-	{sqWHITE,      '`',  sqDONTCARE,  UCS_LQUOTE},          // rule 8
-
-	{sqBREAK,      '"',  sqDONTCARE,  UCS_LDBLQUOTE},       // rule 8
-	{sqWHITE,      '"',  sqDONTCARE,  UCS_LDBLQUOTE},       // rule 8
-
-	{sqDONTCARE,   '\'', sqBREAK,     UCS_RQUOTE},          // rule 9
-	{sqDONTCARE,   '\'', sqWHITE,     UCS_RQUOTE},          // rule 9
-	{sqDONTCARE,   '\'', sqFOLLOWPUNCT, UCS_RQUOTE},          // rule 9
-
-	{sqDONTCARE,   '`',  sqBREAK,     UCS_RQUOTE},          // rule 9
-	{sqDONTCARE,   '`',  sqWHITE,     UCS_RQUOTE},          // rule 9
-	{sqDONTCARE,   '`',  sqFOLLOWPUNCT, UCS_RQUOTE},          // rule 9
-
-	{sqDONTCARE,   '"',  sqBREAK,     UCS_RDBLQUOTE},       // rule 9
-	{sqDONTCARE,   '"',  sqWHITE,     UCS_RDBLQUOTE},       // rule 9
-	{sqDONTCARE,   '"',  sqFOLLOWPUNCT, UCS_RDBLQUOTE},       // rule 9
-
-	// following rules are the same as falling off the end of the list...
-
-	//{sqDONTCARE,   '\'', sqDONTCARE,   UCS_UNKPUNK},        // rule 10
-	//{sqDONTCARE,   '`',  sqDONTCARE,   UCS_UNKPUNK},        // rule 10
-	//{sqDONTCARE,   '"',  sqDONTCARE,   UCS_UNKPUNK},        // rule 10
-
-	{sqDONTCARE, 0, sqDONTCARE, UCS_UNKPUNK}  // signals end of table
-};
 
 void FL_DocLayout::considerSmartQuoteCandidateAt(fl_BlockLayout *block, UT_uint32 offset)
 {
@@ -4632,13 +4379,24 @@ void FL_DocLayout::considerSmartQuoteCandidateAt(fl_BlockLayout *block, UT_uint3
 	//  smart quote, so just double check before plunging onward
 	if (UT_isSmartQuotableCharacter(c))
 	{
-		sqThingAt before = sqBREAK, after = sqBREAK;
+		// The open/close decision (sq_opensAfter above) consults only
+		// the character *preceding* the quote in logical order, which
+		// is what makes it identical in RTL text.  Direction marks are
+		// invisible, so they are skipped when looking back.
+		UT_UCS4Char before = 0;
+		bool haveBefore = false;
 		if (offset > 0)
 		{
 			// TODO: is there a need to see if this is on a run boundary?
 			// TODO: Within a block, are there runs that are significant
 			// TODO: breaks or whatever?
-			before = whatKindOfChar(*pgb.getPointer(offset - 1));
+			UT_sint32 back = static_cast<UT_sint32>(offset) - 1;
+			before = *pgb.getPointer(back);
+			while (back > 0 && (before == UCS_LRM || before == UCS_RLM))
+			{
+				before = *pgb.getPointer(--back);
+			}
+			haveBefore = (before != UCS_LRM && before != UCS_RLM);
 		}
 		else
 		{
@@ -4665,67 +4423,26 @@ void FL_DocLayout::considerSmartQuoteCandidateAt(fl_BlockLayout *block, UT_uint3
 						// so find out what the final character was
 						UT_GrowBuf pgb_b(1024);
 						ob->getBlockBuf(&pgb_b);
-						if (pgb_b.getLength())
+						UT_sint32 k = static_cast<UT_sint32>(pgb_b.getLength()) - 1;
+						while (k >= 0)
 						{
-							before = whatKindOfChar(*pgb_b.getPointer(pgb_b.getLength()-1));
+							before = *pgb_b.getPointer(k);
+							if (before != UCS_LRM && before != UCS_RLM) break;
+							--k;
 						}
+						haveBefore = (k >= 0);
 					}
 				}
 			}
 		}
 
-		if (offset+1 < pgb.getLength())
-		{
-			// TODO: is there a need to see if this is on a run boundary?
-			// TODO: Within a block, are there runs that are significant
-			// TODO: breaks or whatever?
-			after = whatKindOfChar(*pgb.getPointer(offset + 1));
-		}
+		bool opening = !haveBefore || sq_opensAfter(before, c);
+		UT_UCS4Char replacement;
+		if (c == '"')
+			replacement = opening ? UCS_LDBLQUOTE : UCS_RDBLQUOTE;
 		else
-		{
-			// candidate was the last character in a block, so see
-			// what's at the beginning of the next block, if any
-			fl_ContainerLayout *pNextL = block->getNext();
-			fl_BlockLayout *ob = (pNextL && pNextL->getContainerType() == FL_CONTAINER_BLOCK)
-				? static_cast<fl_BlockLayout *>(pNextL) : nullptr;
-			if (ob)
-			{
-				fp_Run *r = ob->getFirstRun();
-				if (r  &&  (FPRUN_TEXT == r->getType()))
-				{
-					// first run of next block is a text run, so
-					// see what the first character was
-					UT_GrowBuf pgb_a(1024);
-					ob->getBlockBuf(&pgb_a);
-					if (pgb_a.getLength())
-					{
-						after = whatKindOfChar(*pgb_a.getPointer(0));
-					}
-				}
-			}
-		}
-
-		// we now know what the before and after things are, so
-		// spin through the table.
-		UT_UCS4Char replacement = UCS_UNKPUNK;  // means don't replace
-		// TODO:  select a table based on default locale or on the locale
-		// TODO:  of the fragment of text we're working in (locale tagging
-		// TODO:  of text doesn't exist in Abi as of this writing)
-		struct sqTable *table = sqTable_en;
-		for (unsigned int tdex=0; table[tdex].thing; ++tdex)
-		{
-			if (c != table[tdex].thing) continue;
-			if (table[tdex].before == sqDONTCARE  ||  table[tdex].before == before)
-			{
-				if (table[tdex].after == sqDONTCARE  ||  table[tdex].after == after)
-				{
-					replacement = table[tdex].replacement;
-					break;
-				}
-			}
-		}
-		UT_DEBUGMSG(("before %d, after %d, replace %x\n", before, after, replacement));
-		if (replacement != UCS_UNKPUNK)
+			replacement = opening ? UCS_LQUOTE : UCS_RQUOTE;
+		UT_DEBUGMSG(("before %x, opening %d, replace %x\n", before, opening, replacement));
 		{
             //UT_sint32 s1,s2,s3,s4,s5;
             //bool b1;

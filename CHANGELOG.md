@@ -6782,3 +6782,13 @@ responsibility** — see `README.md`.
 - Layout tab Arrange galleries: Position is now the full 3×3 margin-anchored preset grid (top/middle/bottom × left/center/right, square wrap) — the previous entries silently wrote page offsets of 50–100 inches onto the document section. Wrap Text gains Tight, Through, left/right wrap sides, and Move with Text / Fix Position on Page. The Position, Wrap and Align buttons now also enable for text-box frames, not just pictures.
 - References tab: Cross-reference now offers Heading, Figure, Table, Equation, Bookmark and custom caption-label targets — inserting a live REF field (bookmark text), page number, caption number or "above/below", with hidden _Ref bookmarks on the target like Word. Insert Caption gains caption text, numbering formats (1,2,3/a,b,c/A,B,C/i,ii,iii/I,II,III), exclude-label and chapter-number options. Mark Entry gains subentry, "See" cross-references, page-range bookmarks, bold/italic page numbers and Mark All; the index now shows letter headings.
 - AutoCorrect/AutoFormat as you type (Word parity): `teh` -> `the` and the common replacements ((c), (tm), 1/2, -->, smileys, `...`) on word boundaries; `*bold*` and `_italic_` markers convert to real formatting on the closing mark; TWo INitial CApitals and accidental cAPS LOCK words are fixed, and undoing/retyping a fixed word adds it to a persistent exception list (AutoCorrectEnable pref to switch off)
+- Smart quotes now use Word's rule: they open after whitespace and
+  opening delimiters — including guillemets (« ‹), low quotes („ ‚),
+  dashes and ( [ { < — and nest across parities (“‘x’”, ‘“x”’).  The
+  decision looks at the preceding character in logical order, so
+  Hebrew/RTL text gets the closing ” correctly (the צה"ל acronym
+  included, instead of gershayim), and quotes curl the moment they
+  are typed rather than on the next keystroke.  Fixed: text typed
+  through the control channel no longer mojibakes non-ASCII input,
+  and AutoCorrect no longer leaves the caret before the space after
+  fixing a word.
