@@ -5618,7 +5618,15 @@ bool FV_View::cmdCharInsert(const UT_UCS4Char * text, UT_uint32 count, bool bFor
 		return b;
 	}
 
-	return _charInsert(text, count, bForce);
+	bool bRet = _charInsert(text, count, bForce);
+	if (bRet)
+	{
+		// Word-parity AutoCorrect/AutoFormat-as-you-type: a
+		// word-boundary (or entry-completing) char may rewrite the word
+		// just typed, in its own undo step
+		_autoCorrectAfterInsert(text, count);
+	}
+	return bRet;
 }
 
 bool FV_View::cmdStartList(const gchar * style)

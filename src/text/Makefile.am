@@ -121,6 +121,7 @@ libtext_la_SOURCES = \
 	fmt/xp/fv_Selection.h \
 	fmt/xp/fv_SelectionHandles.cpp \
 	fmt/xp/fv_SelectionHandles.h \
+	fmt/xp/fv_AutoCorrect.cpp \
 	fmt/xp/fv_View_cmd.cpp \
 	fmt/xp/fv_View.cpp \
 	fmt/xp/fv_View.h \

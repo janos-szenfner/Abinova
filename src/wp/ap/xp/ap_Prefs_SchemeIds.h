@@ -119,6 +119,12 @@
 #define AP_PREF_KEY_SidePane                        "SidePane"                  /* side-deck pane to reopen at launch: "", styles, objects, icons, comments, navigation, clipboard, formatting */
 #define AP_PREF_DEFAULT_SidePane                    ""
 
+#define AP_PREF_KEY_AutoCorrectEnable				"AutoCorrectEnable"			/* AutoCorrect/AutoFormat-as-you-type {0,1} */
+#define AP_PREF_DEFAULT_AutoCorrectEnable			"1"
+
+#define AP_PREF_KEY_AutoCorrectExceptions			"AutoCorrectExceptions"		/* space-separated words that keep two initial capitals */
+#define AP_PREF_DEFAULT_AutoCorrectExceptions		""
+
 
 
 #define AP_PREF_DEFAULT_StringSet					"en-US"
@@ -242,6 +248,8 @@ dcl(TableBarVisible)
 dcl(StatusBarVisible)
 dcl(ParaVisible)
 dcl(SidePane)
+dcl(AutoCorrectEnable)
+dcl(AutoCorrectExceptions)
 dcl(KeyBindings)
 dcl(KeyBindingsCycle)
 dcl(InsertMode)

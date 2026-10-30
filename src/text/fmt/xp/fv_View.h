@@ -1467,6 +1467,25 @@ private:
 	// Word-style "=rand(p,s)" / "=lorem(p,s)" expansion on break
 	bool				_expandSampleTextOnEnter(void);
 
+	// Word-style AutoCorrect/AutoFormat-as-you-type on a trigger char
+	// or paragraph break (fv_AutoCorrect.cpp)
+	void				_autoCorrectAfterInsert(const UT_UCS4Char * text, UT_uint32 count);
+	void				_autoCorrectOnEnter(void);
+	bool				_autoCorrectRun(bool bOnEnter);
+	void				_autoCorrectAddException(const UT_UCS4Char * pWord, UT_uint32 iLen);
+
+	// position + typed form of the last automatic case fix; used to
+	// detect the user reverting it (which adds an exception, Word
+	// parity)
+	PT_DocPosition		m_posLastAutoCapFix = 0;
+	UT_UCS4String		m_typedLastAutoCapFix;
+	bool				m_bLastAutoCapFixValid = false;
+
+	// words that keep two initial capitals: session additions,
+	// persisted via the AutoCorrectExceptions pref
+	std::vector<std::string> m_vecAutoCapExceptions;
+	bool				m_bAutoCapExceptionsLoaded = false;
+
 	UT_uint32			m_iNumHorizPages; /////////////////////////////////////////////////
 	UT_uint32			m_getNumHorizPagesCachedWindowWidth;
 	bool				m_autoNumHorizPages;

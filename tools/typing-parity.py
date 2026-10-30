@@ -551,11 +551,12 @@ def t_no_auto_capitalise(c):
          "no auto-capitalise on sentence starts (documented gap)")
 
 
-def t_no_autocorrect(c):
-    # gap vs Word: no as-you-type word replacement — "teh" stays
+def t_autocorrect(c):
+    # W59: as-you-type replacement — "teh" becomes "the" on the
+    # word-boundary space
     c.text("teh quick")
-    c.eq(c.wait_text("teh quick"), "teh quick",
-         "no autocorrect word replacement (documented gap)")
+    c.eq(c.wait_text("the quick"), "the quick",
+         "autocorrect 'teh' -> 'the' on word boundary")
 
 
 CASES = [
@@ -584,7 +585,7 @@ CASES = [
     ("tab-partial-selection-tabs", t_tab_partial_selection_still_tabs),
     ("alt-numpad-character", t_alt_numpad_types_character),
     ("no-auto-capitalise", t_no_auto_capitalise),
-    ("no-autocorrect", t_no_autocorrect),
+    ("autocorrect", t_autocorrect),
 ]
 
 

@@ -5206,6 +5206,10 @@ void FV_View::insertParagraphBreak(void)
 	//
 	m_pDoc->disableListUpdates();
 
+	// AutoCorrect the word ending at the caret before the break lands
+	// ("teh" + Enter -> "the" + Enter); same glob as the break
+	_autoCorrectOnEnter();
+
 	// On-Enter autoformats (still inside this user-atomic glob):
 	// "+---+---+" becomes a real table, "=rand()"/"=lorem()" expands
 	// to sample paragraphs

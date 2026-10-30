@@ -75,7 +75,7 @@ than untracked drift:
 |-----------|------|-------------------|-----------|
 | Shift+Tab on list item | promotes one level | no binding outside tables — nothing happens | `list-tab-demotes` |
 | Auto-capitalise sentence starts | `hello.` → `Hello.` | not implemented — text stays as typed | `no-auto-capitalise` |
-| Autocorrect as-you-type | `teh` → `the` | not implemented — text stays as typed | `no-autocorrect` |
+| Autocorrect as-you-type | `teh` → `the` | works — trigger-char rewrites incl. `*bold*`/`_italic_`, TWo INitial CApitals, symbol table | `autocorrect` |
 
 ## Notes on undo granularity
 
