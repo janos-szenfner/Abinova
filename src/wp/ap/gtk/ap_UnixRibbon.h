@@ -414,6 +414,7 @@ private:
 									gdouble x, gdouble y, gpointer data);
 	static void		_s_overflow_tab_clicked(GtkWidget * w, gpointer data);
 	static gboolean	_s_collapse_idle(gpointer data);
+	static gboolean	_s_snap_home_idle(gpointer data);
 
 	/* per-toolbar-item callback context; owned by m_vecTbCtx */
 	struct _TbCtx;

@@ -13654,6 +13654,31 @@ void AP_UnixRibbon::_refreshContextualTabs()
 	_reflowTabs();
 }
 
+/* Idle-time snap to the Home tab: runs after the pending
+ * switch-page emission completes, so it can't lose to the
+ * in-flight File switch. */
+gboolean AP_UnixRibbon::_s_snap_home_idle(gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	if (!self || !self->m_wNotebook ||
+		gtk_widget_in_destruction(self->m_wNotebook))
+		return G_SOURCE_REMOVE;
+	GtkNotebook * nb = GTK_NOTEBOOK(self->m_wNotebook);
+	const int n = gtk_notebook_get_n_pages(nb);
+	for (int i = 0; i < n; ++i)
+	{
+		GtkWidget * p = gtk_notebook_get_nth_page(nb, i);
+		const char * tk = static_cast<const char *>(
+			g_object_get_data(G_OBJECT(p), "abi-tab-key"));
+		if (tk && !strcmp(tk, "home"))
+		{
+			gtk_notebook_set_current_page(nb, i);
+			break;
+		}
+	}
+	return G_SOURCE_REMOVE;
+}
+
 void AP_UnixRibbon::_s_switch_page(GtkNotebook * /*book*/,
 								   GtkWidget * page,
 								   guint /*page_num*/,
@@ -13678,19 +13703,10 @@ void AP_UnixRibbon::_s_switch_page(GtkNotebook * /*book*/,
 			: nullptr;
 		if (impl)
 			impl->showBackstage("info");
-		GtkNotebook * nb = GTK_NOTEBOOK(self->m_wNotebook);
-		const int n = gtk_notebook_get_n_pages(nb);
-		for (int i = 0; i < n; ++i)
-		{
-			GtkWidget * p = gtk_notebook_get_nth_page(nb, i);
-			const char * tk = static_cast<const char *>(
-				g_object_get_data(G_OBJECT(p), "abi-tab-key"));
-			if (tk && !strcmp(tk, "home"))
-			{
-				gtk_notebook_set_current_page(nb, i);
-				break;
-			}
-		}
+		/* snap to Home at idle: set_current_page inside the
+		 * switch-page emission loses to the in-flight switch and
+		 * the notebook stays on the empty File page */
+		g_idle_add(_s_snap_home_idle, self);
 		self->m_bFileJump = false;
 	}
 

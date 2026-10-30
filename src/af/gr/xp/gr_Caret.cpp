@@ -501,6 +501,7 @@ void GR_Caret::setCoords(UT_sint32 x, UT_sint32 y, UT_uint32 h,
 			{
 				// a key or a click turns the caret on, from however
 				// visible it was
+				m_bCursorIsOn = true;
 				_setFadeTarget(now, 1.0);
 			}
 			else
@@ -678,8 +679,11 @@ void GR_Caret::_advanceBlink(gint64 iNowUs)
 		_setFadeTarget(iNowUs, 0.0);
 		return;
 	}
-	// if neither caret is on screen, stay off
-	if(!m_bCaret1OnScreen && !m_bCaret2OnScreen)
+	// stay off only when a real window size says both bars are
+	// offscreen — before the first setWindowSize both flags are
+	// false and would lock the caret dark forever
+	if (m_iWindowWidth && m_iWindowHeight &&
+		!m_bCaret1OnScreen && !m_bCaret2OnScreen)
 		return;
 	m_bCursorIsOn = true;
 	_setFadeTarget(iNowUs, 1.0);
@@ -844,7 +848,9 @@ void GR_Caret::_paintCaret(GR_Painter & painter)
 	if (m_bGliding)
 		op = (m_bFading && m_dFadeTo > m_dFadeFrom) ? m_dOpacity : 1.0;
 
-	if (op <= 0.01 || (!m_bCaret1OnScreen && !m_bCaret2OnScreen))
+	const bool bOnScreen = m_iWindowWidth && m_iWindowHeight
+		? (m_bCaret1OnScreen || m_bCaret2OnScreen) : true;
+	if (op <= 0.01 || !bOnScreen)
 	{
 		_eraseCaretPixels();
 		if (!m_bGliding && !m_bFading)
