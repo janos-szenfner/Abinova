@@ -6,6 +6,19 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.8] — 2026-10-30
+
+### Bug fixes
+
+- **File tab lands on Home, always** — closing the backstage (back
+  arrow, or a cancelled Open/Save dialog) left the notebook on the
+  empty launcher page; the snap-to-Home now runs after the tab
+  switch completes.
+- **Caret is drawn again** — the blink's offscreen guard fired
+  before the first window-size update and locked the caret dark;
+  the check now waits for a real window size, and input moves pin
+  the logical on-state so it can't desync from the fade.
+
 ## [4.0.7] — 2026-10-30
 
 ### Changed

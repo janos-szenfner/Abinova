@@ -4,6 +4,17 @@
 <h1>Changelog</h1>
 <p>All notable changes in this experimental Abinova GTK4 fork, grouped by category. Based on upstream Abiword 3.1.90 (<code>5e3e1cc</code> import).</p>
 <p>This project is experimental and supplied <b>without any warranty or responsibility</b> — see <code>README.md</code>.</p>
+<h2>[4.0.7] — 2026-10-30</h2>
+<h3>Changed</h3>
+<ul>
+<li><b>Drawn vector icons are now the default icon set</b> — the   code-drawn glyph set (wordcraft-style cairo primitives, no icon   theme dependency) covers the whole ribbon, toolbar and menu   surface: every <code>tb_*</code> toolbar icon and every theme name the app   references now has a drawn glyph, rendered identically on Linux,   macOS, Windows and FreeBSD. <code>ABINOVA_GLYPH_ICONS=0</code> opts back out   to theme icons.</li>
+<li><b>File tab is a backstage launcher only</b> — the old File ribbon   page duplicated the newer backstage view; it is removed, the File   tab still opens the backstage, and leaving it now always lands on   the Home tab instead of the previously visited tab.</li>
+</ul>
+<h3>Bug fixes</h3>
+<ul>
+<li><b>macOS ribbon icons</b>: the Draw tab (pen, pencil, highlighter,   eraser, lasso, select, lasso-delete, hide-ink), the Developer tab   controls, View's Focus/Read/Format-pane/Fullscreen buttons and the   File menu entries resolved to theme names bundled Adwaita does not   ship — they rendered nothing. All now draw through the glyph set.</li>
+<li><b>Caret blinking</b>: the blink phase toggled on every pending   repaint, so the caret could land dark at the insertion point after   a move — or strobe during rapid repaints. Only the half-period   timer flips the phase now; a caret move turns it on and restarts   the on-phase (wordcraft <code>caret_glide</code> semantics).</li>
+</ul>
 <h2>[4.0.6] — 2026-10-30</h2>
 <h3>Added</h3>
 <ul>
