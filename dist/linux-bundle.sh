@@ -804,7 +804,7 @@ if [ $verify -eq 1 ]; then
 	if [ -n "$dockerbin" ] && [ "$selftest_docker" != "no" ]; then
 		echo "linux-bundle: docker self-test (debian:stable-slim)"
 		"$dockerbin" run --rm -v "$outdir:/opt/abinova:ro" \
-			debian:stable-slim sh -c '
+			ubuntu:26.04 sh -c '
 				unset LD_LIBRARY_PATH
 				ldd /opt/abinova/bin/abinova | grep -v "not found" >/dev/null &&
 				/opt/abinova/bin/abinova --version' || {
@@ -816,7 +816,7 @@ if [ $verify -eq 1 ]; then
 		echo "    dist/bundle-verify.sh --bundle '$outdir'"
 		echo "  or on a docker host:"
 		echo "    docker run --rm -v '$outdir':/opt/abinova:ro \\"
-		echo "      debian:stable-slim /opt/abinova/bin/abinova --version"
+		echo "      ubuntu:26.04 /opt/abinova/bin/abinova --version"
 	fi
 	rm -rf "$tmp"
 fi

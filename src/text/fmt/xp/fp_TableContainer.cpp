@@ -326,7 +326,7 @@ static cairo_t * s_cellTextRotateBegin(fp_CellContainer * pCell,
 	{
 		cairo_translate(cr, ox, pG->tdu(iCellY + iInnerH));
 	}
-	cairo_rotate(cr, (iTextRot == 90 ? 1.0 : -1.0) * M_PI_2);
+	cairo_rotate(cr, (iTextRot == 90 ? 1.0 : -1.0) * G_PI_2);
 	cairo_translate(cr, -ox, -oy);
 	return cr;
 }

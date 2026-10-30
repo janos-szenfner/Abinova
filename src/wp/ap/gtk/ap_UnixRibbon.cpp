@@ -9212,8 +9212,9 @@ void AP_UnixRibbon::_showTrackingOptionsDialog()
 		FV_View * pv = static_cast<FV_View *>(
 			g_object_get_data(G_OBJECT(dlg), "abi-topt-view"));
 		const UT_RGBColor & c = pv->getColorRevisions(i);
-		GdkRGBA rgba = { c.m_red / 255.0, c.m_grn / 255.0,
-						 c.m_blu / 255.0, 1.0 };
+		GdkRGBA rgba = { static_cast<float>(c.m_red) / 255.0f,
+						 static_cast<float>(c.m_grn) / 255.0f,
+						 static_cast<float>(c.m_blu) / 255.0f, 1.0f };
 		gtk_color_dialog_button_set_rgba(
 			GTK_COLOR_DIALOG_BUTTON(btn), &rgba);
 		g_object_set_data(G_OBJECT(btn), "abi-rev-pref",
