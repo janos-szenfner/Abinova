@@ -2535,7 +2535,7 @@ libdrm, glib if needed) — into a private prefix. Nothing is installed
 system-wide and the system GTK is never touched:
 
 ```bash
-tools/build-gtk-prefix.sh                 # GTK 4.22 -> ~/.local/abinova-gtk-dev
+tools/build-gtk-prefix.sh                 # GTK 4.20 -> ~/.local/abinova-gtk-dev
 tools/build-gtk-prefix.sh --gtk-ref gtk-4-18   # an older stable branch
 tools/build-gtk-prefix.sh --gtk-ref master     # development HEAD
 ```
@@ -2780,9 +2780,9 @@ following projects:
 **Build dependencies** (system, via pkg-config — minimum versions
 are enforced by `configure`)
 
-- [GTK 4](https://gtk.org/) **≥ 4.22** + gtk4-unix-print — UI
+- [GTK 4](https://gtk.org/) **≥ 4.20** + gtk4-unix-print — UI
   toolkit. Distros shipping an older GTK (Ubuntu 24.04 and
-  derivatives) can build a private GTK 4.22 dev prefix with
+  derivatives) can build a private GTK dev prefix with
   `tools/build-gtk-prefix.sh` and build against its `env.sh`
 - [GLib](https://docs.gtk.org/glib/) / GIO **≥ 2.84.0** — core
   platform library
