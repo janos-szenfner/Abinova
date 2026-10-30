@@ -124,42 +124,19 @@ abi_action_icon_for_menu (XAP_Menu_Id id)
 
 /* ------------------------------------------------------------------ */
 
-/* icon names whose bundled bitmap predates the vector set — prefer
- * the drawn glyph even though the legacy theme icon exists */
-static const gchar * const s_prefer_glyph[] = {
-	"tb_view_showpara",
-	"abinova-design-themes",
-	"abinova-design-themecolors",
-	"abinova-design-themefonts",
-	"abinova-design-stylesets",
-	"abinova-design-paraspacing",
-	"abinova-design-watermark",
-	"abinova-design-pagecolor",
-	"abinova-design-pageborders",
-	"abinova-design-setdefault",
-	"abinova-shape-fill",
-	"abinova-shape-outline",
-	"abinova-shape-effects",
-	"abinova-shape-textdir",
-	"abinova-shape-aligntext",
-	nullptr
-};
-
 gboolean
 abi_action_prefers_glyph (const gchar *icon_name)
 {
 	if (!icon_name || !*icon_name || !abi_glyph_icon_has (icon_name))
 		return FALSE;
-	if (abi_glyph_icons_forced ())
-		return TRUE;
-	for (gint i = 0; s_prefer_glyph[i]; i++)
-		if (strcmp (icon_name, s_prefer_glyph[i]) == 0)
-			return TRUE;
-	GdkDisplay * display = gdk_display_get_default ();
-	if (!display)
-		return TRUE; /* headless-ish: glyph always renders */
-	return !gtk_icon_theme_has_icon (
-		gtk_icon_theme_get_for_display (display), icon_name);
+	/* drawn glyphs are the default look everywhere (4.0.7): the
+	 * wordcraft set renders identically on every platform and never
+	 * depends on a bundled icon theme.  ABINOVA_GLYPH_ICONS=0 opts
+	 * back out to theme icons. */
+	const gchar * env = g_getenv ("ABINOVA_GLYPH_ICONS");
+	if (env && *env == '0')
+		return FALSE;
+	return TRUE;
 }
 
 GtkWidget *

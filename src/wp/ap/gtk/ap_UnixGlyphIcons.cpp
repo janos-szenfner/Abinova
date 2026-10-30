@@ -1094,6 +1094,331 @@ static void _g_sort_asc(const _GlyphPen & p)
 	_pen_line_c(p, h, 3, p.ac);
 }
 
+/* ---- remaining toolbar (tb_*) icons, wordcraft shapes ---- */
+
+/* format painter: paint roller */
+static void _g_tb_paint(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.0, 4.0, 15.0, 8.0, p.fg);
+	const double s[] = { 9.0, 8.0, 9.0, 11.0 };
+	_pen_line_c(p, s, 2, p.fg);
+	_pen_frect(p, 7.0, 11.0, 11.0, 17.0, p.ac);
+}
+
+/* N text columns */
+static void _g_tb_cols(const _GlyphPen & p, int n)
+{
+	const double ys[] = { 4.0, 7.0, 10.0, 13.0, 16.0 };
+	for (int i = 0; i < n; ++i)
+		_pen_lines(p, 2.5 + i * (15.0 / n), 2.5 + (i + 1) * (15.0 / n) - 2.0,
+				   ys, 5);
+}
+static void _g_tb_1col(const _GlyphPen & p) { _g_tb_cols(p, 1); }
+static void _g_tb_2col(const _GlyphPen & p) { _g_tb_cols(p, 2); }
+static void _g_tb_3col(const _GlyphPen & p) { _g_tb_cols(p, 3); }
+
+/* bullets/numbers/dashed lists — wordcraft bullets/numbering */
+static void _g_tb_bullets(const _GlyphPen & p)
+{
+	const double ys[] = { 5.0, 10.0, 15.0 };
+	for (int i = 0; i < 3; ++i)
+	{
+		_pen_fcircle(p, 4.0, ys[i], 1.4, i == 0 ? p.ac : p.fg);
+		const double l[] = { 7.5, ys[i], 17.0, ys[i] };
+		_pen_line_c(p, l, 2, p.fg);
+	}
+}
+static void _g_tb_numbers(const _GlyphPen & p)
+{
+	static const char *d[] = { "1", "2", "3" };
+	const double ys[] = { 5.0, 10.0, 15.0 };
+	for (int i = 0; i < 3; ++i)
+	{
+		_pen_text(p, 4.0, ys[i], 6.0, d[i], i == 0 ? p.ac : p.fg, TRUE);
+		const double l[] = { 7.5, ys[i], 17.0, ys[i] };
+		_pen_line_c(p, l, 2, p.fg);
+	}
+}
+static void _g_tb_dashed(const _GlyphPen & p)
+{
+	const double ys[] = { 5.0, 10.0, 15.0 };
+	for (int i = 0; i < 3; ++i)
+	{
+		const double dh[] = { 3.0, ys[i], 6.0, ys[i] };
+		_pen_line_c(p, dh, 2, i == 0 ? p.ac : p.fg);
+		const double l[] = { 8.0, ys[i], 17.0, ys[i] };
+		_pen_line_c(p, l, 2, p.fg);
+	}
+}
+
+/* highlight/font color — wordcraft highlight/fontcolor */
+static void _g_tb_textbg(const _GlyphPen & p)
+{
+	const double mk[] = { 5.0, 12.0, 11.0, 4.0, 14.0, 7.0, 8.0, 15.0 };
+	_pen_fill(p, mk, 4, p.fg);
+	const double tb[] = { 5.0, 12.0, 3.5, 15.0, 8.0, 15.0 };
+	_pen_line_c(p, tb, 3, p.fg);
+	_pen_frect(p, 2.0, 16.5, 18.0, 19.0, p.ac);
+}
+static void _g_tb_textfg(const _GlyphPen & p)
+{
+	_pen_text(p, 10.0, 9.0, 14.0, "A", p.fg, FALSE);
+	_pen_frect(p, 2.0, 16.5, 18.0, 19.0, p.ac);
+}
+
+/* generic table + badge variants (add/delete row/col, merge/split) */
+static void _g_tb_table_base(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.0, 4.0, 15.0, 14.0, p.fg);
+	const double h[] = { 3.0, 9.0, 15.0, 9.0 };
+	_pen_line_c(p, h, 2, p.fg);
+	const double v[] = { 9.0, 4.0, 9.0, 14.0 };
+	_pen_line_c(p, v, 2, p.fg);
+}
+static void _g_tb_badge(const _GlyphPen & p, gboolean plus, double x, double y)
+{
+	_pen_circle(p, x, y, 3.0, p.ac);
+	if (plus)
+	{
+		const double pv[] = { x, y - 1.7, x, y + 1.7 };
+		const double ph[] = { x - 1.7, y, x + 1.7, y };
+		_pen_line_c(p, pv, 2, p.fg); _pen_line_c(p, ph, 2, p.fg);
+	}
+	else
+	{
+		const double a[] = { x - 1.5, y - 1.5, x + 1.5, y + 1.5 };
+		const double b[] = { x + 1.5, y - 1.5, x - 1.5, y + 1.5 };
+		_pen_line_c(p, a, 2, p.fg); _pen_line_c(p, b, 2, p.fg);
+	}
+}
+static void _g_tb_addrow(const _GlyphPen & p)    { _g_tb_table_base(p); _g_tb_badge(p, TRUE, 14.5, 15.5); }
+static void _g_tb_addcol(const _GlyphPen & p)    { _g_tb_table_base(p); _g_tb_badge(p, TRUE, 14.5, 5.0); }
+static void _g_tb_delrow(const _GlyphPen & p)    { _g_tb_table_base(p); _g_tb_badge(p, FALSE, 14.5, 15.5); }
+static void _g_tb_delcol(const _GlyphPen & p)    { _g_tb_table_base(p); _g_tb_badge(p, FALSE, 14.5, 5.0); }
+static void _g_tb_merge(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.0, 5.0, 17.0, 15.0, p.fg);
+	const double m[] = { 5.0, 10.0, 15.0, 10.0 };
+	_pen_line_c(p, m, 2, p.ac);
+}
+static void _g_tb_split(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.0, 5.0, 17.0, 15.0, p.fg);
+	const double v[] = { 10.0, 5.0, 10.0, 15.0 };
+	_pen_line_c(p, v, 2, p.ac);
+}
+
+/* hyperlink: two interlocking loops — wordcraft "link" */
+static void _g_tb_hyperlink(const _GlyphPen & p)
+{
+	_pen_arc(p, 7.5, 10.0, 4.0, G_PI / 2.0, 3.0 * G_PI / 2.0, p.fg);
+	_pen_arc(p, 12.5, 10.0, 4.0, -G_PI / 2.0, G_PI / 2.0, p.ac);
+	const double m[] = { 7.5, 10.0, 12.5, 10.0 };
+	_pen_line_c(p, m, 2, p.ac);
+}
+
+/* anchor: a bookmark flag */
+static void _g_tb_anchor(const _GlyphPen & p)
+{
+	const double f[] = { 6.0, 3.0, 14.0, 3.0, 14.0, 17.0,
+						 10.0, 13.0, 6.0, 17.0 };
+	_pen_closed(p, f, 5, p.fg);
+	_pen_frect(p, 6.0, 3.0, 14.0, 6.5, p.ac);
+}
+
+/* overline: A with a bar above */
+static void _g_tb_overline(const _GlyphPen & p)
+{
+	const double o[] = { 4.0, 3.5, 16.0, 3.5 };
+	_pen_line_c(p, o, 2, p.ac);
+	_pen_text(p, 10.0, 11.5, 13.0, "A", p.fg, FALSE);
+}
+
+/* super/subscript — wordcraft superscript/subscript */
+static void _g_tb_sup(const _GlyphPen & p)
+{
+	_pen_text(p, 8.0, 11.0, 13.0, "x", p.fg, FALSE);
+	_pen_text(p, 15.0, 5.0, 8.0, "2", p.ac, TRUE);
+}
+static void _g_tb_sub(const _GlyphPen & p)
+{
+	_pen_text(p, 8.0, 9.0, 13.0, "x", p.fg, FALSE);
+	_pen_text(p, 15.0, 14.5, 8.0, "2", p.ac, TRUE);
+}
+
+/* omega symbol */
+static void _g_tb_symbol(const _GlyphPen & p)
+{
+	_pen_text(p, 10.0, 10.0, 17.0, "\xce\xa9", p.fg, FALSE);
+}
+
+/* para spacing before: lines with a gap marker */
+static void _g_tb_para0(const _GlyphPen & p)
+{
+	const double ys[] = { 10.0, 13.0, 16.0 };
+	_pen_lines(p, 3.0, 15.0, ys, 3);
+	const double z[] = { 4.0, 5.5, 14.0, 5.5 };
+	_pen_line_c(p, z, 2, p.ac);
+}
+static void _g_tb_para12(const _GlyphPen & p)
+{
+	const double ys[] = { 10.0, 13.0, 16.0 };
+	_pen_lines(p, 3.0, 15.0, ys, 3);
+	_pen_frect(p, 3.0, 4.5, 15.0, 6.5, p.ac);
+}
+
+/* line spacing variants: lines + up/down arrow */
+static void _g_tb_spacing(const _GlyphPen & p, int lines)
+{
+	const double ys[] = { 5.0, 10.0, 15.0 };
+	const double v[] = { 15.5, 4.0, 15.5, 16.0 };
+	const double up[] = { 13.5, 6.5, 15.5, 4.0, 17.5, 6.5 };
+	const double dn[] = { 13.5, 13.5, 15.5, 16.0, 17.5, 13.5 };
+	for (int i = 0; i < lines; ++i)
+	{
+		const double l[] = { 3.0, ys[i], 11.0, ys[i] };
+		_pen_line_c(p, l, 2, p.fg);
+	}
+	_pen_line_c(p, v, 2, p.ac);
+	_pen_line_c(p, up, 3, p.ac);
+	_pen_line_c(p, dn, 3, p.ac);
+}
+static void _g_tb_sp1(const _GlyphPen & p) { _g_tb_spacing(p, 1); }
+static void _g_tb_sp15(const _GlyphPen & p) { _g_tb_spacing(p, 2); }
+static void _g_tb_sp2(const _GlyphPen & p) { _g_tb_spacing(p, 3); }
+
+/* text direction — wordcraft textLtr/textRtl */
+static void _g_tb_dir_ltr(const _GlyphPen & p)
+{
+	const double y1[] = { 4.0, 8.0 };
+	_pen_lines(p, 3.0, 14.0, y1, 2);
+	const double y2[] = { 12.0 };
+	_pen_lines(p, 3.0, 10.0, y2, 1);
+	const double ar[] = { 3.0, 16.5, 16.5, 16.5 };
+	_pen_line_c(p, ar, 2, p.ac);
+	const double hd[] = { 13.5, 14.0, 16.5, 16.5, 13.5, 19.0 };
+	_pen_line_c(p, hd, 3, p.ac);
+}
+static void _g_tb_dir_rtl(const _GlyphPen & p)
+{
+	const double y1[] = { 4.0, 8.0 };
+	_pen_lines(p, 6.0, 17.0, y1, 2);
+	const double y2[] = { 12.0 };
+	_pen_lines(p, 10.0, 17.0, y2, 1);
+	const double ar[] = { 17.0, 16.5, 3.5, 16.5 };
+	_pen_line_c(p, ar, 2, p.ac);
+	const double hd[] = { 6.5, 14.0, 3.5, 16.5, 6.5, 19.0 };
+	_pen_line_c(p, hd, 3, p.ac);
+}
+
+/* header/footer — wordcraft header/footer/remove variants */
+static void _g_tb_header(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 16.0, 18.0);
+	_pen_frect(p, 5.5, 5.0, 14.5, 7.5, p.ac);
+	const double ys[] = { 11.0, 13.5 };
+	_pen_lines(p, 6.0, 14.0, ys, 2);
+}
+static void _g_tb_footer(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 16.0, 18.0);
+	const double ys[] = { 6.5, 9.0 };
+	_pen_lines(p, 6.0, 14.0, ys, 2);
+	_pen_frect(p, 5.5, 13.0, 14.5, 15.5, p.ac);
+}
+static void _g_tb_rmheader(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 16.0, 18.0);
+	const double ys[] = { 11.0, 13.5 };
+	_pen_lines(p, 6.0, 14.0, ys, 2);
+	const double x1[] = { 5.5, 5.0, 14.5, 8.0 };
+	_pen_line_c(p, x1, 2, p.ac);
+	const double x2[] = { 14.5, 5.0, 5.5, 8.0 };
+	_pen_line_c(p, x2, 2, p.ac);
+}
+static void _g_tb_rmfooter(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 16.0, 18.0);
+	const double ys[] = { 6.5, 9.0 };
+	_pen_lines(p, 6.0, 14.0, ys, 2);
+	const double x1[] = { 5.5, 13.0, 14.5, 16.0 };
+	_pen_line_c(p, x1, 2, p.ac);
+	const double x2[] = { 14.5, 13.0, 5.5, 16.0 };
+	_pen_line_c(p, x2, 2, p.ac);
+}
+
+/* revision family: marked-up page variants */
+static void _g_tb_rev_page(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 16.0, 18.0);
+	const double ys[] = { 7.0, 10.0, 13.0 };
+	_pen_lines(p, 6.0, 13.0, ys, 3);
+}
+static void _g_tb_revnew(const _GlyphPen & p)
+{
+	_g_tb_rev_page(p); _g_tb_badge(p, TRUE, 15.0, 15.0);
+}
+static void _g_tb_revsel(const _GlyphPen & p)
+{
+	_g_tb_rev_page(p); _pen_circle(p, 14.0, 13.0, 3.5, p.ac);
+}
+static void _g_tb_revshow(const _GlyphPen & p)
+{
+	_g_tb_rev_page(p);
+	const double ch[] = { 11.0, 15.0, 13.5, 17.5, 18.0, 12.5 };
+	_pen_line_c(p, ch, 3, p.ac);
+}
+static void _g_tb_revprev(const _GlyphPen & p)
+{
+	_g_tb_rev_page(p);
+	const double a[] = { 16.0, 11.0, 16.0, 17.0 };
+	_pen_line_c(p, a, 2, p.ac);
+	const double h[] = { 14.0, 13.5, 16.0, 11.0, 18.0, 13.5 };
+	_pen_line_c(p, h, 3, p.ac);
+}
+static void _g_tb_revnext(const _GlyphPen & p)
+{
+	_g_tb_rev_page(p);
+	const double a[] = { 16.0, 9.0, 16.0, 15.0 };
+	_pen_line_c(p, a, 2, p.ac);
+	const double h[] = { 14.0, 12.5, 16.0, 15.0, 18.0, 12.5 };
+	_pen_line_c(p, h, 3, p.ac);
+}
+
+/* semantic-item tags: labelled lozenge variants */
+static void _g_tb_semtag(const _GlyphPen & p)
+{
+	const double t[] = { 3.0, 6.0, 12.0, 6.0, 17.0, 10.0,
+						 12.0, 14.0, 3.0, 14.0 };
+	_pen_closed(p, t, 5, p.fg);
+	_pen_fcircle(p, 6.0, 10.0, 1.3, p.ac);
+}
+static void _g_tb_semthis(const _GlyphPen & p) { _g_tb_semtag(p); }
+static void _g_tb_semnext(const _GlyphPen & p)
+{
+	_g_tb_semtag(p);
+	const double a[] = { 14.0, 15.5, 17.5, 17.5, 14.0, 19.5 };
+	_pen_line_c(p, a, 3, p.ac);
+}
+static void _g_tb_semprev(const _GlyphPen & p)
+{
+	_g_tb_semtag(p);
+	const double a[] = { 6.0, 15.5, 2.5, 17.5, 6.0, 19.5 };
+	_pen_line_c(p, a, 3, p.ac);
+}
+static void _g_tb_semedit(const _GlyphPen & p)
+{
+	_g_tb_semtag(p);
+	const double pn[] = { 11.0, 17.0, 16.0, 12.0 };
+	_pen_line_c(p, pn, 2, p.ac);
+}
+static void _g_tb_semapply(const _GlyphPen & p)
+{
+	_g_tb_semtag(p);
+	const double ch[] = { 11.5, 15.5, 14.0, 18.0, 18.5, 12.5 };
+	_pen_line_c(p, ch, 3, p.ac);
+}
+
 /* ---------------- name table ---------------- */
 
 typedef void (*_GlyphDraw)(const _GlyphPen &);
@@ -1205,6 +1530,51 @@ static const _GlyphEntry _glyphs[] =
 	{ "tb_fmt_borders",		_g_fmt_borders },
 	{ "view-sort-ascending",	_g_sort_asc },
 	{ "view-fullscreen",		_g_view_fullscreen },
+	{ "tb_stock_paint",		_g_tb_paint },
+	{ "tb_1column",			_g_tb_1col },
+	{ "tb_2column",			_g_tb_2col },
+	{ "tb_3column",			_g_tb_3col },
+	{ "tb_insert_graphic",		_g_picture },
+	{ "tb_lists_bullets",		_g_tb_bullets },
+	{ "tb_lists_numbers",		_g_tb_numbers },
+	{ "tb_lists_dashed",		_g_tb_dashed },
+	{ "tb_text_bgcolor",		_g_tb_textbg },
+	{ "tb_text_fgcolor",		_g_tb_textfg },
+	{ "tb_insert_table",		_g_table },
+	{ "tb_add_row",			_g_tb_addrow },
+	{ "tb_add_column",		_g_tb_addcol },
+	{ "tb_delete_row",		_g_tb_delrow },
+	{ "tb_delete_column",		_g_tb_delcol },
+	{ "tb_merge_cells",		_g_tb_merge },
+	{ "tb_split_cells",		_g_tb_split },
+	{ "tb_hyperlink",		_g_tb_hyperlink },
+	{ "tb_anchor",			_g_tb_anchor },
+	{ "tb_text_overline",		_g_tb_overline },
+	{ "tb_text_superscript",	_g_tb_sup },
+	{ "tb_text_subscript",		_g_tb_sub },
+	{ "tb_symbol",			_g_tb_symbol },
+	{ "tb_para_0before",		_g_tb_para0 },
+	{ "tb_para_12before",		_g_tb_para12 },
+	{ "tb_line_single_space",	_g_tb_sp1 },
+	{ "tb_line_middle_space",	_g_tb_sp15 },
+	{ "tb_line_double_space",	_g_tb_sp2 },
+	{ "tb_text_direction_ltr",	_g_tb_dir_ltr },
+	{ "tb_text_direction_rtl",	_g_tb_dir_rtl },
+	{ "tb_text_dom_direction_rtl",	_g_tb_dir_rtl },
+	{ "tb_edit_editheader",		_g_tb_header },
+	{ "tb_edit_editfooter",		_g_tb_footer },
+	{ "tb_edit_removeheader",	_g_tb_rmheader },
+	{ "tb_edit_removefooter",	_g_tb_rmfooter },
+	{ "tb_revision_new",		_g_tb_revnew },
+	{ "tb_revision_select",		_g_tb_revsel },
+	{ "tb_revision_show_final",	_g_tb_revshow },
+	{ "tb_revision_find_prev",	_g_tb_revprev },
+	{ "tb_revision_find_next",	_g_tb_revnext },
+	{ "tb_semitem_this",		_g_tb_semthis },
+	{ "tb_semitem_next",		_g_tb_semnext },
+	{ "tb_semitem_prev",		_g_tb_semprev },
+	{ "tb_semitem_edit",		_g_tb_semedit },
+	{ "tb_semitem_stylesheet_apply",	_g_tb_semapply },
 	{ nullptr, nullptr }
 };
 
