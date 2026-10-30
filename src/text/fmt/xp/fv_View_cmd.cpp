@@ -11648,6 +11648,10 @@ bool FV_View::cmdOutlineMove(bool bUp)
 		}
 		return true;
 	};
+	/* original start of the touched range — read before the move,
+	 * the item's layout pointer may not survive it */
+	const PT_DocPosition posMoved = s_outlineItemPos(items[i0]);
+	PT_DocPosition posNewStart = 0;
 	if(bUp)
 	{
 		UT_sint32 v = -1;
@@ -11664,10 +11668,10 @@ bool FV_View::cmdOutlineMove(bool bUp)
 		{
 			return false;
 		}
-		const PT_DocPosition posBefore = s_outlineItemPos(items[v]);
+		posNewStart = s_outlineItemPos(items[v]);
 		const PT_DocPosition posDel = s_outlineItemPos(items[i0]);
 		const PT_DocPosition posDelEnd = s_outlineItemEnd(items, r1);
-		if(!_moveDocRangeBefore(posDel, posDelEnd, posBefore))
+		if(!_moveDocRangeBefore(posDel, posDelEnd, posNewStart))
 		{
 			return false;
 		}
@@ -11698,11 +11702,324 @@ bool FV_View::cmdOutlineMove(bool bUp)
 		{
 			return false;
 		}
+		/* our range sits posDelEnd - posDel positions later now */
+		posNewStart = posBefore + (posDelEnd - posDel);
+	}
+	/* the selection rides the moved range (wordcraft: the selection
+	 * moves with the paragraphs — repeat Alt+Shift+Up keeps moving) */
+	{
+		const UT_sint32 iSel0 =
+			static_cast<UT_sint32>(posStart) -
+			static_cast<UT_sint32>(posMoved);
+		const UT_sint32 iSel1 =
+			static_cast<UT_sint32>(posEnd) -
+			static_cast<UT_sint32>(posMoved);
+		if(posEnd > posStart)
+		{
+			cmdSelect(posNewStart + iSel0, posNewStart + iSel1);
+		}
+		else
+		{
+			_setPoint(posNewStart + iSel1);
+		}
 	}
 	if(isOutlineView())
 	{
 		_outlineRelayout();
 	}
+	_generalUpdate();
+	return true;
+}
+
+/*!
+ * Move Paragraph Up / Down (wordcraft para.moveUp/moveDown —
+ * Alt+Shift+Up/Down): the paragraphs the selection touches swap with
+ * the paragraph above or below them inside their own container.
+ * Doc-section paragraphs go through cmdOutlineMove, which also
+ * refuses tables, section boundaries and carries collapsed outline
+ * items; paragraphs inside a table cell, frame or note swap with
+ * their block sibling instead — that's the part cmdOutlineMove's
+ * section-level item walk can't see.  The selection rides the moved
+ * range.  Refused when the touched paragraphs aren't all siblings,
+ * when the neighbour in the move direction isn't a block, or at the
+ * container's edge.
+ */
+bool FV_View::cmdMoveParagraph(bool bUp)
+{
+	PT_DocPosition posStart = getPoint();
+	PT_DocPosition posEnd = getSelectionAnchor();
+	if(posEnd < posStart)
+	{
+		const PT_DocPosition t = posStart;
+		posStart = posEnd;
+		posEnd = t;
+	}
+	fl_BlockLayout * pB0 = getBlockAtPosition(posStart);
+	fl_BlockLayout * pB1 = getBlockAtPosition(posEnd);
+	if(!pB0 || !pB1)
+	{
+		return false;
+	}
+	fl_ContainerLayout * pParent = pB0->myContainingLayout();
+	if(!pParent || pB1->myContainingLayout() != pParent)
+	{
+		/* not the same container — never cross cell/story edges */
+		return false;
+	}
+	if(pParent->getContainerType() == FL_CONTAINER_DOCSECTION)
+	{
+		return cmdOutlineMove(bUp);
+	}
+	/* a selection that ends exactly on a paragraph's first position
+	 * doesn't touch that paragraph */
+	if(posEnd > posStart &&
+	   posEnd == pB1->getPosition(true) + 1)
+	{
+		fl_ContainerLayout * pPrevSib = pB1->getPrev();
+		if(pPrevSib &&
+		   pPrevSib->getContainerType() == FL_CONTAINER_BLOCK &&
+		   pPrevSib->myContainingLayout() == pParent)
+		{
+			pB1 = static_cast<fl_BlockLayout *>(pPrevSib);
+		}
+	}
+	const PT_DocPosition posDel = pB0->getPosition(true);
+	const PT_DocPosition posDelEnd =
+		pB1->getPosition(true) + pB1->getLength();
+	fl_ContainerLayout * pNeighbour =
+		bUp ? pB0->getPrev() : pB1->getNext();
+	if(!pNeighbour ||
+	   pNeighbour->getContainerType() != FL_CONTAINER_BLOCK ||
+	   pNeighbour->myContainingLayout() != pParent)
+	{
+		return false;
+	}
+	const UT_sint32 iSel0 =
+		static_cast<UT_sint32>(posStart) - static_cast<UT_sint32>(posDel);
+	const UT_sint32 iSel1 =
+		static_cast<UT_sint32>(posEnd) - static_cast<UT_sint32>(posDel);
+	PT_DocPosition posNewStart = 0;
+	if(bUp)
+	{
+		posNewStart = pNeighbour->getPosition(true);
+		if(!_moveDocRangeBefore(posDel, posDelEnd, posNewStart))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		fl_BlockLayout * pNext = static_cast<fl_BlockLayout *>(pNeighbour);
+		const PT_DocPosition posN = pNext->getPosition(true);
+		const UT_sint32 iLen = pNext->getLength();
+		if(!_moveDocRangeBefore(posN, posN + iLen, posDel))
+		{
+			return false;
+		}
+		/* our range sits iLen positions later now */
+		posNewStart = posDel + iLen;
+	}
+	if(posEnd > posStart)
+	{
+		cmdSelect(posNewStart + iSel0, posNewStart + iSel1);
+	}
+	else
+	{
+		_setPoint(posNewStart + iSel1);
+	}
+	_generalUpdate();
+	return true;
+}
+
+/*!
+ * Alt+X — Toggle Unicode Character (wordcraft text.toggleUnicode):
+ * the hex digits before the caret (up to six, an optional U+/u+
+ * prefix goes with them) become the character they name — the
+ * longest valid code wins — otherwise the single character before
+ * the caret becomes its code ("%04X" — é ↔ 00E9).  A selection
+ * inside one block converts the same way: all-hex becomes the
+ * character, one character becomes its code.  Control characters,
+ * surrogates and object placeholders don't convert; the replaced
+ * text's formatting is kept and it's one undo step.
+ */
+static bool s_altXHexDigit(UT_UCS4Char c)
+{
+	return (c >= '0' && c <= '9') ||
+		(c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+
+static UT_uint32 s_altXHexVal(UT_UCS4Char c)
+{
+	if(c >= '0' && c <= '9')
+	{
+		return c - '0';
+	}
+	if(c >= 'a' && c <= 'f')
+	{
+		return c - 'a' + 10;
+	}
+	return c - 'A' + 10;
+}
+
+static bool s_altXCodeable(UT_uint32 v)
+{
+	return v >= 0x20 && !(v >= 0x7f && v <= 0x9f) &&
+		!(v >= 0xd800 && v <= 0xdfff) && v <= 0x10ffff;
+}
+
+bool FV_View::cmdToggleUnicodeChar(void)
+{
+	fl_BlockLayout * pBlock = getCurrentBlock();
+	UT_return_val_if_fail(pBlock, false);
+	const PT_DocPosition posBlock = pBlock->getPosition(true);
+	UT_GrowBuf buf;
+	if(!pBlock->getBlockBuf(&buf))
+	{
+		return false;
+	}
+	const UT_UCS4Char * pText =
+		reinterpret_cast<const UT_UCS4Char *>(buf.getPointer(0));
+	UT_return_val_if_fail(pText, false);
+	const UT_sint32 iLen = static_cast<UT_sint32>(buf.getLength());
+
+	PT_DocPosition posA = getPoint();
+	PT_DocPosition posB = getSelectionAnchor();
+	if(posB < posA)
+	{
+		const PT_DocPosition t = posA;
+		posA = posB;
+		posB = t;
+	}
+
+	UT_sint32 iStart = -1;   /* text offset of the span to replace */
+	UT_sint32 iEnd = -1;
+	UT_UCS4Char ch = 0;      /* char to insert, or 0 to insert a code */
+
+	if(posB > posA)
+	{
+		const UT_sint32 i0 =
+			static_cast<UT_sint32>(posA) - static_cast<UT_sint32>(posBlock) - 1;
+		const UT_sint32 i1 =
+			static_cast<UT_sint32>(posB) - static_cast<UT_sint32>(posBlock) - 1;
+		if(i0 < 0 || i1 > iLen)
+		{
+			return false;
+		}
+		UT_sint32 c0 = i0;
+		if(i1 - i0 > 2 && (pText[i0] == 'U' || pText[i0] == 'u') &&
+		   pText[i0 + 1] == '+')
+		{
+			c0 = i0 + 2;
+		}
+		UT_uint32 v = 0;
+		bool bHex = (i1 - c0) >= 1 && (i1 - c0) <= 6;
+		for(UT_sint32 i = c0; bHex && i < i1; ++i)
+		{
+			if(!s_altXHexDigit(pText[i]))
+			{
+				bHex = false;
+			}
+			else
+			{
+				v = v * 16 + s_altXHexVal(pText[i]);
+			}
+		}
+		if(bHex && s_altXCodeable(v))
+		{
+			iStart = i0;
+			iEnd = i1;
+			ch = static_cast<UT_UCS4Char>(v);
+		}
+		else if(i1 - i0 == 1 && s_altXCodeable(pText[i0]))
+		{
+			iStart = i0;
+			iEnd = i1;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	else
+	{
+		const UT_sint32 iOff =
+			static_cast<UT_sint32>(posA) - static_cast<UT_sint32>(posBlock) - 1;
+		if(iOff < 0 || iOff > iLen)
+		{
+			return false;
+		}
+		UT_sint32 iRun = 0;
+		while(iRun < 6 && iRun < iOff &&
+			  s_altXHexDigit(pText[iOff - 1 - iRun]))
+		{
+			++iRun;
+		}
+		for(UT_sint32 n = iRun; n >= 1 && iStart < 0; --n)
+		{
+			UT_uint32 v = 0;
+			for(UT_sint32 i = iOff - n; i < iOff; ++i)
+			{
+				v = v * 16 + s_altXHexVal(pText[i]);
+			}
+			if(!s_altXCodeable(v))
+			{
+				continue;
+			}
+			iStart = iOff - n;
+			iEnd = iOff;
+			ch = static_cast<UT_UCS4Char>(v);
+			if(iStart >= 2 &&
+			   (pText[iStart - 2] == 'U' || pText[iStart - 2] == 'u') &&
+			   pText[iStart - 1] == '+')
+			{
+				iStart -= 2;
+			}
+		}
+		if(iStart < 0)
+		{
+			if(iOff >= 1 && s_altXCodeable(pText[iOff - 1]))
+			{
+				iStart = iOff - 1;
+				iEnd = iOff;
+			}
+			else
+			{
+				return false;
+			}
+		}
+	}
+
+	/* the replacement text: the decoded char or the char's %04X code */
+	std::vector<UT_UCS4Char> vRep;
+	if(ch)
+	{
+		vRep.push_back(ch);
+	}
+	else
+	{
+		char szCode[16];
+		snprintf(szCode, sizeof(szCode), "%04X",
+				 static_cast<unsigned>(pText[iStart]));
+		for(const char * q = szCode; *q; ++q)
+		{
+			vRep.push_back(static_cast<UT_UCS4Char>(*q));
+		}
+	}
+
+	const PT_DocPosition posStart = posBlock + 1 + iStart;
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	const PP_AttrProp * pAP = nullptr;
+	m_pDoc->getSpanAttrProp(pBlock->getStruxDocHandle(), iStart,
+							true, &pAP);
+	UT_uint32 iReal = 0;
+	m_pDoc->deleteSpan(posStart, posStart + (iEnd - iStart),
+					   nullptr, iReal);
+	m_pDoc->insertSpan(posStart, vRep.data(), vRep.size(),
+					   const_cast<PP_AttrProp *>(pAP));
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_setPoint(posStart + static_cast<PT_DocPosition>(vRep.size()));
 	_generalUpdate();
 	return true;
 }

@@ -13907,11 +13907,19 @@ gboolean AP_UnixRibbon::_s_kt_key(GtkEventControllerKey * /*c*/,
 		return TRUE;
 	}
 
+	/* a key arriving with chord modifiers still held (Alt for a real
+	 * Alt+key shortcut, or Ctrl/Super down) may belong to the
+	 * document's own Alt+key bindings (Alt+X & co) rather than the
+	 * keytips — it only falls through when it names no badge */
+	const bool bChord =
+		(state & (GDK_ALT_MASK | GDK_CONTROL_MASK | GDK_SUPER_MASK |
+				  GDK_META_MASK | GDK_HYPER_MASK)) != 0;
+
 	const guint32 wc = gdk_keyval_to_unicode(keyval);
 	if (!wc)
 	{
 		self->_ktDismiss();
-		return TRUE;
+		return bChord ? FALSE : TRUE;
 	}
 	const char up = g_ascii_toupper((char) wc);
 	const std::string want = self->m_strKtPrefix + up;
@@ -13929,9 +13937,11 @@ gboolean AP_UnixRibbon::_s_kt_key(GtkEventControllerKey * /*c*/,
 
 	if (!hit && alive.empty())
 	{
-		/* no such keytip - cancel the mode silently */
+		/* no such keytip - cancel the mode silently; with modifiers
+		 * held it was a chord, not a keytip press, so let the
+		 * document see it too */
 		self->_ktDismiss();
-		return TRUE;
+		return bChord ? FALSE : TRUE;
 	}
 	if (hit)
 	{

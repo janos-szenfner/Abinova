@@ -605,6 +605,139 @@ def t_autocorrect(c):
          "autocorrect 'teh' -> 'the' on word boundary")
 
 
+def t_alt_x_toggle(c):
+    # W61 / wordcraft text.toggleUnicode: hex code <-> char
+    c.text("03B1")
+    c.key("alt+x")
+    c.eq(c.wait_text("α"), "α", "03B1 Alt+X -> α")
+    c.key("alt+x")
+    c.eq(c.wait_text("03B1"), "03B1", "α Alt+X -> 03B1")
+
+
+def t_alt_x_prefix_and_selection(c):
+    # U+ prefix goes with the digits; a selection converts too
+    c.text("U+00E9")
+    c.key("alt+x")
+    c.eq(c.wait_text("é"), "é", "U+00E9 Alt+X -> é")
+    c.execute("selectAll")
+    c.execute("delRight")
+    c.text("0041")
+    c.key("ctrl+a")
+    c.key("alt+x")
+    c.eq(c.wait_text("A"), "A", "selected 0041 -> A")
+    c.key("ctrl+a")
+    c.key("alt+x")
+    c.eq(c.wait_text("0041"), "0041", "selected A -> 0041")
+
+
+def t_alt_x_edges(c):
+    # longest valid code wins: 110000 > U+10FFFF -> tries 10000
+    c.text("110000")
+    c.key("alt+x")
+    c.eq(c.wait_text("1𐀀"), "1𐀀", "110000 -> '1' + U+10000")
+    # a non-hex char bounds the digit scan
+    c.execute("selectAll")
+    c.execute("delRight")
+    c.text("x41")
+    c.key("alt+x")
+    c.eq(c.wait_text("xA"), "xA", "x41 -> xA")
+    # nothing before the caret: no-op
+    c.execute("selectAll")
+    c.execute("delRight")
+    c.key("alt+x")
+    c.eq(c.wait_text(""), "", "Alt+X at doc start is a no-op")
+
+
+def t_move_paragraph(c):
+    # W61 / wordcraft para.moveUp|Down: Alt+Shift+Up/Down swap the
+    # touched paragraphs with their neighbour
+    c.text("one")
+    c.key("Return")
+    c.text("two")
+    c.key("alt+shift+Up")
+    c.eq(c.wait_text("two\none"), "two\none",
+         "Alt+Shift+Up moves the paragraph up")
+    # the caret rides the moved paragraph; move it back down
+    c.key("ctrl+Home")
+    c.key("alt+shift+Down")
+    c.eq(c.wait_text("one\ntwo"), "one\ntwo",
+         "Alt+Shift+Down moves the paragraph down")
+    c.key("ctrl+Home")
+    c.key("alt+shift+Up")
+    c.eq(c.wait_text("one\ntwo"), "one\ntwo",
+         "Alt+Shift+Up at the top is refused")
+
+
+def t_move_paragraph_in_cell(c):
+    # same command inside a table cell: block siblings swap within
+    # the cell (wordcraft: paragraphs move in their own container)
+    c.text("+---+---+")
+    c.key("Return")
+    rep = ""
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        rep = c.fmt_report()
+        if "table" in rep.lower():
+            break
+        time.sleep(0.2)
+    c.text("a1")
+    c.key("Return")
+    c.text("a2")
+    c.key("alt+shift+Up")
+    c.eq(c.wait_text("a2\na1\n\n"), "a2\na1\n\n",
+         "Alt+Shift+Up swaps paragraphs inside the cell")
+    c.key("alt+shift+Down")
+    c.eq(c.wait_text("a1\na2\n\n"), "a1\na2\n\n",
+         "Alt+Shift+Down swaps them back")
+
+
+def t_ctrl_tab_in_cell(c):
+    # Ctrl+Tab types a real tab even where Tab moves to the next cell
+    c.text("+---+---+")
+    c.key("Return")
+    rep = ""
+    deadline = time.monotonic() + 5
+    while time.monotonic() < deadline:
+        rep = c.fmt_report()
+        if "table" in rep.lower():
+            break
+        time.sleep(0.2)
+    c.text("A")
+    c.key("ctrl+Tab")
+    c.text("B")
+    c.eq(c.wait_text("A\tB\n\n"), "A\tB\n\n",
+         "Ctrl+Tab inserts a tab character inside the cell")
+
+
+def t_ctrl_alt_h_highlight(c):
+    # W61 / wordcraft format.highlight toggle: Ctrl+Alt+H applies
+    # the last-chosen colour (yellow in a fresh session) and removes
+    # it again when the whole target already has it
+    c.text("Alpha Beta")
+    c.key("ctrl+a")
+    c.key("ctrl+alt+h")
+    rep = c.fmt_report()
+    c.ok("bgcolor = ffff00" in rep, "Ctrl+Alt+H highlights yellow",
+         f"(report tail: {rep[-160:]!r})")
+    c.key("ctrl+alt+h")
+    rep = c.fmt_report()
+    c.ok("ffff00" not in rep and "transparent" in rep,
+         "second Ctrl+Alt+H removes the highlight",
+         f"(report tail: {rep[-160:]!r})")
+    # an explicit pick becomes the toggled colour
+    c.execute("colorBackTB", "0000ff")
+    c.key("ctrl+alt+h")
+    rep = c.fmt_report()
+    c.ok("transparent" in rep and "0000ff" not in rep,
+         "Ctrl+Alt+H removes the last-chosen colour",
+         f"(report tail: {rep[-160:]!r})")
+    c.key("ctrl+alt+h")
+    rep = c.fmt_report()
+    c.ok("bgcolor = 0000ff" in rep,
+         "Ctrl+Alt+H reapplies the last-chosen colour",
+         f"(report tail: {rep[-160:]!r})")
+
+
 CASES = [
     ("type-inserts-at-caret", t_type_inserts_at_caret),
     ("key-letters-insert", t_key_letters_insert),
@@ -634,6 +767,13 @@ CASES = [
     ("alt-numpad-character", t_alt_numpad_types_character),
     ("no-auto-capitalise", t_no_auto_capitalise),
     ("autocorrect", t_autocorrect),
+    ("alt-x-toggle", t_alt_x_toggle),
+    ("alt-x-prefix-selection", t_alt_x_prefix_and_selection),
+    ("alt-x-edges", t_alt_x_edges),
+    ("move-paragraph", t_move_paragraph),
+    ("move-paragraph-in-cell", t_move_paragraph_in_cell),
+    ("ctrl-tab-in-cell", t_ctrl_tab_in_cell),
+    ("ctrl-alt-h-highlight", t_ctrl_alt_h_highlight),
 ]
 
 

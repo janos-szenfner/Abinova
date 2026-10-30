@@ -6792,3 +6792,12 @@ responsibility** — see `README.md`.
   through the control channel no longer mojibakes non-ASCII input,
   and AutoCorrect no longer leaves the caret before the space after
   fixing a word.
+- **Word editing keys** — Alt+X toggles the character before the
+  caret (or a selection) between its Unicode hex code and the
+  character (03B1 ↔ α, U+ prefix supported); Alt+Shift+Up/Down
+  moves the touched paragraphs up/down, now also inside table
+  cells, frames and notes; Ctrl+Alt+H toggles the last-chosen text
+  highlight colour (yellow first), removing it when the target is
+  already fully highlighted; Ctrl+Tab inside a table cell inserts a
+  real tab. Fixed a key-dispatch bug where ribbon keytips swallowed
+  every Alt+letter shortcut.

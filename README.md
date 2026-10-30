@@ -907,7 +907,9 @@ switcher.
   selection (format painter) · Ctrl+Shift+C copy formatting ·
   Ctrl+A select all · Ctrl+F find ·
   Ctrl+H replace · Ctrl+G / F5 Go To · F3 find again ·
-  Ctrl+Backspace / Ctrl+Delete delete word left/right.
+  Ctrl+Backspace / Ctrl+Delete delete word left/right ·
+  Alt+X toggle the character before the caret ↔ its hex code ·
+  Ctrl+Alt+H toggle the last-used text highlight colour.
 - **Formatting** — Ctrl+B/I/U bold/italic/underline · Ctrl+Shift+X
   strikethrough · Ctrl+= subscript · Ctrl+Shift+= superscript ·
   Shift+F3 rotate case · Ctrl+Shift+> / Ctrl+Shift+< and
@@ -922,7 +924,9 @@ switcher.
   Ctrl+Shift+L bullets ·
   Ctrl+Q remove direct paragraph formatting (keeps the style) ·
   Ctrl+Shift+N Normal style ·
-  Alt+Ctrl+1/2/3 Heading 1/2/3.
+  Alt+Ctrl+1/2/3 Heading 1/2/3 ·
+  Alt+Shift+Up/Down move the touched paragraphs up/down (also inside
+  table cells; list items keep their list membership).
 - **Fields & marks** — F9 update field · Ctrl+F9 insert field braces ·
   Ctrl+Shift+F5 insert bookmark · F7 spell check ·
   Ctrl+Shift+G word count.
@@ -940,7 +944,8 @@ switcher.
   Ctrl+K hyperlink · Alt+Shift+P page numbers · Alt+Shift+D
   date & time.
 - **Tables** — Tab / Shift+Tab next/previous cell (Tab in the last
-  cell appends a row) · Alt+Shift+U insert column-sum field ·
+  cell appends a row) · Ctrl+Tab inserts a tab character inside a
+  cell · Alt+Shift+U insert column-sum field ·
   Ctrl+Alt+arrows resize columns/rows.
 - **Review** — F7 spell check · Ctrl+Shift+E toggle track changes ·
   Alt+↑ / Alt+↓ previous/next comment · Alt+Shift+X mark index entry.

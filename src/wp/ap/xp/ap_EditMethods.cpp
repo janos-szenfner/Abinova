@@ -770,7 +770,9 @@ public:
 	static EV_EditMethod_Fn togglePlain;
 	static EV_EditMethod_Fn toggleDirOverrideLTR;
 	static EV_EditMethod_Fn toggleDirOverrideRTL;
+	static EV_EditMethod_Fn toggleHighlight;
 	static EV_EditMethod_Fn toggleRDFAnchorHighlight;
+	static EV_EditMethod_Fn toggleUnicode;
 
 	static EV_EditMethod_Fn doBullets;
 	static EV_EditMethod_Fn doNumbers;
@@ -1687,6 +1689,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(toggleDrawTable),	0,	""),
 	EV_EditMethod(NF(toggleEquationDisplay),	0,	""),
 	EV_EditMethod(NF(toggleHidden),			0,	""),
+	EV_EditMethod(NF(toggleHighlight), 		0,	""),
 	EV_EditMethod(NF(toggleIndent),         0,  ""),
 	EV_EditMethod(NF(toggleInsertMode), 	0,  ""),
 	EV_EditMethod(NF(toggleItalic), 		0,	""),
@@ -1708,6 +1711,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(toggleTopline),		0,	""),
 	EV_EditMethod(NF(toggleUline),			0,	""),
 	EV_EditMethod(NF(toggleUnIndent),       0,  ""),
+	EV_EditMethod(NF(toggleUnicode), 		0,	""),
 
 	// u
 	EV_EditMethod(NF(unHangingIndent),		0,	""),
@@ -13268,7 +13272,10 @@ Defun1(outlineMoveUp)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	return pView->cmdOutlineMove(true);
+	/* Word's Move Paragraph Up (Alt+Shift+Up): also swaps block
+	 * paragraphs inside a table cell/frame, which cmdOutlineMove
+	 * alone can't reach */
+	return pView->cmdMoveParagraph(true);
 }
 
 
@@ -13277,7 +13284,46 @@ Defun1(outlineMoveDown)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	return pView->cmdOutlineMove(false);
+	return pView->cmdMoveParagraph(false);
+}
+
+
+Defun1(toggleUnicode)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdToggleUnicodeChar();
+}
+
+
+/*! Ctrl+Alt+H — toggle the last-chosen highlight colour
+ * (wordcraft format.highlight with no colour): yellow in a new
+ * session, tracked here as the pickers apply theirs.  Explicit No
+ * Color when the whole formatting target already has the colour.
+ */
+static std::string s_lastHighlightColor = "ffff00";
+
+Defun1(toggleHighlight)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_UTF8String szValue;
+	bool bExplicit = false;
+	bool bMixed = false;
+	bool bAllSet = false;
+	if(pView->queryCharFormat("bgcolor", szValue, bExplicit, bMixed))
+	{
+		bAllSet = !bMixed &&
+			(g_ascii_strcasecmp(szValue.utf8_str(),
+								s_lastHighlightColor.c_str()) == 0);
+	}
+	const PP_PropertyVector properties = {
+		"bgcolor",
+		bAllSet ? "transparent" : s_lastHighlightColor.c_str()
+	};
+	return pView->setCharFormat(properties);
 }
 
 
@@ -17318,6 +17364,11 @@ Defun(colorBackTB)
 
 	UT_return_val_if_fail(pView,false);
 	UT_UTF8String utf8(pCallData->m_pData, pCallData->m_dataLength);
+
+	/* Ctrl+Alt+H toggles the last-chosen colour (wordcraft
+	 * format.highlight): an explicit pick is a setter, not a
+	 * toggle, and becomes the choice the toggle reuses */
+	s_lastHighlightColor = utf8.utf8_str();
 
 	const PP_PropertyVector properties = {
 		"bgcolor", utf8.utf8_str()

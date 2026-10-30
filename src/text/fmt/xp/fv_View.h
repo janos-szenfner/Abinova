@@ -1063,6 +1063,8 @@ public:
 	bool				cmdOutlineToggle(void);
 	bool				cmdOutlineShowLevel(UT_sint32 iLevel);
 	bool				cmdOutlineSelectSubtree(void);
+	bool				cmdMoveParagraph(bool bUp);
+	bool				cmdToggleUnicodeChar(void);
 	bool				isPreview(void) const {return VIEW_PREVIEW == m_viewMode;}
 	void				setPreviewMode(PreViewMode pre) {m_previewMode = pre;}
 	PreViewMode 		getPreviewMode(void) const { return m_previewMode;}
