@@ -52,6 +52,30 @@ UT_Error OXML_Element_TextBox::serialize(IE_Exp_OpenXML* exporter)
 {
 	UT_Error err = UT_OK;
 
+	/* ink strokes export as a custGeom wps shape — the generic VML
+	 * textbox path can't carry freeform geometry */
+	const gchar * szInk = nullptr;
+	if (getProperty("frame-ink-tool", szInk) == UT_OK &&
+		szInk && *szInk)
+	{
+		const gchar * xp = nullptr, * yp = nullptr, * wd = nullptr,
+			* ht = nullptr, * path = nullptr, * col = nullptr,
+			* th = nullptr, * wm = nullptr, * ord = nullptr;
+		getProperty("frame-page-xpos", xp);
+		getProperty("frame-page-ypos", yp);
+		getProperty("frame-width", wd);
+		getProperty("frame-height", ht);
+		getProperty("shape-path", path);
+		getProperty("top-color", col);
+		getProperty("top-thickness", th);
+		getProperty("wrap-mode", wm);
+		getProperty("frame-ink-order", ord);
+		return exporter->setInkShape(TARGET, getId().c_str(), xp, yp,
+									 wd, ht, path, col, th,
+									 wm && !strcmp(wm, "below-text"),
+									 szInk, ord);
+	}
+
 	std::string tbId = "textboxId";
 	tbId += getId();
 
@@ -192,9 +216,13 @@ UT_Error OXML_Element_TextBox::_emitFrameToPT(PD_Document* pDocument)
 	UT_Error ret = UT_OK;
 
 	/* invisible empty shapes (no content, no fill) produce nothing —
-	 * skipping them avoids polluting the piece table */
+	 * skipping them avoids polluting the piece table; ink strokes
+	 * are exempt — the stroke IS their content */
 	const gchar * szFillChk = nullptr;
-	if (getChildren().empty() &&
+	const gchar * szInkChk = nullptr;
+	bool bInk = getProperty("frame-ink-tool", szInkChk) == UT_OK &&
+		szInkChk && *szInkChk;
+	if (getChildren().empty() && !bInk &&
 		(getProperty("background-color", szFillChk) != UT_OK || !szFillChk))
 		return UT_OK;
 

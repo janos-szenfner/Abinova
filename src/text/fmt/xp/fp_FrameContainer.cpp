@@ -1188,6 +1188,16 @@ static bool s_paintFrameShape(GR_Graphics * pG,
 		!szPath || !*szPath)
 		return false;
 
+	/* ink strokes honour Review > Hide Ink (view-only flag — ink
+	 * still prints/exports) */
+	const gchar * szInk = nullptr;
+	if (pAP->getProperty("frame-ink-tool", szInk) && szInk && *szInk)
+	{
+		FV_View * pView = pFC->getView();
+		if (pView && pView->isInkHidden())
+			return true;
+	}
+
 	GR_CairoGraphics * pCG = dynamic_cast<GR_CairoGraphics *>(pG);
 	if (!pCG)
 		return false;
@@ -1257,6 +1267,18 @@ static bool s_paintFrameShape(GR_Graphics * pG,
 		pAP->getProperty("line-align", szAlign);
 		bool bCmpd = szCmpd && *szCmpd && strcmp(szCmpd, "sng");
 		bool bIn = szAlign && !strcmp(szAlign, "in");
+		/* "line-alpha" (Draw/ink: highlighter strokes draw behind
+		 * text at partial opacity) */
+		double lineAlpha = 1.0;
+		const gchar * szLAlpha = nullptr;
+		if (pAP->getProperty("line-alpha", szLAlpha) && szLAlpha)
+		{
+			lineAlpha = s_abwnDouble(szLAlpha);
+			if (lineAlpha < 0.0)
+				lineAlpha = 0.0;
+			if (lineAlpha > 1.0)
+				lineAlpha = 1.0;
+		}
 		cairo_pattern_t * pat = (szOGrad && *szOGrad) ?
 			s_frameGradientPattern(pG, pFC, x, y, w, h,
 								   "outline-gradient") : nullptr;
@@ -1314,6 +1336,12 @@ static bool s_paintFrameShape(GR_Graphics * pG,
 			cairo_set_line_width(cr, lwDev);
 			if (pat)
 				cairo_set_source(cr, pat);
+			else if (lineAlpha < 1.0)
+				cairo_set_source_rgba(cr,
+									  bc.m_red / 255.0,
+									  bc.m_grn / 255.0,
+									  bc.m_blu / 255.0,
+									  lineAlpha);
 			else
 				cairo_set_source_rgb(cr,
 									 bc.m_red / 255.0,

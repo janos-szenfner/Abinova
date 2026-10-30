@@ -155,6 +155,13 @@ public:
 	 *  logical units.  Return true if the click was consumed. */
 	virtual bool	cmdDoubleClick(UT_sint32 /*xPos*/, UT_sint32 /*yPos*/) { return false; }
 
+	/*! Called before the bound edit method runs for a button-1
+	 *  pointer gesture; lets a view claim the whole drag for a modal
+	 *  tool (FV_View uses it for the Draw tab's pen/lasso/eraser
+	 *  modes).  op is 0 = press, 1 = motion, 2 = release; xPos/yPos
+	 *  are in logical units.  Return true to consume the event. */
+	virtual bool	cmdDrawPointer(int /*op*/, UT_sint32 /*xPos*/, UT_sint32 /*yPos*/) { return false; }
+
 	virtual bool 	isSelectionEmpty(void) const = 0;
 
 	virtual void	cmdCopy(bool bToClipboard = true) = 0;

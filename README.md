@@ -422,7 +422,7 @@ all.
   popup open and froze the UI for seconds. Type-to-search is
   enabled on the dropdown.
 - **LibreOffice NotebookBar-style ribbon UI**: a complete
-  alternative interface — File / Home / Insert / Design /
+  alternative interface — File / Home / Insert / Design / Draw /
   References / Layout / Review / View / Help tabs plus contextual
   **Table** and **Equation** tabs, Word-style galleries and split
   buttons.
@@ -466,7 +466,7 @@ all.
 The only interface — modelled on LibreOffice Writer's
 NotebookBar (`sw/uiconfig/swriter/ui/notebookbar.ui`). A
 `GtkNotebook` presents **File / Home / Insert / Design /
-References / Layout / Review / View / Help** tabs — **Home is the
+Draw / References / Layout / Review / View / Help** tabs — **Home is the
 default** —
 plus contextual **Table Design**, **Table Layout**,
 **Picture Format**, **Shape Format** and **Equation** tabs that

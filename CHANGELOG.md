@@ -6817,3 +6817,4 @@ responsibility** — see `README.md`.
   already fully highlighted; Ctrl+Tab inside a table cell inserts a
   real tab. Fixed a key-dispatch bug where ribbon keytips swallowed
   every Alt+letter shortcut.
+- Draw tab: pen/pencil/highlighter ink annotation overlay — freeform strokes captured over the page persist as positioned custGeom frames (.abwn + .docx round-trip), with eraser, lasso select/delete and a Hide Ink toggle.

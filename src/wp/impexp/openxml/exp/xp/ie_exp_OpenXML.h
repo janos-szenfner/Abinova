@@ -207,6 +207,12 @@ public:
 	UT_Error setPageMargins(int target, const char* top, const char* left, const char* right, const char* bottom);
 	UT_Error setLanguage(int target, const gchar* lang);
 	UT_Error setNoProof(int target);
+	UT_Error setInkShape(int target, const gchar* id,
+					   const gchar* xpos, const gchar* ypos,
+					   const gchar* width, const gchar* height,
+					   const gchar* path, const gchar* color,
+					   const gchar* thick, bool bBehind,
+					   const gchar* tool, const gchar* order);
 	UT_Error setTextBoxWidth(int target, const gchar* width);
 	UT_Error setTextBoxHeight(int target, const gchar* height);
 	UT_Error setTextBoxSignatureLine(int target, const std::string & xml);

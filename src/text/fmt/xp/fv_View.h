@@ -823,6 +823,40 @@ public:
 	/* Wrap Text > Move with Text (true) / Fix Position on Page
 	 * (false): re-anchors the frame keeping its current position */
 	bool            objectMoveWithText(bool bMove);
+
+	/* Draw/ink overlay (wordcraft draw.*): a modal pen tool paints
+	 * freeform strokes over the page; each stroke persists as a
+	 * custGeom frame (shape-path prop) tagged frame-ink-tool so the
+	 * eraser, lasso and Hide Ink can find it. */
+	enum FV_DrawMode { FV_DRAW_SELECT = 0,
+					   FV_DRAW_PEN, FV_DRAW_PENCIL,
+					   FV_DRAW_HIGHLIGHTER,
+					   FV_DRAW_ERASER, FV_DRAW_LASSO };
+	FV_DrawMode     getDrawMode(void) const { return m_eDrawMode; }
+	void            setDrawMode(FV_DrawMode m) { m_eDrawMode = m; }
+	bool            isInkHidden(void) const { return m_bHideInk; }
+	void            setInkHidden(bool b) { m_bHideInk = b; }
+	/* pen settings per tool (index by FV_DrawMode 1..3): hex color
+	 * and width in points */
+	void            setInkPen(FV_DrawMode tool, const char * szColor,
+							  double dWidthPt);
+	const char *    getInkColor(FV_DrawMode tool) const;
+	double          getInkWidth(FV_DrawMode tool) const;
+	/* document-changing ops — also the drawStroke/drawErase/
+	 * drawLassoDelete edit-method backends.  Points are page-space
+	 * logical units; page is a 0-based page number */
+	bool            drawStroke(int iPage,
+							   const std::vector<std::pair<UT_sint32,UT_sint32>> & pts,
+							   const char * szTool, const char * szColor,
+							   double dWidthPt);
+	bool            drawEraseAt(int iPage, UT_sint32 x, UT_sint32 y);
+	UT_sint32       drawLasso(int iPage,
+							  const std::vector<std::pair<UT_sint32,UT_sint32>> & poly);
+	bool            drawLassoDelete(void);
+	UT_sint32       lassoSelCount(void) const { return (UT_sint32)m_lassoSel.size(); }
+	virtual bool    cmdDrawPointer(int op, UT_sint32 xPos, UT_sint32 yPos) override;
+	void            _paintInkOverlay(dg_DrawArgs * da, fp_Page * pPage);
+
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG, UT_sint32 mouseX, UT_sint32 mouseY);
 	UT_Error        cmdInsertPositionedGraphic(const FG_ConstGraphicPtr& pFG);
 
@@ -1693,4 +1727,14 @@ private:
 	UT_sint32			m_iGoBackIndex;
 	PT_DocPosition		m_posGoBackAnchor;
 	PT_DocPosition		m_posGoBackLast;
+
+	// Draw/ink overlay state (wordcraft draw.*)
+	FV_DrawMode         m_eDrawMode;
+	bool                m_bHideInk;
+	std::string         m_sInkColor[4];   /* indexed by FV_DrawMode */
+	double              m_dInkWidth[4];   /* points */
+	bool                m_bDrawDown;      /* gesture in progress */
+	UT_sint32           m_iInkPage;       /* page the gesture started on */
+	std::vector<std::pair<UT_sint32,UT_sint32>> m_inkPts;  /* page lu */
+	std::vector<fl_FrameLayout *> m_lassoSel;
 };

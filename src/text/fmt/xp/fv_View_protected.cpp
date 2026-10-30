@@ -62,6 +62,9 @@
 #include "fp_Column.h"
 #include "fp_TableContainer.h"
 #include "fp_Line.h"
+#include "fp_FrameContainer.h"
+#include "fl_FrameLayout.h"
+#include "pf_Frag_Strux.h"
 #include "fp_Run.h"
 #include "fp_AnnotationRun.h"
 #include "fp_TextRun.h"
@@ -4976,6 +4979,9 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 		// Draw the page and all its subcontainers (i.e., the content)
 		pPage->draw(&da);
 
+		// Draw-mode pen/lasso preview rides the same paint cycle
+		_paintInkOverlay(&da, pPage);
+
 		// draw page decorations
 		UT_RGBColor clr(0,0,0); 	// black
 		m_pG->setColor(clr);
@@ -6891,4 +6897,597 @@ void FV_View::applyPasteTagOption(PasteTagOption opt)
 	}
 	m_pDoc->endUserAtomicGlob();
 	notifyListeners(AV_CHG_ALL);
+}
+
+/* ================= Draw/ink overlay (wordcraft draw.*) ============
+ * The Draw tab's pen tools are view state: they decide what a
+ * button-1 drag on the page does.  A stroke persists as a page-
+ * positioned frame whose custGeom "shape-path" is the polyline
+ * normalized into a 0..1000 box; frame-ink-tool marks it as ink so
+ * the eraser, lasso and Hide Ink can find it, and the border props
+ * carry its colour and thickness. */
+
+static FV_View::FV_DrawMode s_inkToolFromName(const char * s)
+{
+	if (s && !strcmp(s, "pencil"))
+		return FV_View::FV_DRAW_PENCIL;
+	if (s && !strcmp(s, "highlighter"))
+		return FV_View::FV_DRAW_HIGHLIGHTER;
+	return FV_View::FV_DRAW_PEN;
+}
+
+static double s_inkAlpha(FV_View::FV_DrawMode t)
+{
+	switch (t)
+	{
+	case FV_View::FV_DRAW_PENCIL:      return 0.85;
+	case FV_View::FV_DRAW_HIGHLIGHTER: return 0.50;
+	default:                          return 1.0;
+	}
+}
+
+/* collect a frame's stroked polyline in page-space layout units:
+ * "shape-path" is normalized into a 0..1000 box over the frame's
+ * full rect; only M/L endpoints matter for hit testing (C/Q curves
+ * contribute their endpoint so segments still approximate). */
+static void s_framePathPoints(const gchar * szPath,
+							  UT_sint32 fx, UT_sint32 fy,
+							  UT_sint32 fw, UT_sint32 fh,
+							  std::vector<std::pair<double,double>> & out)
+{
+	if (!szPath || !*szPath || fw <= 0 || fh <= 0)
+		return;
+	out.clear();
+	char cmd = 0;
+	double nums[6];
+	int nNums = 0;
+	gchar * copy = g_strdup(szPath);
+	gchar * save = nullptr;
+	int nOps = 0;
+	for (gchar * tok = strtok_r(copy, " \t", &save);
+		 tok && nOps < 10000;
+		 tok = strtok_r(nullptr, " \t", &save))
+	{
+		if ((tok[0] >= 'A' && tok[0] <= 'Z') ||
+			(tok[0] >= 'a' && tok[0] <= 'z'))
+		{
+			/* flush a completed command */
+			if ((cmd == 'M' || cmd == 'L') && nNums >= 2)
+			{
+				out.push_back(std::make_pair(
+					fx + nums[0] * fw / 1000.0,
+					fy + nums[1] * fh / 1000.0));
+				nOps++;
+			}
+			else if ((cmd == 'C' || cmd == 'Q') && nNums >= 2)
+			{
+				out.push_back(std::make_pair(
+					fx + nums[nNums - 2] * fw / 1000.0,
+					fy + nums[nNums - 1] * fh / 1000.0));
+				nOps++;
+			}
+			cmd = tok[0];
+			nNums = 0;
+			continue;
+		}
+		double v = g_ascii_strtod(tok, nullptr);
+		if (nNums < 6)
+			nums[nNums] = v;
+		nNums++;
+	}
+	if ((cmd == 'M' || cmd == 'L') && nNums >= 2)
+		out.push_back(std::make_pair(fx + nums[0] * fw / 1000.0,
+									 fy + nums[1] * fh / 1000.0));
+	else if ((cmd == 'C' || cmd == 'Q') && nNums >= 2)
+		out.push_back(std::make_pair(fx + nums[nNums - 2] * fw / 1000.0,
+									 fy + nums[nNums - 1] * fh / 1000.0));
+	g_free(copy);
+}
+
+/* distance from p to the nearest point/segment of the polyline */
+static double s_polyDist(const std::vector<std::pair<double,double>> & pts,
+						 double px, double py)
+{
+	if (pts.empty())
+		return 1.0e30;
+	double best = 1.0e30;
+	for (size_t i = 0; i + 1 < pts.size(); ++i)
+	{
+		double ax = pts[i].first, ay = pts[i].second;
+		double bx = pts[i+1].first, by = pts[i+1].second;
+		double dx = bx - ax, dy = by - ay;
+		double len2 = dx*dx + dy*dy;
+		double t = len2 > 0.0 ? ((px - ax)*dx + (py - ay)*dy) / len2 : 0.0;
+		if (t < 0.0) t = 0.0;
+		if (t > 1.0) t = 1.0;
+		double cx = ax + t*dx, cy = ay + t*dy;
+		double d = sqrt((px-cx)*(px-cx) + (py-cy)*(py-cy));
+		if (d < best)
+			best = d;
+	}
+	if (pts.size() == 1)
+	{
+		double d = sqrt((px-pts[0].first)*(px-pts[0].first) +
+						(py-pts[0].second)*(py-pts[0].second));
+		if (d < best)
+			best = d;
+	}
+	return best;
+}
+
+/* even-odd point-in-polygon */
+static bool s_insidePoly(const std::vector<std::pair<UT_sint32,UT_sint32>> & poly,
+						 double x, double y)
+{
+	size_t n = poly.size();
+	bool odd = false;
+	for (size_t i = 0, j = n - 1; i < n; j = i++)
+	{
+		double ay = poly[i].second, by = poly[j].second;
+		if ((ay > y) != (by > y) &&
+			x < (poly[j].first - poly[i].first) * (y - ay) / (by - ay) +
+				poly[i].first)
+			odd = !odd;
+	}
+	return odd;
+}
+
+void FV_View::setInkPen(FV_DrawMode tool, const char * szColor,
+					  double dWidthPt)
+{
+	if (tool < FV_DRAW_PEN || tool > FV_DRAW_HIGHLIGHTER)
+		return;
+	if (szColor && *szColor)
+		m_sInkColor[tool] = szColor;
+	if (dWidthPt >= 0.25 && dWidthPt <= 72.0)
+		m_dInkWidth[tool] = dWidthPt;
+	m_eDrawMode = tool;
+}
+
+const char * FV_View::getInkColor(FV_DrawMode tool) const
+{
+	if (tool < FV_DRAW_PEN || tool > FV_DRAW_HIGHLIGHTER)
+		return "000000";
+	return m_sInkColor[tool].c_str();
+}
+
+double FV_View::getInkWidth(FV_DrawMode tool) const
+{
+	if (tool < FV_DRAW_PEN || tool > FV_DRAW_HIGHLIGHTER)
+		return 1.5;
+	return m_dInkWidth[tool];
+}
+
+/* the next stroke's place in the drawing order: one after the
+ * highest frame-ink-order already in the document */
+static int s_nextInkOrder(PD_Document * pDoc,
+						  const std::vector<fl_FrameLayout *> & frames)
+{
+	int latest = 0;
+	for (fl_FrameLayout * pFL : frames)
+	{
+		const PP_AttrProp * pAP = nullptr;
+		if (!pFL)
+			continue;
+		pFL->getAP(pAP);
+		if (!pAP)
+			continue;
+		const gchar * o = nullptr;
+		if (pAP->getProperty("frame-ink-order", o) && o && *o)
+		{
+			int v = atoi(o);
+			if (v > latest)
+				latest = v;
+		}
+	}
+	return latest + 1;
+}
+
+/*! Persist an ink stroke through page-space points (layout units)
+ * on the 0-based page.  Tool/colour/width default to the current
+ * pen settings.  The stroke becomes a custGeom frame anchored to
+ * the block under its first point. */
+bool FV_View::drawStroke(int iPage,
+		const std::vector<std::pair<UT_sint32,UT_sint32>> & pts,
+		const char * szTool, const char * szColor, double dWidthPt)
+{
+	if (pts.empty() || !m_pLayout || !m_pG)
+		return false;
+	fp_Page * pPage = m_pLayout->getNthPage(iPage);
+	if (!pPage)
+		return false;
+	FV_DrawMode tool = (szTool && *szTool)
+		? s_inkToolFromName(szTool)
+		: ((m_eDrawMode >= FV_DRAW_PEN && m_eDrawMode <= FV_DRAW_HIGHLIGHTER)
+		   ? m_eDrawMode : FV_DRAW_PEN);
+	std::string color = (szColor && *szColor) ? szColor : m_sInkColor[tool];
+	double wpt = (dWidthPt >= 0.25 && dWidthPt <= 72.0)
+		? dWidthPt : m_dInkWidth[tool];
+	const UT_sint32 wLu = UT_MAX(m_pG->tlu(1),
+		static_cast<UT_sint32>(wpt * UT_LAYOUT_RESOLUTION / 72.0 + 0.5));
+
+	UT_sint32 x0 = pts[0].first, y0 = pts[0].second, x1 = x0, y1 = y0;
+	for (const auto & p : pts)
+	{
+		x0 = UT_MIN(x0, p.first);  x1 = UT_MAX(x1, p.first);
+		y0 = UT_MIN(y0, p.second); y1 = UT_MAX(y1, p.second);
+	}
+	UT_sint32 pad = wLu / 2;
+	UT_sint32 fx = x0 - pad, fy = y0 - pad;
+	UT_sint32 fw = UT_MAX(x1 - x0 + wLu, m_pG->tlu(2));
+	UT_sint32 fh = UT_MAX(y1 - y0 + wLu, m_pG->tlu(2));
+
+	std::string path;
+	char buf[72];
+	const size_t n = UT_MIN(pts.size(), static_cast<size_t>(5000));
+	for (size_t i = 0; i < n; ++i)
+	{
+		/* integer normalized coords — "%.1f" would serialize "17,0"
+		 * under a comma-decimal locale and corrupt the path */
+		int nx = static_cast<int>((pts[i].first  - fx) * 1000.0 / fw + 0.5);
+		int ny = static_cast<int>((pts[i].second - fy) * 1000.0 / fh + 0.5);
+		g_snprintf(buf, sizeof(buf), "%s %d %d ",
+				   i ? "L" : "M", nx, ny);
+		path += buf;
+	}
+
+	/* anchor to the block under the first point */
+	PT_DocPosition pos = 2;
+	bool bBOL = false, bEOL = false, isTOC = false;
+	pPage->mapXYToPosition(pts[0].first, pts[0].second, pos,
+						   bBOL, bEOL, isTOC, true);
+	fl_BlockLayout * pBL = _findBlockAtPosition(pos);
+	PT_DocPosition posBlock = pBL ? pBL->getPosition(true) : 2;
+
+	std::vector<fl_FrameLayout *> frames;
+	getFrameLayouts(frames);
+	std::string sOrder = UT_std_string_sprintf("%d",
+		s_nextInkOrder(m_pDoc, frames));
+	std::string sW = UT_formatDimensionedValue(
+		static_cast<double>(fw) / UT_LAYOUT_RESOLUTION, "in", nullptr);
+	std::string sH = UT_formatDimensionedValue(
+		static_cast<double>(fh) / UT_LAYOUT_RESOLUTION, "in", nullptr);
+	std::string sX = UT_formatDimensionedValue(
+		static_cast<double>(fx) / UT_LAYOUT_RESOLUTION, "in", nullptr);
+	std::string sY = UT_formatDimensionedValue(
+		static_cast<double>(fy) / UT_LAYOUT_RESOLUTION, "in", nullptr);
+	std::string sThick = UT_formatDimensionedValue(
+		static_cast<double>(wLu) / UT_LAYOUT_RESOLUTION, "in", nullptr);
+	double alpha = s_inkAlpha(tool);
+	char abuf[G_ASCII_DTOSTR_BUF_SIZE];
+	g_ascii_formatd(abuf, sizeof(abuf), "%.2f", alpha);
+	std::string sAlpha(abuf);
+	const char * sTool = (tool == FV_DRAW_PENCIL) ? "pencil"
+		: (tool == FV_DRAW_HIGHLIGHTER) ? "highlighter" : "pen";
+
+	PP_PropertyVector frameProps = {
+		"frame-type", "textbox",
+		"position-to", "page-above-text",
+		"wrap-mode", (tool == FV_DRAW_HIGHLIGHTER)
+			? "below-text" : "above-text",
+		"frame-page-xpos", sX.c_str(),
+		"frame-page-ypos", sY.c_str(),
+		"frame-width", sW.c_str(),
+		"frame-height", sH.c_str(),
+		"top-style", "solid",
+		"top-color", color.c_str(),
+		"top-thickness", sThick.c_str(),
+		"left-style", "none",
+		"right-style", "none",
+		"bot-style", "none",
+		"line-cap", "rnd",
+		"line-join", "round",
+		"shape-path", path.c_str(),
+		"frame-ink-tool", sTool,
+		"frame-ink-order", sOrder.c_str(),
+		"bg-style", "0",
+		"tight-wrap", "0",
+		"bounding-space", "0.02in",
+		"xpad", "0in",
+		"ypad", "0in",
+		"frame-expand-height", "0",
+	};
+	if (alpha < 1.0)
+	{
+		frameProps.push_back("line-alpha");
+		frameProps.push_back(sAlpha.c_str());
+	}
+
+	m_pDoc->beginUserAtomicGlob();
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->disableListUpdates();
+
+	pf_Frag_Strux * pfFrame = nullptr;
+	bool bRet = m_pDoc->insertStrux(posBlock, PTX_SectionFrame,
+								  PP_NOPROPS, frameProps, &pfFrame);
+	PT_DocPosition posFrame = (bRet && pfFrame) ? pfFrame->getPos() : 0;
+	if (bRet && posFrame > 0)
+		bRet = m_pDoc->insertStrux(posFrame + 1, PTX_Block,
+								   PP_NOPROPS, PP_NOPROPS);
+	if (bRet)
+		bRet = m_pDoc->insertStrux(posFrame + 2, PTX_EndFrame);
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	m_pDoc->enableListUpdates();
+	if (bRet)
+		notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	return bRet;
+}
+
+/* delete the frame owning an ink stroke, replicating
+ * FV_FrameEdit::deleteFrame's strux-range deletion */
+static bool s_deleteFrameStrux(FV_View * pView, PD_Document * pDoc,
+							   fl_FrameLayout * pFL)
+{
+	const pf_Frag_Strux * sdhStart = pFL->getStruxDocHandle();
+	if (!sdhStart)
+		return false;
+	const pf_Frag_Strux * sdhEnd = nullptr;
+	PT_DocPosition posStart = pDoc->getStruxPosition(sdhStart);
+	if (!pDoc->getNextStruxOfType(sdhStart, PTX_EndFrame, &sdhEnd) ||
+		!sdhEnd)
+		return false;
+	PT_DocPosition posEnd = pDoc->getStruxPosition(sdhEnd) + 1;
+	UT_uint32 iReal = 0;
+	return pDoc->deleteSpan(posStart, posEnd, nullptr, iReal, true);
+}
+
+/*! Erase the topmost ink stroke within reach of (x,y) page-space
+ * on iPage.  Reach is half the stroke width plus ~3pt slop
+ * (wordcraft ERASE_SLOP). */
+bool FV_View::drawEraseAt(int iPage, UT_sint32 x, UT_sint32 y)
+{
+	if (m_bHideInk || !m_pLayout)
+		return false;
+	std::vector<fl_FrameLayout *> frames;
+	getFrameLayouts(frames);
+	fl_FrameLayout * hit = nullptr;
+	for (fl_FrameLayout * pFL : frames)
+	{
+		const PP_AttrProp * pAP = nullptr;
+		if (!pFL)
+			continue;
+		pFL->getAP(pAP);
+		if (!pAP)
+			continue;
+		const gchar * ink = nullptr;
+		if (!pAP->getProperty("frame-ink-tool", ink) || !ink || !*ink)
+			continue;
+		fp_FrameContainer * pFC = static_cast<fp_FrameContainer *>(
+			pFL->getFirstContainer());
+		if (!pFC || !pFC->getPage() ||
+			m_pLayout->findPage(pFC->getPage()) != iPage)
+			continue;
+		const gchar * path = nullptr;
+		if (!pAP->getProperty("shape-path", path) || !path || !*path)
+			continue;
+		std::vector<std::pair<double,double>> pp;
+		s_framePathPoints(path, pFC->getFullX(), pFC->getFullY(),
+						  pFC->getFullWidth(), pFC->getFullHeight(), pp);
+		if (pp.empty())
+			continue;
+		double reach = 3.0 * UT_LAYOUT_RESOLUTION / 72.0;
+		const gchar * th = nullptr;
+		if (pAP->getProperty("top-thickness", th) && th && *th)
+			reach += UT_convertToLogicalUnits(th) / 2.0;
+		if (s_polyDist(pp, x, y) <= reach)
+			hit = pFL; /* document order last = topmost */
+	}
+	if (!hit)
+		return false;
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	bool b = s_deleteFrameStrux(this, m_pDoc, hit);
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	/* a deleted selection member must not linger in the lasso list */
+	auto it = std::find(m_lassoSel.begin(), m_lassoSel.end(), hit);
+	if (it != m_lassoSel.end())
+		m_lassoSel.erase(it);
+	return b;
+}
+
+/*! Select the ink strokes whose sampled points are mostly inside
+ * the lasso loop (>=60%, wordcraft's rule) plus frames whose centre
+ * is inside it; returns the selection count. */
+UT_sint32 FV_View::drawLasso(int iPage,
+		const std::vector<std::pair<UT_sint32,UT_sint32>> & poly)
+{
+	m_lassoSel.clear();
+	if (poly.size() < 3 || !m_pLayout)
+		return 0;
+	std::vector<fl_FrameLayout *> frames;
+	getFrameLayouts(frames);
+	for (fl_FrameLayout * pFL : frames)
+	{
+		fp_FrameContainer * pFC = static_cast<fp_FrameContainer *>(
+			pFL ? pFL->getFirstContainer() : nullptr);
+		if (!pFC || !pFC->getPage() ||
+			m_pLayout->findPage(pFC->getPage()) != iPage)
+			continue;
+		const PP_AttrProp * pAP = nullptr;
+		pFL->getAP(pAP);
+		const gchar * ink = nullptr;
+		const gchar * path = nullptr;
+		bool bInk = pAP && pAP->getProperty("frame-ink-tool", ink) &&
+			ink && *ink;
+		if (bInk && m_bHideInk)
+			continue;
+		bool picked = false;
+		if (bInk && pAP->getProperty("shape-path", path) && path && *path)
+		{
+			std::vector<std::pair<double,double>> pp;
+			s_framePathPoints(path, pFC->getFullX(), pFC->getFullY(),
+							  pFC->getFullWidth(), pFC->getFullHeight(), pp);
+			size_t n = pp.size(), hits = 0;
+			size_t step = n > 64 ? n / 64 : 1;
+			size_t tested = 0;
+			for (size_t i = 0; i < n; i += step)
+			{
+				tested++;
+				if (s_insidePoly(poly, pp[i].first, pp[i].second))
+					hits++;
+			}
+			picked = tested > 0 && hits * 10 >= tested * 6;
+		}
+		else
+		{
+			picked = s_insidePoly(poly,
+				pFC->getFullX() + pFC->getFullWidth() / 2.0,
+				pFC->getFullY() + pFC->getFullHeight() / 2.0);
+		}
+		if (picked)
+			m_lassoSel.push_back(pFL);
+	}
+	queueDraw();
+	return static_cast<UT_sint32>(m_lassoSel.size());
+}
+
+/*! Delete the lasso-selected strokes/frames (one undo glob). */
+bool FV_View::drawLassoDelete(void)
+{
+	if (m_lassoSel.empty())
+		return false;
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	UT_sint32 deleted = 0;
+	for (fl_FrameLayout * pFL : m_lassoSel)
+		if (pFL && s_deleteFrameStrux(this, m_pDoc, pFL))
+			deleted++;
+	m_pDoc->endUserAtomicGlob();
+	m_lassoSel.clear();
+	_restorePieceTableState();
+	_generalUpdate();
+	notifyListeners(AV_CHG_MOTION | AV_CHG_ALL);
+	return deleted > 0;
+}
+
+/*! Draw-mode pointer routing (AV_View hook): press/motion/release
+ * in window logical units.  Returns false in Select mode so normal
+ * editing keeps the events. */
+bool FV_View::cmdDrawPointer(int op, UT_sint32 xPos, UT_sint32 yPos)
+{
+	if (m_eDrawMode == FV_DRAW_SELECT)
+		return false;
+	if (op == 0)
+	{
+		UT_sint32 xc = 0, yc = 0;
+		fp_Page * pPage = _getPageForXY(xPos, yPos, xc, yc);
+		m_iInkPage = pPage ? m_pLayout->findPage(pPage) : -1;
+		m_inkPts.clear();
+		m_inkPts.push_back(std::make_pair(xc, yc));
+		m_bDrawDown = true;
+		m_lassoSel.clear();
+		if (m_eDrawMode == FV_DRAW_ERASER && m_iInkPage >= 0)
+			drawEraseAt(m_iInkPage, xc, yc);
+		return true;
+	}
+	if (!m_bDrawDown)
+		return false;
+	UT_sint32 xc = 0, yc = 0;
+	_getPageForXY(xPos, yPos, xc, yc);
+	if (op == 1)
+	{
+		if (m_eDrawMode == FV_DRAW_ERASER)
+		{
+			if (m_iInkPage >= 0)
+				drawEraseAt(m_iInkPage, xc, yc);
+			return true;
+		}
+		const auto & last = m_inkPts.back();
+		double dx = xc - last.first, dy = yc - last.second;
+		double minD = m_pG ? m_pG->tlu(2) : 30;
+		if (dx*dx + dy*dy >= minD * minD)
+		{
+			m_inkPts.push_back(std::make_pair(xc, yc));
+			queueDraw();
+		}
+		return true;
+	}
+	/* release */
+	m_bDrawDown = false;
+	if ((m_eDrawMode == FV_DRAW_PEN || m_eDrawMode == FV_DRAW_PENCIL ||
+		 m_eDrawMode == FV_DRAW_HIGHLIGHTER) &&
+		m_iInkPage >= 0 && !m_inkPts.empty())
+	{
+		drawStroke(m_iInkPage, m_inkPts, nullptr, nullptr, -1.0);
+	}
+	else if (m_eDrawMode == FV_DRAW_LASSO &&
+			 m_iInkPage >= 0 && m_inkPts.size() >= 3)
+	{
+		drawLasso(m_iInkPage, m_inkPts);
+	}
+	m_inkPts.clear();
+	queueDraw();
+	return true;
+}
+
+/*! Paint the in-progress stroke/lasso loop and the lasso selection
+ * rectangles for pPage — called from _draw after the page draws so
+ * the preview rides the normal paint cycle. */
+void FV_View::_paintInkOverlay(dg_DrawArgs * da, fp_Page * pPage)
+{
+	if (!da || !m_pG)
+		return;
+	if (m_bDrawDown && m_inkPts.size() >= 2 && m_iInkPage >= 0 &&
+		m_pLayout->findPage(pPage) == m_iInkPage)
+	{
+		GR_Painter painter(m_pG);
+		if (m_eDrawMode == FV_DRAW_LASSO)
+		{
+			UT_RGBColor grey(90,90,90);
+			m_pG->setColor(grey);
+			m_pG->setLineProperties(m_pG->tluD(1.0),
+									GR_Graphics::JOIN_MITER,
+									GR_Graphics::CAP_ROUND,
+									GR_Graphics::LINE_ON_OFF_DASH);
+		}
+		else
+		{
+			UT_RGBColor c;
+			c.setColor(m_sInkColor[
+				(m_eDrawMode >= FV_DRAW_PEN &&
+				 m_eDrawMode <= FV_DRAW_HIGHLIGHTER)
+				? m_eDrawMode : FV_DRAW_PEN].c_str());
+			m_pG->setColor(c);
+			m_pG->setLineProperties(m_pG->tluD(getInkWidth(m_eDrawMode)),
+									GR_Graphics::JOIN_ROUND,
+									GR_Graphics::CAP_ROUND,
+									GR_Graphics::LINE_SOLID);
+		}
+		std::vector<UT_Point> ppts(m_inkPts.size());
+		for (size_t i = 0; i < m_inkPts.size(); ++i)
+		{
+			ppts[i].x = da->xoff + m_inkPts[i].first;
+			ppts[i].y = da->yoff + m_inkPts[i].second;
+		}
+		painter.polyLine(ppts.data(), static_cast<UT_uint32>(ppts.size()));
+	}
+	if (m_lassoSel.empty())
+		return;
+	GR_Painter painter(m_pG);
+	UT_RGBColor sel(38,115,215);
+	m_pG->setColor(sel);
+	m_pG->setLineProperties(m_pG->tluD(1.0),
+							GR_Graphics::JOIN_MITER,
+							GR_Graphics::CAP_PROJECTING,
+							GR_Graphics::LINE_ON_OFF_DASH);
+	for (fl_FrameLayout * pFL : m_lassoSel)
+	{
+		fp_FrameContainer * pFC = pFL ? static_cast<fp_FrameContainer *>(
+			pFL->getFirstContainer()) : nullptr;
+		if (!pFC || pFC->getPage() != pPage)
+			continue;
+		UT_sint32 l = da->xoff + pFC->getFullX();
+		UT_sint32 t = da->yoff + pFC->getFullY();
+		UT_sint32 r = l + pFC->getFullWidth();
+		UT_sint32 b = t + pFC->getFullHeight();
+		painter.drawLine(l, t, r, t);
+		painter.drawLine(r, t, r, b);
+		painter.drawLine(l, b, r, b);
+		painter.drawLine(l, t, l, b);
+	}
 }

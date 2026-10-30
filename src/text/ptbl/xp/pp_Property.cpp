@@ -173,6 +173,8 @@ static PP_Property _props[] =
 	{"frame-height",           "0.0in",           false, PP_LEVEL_FRAME},
 	{"frame-hidden",           "0",               false, PP_LEVEL_FRAME},
 	{"frame-horiz-align",      "left",            false, PP_LEVEL_FRAME},
+	{"frame-ink-order",        "0",               false, PP_LEVEL_FRAME}, // Draw/ink: stroke drawing order (1,2,3...) for replay
+	{"frame-ink-tool",         "",                false, PP_LEVEL_FRAME}, // Draw/ink: pen|pencil|highlighter; empty = not ink
 	{"frame-linesp-reduction", "0",               false, PP_LEVEL_FRAME}, // OOXML a:normAutofit@lnSpcReduction as fraction
 	{"frame-min-height",       "0.0in",           false, PP_LEVEL_FRAME},
 	{"frame-name",             "",                false, PP_LEVEL_FRAME},
@@ -233,6 +235,7 @@ static PP_Property _props[] =
 	{ "left-thickness",        "1px",             false, PP_LEVEL_TABLE},
 
 	{ "line-align",            "ctr",             false, PP_LEVEL_FRAME}, // OOXML a:ln@algn
+	{ "line-alpha",            "1.0",             false, PP_LEVEL_FRAME}, // stroke opacity 0..1 (Draw/ink: highlighter 0.5)
 	{ "line-cap",              "flat",            false, PP_LEVEL_FRAME}, // OOXML a:ln@cap
 	{ "line-compound",         "sng",             false, PP_LEVEL_FRAME}, // OOXML a:ln@cmpd
 	{ "line-custom-dash",      "",                false, PP_LEVEL_FRAME}, // OOXML a:custDash: "d sp" pairs, fractions of line width

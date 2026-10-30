@@ -752,6 +752,12 @@ void OXMLi_ListenerState_Image::startElement (OXMLi_StartElementRequest * rqst)
 			if (szTitle && *szTitle &&
 				_e->getAttribute("title", szHas) != UT_OK)
 				_e->setAttribute("title", szTitle);
+			/* the wp:docPr name identifies the shape kind for the
+			 * Textbox listener ("Ink pen <id> #<n>" restores an ink
+			 * stroke's tool and drawing order) */
+			const gchar * szName = attrMatches(ns, "name", rqst->ppAtts);
+			if (szName && *szName)
+				_e->setProperty("shape-name", szName);
 		}
 		rqst->handled = true;
 	}

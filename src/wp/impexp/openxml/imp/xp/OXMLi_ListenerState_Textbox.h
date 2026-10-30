@@ -50,6 +50,7 @@ private:
 	std::string m_style;
 	bool m_bDmlTextbox = false;
 	int m_wspDepth = 0;
+	std::string m_pendingShapeName;
 	int m_vShapeDepth = 0; //VML v:rect/oval/line pushed a frame element
 	bool m_bInShapeFill = false;
 	bool m_bInStyleFill = false;

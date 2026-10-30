@@ -966,12 +966,40 @@ static const AP_RibbonGroup s_ribbon_help_groups[] =
 
 /* ------------------------------------------------- tab table (order) --- */
 
+/* --------------------------------------------------------------- Draw --- */
+
+static const AP_RibbonItem s_ribbon_draw_tools[] =
+{
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_DRAW_SELECT),
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_DRAW_LASSO),
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_DRAW_LASSODELETE),
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_DRAW_ERASER),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonItem s_ribbon_draw_pens[] =
+{
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_DRAW_PEN),
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_DRAW_PENCIL),
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_DRAW_HIGHLIGHTER),
+	AP_RIBBON_MENU_LSW(AP_MENU_ID_DRAW_HIDEINK),
+	AP_RIBBON_END
+};
+
+static const AP_RibbonGroup s_ribbon_draw_groups[] =
+{
+	{ "drawtools",	s_ribbon_draw_tools },
+	{ "pens",		s_ribbon_draw_pens },
+	{ nullptr,		nullptr }
+};
+
 static const AP_RibbonTab s_ribbon_tabs[] =
 {
 	{ "file",		s_ribbon_file_groups,		false },
 	{ "home",		s_ribbon_home_groups,		false },
 	{ "insert",		s_ribbon_insert_groups,		false },
 	{ "design",		s_ribbon_design_groups,		false },
+	{ "draw",		s_ribbon_draw_groups,		false },
 	{ "references",	s_ribbon_references_groups,	false },
 	{ "layout",		s_ribbon_layout_groups,		false },
 	{ "review",		s_ribbon_review_groups,		false },

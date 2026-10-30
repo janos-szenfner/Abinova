@@ -89,6 +89,12 @@ void EV_UnixMouse::mouseUp(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble ev
 
 	emc = m_contextState;
 
+	if (emb == EV_EMB_BUTTON1 &&
+		pView->cmdDrawPointer(2,
+							  static_cast<UT_sint32>(pView->getGraphics()->tluD(ev_x)),
+							  static_cast<UT_sint32>(pView->getGraphics()->tluD(ev_y))))
+		return;
+
 	result = m_pEEM->Mouse(emc|mop|emb|ems, &pEM);
 
 	switch (result)
@@ -167,6 +173,18 @@ void EV_UnixMouse::mouseClick(AV_View* pView, GdkEvent* e, gdouble ev_x, gdouble
 
 	emc = pView->getMouseContext(static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
 															 static_cast<UT_sint32>(pView->getGraphics()->tluD(y)));
+
+	/* a modal draw tool (pen/lasso/eraser) claims the whole
+	 * button-1 gesture before the binding map sees it */
+	if (mop == EV_EMO_SINGLECLICK && emb == EV_EMB_BUTTON1 && state == 0 &&
+		pView->cmdDrawPointer(0,
+							  static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
+							  static_cast<UT_sint32>(pView->getGraphics()->tluD(y))))
+	{
+		m_clickState = mop;
+		m_contextState = emc;
+		return;
+	}
 
 	m_clickState = mop;					// remember which type of click
 	m_contextState = emc;				// remember context of click
@@ -263,8 +281,14 @@ void EV_UnixMouse::mouseMotion(AV_View* pView, GdkEvent *e, gdouble ev_x, gdoubl
 		return;
 	}
 
+	if (emb == EV_EMB_BUTTON1 &&
+		pView->cmdDrawPointer(1,
+							  static_cast<UT_sint32>(pView->getGraphics()->tluD(x)),
+							  static_cast<UT_sint32>(pView->getGraphics()->tluD(y))))
+		return;
+
 	result = m_pEEM->Mouse(emc|mop|emb|ems, &pEM);
-	
+
 	switch (result)
 	{
 	case EV_EEMR_COMPLETE:

@@ -336,6 +336,10 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 		m_bAnnotationPreviewActive(false),
 		m_bSDTDesignMode(false),
 		m_bAllowSmartQuoteReplacement(true),
+		m_eDrawMode(FV_DRAW_SELECT),
+		m_bHideInk(false),
+		m_bDrawDown(false),
+		m_iInkPage(-1),
 		m_bubbleBlockerCount(0),
 		m_iOldPageCount(-1),
 		m_SelectionHandles(this, m_Selection),
@@ -364,6 +368,12 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 	m_colorRevisions[7] = UT_RGBColor(4,133,195);
 	m_colorRevisions[8] = UT_RGBColor(7,18,195);
 	m_colorRevisions[9] = UT_RGBColor(255,0,0);	// catch-all
+
+	/* Draw tab pen defaults (wordcraft ink tools): black pen,
+	 * grey pencil, translucent-yellow highlighter */
+	m_sInkColor[FV_DRAW_PEN] = "000000";         m_dInkWidth[FV_DRAW_PEN] = 1.5;
+	m_sInkColor[FV_DRAW_PENCIL] = "595959";      m_dInkWidth[FV_DRAW_PENCIL] = 1.0;
+	m_sInkColor[FV_DRAW_HIGHLIGHTER] = "ffff00"; m_dInkWidth[FV_DRAW_HIGHLIGHTER] = 12.0;
 
 	//
 	m_colorAnnotations[0] = UT_RGBColor(171,4,254);

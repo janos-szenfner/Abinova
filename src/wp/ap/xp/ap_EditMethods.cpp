@@ -390,6 +390,16 @@ public:
 	static EV_EditMethod_Fn insertBlankPage;
 	static EV_EditMethod_Fn insertIcon;
 	static EV_EditMethod_Fn insertShape;
+	static EV_EditMethod_Fn drawSelect;
+	static EV_EditMethod_Fn drawPen;
+	static EV_EditMethod_Fn drawPencil;
+	static EV_EditMethod_Fn drawHighlighter;
+	static EV_EditMethod_Fn drawEraser;
+	static EV_EditMethod_Fn drawLasso;
+	static EV_EditMethod_Fn drawLassoDelete;
+	static EV_EditMethod_Fn drawStroke;
+	static EV_EditMethod_Fn drawErase;
+	static EV_EditMethod_Fn hideInk;
 	static EV_EditMethod_Fn insertSignatureLine;
 	static EV_EditMethod_Fn insertWordArt;
 	static EV_EditMethod_Fn insertBookmark;
@@ -1221,6 +1231,15 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(dragToXYword), 		0,	""),
 	EV_EditMethod(NF(dragVisualText),       0, ""),
 	EV_EditMethod(NF(dragVline), 			0,	""),
+	EV_EditMethod(NF(drawErase),			0,	""),
+	EV_EditMethod(NF(drawEraser),			0,	""),
+	EV_EditMethod(NF(drawHighlighter),		0,	""),
+	EV_EditMethod(NF(drawLasso),			0,	""),
+	EV_EditMethod(NF(drawLassoDelete),		0,	""),
+	EV_EditMethod(NF(drawPen),				0,	""),
+	EV_EditMethod(NF(drawPencil),			0,	""),
+	EV_EditMethod(NF(drawSelect),			0,	""),
+	EV_EditMethod(NF(drawStroke),			0,	""),
 	EV_EditMethod(NF(dropCap), 				0,	""),
 #ifdef DEBUG
 	EV_EditMethod(NF(dumpRDFForPoint),		0,	""),
@@ -1325,6 +1344,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(helpIntro),			_A_,		""),
 	EV_EditMethod(NF(helpReportBug), _A_, ""),
 	EV_EditMethod(NF(helpSearch),			_A_,		""),
+	EV_EditMethod(NF(hideInk),				0,	""),
 	EV_EditMethod(NF(hyperlinkCopyLocation), 0, ""),
 	EV_EditMethod(NF(hyperlinkJump),		0,		""),
 	EV_EditMethod(NF(hyperlinkJumpPos),     0,      ""),
@@ -8850,6 +8870,211 @@ Defun(insertShape)
 	f += s.utf8_str();
 	f += ".svg";
 	return s_insertArtworkFile(pView, pFrame, f.c_str(), true);
+}
+
+/* ============ Draw tab / ink (wordcraft draw.*) ==================
+ * calldata is "key=value;key=value;…" — keys: page (0-based), tool
+ * (pen|pencil|highlighter), color (RRGGBB), width (points), x, y
+ * (points, page space), points ("x,y x,y …" page points). */
+static void s_drawKV(const EV_EditMethodCallData * pCallData,
+					 std::map<std::string,std::string> & kv)
+{
+	kv.clear();
+	if (!pCallData || !pCallData->m_pData || !pCallData->m_dataLength)
+		return;
+	UT_UCS4String us(pCallData->m_pData, pCallData->m_dataLength);
+	std::string d(us.utf8_str());
+	size_t pos = 0;
+	while (pos <= d.size())
+	{
+		size_t semi = d.find(';', pos);
+		std::string tok = d.substr(pos, semi == std::string::npos
+								   ? std::string::npos : semi - pos);
+		size_t eq = tok.find('=');
+		if (eq != std::string::npos)
+			kv[tok.substr(0, eq)] = tok.substr(eq + 1);
+		if (semi == std::string::npos)
+			break;
+		pos = semi + 1;
+	}
+}
+
+static double s_kvNum(const std::map<std::string,std::string> & kv,
+					  const char * k, double dflt)
+{
+	auto it = kv.find(k);
+	if (it == kv.end() || it->second.empty())
+		return dflt;
+	double v = g_ascii_strtod(it->second.c_str(), nullptr);
+	return (v == v) ? v : dflt; /* NaN-safe */
+}
+
+static const char * s_kvStr(const std::map<std::string,std::string> & kv,
+							const char * k)
+{
+	auto it = kv.find(k);
+	return (it == kv.end() || it->second.empty()) ? nullptr : it->second.c_str();
+}
+
+/* "x,y x,y …" page points -> layout units */
+static void s_kvPoints(const std::map<std::string,std::string> & kv,
+					   const char * k,
+					   std::vector<std::pair<UT_sint32,UT_sint32>> & pts)
+{
+	pts.clear();
+	auto it = kv.find(k);
+	if (it == kv.end())
+		return;
+	const char * p = it->second.c_str();
+	while (*p && pts.size() < 5000)
+	{
+		char * end = nullptr;
+		/* g_ascii_strtod: sscanf("%lf") would read "x,y" as one
+		 * comma-decimal number under a comma-locale */
+		double x = g_ascii_strtod(p, &end);
+		if (end == p)
+			break;
+		p = end;
+		while (*p == ' ' || *p == ',')
+			++p;
+		double y = g_ascii_strtod(p, &end);
+		if (end == p)
+			break;
+		p = end;
+		pts.push_back(std::make_pair(
+			static_cast<UT_sint32>(x * UT_LAYOUT_RESOLUTION / 72.0 + 0.5),
+			static_cast<UT_sint32>(y * UT_LAYOUT_RESOLUTION / 72.0 + 0.5)));
+	}
+}
+
+static bool s_drawPen_common(AV_View * pAV_View,
+							 EV_EditMethodCallData * pCallData,
+							 FV_View::FV_DrawMode tool)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	std::map<std::string,std::string> kv;
+	s_drawKV(pCallData, kv);
+	pView->setInkPen(tool, s_kvStr(kv, "color"),
+					 s_kvNum(kv, "width", -1.0));
+	return true;
+}
+
+Defun(drawSelect)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	pView->setDrawMode(FV_View::FV_DRAW_SELECT);
+	return true;
+}
+
+Defun(drawPen)
+{
+	return s_drawPen_common(pAV_View, pCallData, FV_View::FV_DRAW_PEN);
+}
+
+Defun(drawPencil)
+{
+	return s_drawPen_common(pAV_View, pCallData, FV_View::FV_DRAW_PENCIL);
+}
+
+Defun(drawHighlighter)
+{
+	return s_drawPen_common(pAV_View, pCallData, FV_View::FV_DRAW_HIGHLIGHTER);
+}
+
+Defun(drawEraser)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	std::map<std::string,std::string> kv;
+	s_drawKV(pCallData, kv);
+	if (kv.count("x") || kv.count("y") || kv.count("page"))
+		return pView->drawEraseAt(static_cast<int>(s_kvNum(kv, "page", 0)),
+			static_cast<UT_sint32>(s_kvNum(kv, "x", 0) * UT_LAYOUT_RESOLUTION / 72.0),
+			static_cast<UT_sint32>(s_kvNum(kv, "y", 0) * UT_LAYOUT_RESOLUTION / 72.0));
+	pView->setDrawMode(FV_View::FV_DRAW_ERASER);
+	return true;
+}
+
+Defun(drawLasso)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	std::map<std::string,std::string> kv;
+	s_drawKV(pCallData, kv);
+	if (kv.count("points"))
+	{
+		std::vector<std::pair<UT_sint32,UT_sint32>> poly;
+		s_kvPoints(kv, "points", poly);
+		return pView->drawLasso(static_cast<int>(s_kvNum(kv, "page", 0)),
+								poly) > 0;
+	}
+	if (s_kvNum(kv, "clear", 0) == 1.0)
+	{
+		pView->drawLasso(-1, {});
+		return true;
+	}
+	pView->setDrawMode(FV_View::FV_DRAW_LASSO);
+	return true;
+}
+
+Defun(drawLassoDelete)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->drawLassoDelete();
+}
+
+Defun(drawStroke)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	std::map<std::string,std::string> kv;
+	s_drawKV(pCallData, kv);
+	std::vector<std::pair<UT_sint32,UT_sint32>> pts;
+	s_kvPoints(kv, "points", pts);
+	if (pts.empty())
+		return false;
+	const char * tool = s_kvStr(kv, "tool");
+	if (!tool && kv.count("kind"))
+		tool = s_kvStr(kv, "kind");
+	return pView->drawStroke(static_cast<int>(s_kvNum(kv, "page", 0)),
+							 pts, tool, s_kvStr(kv, "color"),
+							 s_kvNum(kv, "width", -1.0));
+}
+
+Defun(drawErase)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	std::map<std::string,std::string> kv;
+	s_drawKV(pCallData, kv);
+	return pView->drawEraseAt(static_cast<int>(s_kvNum(kv, "page", 0)),
+		static_cast<UT_sint32>(s_kvNum(kv, "x", 0) * UT_LAYOUT_RESOLUTION / 72.0),
+		static_cast<UT_sint32>(s_kvNum(kv, "y", 0) * UT_LAYOUT_RESOLUTION / 72.0));
+}
+
+Defun(hideInk)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	std::map<std::string,std::string> kv;
+	s_drawKV(pCallData, kv);
+	const char * v = s_kvStr(kv, "value");
+	bool on = v ? (!strcmp(v, "1") || !strcmp(v, "true"))
+				: !pView->isInkHidden();
+	pView->setInkHidden(on);
+	pView->updateScreen(false);
+	return true;
 }
 
 /* callData: the Lucide icon name under artwork/icons */

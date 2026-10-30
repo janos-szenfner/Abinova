@@ -844,6 +844,138 @@ UT_Error IE_Exp_OpenXML::finishBookmark(const gchar* id)
 }
 
 /**
+ * Exports an ink stroke frame as a wps custGeom shape anchored to the
+ * page - the path is our normalized "M x y L x y ..." (0..1000 box)
+ * replayed in EMU.  The docPr name encodes the tool and drawing
+ * order ("Ink pen <id> #<n>") so a re-import recognises it as ink.
+ */
+UT_Error IE_Exp_OpenXML::setInkShape(int target, const gchar* id,
+								   const gchar* xpos, const gchar* ypos,
+								   const gchar* width, const gchar* height,
+								   const gchar* path, const gchar* color,
+								   const gchar* thick, bool bBehind,
+								   const gchar* tool, const gchar* order)
+{
+	std::string w(convertToPositiveEmus(width ? width : "0.1in"));
+	std::string h(convertToPositiveEmus(height ? height : "0.1in"));
+	std::string x(convertToPositiveEmus(xpos ? xpos : "0in"));
+	std::string y(convertToPositiveEmus(ypos ? ypos : "0in"));
+	double dEmuW = UT_convertDimensionless(w.c_str());
+	double dEmuH = UT_convertDimensionless(h.c_str());
+	if (dEmuW < 1.0) dEmuW = 1.0;
+	if (dEmuH < 1.0) dEmuH = 1.0;
+	double lwEmu = 12700.0;
+	if (thick && *thick)
+	{
+		double t = UT_convertToLogicalUnits(thick);
+		lwEmu = t * (914400.0 / 1440.0);
+		if (lwEmu < 0.0) lwEmu = 0.0;
+	}
+	/* normalized path -> EMU path stream */
+	std::string pathStr;
+	if (path && *path)
+	{
+		char cmd = 'M';
+		double nums[6]; int nNums = 0;
+		gchar * copy = g_strdup(path);
+		gchar * save = nullptr;
+		auto flush = [&]() {
+			if (nNums < 2) { nNums = 0; return; }
+			char b[96];
+			if (cmd == 'M')
+				g_snprintf(b, sizeof(b),
+						   "<a:moveTo><a:pt x=\"%d\" y=\"%d\"/></a:moveTo>",
+						   (int)(nums[0]*dEmuW/1000.0), (int)(nums[1]*dEmuH/1000.0));
+			else
+				g_snprintf(b, sizeof(b),
+						   "<a:lnTo><a:pt x=\"%d\" y=\"%d\"/></a:lnTo>",
+						   (int)(nums[0]*dEmuW/1000.0), (int)(nums[1]*dEmuH/1000.0));
+			pathStr += b;
+			nNums = 0;
+		};
+		for (gchar * tok = strtok_r(copy, " \t", &save); tok;
+			 tok = strtok_r(nullptr, " \t", &save))
+		{
+			if (g_ascii_isalpha(tok[0]))
+			{
+				flush();
+				cmd = tok[0];
+				continue;
+			}
+			double v = g_ascii_strtod(tok, nullptr);
+			nums[nNums < 6 ? nNums : 5] = v;
+			if (cmd == 'M' || cmd == 'L')
+			{
+				nNums++;
+				if (nNums >= 2) flush();
+			}
+			else
+			{
+				nNums++;
+				if (cmd == 'C' && nNums >= 6)
+				{
+					char b[256];
+					g_snprintf(b, sizeof(b),
+							   "<a:cubicBezTo>"
+							   "<a:pt x=\"%d\" y=\"%d\"/>"
+							   "<a:pt x=\"%d\" y=\"%d\"/>"
+							   "<a:pt x=\"%d\" y=\"%d\"/>"
+							   "</a:cubicBezTo>",
+							   (int)(nums[0]*dEmuW/1000.0),(int)(nums[1]*dEmuH/1000.0),
+							   (int)(nums[2]*dEmuW/1000.0),(int)(nums[3]*dEmuH/1000.0),
+							   (int)(nums[4]*dEmuW/1000.0),(int)(nums[5]*dEmuH/1000.0));
+					pathStr += b;
+					nNums = 0;
+				}
+			}
+		}
+		flush();
+		g_free(copy);
+	}
+	std::string name("Ink ");
+	name += (tool && *tool) ? tool : "pen";
+	name += " ";
+	name += id ? id : "0";
+	if (order && *order && strcmp(order, "0"))
+	{
+		name += " #";
+		name += order;
+	}
+	std::string esc(name);
+	for (auto & c : esc) if (c == '"') c = '\'';
+	std::string str;
+	str += "<w:drawing>";
+	str += "<wp:anchor distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\"";
+	str += " simplePos=\"0\" allowOverlap=\"1\" layoutInCell=\"1\"";
+	str += " locked=\"0\" behindDoc=\"";
+	str += bBehind ? "1" : "0";
+	str += "\" relativeHeight=\"0\">";
+	str += "<wp:simplePos x=\"0\" y=\"0\"/>";
+	str += "<wp:positionH relativeFrom=\"page\"><wp:posOffset>" + x + "</wp:posOffset></wp:positionH>";
+	str += "<wp:positionV relativeFrom=\"page\"><wp:posOffset>" + y + "</wp:posOffset></wp:positionV>";
+	str += "<wp:extent cx=\"" + w + "\" cy=\"" + h + "\"/>";
+	str += "<wp:docPr id=\"";
+	str += id ? id : "0";
+	str += "\" name=\"" + esc + "\"/>";
+	str += "<a:graphic xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">";
+	str += "<a:graphicData uri=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\">";
+	str += "<wps:wsp xmlns:wps=\"http://schemas.microsoft.com/office/word/2010/wordprocessingShape\">";
+	str += "<wps:spPr>";
+	str += "<a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"" + w + "\" cy=\"" + h + "\"/></a:xfrm>";
+	str += "<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l=\"l\" t=\"t\" r=\"r\" b=\"b\"/>";
+	str += "<a:pathLst><a:path w=\"" + w + "\" h=\"" + h + "\">";
+	str += pathStr;
+	str += "</a:path></a:pathLst></a:custGeom>";
+	str += "<a:noFill/>";
+	str += "<a:ln w=\"" + UT_std_string_sprintf("%.0f", lwEmu) + "\" cap=\"rnd\">";
+	str += "<a:solidFill><a:srgbClr val=\"";
+	str += (color && *color) ? color : "000000";
+	str += "\"/></a:solidFill><a:round/></a:ln>";
+	str += "</wps:spPr></wps:wsp></a:graphicData></a:graphic></wp:anchor></w:drawing>";
+	return writeTargetStream(target, str.c_str());
+}
+
+/**
  * Starts exporting the OXML_Element_TextBox object
  */
 UT_Error IE_Exp_OpenXML::startTextBox(int target, const gchar* id)

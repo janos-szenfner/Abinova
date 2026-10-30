@@ -193,6 +193,34 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		 * element so its fill and content land on the page. */
 		OXML_SharedElement shapeElem(new OXML_Element_TextBox(""));
 		_markFlatIfHdrFtr(shapeElem);
+		/* wp:docPr names are stashed on the w:drawing element by the
+		 * Image listener — "Ink <tool> <id> [#<order>]" restores the
+		 * stroke's identity */
+		if (rqst->stck && !rqst->stck->empty())
+		{
+			const gchar * szShapeName = nullptr;
+			OXML_SharedElement parent = OXMLi_elemTop(rqst->stck);
+			if (parent->getProperty("shape-name", szShapeName) == UT_OK &&
+				szShapeName && *szShapeName)
+			{
+				std::string n(szShapeName);
+				shapeElem->setProperty("frame-name", szShapeName);
+				if (n.compare(0, 4, "Ink ") == 0)
+				{
+					size_t sp = n.find(' ', 4);
+					std::string tool = n.substr(4,
+						sp == std::string::npos ? sp : sp - 4);
+					if (tool == "pen" || tool == "pencil" ||
+						tool == "highlighter")
+						shapeElem->setProperty("frame-ink-tool",
+											   tool.c_str());
+					size_t hash = n.find('#');
+					if (hash != std::string::npos)
+						shapeElem->setProperty("frame-ink-order",
+											   n.substr(hash + 1).c_str());
+				}
+			}
+		}
 		rqst->stck->push(shapeElem);
 		m_shapePrst.clear();
 		m_shapeNoFill = false;
@@ -202,6 +230,7 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		rqst->handled = true;
 		return;
 	}
+
 	if (nameMatches(rqst->pName, NS_A_KEY, "grpFill"))
 	{
 		/* group fill — children without their own fill inherit it.
