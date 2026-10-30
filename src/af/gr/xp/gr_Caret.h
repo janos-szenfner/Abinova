@@ -181,6 +181,7 @@ private:
 	bool							m_bDrawn;
 	bool							m_bInPaint;
 	bool							m_bAnimTickPending;
+	bool							m_bBlinkTickPending;
 	bool							m_bAnimRunning;
 	gint64							m_iLastShownUs;
 

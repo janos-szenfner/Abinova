@@ -132,6 +132,7 @@ GR_Caret::GR_Caret(GR_Graphics * pG)
 		m_bDrawn(false),
 		m_bInPaint(false),
 		m_bAnimTickPending(false),
+		m_bBlinkTickPending(false),
 		m_bAnimRunning(false),
 		m_iLastShownUs(0)
 {
@@ -207,6 +208,7 @@ GR_Caret::GR_Caret(GR_Graphics * pG, const std::string& sId)
 		m_bDrawn(false),
 		m_bInPaint(false),
 		m_bAnimTickPending(false),
+		m_bBlinkTickPending(false),
 		m_bAnimRunning(false),
 		m_iLastShownUs(0)
 {
@@ -251,6 +253,7 @@ void GR_Caret::s_work(UT_Worker * _w)
 	xxx_UT_DEBUGMSG((" Caret timer called Disable Count = %d \n",c->m_nDisableCount));
 	if (c->m_nDisableCount == 0)
 	{
+		c->m_bBlinkTickPending = true;
 		c->setPendingBlink();
 		c->m_pG->flush(); // set redraw for wayland
 	}
@@ -753,9 +756,24 @@ void GR_Caret::_blink(bool bExplicit)
 			m_bAnimTickPending = false;
 			m_bPendingBlink = false;
 		}
+		else if (m_bBlinkTickPending)
+		{
+			// the half-period timer: flip the blink phase
+			m_bBlinkTickPending = false;
+			_advanceBlink(g_get_monotonic_time());
+		}
 		else
 		{
-			_advanceBlink(g_get_monotonic_time());
+			// a caret move woke this blink: turn it on, never off,
+			// and restart the half-period so it stays lit a full
+			// phase (wordcraft: a move restarts the blink's on-phase)
+			if (!m_bCursorIsOn)
+			{
+				m_bCursorIsOn = true;
+				_setFadeTarget(g_get_monotonic_time(), 1.0);
+			}
+			m_worker->stop();
+			m_worker->start();
 		}
 		_paintCaret(painter);
 
