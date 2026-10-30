@@ -6,7 +6,7 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
-## [4.0.6] — unreleased
+## [4.0.6] — 2026-10-30
 
 ### Added
 
