@@ -334,6 +334,7 @@ public:
 	 * piece table outright; mode "trackedChanges" instead forces
 	 * revision marking. */
 	bool                    isProtectionEnforced() const;
+	bool                    isTrackFormattingSuppressed() const;
 	std::string             getProtectionMode() const;
 	std::string             getProtectionAttrs() const;
 	bool                    isProtectionTrackedOnly() const;

@@ -48,7 +48,8 @@ public:
 	bool redoCmd(UT_uint32) override { return false; }
 	bool createDataItem(const char*, bool, const UT_ConstByteBufPtr&,
 						const std::string&, PD_DataItemHandle*) override { return false; }
-	bool replaceDataItem(const char*, const UT_ConstByteBufPtr&) override { return false; }
+	bool replaceDataItem(const char*, const UT_ConstByteBufPtr&,
+						const std::string& = std::string()) override { return false; }
 	bool getDataItemDataByName(const char*, UT_ConstByteBufPtr&,
 							   std::string*, PD_DataItemHandle*) const override { return false; }
 	UT_uint32 getLastSavedAsType() const override { return 0; }

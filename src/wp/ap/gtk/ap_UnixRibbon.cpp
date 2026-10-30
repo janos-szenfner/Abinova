@@ -9043,6 +9043,17 @@ GtkWidget * AP_UnixRibbon::_makeTrackChangesPopover()
 							 _layout_icon(
 								 static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_AUTO),
 								 16, 16)));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Track Changes Options\xE2\x80\xA6",
+							  "Show-markup filter, tracking gates and "
+							  "author markup colours",
+							  _layout_icon(
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_MARK),
+								  16, 16),
+							  nullptr, nullptr));
+	GtkWidget * opt = gtk_widget_get_last_child(box);
+	g_signal_connect(opt, "clicked",
+					 G_CALLBACK(_s_tracking_options_clicked), this);
 	gtk_box_append(GTK_BOX(box), gtk_separator_new(
 								   GTK_ORIENTATION_HORIZONTAL));
 	gtk_box_append(GTK_BOX(box),
@@ -9057,6 +9068,210 @@ GtkWidget * AP_UnixRibbon::_makeTrackChangesPopover()
 					 G_CALLBACK(_s_popover_check_show), this);
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
+}
+
+void AP_UnixRibbon::_s_tracking_options_clicked(GtkWidget * w,
+												 gpointer data)
+{
+	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
+	UT_return_if_fail(self);
+	_tb_popdown_popover(w);
+	self->_showTrackingOptionsDialog();
+}
+
+/* Track Changes Options (wordcraft review.trackingOptions): the
+ * show-markup kind filter (insertions+deletions / formatting) drives
+ * the document revision show-mask; the tracking gates write the
+ * document-do-not-track-* doc props; author markup colours write the
+ * ColorRevision1..10 prefs, which the view's prefs listener picks up
+ * live.  All controls apply immediately. */
+void AP_UnixRibbon::_showTrackingOptionsDialog()
+{
+	FV_View * pView = m_pFrame
+		? static_cast<FV_View *>(m_pFrame->getCurrentView()) : nullptr;
+	PD_Document * pDoc = pView ? pView->getDocument() : nullptr;
+	UT_return_if_fail(pView && pDoc);
+
+	GtkWidget * toplevel = m_pFrame->getFrameImpl()
+		? static_cast<XAP_UnixFrameImpl *>(
+			  m_pFrame->getFrameImpl())->getTopLevelWindow()
+		: nullptr;
+
+	GtkWidget * dlg = gtk_dialog_new();
+	gtk_window_set_title(GTK_WINDOW(dlg), "Track Changes Options");
+	gtk_window_set_modal(GTK_WINDOW(dlg), true);
+	if (toplevel)
+		gtk_window_set_transient_for(GTK_WINDOW(dlg),
+									 GTK_WINDOW(toplevel));
+	gtk_dialog_add_button(GTK_DIALOG(dlg), "_Close", GTK_RESPONSE_CLOSE);
+	g_signal_connect(dlg, "response",
+					 G_CALLBACK(gtk_window_destroy), nullptr);
+
+	GtkWidget * content = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	gtk_widget_set_margin_top(box, 10);
+	gtk_widget_set_margin_bottom(box, 10);
+	gtk_widget_set_margin_start(box, 14);
+	gtk_widget_set_margin_end(box, 14);
+	gtk_box_append(GTK_BOX(content), box);
+
+	GtkWidget * lbl = gtk_label_new("Show markup");
+	gtk_widget_set_halign(lbl, GTK_ALIGN_START);
+	gtk_box_append(GTK_BOX(box), lbl);
+
+	const UT_uint32 mask = pDoc->getRevisionShowMask();
+	GtkWidget * cIns = gtk_check_button_new_with_label(
+		"Insertions and deletions");
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(cIns),
+		(mask & (PD_REVSHOW_INSERTIONS | PD_REVSHOW_DELETIONS)) ==
+			(PD_REVSHOW_INSERTIONS | PD_REVSHOW_DELETIONS));
+	gtk_box_append(GTK_BOX(box), cIns);
+
+	GtkWidget * cFmt = gtk_check_button_new_with_label(
+		"Formatting changes");
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(cFmt),
+		(mask & PD_REVSHOW_FORMAT) != 0);
+	gtk_box_append(GTK_BOX(box), cFmt);
+
+	GtkWidget * lbl2 = gtk_label_new("Track while recording");
+	gtk_widget_set_halign(lbl2, GTK_ALIGN_START);
+	gtk_widget_set_margin_top(lbl2, 8);
+	gtk_box_append(GTK_BOX(box), lbl2);
+
+	const gchar * v = nullptr;
+	const PP_AttrProp * pAP = pDoc->getAttrProp();
+	bool bNoFmt = pAP && pAP->getProperty(
+		"document-do-not-track-formatting", v) && v &&
+		(!strcmp(v, "1") || !strcmp(v, "true"));
+	bool bNoMoves = pAP && pAP->getProperty(
+		"document-do-not-track-moves", v) && v &&
+		(!strcmp(v, "1") || !strcmp(v, "true"));
+
+	GtkWidget * cTrackFmt = gtk_check_button_new_with_label(
+		"Formatting (record format changes)");
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(cTrackFmt), !bNoFmt);
+	gtk_box_append(GTK_BOX(box), cTrackFmt);
+
+	GtkWidget * cMoves = gtk_check_button_new_with_label(
+		"Moves (record moved text)");
+	gtk_check_button_set_active(GTK_CHECK_BUTTON(cMoves), !bNoMoves);
+	gtk_box_append(GTK_BOX(box), cMoves);
+
+	g_object_set_data(G_OBJECT(dlg), "abi-topt-ins", cIns);
+	g_object_set_data(G_OBJECT(dlg), "abi-topt-fmt", cFmt);
+	g_object_set_data(G_OBJECT(dlg), "abi-topt-trackfmt", cTrackFmt);
+	g_object_set_data(G_OBJECT(dlg), "abi-topt-moves", cMoves);
+	g_object_set_data(G_OBJECT(dlg), "abi-topt-view", pView);
+
+	g_signal_connect(cIns, "toggled",
+					 G_CALLBACK(_s_tracking_opt_toggled), dlg);
+	g_signal_connect(cFmt, "toggled",
+					 G_CALLBACK(_s_tracking_opt_toggled), dlg);
+	g_signal_connect(cTrackFmt, "toggled",
+					 G_CALLBACK(_s_tracking_opt_toggled), dlg);
+	g_signal_connect(cMoves, "toggled",
+					 G_CALLBACK(_s_tracking_opt_toggled), dlg);
+
+	GtkWidget * lbl3 = gtk_label_new("Author markup colours");
+	gtk_widget_set_halign(lbl3, GTK_ALIGN_START);
+	gtk_widget_set_margin_top(lbl3, 8);
+	gtk_box_append(GTK_BOX(box), lbl3);
+
+	GtkWidget * grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 4);
+	gtk_box_append(GTK_BOX(box), grid);
+
+	static const char * s_prefKey[10] = {
+		"ColorRevision1", "ColorRevision2", "ColorRevision3",
+		"ColorRevision4", "ColorRevision5", "ColorRevision6",
+		"ColorRevision7", "ColorRevision8", "ColorRevision9",
+		"ColorRevision10"
+	};
+	XAP_Prefs * pPrefs = XAP_App::getApp()->getPrefs();
+	for (int i = 0; i < 10; ++i)
+	{
+		GtkColorDialog * cd = gtk_color_dialog_new();
+		gtk_color_dialog_set_with_alpha(cd, FALSE);
+		GtkWidget * btn = gtk_color_dialog_button_new(cd);
+		FV_View * pv = static_cast<FV_View *>(
+			g_object_get_data(G_OBJECT(dlg), "abi-topt-view"));
+		const UT_RGBColor & c = pv->getColorRevisions(i);
+		GdkRGBA rgba = { c.m_red / 255.0, c.m_grn / 255.0,
+						 c.m_blu / 255.0, 1.0 };
+		gtk_color_dialog_button_set_rgba(
+			GTK_COLOR_DIALOG_BUTTON(btn), &rgba);
+		g_object_set_data(G_OBJECT(btn), "abi-rev-pref",
+						  const_cast<char *>(s_prefKey[i]));
+		g_object_set_data(G_OBJECT(btn), "abi-rev-prefs", pPrefs);
+		g_signal_connect(btn, "notify::rgba",
+						 G_CALLBACK(_s_tracking_color_notify), nullptr);
+		gtk_grid_attach(GTK_GRID(grid), btn, i % 5, i / 5, 1, 1);
+	}
+	(void)pPrefs;
+
+	gtk_window_present(GTK_WINDOW(dlg));
+}
+
+void AP_UnixRibbon::_s_tracking_opt_toggled(GtkToggleButton * /*b*/,
+											 gpointer data)
+{
+	GtkWidget * dlg = static_cast<GtkWidget *>(data);
+	FV_View * pView = static_cast<FV_View *>(
+		g_object_get_data(G_OBJECT(dlg), "abi-topt-view"));
+	PD_Document * pDoc = pView ? pView->getDocument() : nullptr;
+	UT_return_if_fail(pView && pDoc);
+
+	GtkWidget * cIns = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(dlg), "abi-topt-ins"));
+	GtkWidget * cFmt = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(dlg), "abi-topt-fmt"));
+	GtkWidget * cTF = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(dlg), "abi-topt-trackfmt"));
+	GtkWidget * cMv = static_cast<GtkWidget *>(
+		g_object_get_data(G_OBJECT(dlg), "abi-topt-moves"));
+
+	UT_uint32 mask = pDoc->getRevisionShowMask();
+	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(cIns)))
+		mask |= (PD_REVSHOW_INSERTIONS | PD_REVSHOW_DELETIONS);
+	else
+		mask &= ~(PD_REVSHOW_INSERTIONS | PD_REVSHOW_DELETIONS);
+	if(gtk_check_button_get_active(GTK_CHECK_BUTTON(cFmt)))
+		mask |= PD_REVSHOW_FORMAT;
+	else
+		mask &= ~PD_REVSHOW_FORMAT;
+	pView->setRevisionShowMask(mask);
+
+	PP_PropertyVector props = {
+		"document-do-not-track-formatting",
+			gtk_check_button_get_active(GTK_CHECK_BUTTON(cTF)) ? "0" : "1",
+		"document-do-not-track-moves",
+			gtk_check_button_get_active(GTK_CHECK_BUTTON(cMv)) ? "0" : "1"
+	};
+	pDoc->setProperties(props);
+}
+
+void AP_UnixRibbon::_s_tracking_color_notify(GObject * btn,
+											 GParamSpec * /*pspec*/,
+											 gpointer /*data*/)
+{
+	const char * key = static_cast<const char *>(
+		g_object_get_data(btn, "abi-rev-pref"));
+	XAP_Prefs * pPrefs = static_cast<XAP_Prefs *>(
+		g_object_get_data(btn, "abi-rev-prefs"));
+	UT_return_if_fail(key && pPrefs);
+
+	const GdkRGBA * rgba = gtk_color_dialog_button_get_rgba(
+		GTK_COLOR_DIALOG_BUTTON(btn));
+	UT_return_if_fail(rgba);
+	char hex[8];
+	snprintf(hex, sizeof(hex), "%02x%02x%02x",
+			 static_cast<int>(rgba->red * 255 + 0.5),
+			 static_cast<int>(rgba->green * 255 + 0.5),
+			 static_cast<int>(rgba->blue * 255 + 0.5));
+	XAP_PrefsScheme * pScheme = pPrefs->getCurrentScheme(true);
+	UT_return_if_fail(pScheme);
+	pScheme->setValue(key, hex);
 }
 
 GtkWidget * AP_UnixRibbon::_makeMarkupPopover()

@@ -50,6 +50,7 @@
 #include "ap_Prefs.h"
 #include "fp_FootnoteContainer.h"
 #include "fp_FrameContainer.h"
+#include "pd_Document.h"
 #include "ut_color.h"
 #include "ut_units.h"
 #include "pp_AttrProp.h"
@@ -2298,7 +2299,11 @@ void fp_Line::draw(dg_DrawArgs* pDA)
 		{
 			fp_Run * pRevRun =
 				static_cast<fp_Run*>(m_vecRuns[i]);
-			if (pRevRun->containsRevisions())
+			if (pRevRun->containsRevisions() &&
+				pRevRun->getRevisions()->getLastRevision() &&
+				PD_revisionTypeShown(
+					pRevRun->getRevisions()->getLastRevision()->getType(),
+					pView->getDocument()->getRevisionShowMask()))
 			{
 				GR_Painter painter(pDA->pG);
 				UT_RGBColor c(0xf0, 0x40, 0x40);

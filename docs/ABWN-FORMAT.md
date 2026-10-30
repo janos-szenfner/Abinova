@@ -78,7 +78,7 @@ need to be written unless it differs.
 | `abinova` | root; `version`, `fileformat`, `template`, `xid-max` |
 | `metadata`/`m` | Dublin Core + `abiword.*` keys |
 | `history`, `rdf`, `changes`, `masterpages`, `notes` | pass-through payload blocks |
-| `revisions`/`r` | revision table; `show`/`mark`/`show-level`/`auto` flags on the container, `id`/`time-started`/`version`/`author` on each entry (see below) |
+| `revisions`/`r` | revision table; `show`/`mark`/`show-level`/`show-mask`/`auto` flags on the container, `id`/`time-started`/`version`/`author` on each entry (see below) |
 | `styles`/`s` | named styles (`type="P\|C"`, `basedon`, `followedby`) |
 | `lists`/`l` | list definitions; `id`/`parentid`/`type`/`start-value`/`list-delim`/`list-decimal` are direct attributes, not props |
 | `pagesize` | page geometry |

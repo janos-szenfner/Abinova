@@ -41,20 +41,23 @@ class ABI_EXPORT PP_RevisionState
 	PP_RevisionState()
 		:m_iId(0),
 		m_bShow(false),
-		m_bMark(false)
+		m_bMark(false),
+		m_iShowMask(0)
 	{
 	}
 
 	bool operator == (const PP_RevisionState & rs) const
 	     {
-			 if(rs.m_iId == m_iId && rs.m_bShow == m_bShow && rs.m_bMark == m_bMark)
+			 if(rs.m_iId == m_iId && rs.m_bShow == m_bShow && rs.m_bMark == m_bMark
+				&& rs.m_iShowMask == m_iShowMask)
 				 return true;
 			 return false;
 		 }
 
-	bool isEqual(UT_uint32 iId, bool bShow, bool bMark) const
+	bool isEqual(UT_uint32 iId, bool bShow, bool bMark, UT_uint32 iMask) const
 	     {
-			 if(m_iId == iId && m_bShow == bShow && m_bMark == bMark)
+			 if(m_iId == iId && m_bShow == bShow && m_bMark == bMark
+				&& m_iShowMask == iMask)
 				 return true;
 			 return false;
 		 }
@@ -62,6 +65,7 @@ class ABI_EXPORT PP_RevisionState
 	UT_uint32 m_iId;
 	bool      m_bShow;
 	bool      m_bMark;
+	UT_uint32 m_iShowMask;
 };
 
 
@@ -144,10 +148,12 @@ public:
 	PT_AttrPropIndex   getRevisedIndex() const {return m_iRevisedIndex;}
 	PP_RevisionState & getRevisionState() const {return m_RevisionState;}
 
-	void               setRevisedIndex (PT_AttrPropIndex i, UT_uint32 iId, bool bShow, bool bMark, bool bHidden) const
+	void               setRevisedIndex (PT_AttrPropIndex i, UT_uint32 iId, bool bShow, bool bMark,
+										UT_uint32 iMask, bool bHidden) const
 	                       {
 							   m_iRevisedIndex = i; m_RevisionState.m_iId = iId;
 							   m_RevisionState.m_bShow = bShow; m_RevisionState.m_bMark = bMark;
+							   m_RevisionState.m_iShowMask = iMask;
 							   m_bRevisionHidden = bHidden;
 						   }
 

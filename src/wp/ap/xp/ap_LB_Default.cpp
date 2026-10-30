@@ -351,9 +351,9 @@ ap_bs_NVK NVKTable[] =
 	{EV_NVK_ESCAPE,		{ "doEscape", "doEscape", "doEscape",  "doEscape","doEscape", "doEscape",  "doEscape", "doEscape" }},
 
 	{EV_NVK_PAGEUP,		{ "warpInsPtPrevScreen","extSelScreenUp",   "warpInsPtPrevPage",	"extSelPageUp",
-						  "",					"",					"warpInsPtBOP",	""					}},
+						  "revisionFindPrev",	"",					"warpInsPtBOP",	""					}},
 	{EV_NVK_PAGEDOWN,	{ "warpInsPtNextScreen","extSelScreenDown",	"warpInsPtNextPage",	"extSelPageDown",
-						  "",					"",					"warpInsPtEOP",	""					}},
+						  "revisionFindNext",	"",					"warpInsPtEOP",	""					}},
 	{EV_NVK_END,		{ "warpInsPtEOL",		"extSelEOL",		"warpInsPtEOD",	"extSelEOD",
 						  "",					"",					"",				""					}},
 	{EV_NVK_HOME,		{ "warpInsPtBOL",		"extSelBOL",		"warpInsPtBOD",	"extSelBOD",

@@ -1506,6 +1506,7 @@ void s_Abinova_1_Listener::_handleRevisions(void)
 			m_pie->addBool("show", m_pDocument->isShowRevisions());
 			m_pie->addBool("mark", m_pDocument->isMarkRevisions());
 			m_pie->addInt("show-level", m_pDocument->getShowRevisionId());
+			m_pie->addInt("show-mask", m_pDocument->getRevisionShowMask());
 			m_pie->addBool("auto", m_pDocument->isAutoRevisioning());
 			bWroteOpenRevisionsSection = true;
 		}

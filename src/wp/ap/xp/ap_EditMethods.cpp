@@ -964,6 +964,7 @@ public:
 	static EV_EditMethod_Fn revisionFindPrev;
 	static EV_EditMethod_Fn revisionSetViewLevel;
 	static EV_EditMethod_Fn revisionPurge;
+	static EV_EditMethod_Fn trackingOptions;
 	static EV_EditMethod_Fn revisionCombineDocuments;
 	static EV_EditMethod_Fn toggleShowRevisions;
 	static EV_EditMethod_Fn toggleShowRevisionsBefore;
@@ -1712,6 +1713,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(toggleUline),			0,	""),
 	EV_EditMethod(NF(toggleUnIndent),       0,  ""),
 	EV_EditMethod(NF(toggleUnicode), 		0,	""),
+	EV_EditMethod(NF(trackingOptions),	_D_,""),
 
 	// u
 	EV_EditMethod(NF(unHangingIndent),		0,	""),
@@ -20166,6 +20168,98 @@ Defun1(revisionAcceptAllShown)
 	UT_return_val_if_fail(pDoc,false);
 
 	return pDoc->acceptAllRevisionsUpTo(pView->getRevisionOpsLevel());
+}
+
+/*!
+    Word's Track Changes Options (wordcraft review.trackingOptions):
+    a spec string of ';'-separated key=value assignments —
+
+      insdel=on|off    show insertions & deletions markup
+      fmt=on|off       show formatting-change markup
+      trackfmt=on|off  record formatting changes while tracking
+                       (writes document-do-not-track-formatting)
+      moves=on|off     record moves while tracking
+                       (writes document-do-not-track-moves; the
+                       display/record engine has no move marks yet,
+                       so this persists + round-trips only)
+
+    The first two drive the document's revision-kind display mask
+    (PD_REVSHOW_*); the latter two are document properties and apply
+    through a normal doc edit.  Unknown keys are ignored.
+*/
+static bool s_revOptBool(const std::string & sVal, bool dflt)
+{
+	if(sVal == "on" || sVal == "1" || sVal == "true")
+		return true;
+	if(sVal == "off" || sVal == "0" || sVal == "false")
+		return false;
+	return dflt;
+}
+
+Defun(trackingOptions)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView && pCallData && pCallData->m_pData, false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	UT_UTF8String spec(pCallData->m_pData, pCallData->m_dataLength);
+	std::string s = spec.utf8_str();
+
+	UT_uint32 mask = pDoc->getRevisionShowMask();
+	bool bMaskSet = false;
+	PP_PropertyVector props;
+	bool bPropsSet = false;
+
+	size_t at = 0;
+	while(at <= s.size())
+	{
+		size_t semi = s.find(';', at);
+		std::string kv = s.substr(at,
+			(semi == std::string::npos) ? std::string::npos : semi - at);
+		at = (semi == std::string::npos) ? s.size() + 1 : semi + 1;
+		size_t eq = kv.find('=');
+		if(eq == std::string::npos)
+			continue;
+		std::string key = kv.substr(0, eq);
+		std::string val = kv.substr(eq + 1);
+
+		if(key == "insdel")
+		{
+			if(s_revOptBool(val, true))
+				mask |= (PD_REVSHOW_INSERTIONS | PD_REVSHOW_DELETIONS);
+			else
+				mask &= ~(PD_REVSHOW_INSERTIONS | PD_REVSHOW_DELETIONS);
+			bMaskSet = true;
+		}
+		else if(key == "fmt")
+		{
+			if(s_revOptBool(val, true))
+				mask |= PD_REVSHOW_FORMAT;
+			else
+				mask &= ~PD_REVSHOW_FORMAT;
+			bMaskSet = true;
+		}
+		else if(key == "trackfmt")
+		{
+			props.push_back("document-do-not-track-formatting");
+			props.push_back(s_revOptBool(val, true) ? "0" : "1");
+			bPropsSet = true;
+		}
+		else if(key == "moves")
+		{
+			props.push_back("document-do-not-track-moves");
+			props.push_back(s_revOptBool(val, true) ? "0" : "1");
+			bPropsSet = true;
+		}
+	}
+
+	if(bPropsSet)
+		pDoc->setProperties(props);
+	if(bMaskSet)
+		pView->setRevisionShowMask(mask);
+	return true;
 }
 
 /*!

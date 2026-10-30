@@ -10,6 +10,12 @@ responsibility** — see `README.md`.
 
 ### Added
 
+- Review: **Track Changes Options** dialog (Track Changes popover)
+  with Show Markup toggles for insertions/deletions and formatting
+  changes, track-formatting and track-moves document gates (OOXML
+  `doNotTrackFormatting`/`doNotTrackMoves` round-trip), and the
+  ten author markup colour pickers. Next/Previous Change now also
+  bound to Alt+PageDown/Alt+PageUp.
 - Compare group gains **Compare with File…**: diff the current
   document against any importable file on disk (not just open
   documents) — the merged legal-blackline document now also marks

@@ -1254,3 +1254,216 @@ TFTEST_MAIN("simple mode paints the left-margin revision bar")
 		cairo_surface_destroy(surf);
 	}
 }
+
+namespace {
+
+int revBlockCount(RevView & hv)
+{
+	int n = 0;
+	for (fl_BlockLayout * pB = hv.layout->findBlockAtPosition(2);
+		 pB; pB = pB->getNextBlockInDocument())
+		++n;
+	return n;
+}
+
+} // namespace
+
+/* W62 #864-shape: a tracked deletion spanning a paragraph boundary,
+ * then Accept All — exactly the two affected paragraphs may merge;
+ * the following paragraph must NOT be swallowed. */
+TFTEST_MAIN("accept-all joins exactly once after boundary delete")
+{
+	RevView hv;
+	TFPASS(hv.load("aaXbb\nccYdd\nee"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+
+	doc->setMarkRevisions(true);
+	/* para1 "aaXbb" = text at 3..7, block2 strux at 8, "ccYdd" at
+	 * 9..13 — a backspace-style delete of 4 from pos 10 covers
+	 * 'b' + the para mark + "cc", i.e. it spans the boundary */
+	v->setPoint(10);
+	v->cmdCharDelete(false, 4);
+	doc->setMarkRevisions(false);
+	fvrSettle(hv.layout);
+
+	TFPASS(callEM(v, "revisionAcceptAll"));
+	fvrSettle(hv.layout);
+	/* "aaXb" + "Ydd" joined once; "ee" untouched: 2 blocks, not 1 */
+	TFPASS(revBlockCount(hv) == 2);
+	const std::string t = hv.text();
+	TFPASS(t.find("aaXb") != std::string::npos);
+	TFPASS(t.find("Ydd") != std::string::npos);
+	TFPASS(t.find("aaXbb") == std::string::npos);
+	TFPASS(t.find("cc") == std::string::npos);
+	TFPASS(t.find("ee") != std::string::npos);
+	TFPASS(hv.markedRunCount() == 0);
+}
+
+/* the reject-all counterpart: the boundary must be restored, not
+ * merged further or left half-deleted */
+TFTEST_MAIN("reject-all restores the paragraph boundary")
+{
+	RevView hv;
+	TFPASS(hv.load("aaXbb\nccYdd\nee"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+
+	doc->setMarkRevisions(true);
+	v->setPoint(10);
+	v->cmdCharDelete(false, 4);
+	doc->setMarkRevisions(false);
+	fvrSettle(hv.layout);
+
+	TFPASS(callEM(v, "revisionRejectAll"));
+	fvrSettle(hv.layout);
+	TFPASS(revBlockCount(hv) == 3);
+	const std::string t = hv.text();
+	TFPASS(t.find("aaXbb") != std::string::npos);
+	TFPASS(t.find("ccYdd") != std::string::npos);
+	TFPASS(t.find("ee") != std::string::npos);
+}
+
+/* W62 edge case: reject-all after typing into an empty paragraph —
+ * the paragraph itself must survive (the doc keeps >= 1 block and
+ * no stray structure) */
+TFTEST_MAIN("reject-all keeps the typed-into empty paragraph")
+{
+	RevView hv;
+	TFPASS(hv.load(""));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+
+	doc->setMarkRevisions(true);
+	v->setPoint(hv.eod());
+	v->cmdCharInsert(std::string("xyz"), false);
+	doc->setMarkRevisions(false);
+	fvrSettle(hv.layout);
+	TFPASS(hv.text().find("xyz") != std::string::npos);
+
+	TFPASS(callEM(v, "revisionRejectAll"));
+	fvrSettle(hv.layout);
+	TFPASS(hv.text().find("xyz") == std::string::npos);
+	/* the block survives — the doc did not collapse to zero paras */
+	TFPASS(revBlockCount(hv) >= 1);
+	PT_DocPosition e = 0;
+	TFPASS(doc->getBounds(true, e));
+	TFPASS(e >= 2);
+	TFPASS(hv.markedRunCount() == 0);
+}
+
+/* W62: document-do-not-track-formatting — a format applied while
+ * tracking with the flag set lands as plain text, no fmt-change
+ * revision (OOXML w:doNotTrackFormatting) */
+TFTEST_MAIN("do-not-track-formatting skips fmt revisions")
+{
+	RevView hv;
+	TFPASS(hv.load("base text"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+
+	/* control: with tracking on and the flag clear, a format IS a
+	 * tracked fmt-change */
+	doc->setMarkRevisions(true);
+	v->cmdSelect(3, 7);
+	TFPASS(callEM(v, "toggleBold"));
+	fvrSettle(hv.layout);
+	const int marked0 = hv.markedRunCount();
+	TFPASS(marked0 >= 1);
+	v->cmdUndo(2);
+	fvrSettle(hv.layout);
+
+	/* now the gate: formatting applies but records no revision */
+	doc->setProperties({"document-do-not-track-formatting", "1"});
+	v->cmdSelect(3, 7);
+	TFPASS(callEM(v, "toggleBold"));
+	fvrSettle(hv.layout);
+	TFPASS(hv.markedRunCount() == 0);
+	doc->setMarkRevisions(false);
+}
+
+/* W62: show-mask display filter — deletions filtered out leave the
+ * layout entirely (as if accepted); insertions stay but unmarked;
+ * the revision records themselves are untouched */
+TFTEST_MAIN("show-mask filters revision kinds in all-markup")
+{
+	RevView hv;
+	TFPASS(hv.load("keep deleted keep"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+	TFPASS(seedMarks(hv));
+	const UT_uint32 rev0 = doc->getHighestRevisionId();
+
+	v->setShowRevisions(true);
+	v->cmdSetRevisionLevel(0);
+	fvrSettle(hv.layout);
+	std::string vis = hv.visibleText();
+	TFPASS(vis.find("deleted") != std::string::npos);
+	TFPASS(vis.find("INSERTED") != std::string::npos);
+
+	/* deletions off: the struck text leaves the layout */
+	v->setRevisionShowMask(PD_REVSHOW_INSERTIONS | PD_REVSHOW_FORMAT);
+	fvrSettle(hv.layout);
+	vis = hv.visibleText();
+	TFPASS(vis.find("deleted") == std::string::npos);
+	TFPASS(vis.find("INSERTED") != std::string::npos);
+	TFPASS(doc->getHighestRevisionId() == rev0);
+	TFPASS(hv.markedRunCount() >= 1);
+
+	/* insertions off too: inserted text stays (unmarked) */
+	v->setRevisionShowMask(PD_REVSHOW_FORMAT);
+	fvrSettle(hv.layout);
+	vis = hv.visibleText();
+	TFPASS(vis.find("INSERTED") != std::string::npos);
+	TFPASS(vis.find("deleted") == std::string::npos);
+
+	/* restore: both kinds marked again */
+	v->setRevisionShowMask(PD_REVSHOW_ALL);
+	fvrSettle(hv.layout);
+	vis = hv.visibleText();
+	TFPASS(vis.find("deleted") != std::string::npos);
+	TFPASS(vis.find("INSERTED") != std::string::npos);
+	TFPASS(doc->getHighestRevisionId() == rev0);
+}
+
+/* the trackingOptions edit method drives the same mask + doc props */
+TFTEST_MAIN("trackingOptions edit method")
+{
+	RevView hv;
+	TFPASS(hv.load("keep deleted keep"));
+	if (!hv.view)
+		return;
+	FV_View * v = hv.view;
+	PD_Document * doc = hv.doc;
+	TFPASS(seedMarks(hv));
+
+	v->setShowRevisions(true);
+	v->cmdSetRevisionLevel(0);
+	fvrSettle(hv.layout);
+
+	TFPASS(callEMu4(v, "trackingOptions", "insdel=off"));
+	fvrSettle(hv.layout);
+	TFPASS((doc->getRevisionShowMask() &
+		(PD_REVSHOW_INSERTIONS | PD_REVSHOW_DELETIONS)) == 0);
+	TFPASS(hv.visibleText().find("deleted") == std::string::npos);
+
+	TFPASS(callEMu4(v, "trackingOptions",
+					 "insdel=on;trackfmt=off;moves=off"));
+	fvrSettle(hv.layout);
+	TFPASS((doc->getRevisionShowMask() & PD_REVSHOW_INSERTIONS) != 0);
+	TFPASS(doc->isTrackFormattingSuppressed());
+	const gchar * mv = nullptr;
+	TFPASS(doc->getAttrProp()->getProperty(
+		"document-do-not-track-moves", mv) && mv &&
+		!strcmp(mv, "1"));
+}

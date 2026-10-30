@@ -5212,7 +5212,7 @@ const PP_AttrProp * PD_Document::explodeRevisions(std::unique_ptr<PP_RevisionAtt
 					
 					PT_AttrPropIndex api;
 					UT_return_val_if_fail(getPieceTable()->getVarSet().addIfUniqueAP(pNewAP, &api), nullptr);
-					pAP->setRevisedIndex(api,iId,bShow,bMark,bHiddenRevision);
+					pAP->setRevisedIndex(api,iId,bShow,bMark,getRevisionShowMask(),bHiddenRevision);
 
 					// the above might have resulted in the deletion
 					// of pNewAP -- retrieve it by the index
@@ -5233,6 +5233,20 @@ const PP_AttrProp * PD_Document::explodeRevisions(std::unique_ptr<PP_RevisionAtt
 			bHiddenRevision = true;
 			UT_ASSERT_HARMLESS(!pNewAP);
 			return nullptr;
+		}
+		else if(!(getRevisionShowMask() & PD_REVSHOW_DELETIONS))
+		{
+			// "Show deletions" off (Track Changes Options): a fragment
+			// whose effective last revision is a deletion presents as
+			// if that deletion were accepted — struck text leaves the
+			// layout entirely, same as the No-Markup view of it
+			const PP_Revision * pLast = pRevisions->getLastRevision();
+			if(pLast && pLast->getType() == PP_REVISION_DELETION)
+			{
+				bHiddenRevision = true;
+				UT_ASSERT_HARMLESS(!pNewAP);
+				return nullptr;
+			}
 		}
 
 		//next step is to find any fmt changes, layering them as
@@ -5302,7 +5316,7 @@ const PP_AttrProp * PD_Document::explodeRevisions(std::unique_ptr<PP_RevisionAtt
 
 		PT_AttrPropIndex api;
 		UT_return_val_if_fail(getPieceTable()->getVarSet().addIfUniqueAP(pNewAP, &api), nullptr);
-		pAP->setRevisedIndex(api,iId,bShow,bMark,bHiddenRevision);
+		pAP->setRevisedIndex(api,iId,bShow,bMark,getRevisionShowMask(),bHiddenRevision);
 
 		// the above might have resulted in the deletion
 		// of pNewAP -- retrieve it by the index
@@ -5684,6 +5698,14 @@ static bool s_docPropTruthy(const PP_AttrProp * pAP, const char * szName)
 bool PD_Document::isProtectionEnforced() const
 {
 	return s_docPropTruthy(getAttrProp(), "document-protected");
+}
+
+/* Word's w:doNotTrackFormatting: when set, formatting changes made
+ * while Track Changes is on apply directly instead of recording
+ * fmt-change revisions (OOXML settings.xml semantics). */
+bool PD_Document::isTrackFormattingSuppressed() const
+{
+	return s_docPropTruthy(getAttrProp(), "document-do-not-track-formatting");
 }
 
 std::string PD_Document::getProtectionMode() const
@@ -8972,7 +8994,7 @@ bool PD_Document::getAttrProp(PT_AttrPropIndex apIndx, const PP_AttrProp ** ppAP
 		return false;
 
 	if(   pAP->getRevisedIndex() != 0xffffffff
-	   && pAP->getRevisionState().isEqual(iRevisionId, bShowRevisions, isMarkRevisions()))
+	   && pAP->getRevisionState().isEqual(iRevisionId, bShowRevisions, isMarkRevisions(), getRevisionShowMask()))
 	{
 		// the revision has a valid index to an inflated AP, so we use it
 		bHiddenRevision = pAP->getRevisionHidden();
@@ -9032,7 +9054,7 @@ bool PD_Document::getSpanAttrProp(const pf_Frag_Strux* sdh, UT_uint32 offset, bo
 		return false;
 
 	if(   pAP->getRevisedIndex() != 0xffffffff
-	   && pAP->getRevisionState().isEqual(iRevisionId, bShowRevisions, isMarkRevisions()))
+	   && pAP->getRevisionState().isEqual(iRevisionId, bShowRevisions, isMarkRevisions(), getRevisionShowMask()))
 	{
 		// the revision has a valid index to an inflated AP, so we use it
 		bHiddenRevision = pAP->getRevisionHidden();

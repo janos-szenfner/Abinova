@@ -934,6 +934,13 @@ void IE_Imp_Abinova_1::startElement(const gchar *name,
 			getDoc()->setShowRevisionId(i);
 		}
 
+		const std::string & s3b = PP_getAttribute("show-mask", atts);
+		if(!s3b.empty())
+		{
+			i = atoi(s3b.c_str());
+			getDoc()->setRevisionShowMask(i);
+		}
+
 		const std::string & s4 = PP_getAttribute("auto",atts);
 		if(!s4.empty())
 		{

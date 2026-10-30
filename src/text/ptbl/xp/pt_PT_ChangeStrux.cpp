@@ -135,7 +135,7 @@ bool pt_PieceTable::changeStruxFmt(PTChangeFmt ptc,
 								   PTStruxType pts)
 {
 	bool bDoAll = (pts == PTX_StruxDummy);
-	if(m_pDocument->isMarkRevisions())
+	if(m_pDocument->isMarkRevisions() && !m_pDocument->isTrackFormattingSuppressed())
 	{
 		pf_Frag_Strux * pfs_First;
 		pf_Frag_Strux * pfs_End;

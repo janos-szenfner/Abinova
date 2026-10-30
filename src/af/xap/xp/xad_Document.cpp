@@ -58,6 +58,7 @@ AD_Document::AD_Document() :
 	m_bHistoryWasSaved(false),
 	m_bMarkRevisions(false),
 	m_bShowRevisions(true),
+	m_iRevShowMask(7), // PD_REVSHOW_ALL
 	m_iRevisionID(1),
 	m_iShowRevisionID(0), // show all
 	m_bAutoRevisioning(false),

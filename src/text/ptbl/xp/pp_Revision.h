@@ -49,6 +49,35 @@ enum PP_RevisionType: uint8_t {
 	PP_REVISION_ADDITION_AND_FMT = 0x05
 };
 
+/*! Display filter for the marked-up view (Word's Show Markup /
+ *  Track Changes Options): which revision _kinds_ paint their inline
+ *  marks.  Kept on the document (like markRevisions) so
+ *  explodeRevisions can read it without threading view state through
+ *  every getAttrProp call site; also folded into the revised-index
+ *  cache key (PP_RevisionState) so toggles invalidate stale APs. */
+enum PD_RevisionShowFlags : UT_uint32 {
+	PD_REVSHOW_INSERTIONS = 1,
+	PD_REVSHOW_DELETIONS  = 2,
+	PD_REVSHOW_FORMAT     = 4,
+	PD_REVSHOW_ALL        = PD_REVSHOW_INSERTIONS | PD_REVSHOW_DELETIONS | PD_REVSHOW_FORMAT
+};
+
+/*! whether a revision of type t paints inline markup under mask m.
+ *  Deletions filtered OUT additionally hide the struck text entirely
+ *  (handled in explodeRevisions); filtered insertions/format-changes
+ *  stay visible but unmarked (handled at run draw/colour). */
+inline bool PD_revisionTypeShown(PP_RevisionType t, UT_uint32 m)
+{
+	switch (t)
+	{
+		case PP_REVISION_ADDITION:
+		case PP_REVISION_ADDITION_AND_FMT: return (m & PD_REVSHOW_INSERTIONS) != 0;
+		case PP_REVISION_DELETION:         return (m & PD_REVSHOW_DELETIONS)  != 0;
+		case PP_REVISION_FMT_CHANGE:       return (m & PD_REVSHOW_FORMAT)     != 0;
+		default:                           return true;
+	}
+}
+
 /*! PP_Revision is a class that encapsulates a single revision,
     holding its id, type and associated properties and attributes. It
     provides functions for retrieving information and from merging

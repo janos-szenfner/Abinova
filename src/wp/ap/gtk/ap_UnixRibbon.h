@@ -122,6 +122,14 @@ private:
 	GtkWidget *		_makePageColorPopover();
 	GtkWidget *		_makePageBordersPopover();
 	void			_showCustomWatermarkDialog();
+	void			_showTrackingOptionsDialog();
+	static void		_s_tracking_options_clicked(GtkWidget * w,
+												gpointer data);
+	static void		_s_tracking_opt_toggled(GtkToggleButton * b,
+											gpointer data);
+	static void		_s_tracking_color_notify(GObject * btn,
+											 GParamSpec * pspec,
+											 gpointer data);
 	static void		_s_watermark_custom_clicked(GtkWidget * w,
 													gpointer data);
 	static void		_s_custom_watermark_response(GtkDialog * dlg,

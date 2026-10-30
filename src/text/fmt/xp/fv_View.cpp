@@ -16740,6 +16740,27 @@ void FV_View::toggleShowRevisions()
 	setShowRevisions(!m_bShowRevisions);
 }
 
+/* Word's Show Markup / Track Changes Options per-kind display
+ * filter.  The mask lives on the document (like mark/show) — this is
+ * the relayout entry point, mirroring setShowRevisions. */
+UT_uint32 FV_View::getRevisionShowMask() const
+{
+	return m_pDoc ? m_pDoc->getRevisionShowMask() : 0;
+}
+
+void FV_View::setRevisionShowMask(UT_uint32 iMask)
+{
+	if(m_pDoc->getRevisionShowMask() != iMask)
+	{
+		m_pDoc->setRevisionShowMask(iMask);
+
+		m_pLayout->rebuildFromHere(static_cast<fl_DocSectionLayout *>(m_pLayout->getFirstSection()));
+		queueDraw(nullptr);
+		_fixInsertionPointCoords();
+		notifyListeners(AV_CHG_MOTION);
+	}
+}
+
 /*!
     'simple markup' mode: changed lines are flagged by a bar in the
     left margin instead of inline revision marks.  Only affects

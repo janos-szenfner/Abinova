@@ -1088,6 +1088,10 @@ public:
 	bool                isShowRevisions() const {return m_bShowRevisions;}
 	void                toggleShowRevisions();
 	void                setShowRevisions(bool bShow);
+	/* revision-kind display filter (Track Changes Options); stored on
+	 * the document, applied through here so the view rebuilds */
+	UT_uint32           getRevisionShowMask() const;
+	void                setRevisionShowMask(UT_uint32 iMask);
 	// 'simple markup' display - margin bars on changed lines instead
 	// of inline revision marks; view-specific, drawing only
 	bool                isShowRevBars() const {return m_bShowRevBars;}

@@ -307,10 +307,12 @@ TFTEST_MAIN("captions, table of figures, cross references")
 
 	/* caption + cross-reference fields */
 	v->setPoint(hv.eod());
-	TFPASS(v->cmdInsertCaption("Figure", false) == UT_OK);
-	TFPASS(v->cmdInsertCaption("Table", true) == UT_OK);
-	TFPASS(v->cmdInsertCrossReference("fig1", true) == UT_OK);
-	v->cmdInsertCrossReference("fig1", false);
+	TFPASS(v->cmdInsertCaption("Figure", false, nullptr, nullptr,
+							   false, 0, nullptr) == UT_OK);
+	TFPASS(v->cmdInsertCaption("Table", true, nullptr, nullptr,
+							   false, 0, nullptr) == UT_OK);
+	TFPASS(v->cmdInsertCrossReference("bookmark", "fig1", "text") == UT_OK);
+	v->cmdInsertCrossReference("bookmark", "fig1", "page");
 
 	std::vector<std::string> names;
 	v->getXRefBookmarks(names);
@@ -336,13 +338,15 @@ TFTEST_MAIN("index marking and generated index")
 
 	/* mark two spans as index entries (returns bool-as-UT_Error) */
 	v->cmdSelect(2, 7);
-	TFPASS(v->cmdMarkIndexEntry("zebra") != UT_ERROR);
+	TFPASS(v->cmdMarkIndexEntry("zebra", nullptr, nullptr, nullptr,
+							   false, false, false) != UT_ERROR);
 	v->cmdUnselectSelection();
 
 	PT_DocPosition posEnd = 0;
 	hv.doc->getBounds(true, posEnd);
 	v->cmdSelect(posEnd - 11, posEnd);
-	TFPASS(v->cmdMarkIndexEntry("apple") != UT_ERROR);
+	TFPASS(v->cmdMarkIndexEntry("apple", nullptr, nullptr, nullptr,
+							   false, false, false) != UT_ERROR);
 	v->cmdUnselectSelection();
 
 	/* generated index section at the end */

@@ -56,7 +56,7 @@ bool pt_PieceTable::changeSpanFmt(PTChangeFmt ptc,
 {
 	// if dpos1 == dpos2 we are inserting a fmt mark; this must be chanelled throught
 	// the non-revision branch ...
-	if(m_pDocument->isMarkRevisions() && dpos1 != dpos2)
+	if(m_pDocument->isMarkRevisions() && !m_pDocument->isTrackFormattingSuppressed() && dpos1 != dpos2)
 	{
 		const gchar name[] = "revision";
 		const gchar * pRevision = nullptr;

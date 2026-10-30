@@ -5698,7 +5698,7 @@ bool fl_ShadowListener::populateStrux(pf_Frag_Strux* sdh,
 			std::unique_ptr<PP_RevisionAttr> pRevisions; // must be nullptr
 
 			if(  pAP->getRevisedIndex() != 0xffffffff
-			  && pAP->getRevisionState().isEqual(iId, bShow, m_pDoc->isMarkRevisions()))
+			  && pAP->getRevisionState().isEqual(iId, bShow, m_pDoc->isMarkRevisions(), m_pDoc->getRevisionShowMask()))
 			{
 				// the revision has a valid index to an inflated AP, so we use it
 				PT_AttrPropIndex revAPI = pAP->getRevisedIndex();
@@ -5775,7 +5775,7 @@ bool fl_ShadowListener::populateStrux(pf_Frag_Strux* sdh,
 			std::unique_ptr<PP_RevisionAttr> pRevisions; // must be nullptr
 
 			if(  pAP->getRevisedIndex() != 0xffffffff
-			  && pAP->getRevisionState().isEqual(iId, bShow, m_pDoc->isMarkRevisions()))
+			  && pAP->getRevisionState().isEqual(iId, bShow, m_pDoc->isMarkRevisions(), m_pDoc->getRevisionShowMask()))
 			{
 				// the revision has a valid index to an inflated AP, so we use it
 				PT_AttrPropIndex revAPI = pAP->getRevisedIndex();

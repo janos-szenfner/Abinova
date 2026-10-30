@@ -308,6 +308,11 @@ public:
 	bool                isMarkRevisions() const{ return m_bMarkRevisions;}
 	bool                isShowRevisions() const{ return m_bShowRevisions;}
 
+	/* revision-kind display filter (Word Show Markup / Track Changes
+	 * Options): PD_REVSHOW_* bits, default PD_REVSHOW_ALL */
+	UT_uint32           getRevisionShowMask() const {return m_iRevShowMask;}
+	void                setRevisionShowMask(UT_uint32 m) {m_iRevShowMask = m;}
+
 	UT_uint32           getShowRevisionId() const {return m_iShowRevisionID;}
 	UT_uint32           getRevisionId() const{ return m_iRevisionID;}
 
@@ -401,6 +406,7 @@ private:
 
 	bool            m_bMarkRevisions;
 	bool            m_bShowRevisions;
+	UT_uint32       m_iRevShowMask;
 	UT_uint32       m_iRevisionID;
 	UT_uint32       m_iShowRevisionID;
 	bool            m_bAutoRevisioning;

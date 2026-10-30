@@ -1262,6 +1262,12 @@ const UT_RGBColor fp_Run::getFGColor(void) const
 
 		UT_return_val_if_fail(r != nullptr, _getColorFG());
 
+		// revision-kind display filter (Track Changes Options):
+		// filtered kinds keep the text but paint no revision colour
+		if(!PD_revisionTypeShown(r->getType(),
+								pView->getDocument()->getRevisionShowMask()))
+			return _getColorFG();
+
 		UT_uint32 iId = r->getId();
 
 		bool bRevColor = false;
@@ -1493,7 +1499,8 @@ void fp_Run::draw(dg_DrawArgs* pDA)
 		const PP_Revision * r = m_pRevisions->getLastRevision();
 		UT_ASSERT(r != nullptr);
 
-		if (r) {
+		if (r && PD_revisionTypeShown(r->getType(),
+					pView->getDocument()->getRevisionShowMask())) {
 			PP_RevisionType r_type = r->getType();
 			UT_uint32 iId = r->getId();
 			UT_uint32 iShowId = pView->getRevisionLevel();
