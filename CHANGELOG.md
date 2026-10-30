@@ -10,6 +10,16 @@ responsibility** — see `README.md`.
 
 ### Added
 
+- Equation surface parity: the built-in gallery grows to fourteen
+  presets (adds Derivative, Trig Identity 2, Normal Distribution and
+  Bayes, insertable by `builtin:<id>`), the Equation tab gains a
+  **Conversions** group — Professional ↔ Linear, where the linear
+  form is the equation's LaTeX source as editable text (one equation
+  or the whole document in one undo step), and selected text now
+  builds into an equation via `insertEquation` with no data; the
+  symbols strip adds arrows, negated relations, geometry and
+  letter-like sets, and Alt+= inserts an equation (replaces the old
+  Alt+= zoom binding, matching Word).
 - Review: **Track Changes Options** dialog (Track Changes popover)
   with Show Markup toggles for insertions/deletions and formatting
   changes, track-formatting and track-moves document gates (OOXML

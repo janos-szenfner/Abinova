@@ -174,6 +174,7 @@ private:
 	GtkWidget *		_makeMediaPopover();
 	GtkWidget *		_makeWordArtPopover();
 	GtkWidget *		_makeEquationPopover();
+	GtkWidget *		_makeEquationConvertPopover();
 	GtkWidget *		_makeEquationPalette(bool bStructures);
 	GtkWidget *		_makeEquationStructures();
 	GtkWidget *		_eqStructDrop(const char * szIconLatex,

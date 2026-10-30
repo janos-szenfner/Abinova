@@ -602,10 +602,11 @@ labels, like Word's ribbon.
   frame), Signature Line (a Word-style Signature Setup dialog that
   inserts a bordered signature-line object, exported to DOCX as an
   `o:signatureline`), Drop Cap and an Object popover.
-- **Symbols**: **Equation** opens a gallery of ten preset
+- **Symbols**: **Equation** opens a gallery of fourteen preset
   formulas typeset live by the built-in math engine plus
   **Insert New Equation…** (LaTeX dialog); also the Symbol
-  dialog.
+  dialog. Alt+= inserts an equation (the selection becomes the
+  equation's LaTeX source, or the editor opens).
 - **Insert File…** handles RTF among other formats.
 
 #### Design tab
@@ -882,11 +883,14 @@ automation.
   and the shared Arrange menus (Position, Wrap Text, Align —
   including multi-object align and Distribute — Group and Rotate).
 - **Equation** — visible while the caret is on an equation:
-  symbol palettes (Greek letters, operators, relations, arrows —
-  each appends a LaTeX snippet to the selected math object),
-  structure palettes (fraction, scripts, radical, integral, sum,
-  matrix) and an Inline/Block **display toggle**
-  (`display:inline|block` on the math object).
+  symbol palettes (Greek letters, operators, relations, arrows,
+  geometry — each appends a LaTeX snippet to the selected math
+  object), structure palettes (fraction, scripts, radical,
+  integral, sum, matrix), an Inline/Block **display toggle**
+  (`display:inline|block` on the math object) and a
+  **Conversions** group — built-up ↔ linear, where the linear
+  form is the equation's LaTeX source as editable text
+  (single equation or every equation in the document).
 
 ### Keyboard shortcuts (Word-compatible)
 

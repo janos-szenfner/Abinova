@@ -137,6 +137,7 @@
 #include "ap_Dialog_FormatFootnotes.h"
 #include "ap_Dialog_FormatTOC.h"
 #include "ap_Dialog_Latex.h"
+#include "ap_EquationGallery.h"
 #include "ap_Dialog_Document.h"
 #include "ap_Dialog_DocInspector.h"
 #include "ap_Dialog_Zotero.h"
@@ -314,6 +315,7 @@ public:
 	static EV_EditMethod_Fn editLatexEquation;
 	static EV_EditMethod_Fn editEmbed;
 	static EV_EditMethod_Fn editField;
+	static EV_EditMethod_Fn equationConvert;
 	static EV_EditMethod_Fn equationInsertSymbol;
 	static EV_EditMethod_Fn toggleEquationDisplay;
 
@@ -1242,6 +1244,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(endnoteNext),			0,	""),
 	EV_EditMethod(NF(endnotePrev),			0,	""),
 	EV_EditMethod(NF(endnoteToFootnote),	0,	""),
+	EV_EditMethod(NF(equationConvert),	0,	""),
 	EV_EditMethod(NF(equationInsertSymbol),	0,	""),
 	EV_EditMethod(NF(eraseTableBorder),		0,	""),
 	EV_EditMethod(NF(executeScript),		EV_EMT_REQUIRE_SCRIPT_NAME, ""),
@@ -6191,27 +6194,207 @@ static bool s_mathLatexOf(FV_View * pView, fp_MathRun * pMathRun,
 	return sLatex.size() > 0;
 }
 
-/*! insertEquation — ribbon gallery presets.
- *  callData: "display:<latex>" or "inline:<latex>" (inline is default) */
+/*! open the LaTeX equation editor for a new equation */
+static bool s_openLatexDialog(FV_View * pView)
+{
+	FL_DocLayout * pLayout = pView->getLayout();
+	GR_EmbedManager * pMath = pLayout->getEmbedManager("mathml");
+	UT_return_val_if_fail(pMath && !pMath->isDefault(), false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	pFrame->raise();
+	XAP_DialogFactory * pDialogFactory
+		= static_cast<XAP_DialogFactory *>(XAP_App::getApp()->getDialogFactory());
+	AP_Dialog_Latex * pDialog
+		= static_cast<AP_Dialog_Latex *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_LATEX)));
+	UT_return_val_if_fail(pDialog, false);
+	if (pDialog->isRunning())
+		pDialog->activate();
+	else
+		pDialog->runModeless(pFrame);
+	return true;
+}
+
+/*! the LaTeX source of the selection as a UTF-8 string */
+static std::string s_selectionAsLatex(FV_View * pView)
+{
+	UT_UCS4Char * pSel = nullptr;
+	pView->getSelectionText(pSel);
+	std::string d;
+	if (pSel)
+	{
+		UT_UCS4String u(pSel);
+		d = u.utf8_str();
+	}
+	g_free(pSel);
+	return d;
+}
+
+/*! insertEquation — ribbon gallery presets and Alt+= (wordcraft
+ *  insert.equation).
+ *  callData: "builtin:<gallery-id>", "display:<latex>",
+ *  "inline:<latex>" (default), "linear:<latex>" (alias — our linear
+ *  input is LaTeX), or empty: the selected text becomes the
+ *  equation's LaTeX source, and with no selection the LaTeX editor
+ *  dialog opens. */
 Defun(insertEquation)
 {
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	UT_return_val_if_fail(pCallData && pCallData->m_pData, false);
-	UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
-	std::string d(s.utf8_str());
+	std::string d;
+	if (pCallData && pCallData->m_pData)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		d = s.utf8_str();
+	}
 	bool compact = true;
-	if (d.compare(0, 8, "display:") == 0) {
+	if (d.compare(0, 8, "builtin:") == 0) {
+		const AP_EquationBuiltin * pBI =
+			ap_equationBuiltin(d.c_str() + 8);
+		UT_return_val_if_fail(pBI, false);
+		d = pBI->latex;
+		compact = false;
+	} else if (d.compare(0, 8, "display:") == 0) {
 		compact = false;
 		d = d.substr(8);
 	} else if (d.compare(0, 7, "inline:") == 0) {
 		d = d.substr(7);
+	} else if (d.compare(0, 7, "linear:") == 0) {
+		d = d.substr(7);
+	}
+	if (d.empty())
+	{
+		if (!pView->isSelectionEmpty())
+			d = s_selectionAsLatex(pView);
+		if (d.empty())
+			return s_openLatexDialog(pView);
 	}
 	UT_UTF8String sLatex(d.c_str()), sMathML;
 	if (!s_latexToMathML(pView, sLatex, compact, sMathML))
 		return false;
 	return pView->cmdInsertLatexMath(sLatex, sMathML, compact);
+}
+
+/*! replace the math object at posObj with its LaTeX source text */
+static bool s_mathObjectToLinear(FV_View * pView, PT_DocPosition posObj,
+								 const UT_UTF8String & sLatex)
+{
+	UT_UCS4String u(sLatex.utf8_str());
+	UT_return_val_if_fail(u.length() > 0, false);
+	pView->cmdSelect(posObj, posObj + 1);
+	return pView->cmdCharInsert(u.ucs4_str(), u.length());
+}
+
+/*! LaTeX source of the math object whose fragment sits at pos */
+static bool s_mathLatexAtPos(PD_Document * pDoc, PT_DocPosition pos,
+							 UT_UTF8String & sLatex)
+{
+	pf_Frag * pf = pDoc->getFragFromPosition(pos);
+	if (!pf || pf->getType() != pf_Frag::PFT_Object ||
+	    static_cast<pf_Frag_Object *>(pf)->getObjectType() != PTO_Math)
+		return false;
+	const PP_AttrProp * pAP = nullptr;
+	if (!pDoc->getAttrProp(pf->getIndexAP(), &pAP) || !pAP)
+		return false;
+	const gchar * pszLatexID = nullptr;
+	pAP->getAttribute("latexid", pszLatexID);
+	if (!pszLatexID || !*pszLatexID)
+		return false;
+	UT_ConstByteBufPtr pByteBuf;
+	if (!pDoc->getDataItemDataByName(pszLatexID, pByteBuf,
+	                               nullptr, nullptr))
+		return false;
+	UT_UCS4_mbtowc myWC;
+	sLatex.appendBuf(pByteBuf, myWC);
+	return sLatex.size() > 0;
+}
+
+/*! equationConvert — wordcraft equation.convert: professional
+ *  (typeset object) <-> linear (the equation's LaTeX source as
+ *  editable text; our linear form is LaTeX — there is no UnicodeMath
+ *  parser).
+ *  callData: "to:linear" or "to:professional", optionally "all".
+ *  to:linear replaces the equation object at the caret (or every
+ *  equation with "all") with its LaTeX source; to:professional builds
+ *  an equation from the selected LaTeX text and is a no-op on an
+ *  existing equation. */
+Defun(equationConvert)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	std::string d;
+	if (pCallData && pCallData->m_pData)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		d = s.utf8_str();
+	}
+	for (auto & c : d)
+		c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+	const bool bAll = d.find("all") != std::string::npos;
+	const bool bToLinear = d.find("linear") != std::string::npos;
+	const bool bToPro = d.find("professional") != std::string::npos;
+	if (bToLinear == bToPro)
+		return false;
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc, false);
+
+	if (bToLinear)
+	{
+		if (bAll)
+		{
+			/* every math object -> LaTeX text; later objects first so
+			 * earlier positions stay valid, one undo step */
+			std::vector<PT_DocPosition> v;
+			pf_Frag * pf =
+				pDoc->getPieceTable()->getFragments().getFirst();
+			while (pf)
+			{
+				if (pf->getType() == pf_Frag::PFT_Object &&
+				    static_cast<pf_Frag_Object *>(pf)->getObjectType()
+				        == PTO_Math)
+					v.push_back(pf->getPos());
+				pf = pf->getNext();
+			}
+			if (v.empty())
+				return false;
+			bool bDid = false;
+			pDoc->beginUserAtomicGlob();
+			for (auto it = v.rbegin(); it != v.rend(); ++it)
+			{
+				UT_UTF8String sLatex;
+				if (s_mathLatexAtPos(pDoc, *it, sLatex) &&
+				    s_mathObjectToLinear(pView, *it, sLatex))
+					bDid = true;
+			}
+			pDoc->endUserAtomicGlob();
+			return bDid;
+		}
+		fp_MathRun * pMathRun = nullptr;
+		PT_DocPosition posObj = s_mathObjectAt(pView, pView->getPoint(),
+		                                       &pMathRun);
+		UT_UTF8String sLatex;
+		bool bInline = false;
+		if (!pMathRun ||
+		    !s_mathLatexOf(pView, pMathRun, sLatex, bInline))
+			return false;
+		return s_mathObjectToLinear(pView, posObj, sLatex);
+	}
+
+	/* to:professional — every equation object already is built up,
+	 * so "all" has nothing to convert */
+	if (bAll || s_mathObjectAt(pView, pView->getPoint(), nullptr))
+		return true;
+	if (pView->isSelectionEmpty())
+		return false;
+	std::string sel = s_selectionAsLatex(pView);
+	if (sel.empty())
+		return false;
+	UT_UTF8String sLatex(sel.c_str()), sMathML;
+	if (!s_latexToMathML(pView, sLatex, true, sMathML))
+		return false;
+	return pView->cmdInsertLatexMath(sLatex, sMathML, true);
 }
 
 /*! equationInsertSymbol — contextual-tab symbol/structure buttons.
@@ -6260,22 +6443,7 @@ Defun1(insertLatexEquation)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
-	FL_DocLayout * pLayout = pView->getLayout();
-	GR_EmbedManager * pMath = pLayout->getEmbedManager("mathml");
-	UT_return_val_if_fail(pMath && !pMath->isDefault(), false);
-	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pView->getParentData());
-	UT_return_val_if_fail(pFrame, false);
-	pFrame->raise();
-	XAP_DialogFactory * pDialogFactory
-		= static_cast<XAP_DialogFactory *>(XAP_App::getApp()->getDialogFactory());
-	AP_Dialog_Latex * pDialog
-		= static_cast<AP_Dialog_Latex *>(pDialogFactory->requestDialog(static_cast<XAP_Dialog_Id>(AP_DIALOG_ID_LATEX)));
-	UT_return_val_if_fail(pDialog, false);
-	if (pDialog->isRunning())
-		pDialog->activate();
-	else
-		pDialog->runModeless(pFrame);
-	return true;
+	return s_openLatexDialog(pView);
 }
 
 /*! toggleEquationDisplay — switch the equation at the caret between

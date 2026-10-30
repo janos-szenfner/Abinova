@@ -909,9 +909,16 @@ static const AP_RibbonItem s_ribbon_equation_struct[] =
 	AP_RIBBON_END
 };
 
+static const AP_RibbonItem s_ribbon_equation_conv[] =
+{
+	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_EQUATION_CONVERT),
+	AP_RIBBON_END
+};
+
 static const AP_RibbonGroup s_ribbon_equation_groups[] =
 {
 	{ "equation",		s_ribbon_equation_eq },
+	{ "conversions",	s_ribbon_equation_conv },
 	{ "symbols",		s_ribbon_equation_symbols },
 	{ "structures",		s_ribbon_equation_struct },
 	{ nullptr,			nullptr }

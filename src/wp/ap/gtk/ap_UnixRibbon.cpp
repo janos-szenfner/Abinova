@@ -70,6 +70,7 @@
 #include "ap_UnixStylesPane.h"
 #include "ap_UnixFrameImpl.h"
 #include "ap_Ribbon_Layouts.h"
+#include "ap_EquationGallery.h"
 #include "gr_CairoGraphics.h"
 #include "gr_MathTypesetter.h"
 #include "pt_PieceTable.h"
@@ -189,6 +190,7 @@ static const _ribbon_kv s_ribbon_group_labels[] =
 	{ "shapetext",   "Text" },
 	{ "controls",    "Controls" },
 	{ "structures",  "Structures" },
+	{ "conversions", "Conversions" },
 	{ "help",        "Help" },
 	{ "interface",   "Interface" },
 	{ nullptr,        nullptr }
@@ -2523,6 +2525,9 @@ GtkWidget * AP_UnixRibbon::_makeMenuPopButton(XAP_Menu_Id id,
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_EQUATION):
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_EDIT_LATEXEQUATION):
 		popover = _makeEquationPopover();
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_EQUATION_CONVERT):
+		popover = _makeEquationConvertPopover();
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_TEXTBOX):
 		popover = _makeTextBoxPopover();
@@ -10080,43 +10085,21 @@ GtkWidget * AP_UnixRibbon::_makeEquationPopover()
 	gtk_grid_set_column_spacing(GTK_GRID(grid), 4);
 	gtk_box_append(GTK_BOX(box), grid);
 
-	static const struct { const char * name; const char * latex; } s_eq[] =
-	{
-		{ "Area of Circle",
-		  "A = \\pi r^2" },
-		{ "Binomial Theorem",
-		  "(x+a)^n = \\sum_{k=0}^{n} \\binom{n}{k} x^k a^{n-k}" },
-		{ "Expansion of a Sum",
-		  "(1+x)^n = 1 + \\frac{nx}{1!} + \\frac{n(n-1)x^2}{2!} + \\cdots" },
-		{ "Fourier Series",
-		  "f(x) = a_0 + \\sum_{n=1}^{\\infty} \\left( a_n \\cos \\frac{n\\pi x}{L} + b_n \\sin \\frac{n\\pi x}{L} \\right)" },
-		{ "Pythagorean Theorem",
-		  "a^2 + b^2 = c^2" },
-		{ "Quadratic Formula",
-		  "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}" },
-		{ "Taylor Expansion",
-		  "e^x = \\sum_{n=0}^{\\infty} \\frac{x^n}{n!}" },
-		{ "Trig Identity",
-		  "\\sin \\alpha \\pm \\sin \\beta = 2 \\sin \\frac{\\alpha \\pm \\beta}{2} \\cos \\frac{\\alpha \\mp \\beta}{2}" },
-		{ "Gaussian Integral",
-		  "\\int_0^{\\infty} e^{-x^2} dx = \\frac{\\sqrt{\\pi}}{2}" },
-		{ "Euler's Identity",
-		  "e^{i\\pi} + 1 = 0" },
-	};
-	for (unsigned i = 0; i < G_N_ELEMENTS(s_eq); ++i)
+	for (unsigned i = 0; i < G_N_ELEMENTS(AP_EQUATION_BUILTINS); ++i)
 	{
 		GtkWidget * btn = gtk_button_new();
 		GtkWidget * tile = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-		gtk_box_append(GTK_BOX(tile), _equationPreview(s_eq[i].latex,
-													   150, 46));
-		GtkWidget * l = gtk_label_new(s_eq[i].name);
+		gtk_box_append(GTK_BOX(tile), _equationPreview(
+						   AP_EQUATION_BUILTINS[i].latex, 150, 46));
+		GtkWidget * l = gtk_label_new(AP_EQUATION_BUILTINS[i].name);
 		gtk_widget_add_css_class(l, "caption");
 		gtk_box_append(GTK_BOX(tile), l);
 		gtk_button_set_child(GTK_BUTTON(btn), tile);
 		gtk_widget_add_css_class(btn, "flat");
-		gtk_widget_set_tooltip_text(btn, s_eq[i].name);
+		gtk_widget_set_tooltip_text(btn, AP_EQUATION_BUILTINS[i].name);
 
-		std::string data = std::string("display:") + s_eq[i].latex;
+		std::string data = std::string("builtin:") +
+			AP_EQUATION_BUILTINS[i].id;
 		g_object_set_data_full(G_OBJECT(btn), "abi-em-method",
 							   g_strdup("insertEquation"), g_free);
 		g_object_set_data_full(G_OBJECT(btn), "abi-em-data",
@@ -10131,6 +10114,42 @@ GtkWidget * AP_UnixRibbon::_makeEquationPopover()
 				   _presetRow("<b>Insert New Equation</b>",
 							  "Type a LaTeX equation",
 							  nullptr, "insertLatexEquation", nullptr));
+	gtk_popover_set_child(GTK_POPOVER(popover), box);
+	return popover;
+}
+
+/* Word's Equation -> Conversions: built-up <-> linear (LaTeX source) */
+GtkWidget * AP_UnixRibbon::_makeEquationConvertPopover()
+{
+	GtkWidget * popover = xap_gtk_popover_new();
+	GtkWidget * box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+	gtk_widget_set_margin_top(box, 6);
+	gtk_widget_set_margin_bottom(box, 6);
+	gtk_widget_set_margin_start(box, 6);
+	gtk_widget_set_margin_end(box, 6);
+
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>Professional</b>",
+							  "Build up the selected text or equation",
+							  nullptr, "equationConvert",
+							  "to:professional"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("<b>Linear</b>",
+							  "Show the equation as editable LaTeX text",
+							  nullptr, "equationConvert",
+							  "to:linear"));
+	gtk_box_append(GTK_BOX(box),
+				   gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("All - Professional",
+							  "Build up every equation in the document",
+							  nullptr, "equationConvert",
+							  "to:professional all"));
+	gtk_box_append(GTK_BOX(box),
+				   _presetRow("All - Linear",
+							  "Show every equation as LaTeX text",
+							  nullptr, "equationConvert",
+							  "to:linear all"));
 	gtk_popover_set_child(GTK_POPOVER(popover), box);
 	return popover;
 }
@@ -10179,6 +10198,50 @@ GtkWidget * AP_UnixRibbon::_makeEquationPalette(bool /*bStructures*/)
 		{ "\xe2\x84\x9d", "\\mathbb{R}", "Reals" },
 		{ "\xe2\x84\xa4", "\\mathbb{Z}", "Integers" },
 		{ "\xe2\x84\x95", "\\mathbb{N}", "Naturals" },
+		{ "\xe2\x84\x9a", "\\mathbb{Q}", "Rationals" },
+		{ "\xe2\x84\x82", "\\mathbb{C}", "Complex" },
+		{ "\xe2\x84\xb5", "\\aleph", "Aleph" },
+		{ "\xe2\x84\x8f", "\\hbar", "h-bar" },
+		{ "\xe2\x84\x93", "\\ell", "Script l" },
+		/* arrows */
+		{ "\xe2\x86\x91", "\\uparrow", "Up arrow" },
+		{ "\xe2\x86\x93", "\\downarrow", "Down arrow" },
+		{ "\xe2\x86\xa6", "\\mapsto", "Maps to" },
+		{ "\xe2\x87\x90", "\\Leftarrow", "Double left arrow" },
+		{ "\xe2\x87\x91", "\\Uparrow", "Double up arrow" },
+		{ "\xe2\x87\x93", "\\Downarrow", "Double down arrow" },
+		{ "\xe2\x87\x94", "\\Leftrightarrow", "If and only if" },
+		{ "\xe2\x9f\xb8", "\\Longleftarrow", "Long left arrow" },
+		{ "\xe2\x9f\xb9", "\\Longrightarrow", "Long right arrow" },
+		{ "\xe2\x86\x97", "\\nearrow", "North-east arrow" },
+		{ "\xe2\x86\x98", "\\searrow", "South-east arrow" },
+		/* more relations and set ops */
+		{ "\xe2\x89\xa1", "\\equiv", "Identical" },
+		{ "\xe2\x88\xbc", "\\sim", "Similar" },
+		{ "\xe2\x89\x83", "\\simeq", "Similar or equal" },
+		{ "\xe2\x89\x85", "\\cong", "Congruent" },
+		{ "\xe2\x8a\x86", "\\subseteq", "Subset or equal" },
+		{ "\xe2\x8a\x87", "\\supseteq", "Superset or equal" },
+		{ "\xe2\x8a\x88", "\\nsubseteq", "Not a subset" },
+		{ "\xe2\x88\x84", "\\nexists", "Does not exist" },
+		{ "\xc2\xac", "\\neg", "Not" },
+		{ "\xe2\x88\xa7", "\\wedge", "Logical and" },
+		{ "\xe2\x88\xa8", "\\vee", "Logical or" },
+		{ "\xe2\x8a\x95", "\\oplus", "Circled plus" },
+		{ "\xe2\x8a\x97", "\\otimes", "Circled times" },
+		/* geometry and misc */
+		{ "\xe2\x88\xa0", "\\angle", "Angle" },
+		{ "\xe2\x8a\xa5", "\\perp", "Perpendicular" },
+		{ "\xe2\x88\xa5", "\\parallel", "Parallel" },
+		{ "\xe2\x88\xa4", "\\nmid", "Does not divide" },
+		{ "\xe2\x88\xb4", "\\therefore", "Therefore" },
+		{ "\xe2\x88\xb5", "\\because", "Because" },
+		{ "\xe2\x96\xb3", "\\triangle", "Triangle" },
+		{ "\xe2\x96\xa1", "\\square", "Square" },
+		{ "\xc2\xb0", "\\degree", "Degree" },
+		{ "\xe2\x8b\xaf", "\\cdots", "Centered dots" },
+		{ "\xe2\x8b\xae", "\\vdots", "Vertical dots" },
+		{ "\xe2\x8b\xb1", "\\ddots", "Diagonal dots" },
 	};
 	/* Word's symbols strip: two rows of larger glyphs that scroll
 	 * horizontally when they overflow the ribbon width */
