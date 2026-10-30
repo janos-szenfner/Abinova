@@ -637,12 +637,12 @@ void GR_Caret::_erase()
  * blink's own on/off state again. */
 void GR_Caret::_hardHide(void)
 {
+	/* erase only the pixels: the blink phase (m_bCursorIsOn), the
+	 * opacity and any fade in flight must survive the disable/
+	 * enable bracket around every _draw — resetting them here
+	 * restarts the fade on every frame and the caret never
+	 * reaches visible opacity */
 	_eraseCaretPixels();
-	m_bCursorIsOn = false;
-	m_dOpacity = 0.0;
-	m_dFadeTo = 0.0;
-	m_bFading = false;
-	_animStop();
 }
 
 void GR_Caret::_eraseCaretPixels(void)
@@ -847,6 +847,10 @@ void GR_Caret::_paintCaret(GR_Painter & painter)
 	double op = m_dOpacity;
 	if (m_bGliding)
 		op = (m_bFading && m_dFadeTo > m_dFadeFrom) ? m_dOpacity : 1.0;
+	else if (!m_bCursorIsOn &&
+			 !(m_bFading && m_dFadeTo < m_dFadeFrom))
+		/* logically off and not mid fade-out: dark */
+		op = 0.0;
 
 	const bool bOnScreen = m_iWindowWidth && m_iWindowHeight
 		? (m_bCaret1OnScreen || m_bCaret2OnScreen) : true;
