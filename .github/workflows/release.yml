@@ -51,22 +51,17 @@ jobs:
           dist/make-deb.sh --bundle "${{ env.bundle }}" --out .
 
       - name: RPM package (.rpm)
+        # rpm >= 4.20 creates the build dir itself during %mkbuilddir
+        # and wipes whatever was pre-staged (rpm 6.0 on ubuntu-26.04
+        # does this unconditionally) — staging BUILDROOT from the
+        # workflow loses the whole payload.  Stage inside the spec's
+        # %install instead: %{buildroot} exists by then on every rpm
+        # version.  The /usr/bin symlink target is absolute — the old
+        # ../opt/... relative link resolved to /usr/opt/abinova.
         run: |
           sudo apt-get install -y rpm
-          BUNDLE="${{ env.bundle }}"
+          BUNDLE="$(cd "${{ env.bundle }}" && pwd)"
           mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-          mkdir -p "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/opt"
-          mkdir -p "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/bin"
-          mkdir -p "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share"
-          cp -a "$BUNDLE" "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/opt/abinova"
-          ln -s ../opt/abinova/bin/abinova "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/bin/abinova"
-          cp -a "$BUNDLE/share/applications" "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share/"
-          cp -a "$BUNDLE/share/icons" "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share/"
-          cp -a "$BUNDLE/share/metainfo" "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share/" || true
-          cp -a "$BUNDLE/share/mime" "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share/" || true
-          # launch through the /usr/bin symlink, not PATH lookup
-          sed -i 's|^Exec=.*|Exec=/usr/bin/abinova %U|' \
-            "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share/applications/"*.desktop
           {
             printf 'Name:       abinova\n'
             printf 'Version:    %s\n' "${VERSION#v}"
@@ -78,6 +73,16 @@ jobs:
             printf '%%description\n'
             printf 'GTK4 AbiWord-derived document editor. Installs to /opt/abinova\n'
             printf 'with a /usr/bin/abinova symlink; no external dependencies.\n\n'
+            printf '%%install\n'
+            printf 'mkdir -p %%{buildroot}/opt %%{buildroot}/usr/bin %%{buildroot}/usr/share\n'
+            printf 'cp -a "%s" %%{buildroot}/opt/abinova\n' "$BUNDLE"
+            printf 'ln -s /opt/abinova/bin/abinova %%{buildroot}/usr/bin/abinova\n'
+            printf 'cp -a "%s/share/applications" "%s/share/icons" %%{buildroot}/usr/share/\n' "$BUNDLE" "$BUNDLE"
+            printf 'cp -a "%s/share/metainfo" "%s/share/mime" %%{buildroot}/usr/share/\n' "$BUNDLE" "$BUNDLE"
+            # launch through the /usr/bin symlink, not PATH lookup
+            # (%%%%U -> %%U in the spec -> a literal %U reaching sed;
+            # rpm would otherwise eat %U as a macro)
+            printf 'sed -i "s|^Exec=.*|Exec=/usr/bin/abinova %%%%U|" %%{buildroot}/usr/share/applications/*.desktop\n\n'
             printf '%%post\n'
             printf 'update-desktop-database /usr/share/applications 2>/dev/null || :\n'
             printf 'gtk-update-icon-cache -q /usr/share/icons/hicolor 2>/dev/null || :\n'
