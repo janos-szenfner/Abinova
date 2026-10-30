@@ -134,6 +134,7 @@ EV_Menu_ActionSet * AP_CreateMenuActionSet(void)
 	_s(AP_MENU_ID_VIEW,				1,0,0,0,	nullptr,				nullptr,					nullptr);
 	_s(AP_MENU_ID_VIEW_NORMAL, 0,0,0,1, "viewNormalLayout", ap_GetState_View, nullptr);
 	_s(AP_MENU_ID_VIEW_WEB,    0,0,0,1, "viewWebLayout", ap_GetState_View, nullptr);
+_s(AP_MENU_ID_VIEW_OUTLINE, 0,0,0,1, "viewOutline", ap_GetState_View, nullptr);
 	_s(AP_MENU_ID_VIEW_PRINT,  0,0,0,1, "viewPrintLayout", ap_GetState_View, nullptr);
 	_s(AP_MENU_ID_VIEW_TOOLBARS,	1,0,0,0,	nullptr,				nullptr,					nullptr);
 	_s(AP_MENU_ID_VIEW_TB_1,		0,0,1,0,	"viewTB1",			ap_GetState_View,		ap_GetLabel_Toolbar);

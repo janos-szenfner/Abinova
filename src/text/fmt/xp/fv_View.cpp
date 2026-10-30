@@ -276,6 +276,7 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 #else
 		m_viewMode(VIEW_PRINT),
 #endif
+		m_iOutlineShowLevel(0),
 		m_previewMode(PREVIEW_NONE),
 		m_bDontUpdateScreenOnGeneralUpdate(false),
 		m_iPieceTableState(0),
@@ -579,6 +580,10 @@ FV_View::FV_View(XAP_App * pApp, XAP_Frame * pParentData, FL_DocLayout* pLayout)
 		if(viewMode == "3")
 		{
 			setViewMode(VIEW_WEB);
+		}
+		if(viewMode == "4")
+		{
+			setViewMode(VIEW_OUTLINE);
 		}
 		setCursorWait();
 	}
@@ -11210,10 +11215,24 @@ UT_uint32 FV_View::getTabToggleAreaWidth() const
 void FV_View::setViewMode (ViewMode vm)
 {
 	bool bPrevWeb= (m_viewMode == VIEW_WEB);
+	bool bPrevOutline = (m_viewMode == VIEW_OUTLINE);
+	if(bPrevOutline && (vm != VIEW_OUTLINE))
+	{
+		// Leaving outline view: drop the folded-out visibility flags
+		// before the rebuild so every block gets its lines back.
+		_restoreOutlineVisibility();
+	}
 	m_viewMode = vm;
-	
+
 	UT_return_if_fail( m_pLayout );
 	UT_DEBUGMSG(("View mode set calling updateviewonmodechange \n"));
+	if(vm == VIEW_OUTLINE)
+	{
+		// Fold the stored outline state before the mode-change
+		// reformat — hidden blocks keep no containers, so they must
+		// be flagged ahead of formatAll().
+		_applyOutlineVisibility();
+	}
 	m_pLayout->updateOnViewModeChange();
 	if(bPrevWeb || (vm == VIEW_WEB))
 	{
@@ -11245,7 +11264,7 @@ void FV_View::setViewMode (ViewMode vm)
 		}
 	}
 	_fixInsertionPointCoords();
-	
+
 }
 
 void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
@@ -11318,7 +11337,7 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 		pInfo->m_iCurrentColumn = nCol;
 		pInfo->m_iNumColumns = pDSL->getNumColumns();
 
-		if((getViewMode() == VIEW_NORMAL) || (getViewMode() == VIEW_WEB))
+		if((getViewMode() == VIEW_NORMAL) || (getViewMode() == VIEW_OUTLINE) || (getViewMode() == VIEW_WEB))
 		{
 			pInfo->u.c.m_xaLeftMargin = getNormalModeXOffset();
 			UT_sint32 iExtra = 72; 
@@ -11357,7 +11376,7 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 		pInfo->m_iCurrentColumn = 0;
 		pInfo->m_iNumColumns = 1;
 
-		if((getViewMode() == VIEW_NORMAL) || (getViewMode() == VIEW_WEB))
+		if((getViewMode() == VIEW_NORMAL) || (getViewMode() == VIEW_OUTLINE) || (getViewMode() == VIEW_WEB))
 		{
 			pInfo->u.c.m_xaLeftMargin = getNormalModeXOffset();
 			UT_sint32 iExtra = 72;
@@ -11443,7 +11462,7 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 
 			}
 
-			if((getViewMode() == VIEW_NORMAL) || (getViewMode() == VIEW_WEB))
+			if((getViewMode() == VIEW_NORMAL) || (getViewMode() == VIEW_OUTLINE) || (getViewMode() == VIEW_WEB))
 			{
 				pInfo->u.c.m_xaLeftMargin = m_pTopRuler ? m_pTopRuler->getTabToggleAreaWidth() : 0;
 				pInfo->u.c.m_xaRightMargin = 0;
@@ -11562,7 +11581,7 @@ void FV_View::getTopRulerInfo(PT_DocPosition pos,AP_TopRulerInfo * pInfo)
 			iCum += width;
 		}
 	}
-	else if(pContainer->getContainerType() == FP_CONTAINER_FRAME && (getViewMode() != VIEW_NORMAL)  && (getViewMode() != VIEW_WEB))
+	else if(pContainer->getContainerType() == FP_CONTAINER_FRAME && (getViewMode() != VIEW_NORMAL)  && (getViewMode() != VIEW_OUTLINE) && (getViewMode() != VIEW_WEB))
 	{
 		fp_FrameContainer * pFC = static_cast<fp_FrameContainer *>(pContainer);
 		fl_FrameLayout * pFL = static_cast<fl_FrameLayout *>(pSection);

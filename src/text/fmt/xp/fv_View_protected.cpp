@@ -4928,6 +4928,7 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 		{
 			case VIEW_NORMAL:
 			case VIEW_WEB:
+			case VIEW_OUTLINE:
 			adjustedTop = iPageYOffset - getYScrollOffset() + ( pPage->getPageNumber() * (m_pG->tlu(1) - getPageViewSep()) );
 			adjustedLeft = 0;
 			break;
@@ -4959,7 +4960,7 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 		if(!bDirtyRunsOnly || (pPage->needsRedraw() && (getViewMode() == VIEW_PRINT)))
 		{
 			const UT_RGBColor * pClr = pPage->getFillType().getColor();
-			if(getViewMode() == VIEW_NORMAL || getViewMode() == VIEW_WEB) // Normal/web view pages take up the whole window
+			if(getViewMode() == VIEW_NORMAL || getViewMode() == VIEW_OUTLINE || getViewMode() == VIEW_WEB) // Normal/outline/web view pages take up the whole window
 				painter.fillRect(*pClr, adjustedRight, adjustedTop, getWindowWidth() - adjustedRight + m_pG->tlu(1), iPageHeight);
 			else
 				painter.fillRect(*pClr, adjustedLeft + m_pG->tlu(1), adjustedTop + m_pG->tlu(1), iPageWidth - m_pG->tlu(1), iPageHeight - m_pG->tlu(1));
@@ -4997,7 +4998,7 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 		// only in NORMAL MODE - draw a line across the screen
 		// at a page boundary. Not used in online/web and print
 		// layout modes
-		if(getViewMode() == VIEW_NORMAL)
+		if(getViewMode() == VIEW_NORMAL || getViewMode() == VIEW_OUTLINE)
 		{
 			UT_RGBColor clrPageSep(192,192,192);		// light gray
 			m_pG->setColor(clrPageSep);

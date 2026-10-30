@@ -609,6 +609,19 @@ public:
 	static EV_EditMethod_Fn fileSaveAsWeb;
     static EV_EditMethod_Fn fileSaveTemplate;
 	static EV_EditMethod_Fn openTemplate;
+	static EV_EditMethod_Fn outlineClose;
+	static EV_EditMethod_Fn outlineCollapse;
+	static EV_EditMethod_Fn outlineDemote;
+	static EV_EditMethod_Fn outlineDemoteToBody;
+	static EV_EditMethod_Fn outlineExpand;
+	static EV_EditMethod_Fn outlineMoveDown;
+	static EV_EditMethod_Fn outlineMoveUp;
+	static EV_EditMethod_Fn outlinePromote;
+	static EV_EditMethod_Fn outlinePromoteToHeading1;
+	static EV_EditMethod_Fn outlineSelectSubtree;
+	static EV_EditMethod_Fn outlineShowLevel;
+	static EV_EditMethod_Fn outlineToggle;
+	static EV_EditMethod_Fn viewOutline;
 
 	static EV_EditMethod_Fn undo;
 	static EV_EditMethod_Fn redo;
@@ -1423,6 +1436,18 @@ static EV_EditMethod s_arrayEditMethods[] =
 	// o
 	EV_EditMethod(NF(openRecent),				_A_,	""),
 	EV_EditMethod(NF(openTemplate), 0, ""),
+	EV_EditMethod(NF(outlineClose),		0,	""),
+	EV_EditMethod(NF(outlineCollapse),	0,	""),
+	EV_EditMethod(NF(outlineDemote),	0,	""),
+	EV_EditMethod(NF(outlineDemoteToBody),	0,	""),
+	EV_EditMethod(NF(outlineExpand),	0,	""),
+	EV_EditMethod(NF(outlineMoveDown),	0,	""),
+	EV_EditMethod(NF(outlineMoveUp),	0,	""),
+	EV_EditMethod(NF(outlinePromote),	0,	""),
+	EV_EditMethod(NF(outlinePromoteToHeading1),	0,	""),
+	EV_EditMethod(NF(outlineSelectSubtree),	0,	""),
+	EV_EditMethod(NF(outlineShowLevel),	0,	""),
+	EV_EditMethod(NF(outlineToggle),	0,	""),
 
 	// p
 	EV_EditMethod(NF(pageBorders),			0,	""),
@@ -1737,6 +1762,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(viewLockStyles),   0,		""),
 	EV_EditMethod(NF(viewNavPane), 0, ""),
 	EV_EditMethod(NF(viewNormalLayout), 0, ""),
+	EV_EditMethod(NF(viewOutline), 0, ""),
 	EV_EditMethod(NF(viewPara), 		0,		""),
 	EV_EditMethod(NF(viewPrintLayout), 0, ""),
 	EV_EditMethod(NF(viewReadMode), 0, ""),
@@ -6997,6 +7023,11 @@ Defun1(insertTab)
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
 	UT_UCS4Char c = UCS_TAB;
+	if(pView->isOutlineView() && !pView->isInTable())
+	{
+		/* Word outline view: Tab demotes */
+		return pView->cmdOutlineStep(false);
+	}
 	if(!pView->isInTable())
 	{
 		/* Word parity: Tab on a selection that covers a whole paragraph
@@ -7060,6 +7091,11 @@ Defun1(insertTabShift)
 	CHECK_FRAME;
 	ABIWORD_VIEW;
 	UT_return_val_if_fail(pView, false);
+	if(pView->isOutlineView() && !pView->isInTable())
+	{
+		/* Word outline view: Shift+Tab promotes */
+		return pView->cmdOutlineStep(true);
+	}
 	if(!pView->isInTable())
 	{
 		return true;
@@ -13140,6 +13176,171 @@ UT_return_val_if_fail(pScheme, false);
 
 	return true;
 }
+
+Defun1(viewOutline)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	FV_View * pView = static_cast<FV_View *>(pAV_View);
+	if(pView->isHdrFtrEdit())
+	{
+		pView->clearHdrFtrEdit();
+		pView->warpInsPtToXY(0,0,false);
+	}
+
+	AP_FrameData *pFrameData = static_cast<AP_FrameData *>(pFrame->getFrameData());
+	UT_return_val_if_fail(pFrameData, false);
+	pFrameData->m_pViewMode = VIEW_OUTLINE;
+	pFrame->toggleLeftRuler (false);
+	if(!pFrameData->m_bIsFullScreen)
+		pFrame->toggleTopRuler (false);
+
+	pView->setViewMode (VIEW_OUTLINE);
+
+	// POLICY: make this the default for new frames, too
+	XAP_App * pApp = XAP_App::getApp();
+	UT_return_val_if_fail(pApp, false);
+	XAP_Prefs * pPrefs = pApp->getPrefs();
+	UT_return_val_if_fail(pPrefs, false);
+	XAP_PrefsScheme * pScheme = pPrefs->getCurrentScheme(true);
+	UT_return_val_if_fail(pScheme, false);
+	pScheme->setValue(AP_PREF_KEY_LayoutMode, "4");
+
+	pView->updateScreen(false);
+
+	if (pFrame->getZoomType() == pFrame->z_PAGEWIDTH || pFrame->getZoomType() == pFrame->z_WHOLEPAGE)
+		pFrame->updateZoom();
+
+	return true;
+}
+
+
+Defun(outlineClose)
+{
+	/* Close Outline View returns to Print Layout — the same work
+	 * viewPrintLayout does (setViewMode drops the outline folds). */
+	return viewPrintLayout(pAV_View, pCallData);
+}
+
+
+Defun1(outlinePromote)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdOutlineStep(true);
+}
+
+
+Defun1(outlineDemote)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdOutlineStep(false);
+}
+
+
+Defun1(outlinePromoteToHeading1)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdOutlineSetLevel(1);
+}
+
+
+Defun1(outlineDemoteToBody)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdOutlineSetLevel(0);
+}
+
+
+Defun1(outlineMoveUp)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdOutlineMove(true);
+}
+
+
+Defun1(outlineMoveDown)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdOutlineMove(false);
+}
+
+
+Defun1(outlineCollapse)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdOutlineCollapse(false);
+}
+
+
+Defun1(outlineExpand)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdOutlineExpand(false);
+}
+
+
+Defun1(outlineToggle)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdOutlineToggle();
+}
+
+
+Defun1(outlineSelectSubtree)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	return pView->cmdOutlineSelectSubtree();
+}
+
+
+Defun(outlineShowLevel)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+	UT_sint32 iLevel = 0;
+	if(pCallData && pCallData->m_pData && pCallData->m_dataLength)
+	{
+		UT_UCS4String sData(pCallData->m_pData, pCallData->m_dataLength);
+		const char * sz = sData.utf8_str();
+		if(0 == strcmp(sz, "all"))
+		{
+			iLevel = 0;
+		}
+		else if(sz[0] >= '1' && sz[0] <= '9' && sz[1] == 0)
+		{
+			iLevel = sz[0] - '0';
+		}
+		else
+		{
+			return false;
+		}
+	}
+	return pView->cmdOutlineShowLevel(iLevel);
+}
+
 
 Defun1(viewPrintLayout)
 {

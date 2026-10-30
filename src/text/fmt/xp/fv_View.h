@@ -28,6 +28,7 @@
 #endif
 
 #include <memory>
+#include <set>
 #include <string>
 #include <optional>
 #include <queue>
@@ -1038,6 +1039,30 @@ public:
 	virtual UT_uint32	calculateZoomPercentForWholePage() const override;
 	void 			    setViewMode (ViewMode vm);
 	ViewMode 			getViewMode (void) const  {return m_viewMode;}
+
+	/* Outline view (VIEW_OUTLINE): the document as a flattened
+	 * heading outline.  What's collapsed and the Show Level filter
+	 * are view state only — never stored in the document — and are
+	 * realized as FP_HIDDEN_OUTLINE visibility on the affected
+	 * container layouts (blocks keep no containers while hidden). */
+	struct FV_OutlineItem {
+		fl_ContainerLayout * pL;    /*!< top-level flow layout (block/table/TOC) */
+		UT_sint32            iLevel;/*!< 1-9 heading level, 10 = body text */
+		bool                 bHeading;
+	};
+	bool				isOutlineView(void) const {return m_viewMode == VIEW_OUTLINE;}
+	UT_sint32			getOutlineShowLevel(void) const {return m_iOutlineShowLevel;}
+	void				getOutlineItems(std::vector<FV_OutlineItem> & items) const;
+	bool				isOutlineCollapsed(const fl_ContainerLayout * pCL) const;
+	UT_sint32			getOutlineIndentDepth(const fl_BlockLayout * pBL) const;
+	bool				cmdOutlineStep(bool bPromote);
+	bool				cmdOutlineSetLevel(UT_sint32 iLevel);
+	bool				cmdOutlineMove(bool bUp);
+	bool				cmdOutlineCollapse(bool bAll);
+	bool				cmdOutlineExpand(bool bAll);
+	bool				cmdOutlineToggle(void);
+	bool				cmdOutlineShowLevel(UT_sint32 iLevel);
+	bool				cmdOutlineSelectSubtree(void);
 	bool				isPreview(void) const {return VIEW_PREVIEW == m_viewMode;}
 	void				setPreviewMode(PreViewMode pre) {m_previewMode = pre;}
 	PreViewMode 		getPreviewMode(void) const { return m_previewMode;}
@@ -1518,6 +1543,17 @@ private:
 
 	bool				 m_bShowPara;
 	ViewMode			 m_viewMode;
+
+	/* outline view state (see cmdOutline* above) */
+	UT_sint32			 m_iOutlineShowLevel;	/*!< 0 = all, 1-9 = Show Level filter */
+	std::set<fl_ContainerLayout*> m_outlineCollapsed;	/*!< collapsed headings */
+	void				_applyOutlineVisibility(void);
+	void				_restoreOutlineVisibility(void);
+	void				_outlineRelayout(void);
+	UT_sint32			_outlineItemAt(PT_DocPosition pos) const;
+	bool				_moveDocRangeBefore(PT_DocPosition posStart,
+											PT_DocPosition posEnd,
+											PT_DocPosition posBefore);
 	PreViewMode 		 m_previewMode;
 	bool				 m_bDontUpdateScreenOnGeneralUpdate;
 	//#TF had to change the whole logic of storing PT state, since

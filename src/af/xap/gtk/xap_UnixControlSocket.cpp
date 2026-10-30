@@ -729,6 +729,60 @@ static bool _m_doc_fmtinspect(std::string & out, std::string & err)
 	return true;
 }
 
+/* Outline view state: mode, show-level filter, and every top-level
+ * outline item with its level/hidden/collapsed flags and first text
+ * chars — the W57 outline view's introspection surface. */
+static bool _m_doc_outline(std::string & out, std::string & err)
+{
+	FV_View * view = _first_view();
+	if (!view)
+	{
+		err = "no view";
+		return false;
+	}
+	out = "{\"mode\":";
+	out += std::to_string(static_cast<int>(view->getViewMode()));
+	out += ",\"showLevel\":";
+	out += std::to_string(static_cast<int>(view->getOutlineShowLevel()));
+	out += ",\"items\":[";
+	std::vector<FV_View::FV_OutlineItem> items;
+	view->getOutlineItems(items);
+	for (size_t i = 0; i < items.size(); ++i)
+	{
+		fl_ContainerLayout * pL = items[i].pL;
+		if (i)
+			out += ',';
+		out += "{\"level\":";
+		out += std::to_string(items[i].iLevel);
+		out += ",\"type\":";
+		out += std::to_string(static_cast<int>(pL->getContainerType()));
+		out += ",\"hidden\":";
+		out += (pL->isHidden() != FP_VISIBLE) ? "true" : "false";
+		out += ",\"collapsed\":";
+		out += view->isOutlineCollapsed(pL) ? "true" : "false";
+		if (pL->getContainerType() == FL_CONTAINER_BLOCK)
+		{
+			fl_BlockLayout * pBL =
+				static_cast<fl_BlockLayout *>(pL);
+			UT_GrowBuf gb;
+			if (pBL->getBlockBuf(&gb) && gb.getLength() > 0)
+			{
+				UT_UCS4String u(
+					reinterpret_cast<const UT_UCS4Char *>(
+						gb.getPointer(0)),
+					gb.getLength());
+				UT_UTF8String t(u.utf8_str());
+				out += ",\"text\":\"";
+				out += _json_escape(t.utf8_str());
+				out += "\"";
+			}
+		}
+		out += "}";
+	}
+	out += "]}";
+	return true;
+}
+
 /* Document Inspector report — the same sectioned text the
  * fileInspectDoc dialog summarizes (W12) */
 static bool _m_doc_privacyinspect(std::string & out, std::string & err)
@@ -1444,6 +1498,15 @@ static bool _dispatch(_Conn * c, const std::string & line)
 	{
 		std::string out;
 		if (_m_doc_privacyinspect(out, err))
+			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "document.outline")
+	{
+		std::string out;
+		if (_m_doc_outline(out, err))
 			_conn_send(c, id, out.c_str(), nullptr);
 		else
 			_conn_send(c, id, nullptr, err.c_str());

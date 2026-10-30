@@ -2508,7 +2508,7 @@ void fp_Page::updateColumnX()
 			continue;
 		}
 
-		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_WEB) &&
+		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_OUTLINE || m_pView->getViewMode() == VIEW_WEB) &&
 		   !m_pLayout->getGraphics()->queryProperties(GR_Graphics::DGP_PAPER))
 		{
 			iLeftMargin = m_pView->getNormalModeXOffset();
@@ -2618,7 +2618,7 @@ void fp_Page::_reformatColumns(void)
 			continue;
 		}
 
-		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_WEB) &&
+		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_OUTLINE || m_pView->getViewMode() == VIEW_WEB) &&
 		   !m_pLayout->getGraphics()->queryProperties(GR_Graphics::DGP_PAPER))
 		{
 			iLeftMargin = m_pView->getNormalModeXOffset();
@@ -2794,7 +2794,7 @@ void fp_Page::_reformatFootnotes(void)
 			continue;
 		fl_DocSectionLayout* pSL = pFirstSectionLayout;
 
-		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_WEB) &&
+		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_OUTLINE || m_pView->getViewMode() == VIEW_WEB) &&
 		   !m_pLayout->getGraphics()->queryProperties(GR_Graphics::DGP_PAPER))
 			pFC->setX(m_pView->getTabToggleAreaWidth());
 		else
@@ -2875,7 +2875,7 @@ void fp_Page::_reformatAnnotations(void)
 			continue;
 		fl_DocSectionLayout* pSL = pFirstSectionLayout;
 
-		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_WEB) &&
+		if((m_pView->getViewMode() == VIEW_NORMAL || m_pView->getViewMode() == VIEW_OUTLINE || m_pView->getViewMode() == VIEW_WEB) &&
 		   !m_pLayout->getGraphics()->queryProperties(GR_Graphics::DGP_PAPER))
 			pAC->setX(m_pView->getTabToggleAreaWidth());
 		else

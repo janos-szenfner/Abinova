@@ -2680,7 +2680,7 @@ fp_Container * fp_CellContainer::getNextContainerInSection() const
 	fl_ContainerLayout * pNext = pCL->getNext();
 	while(pNext && ((pNext->getContainerType() == FL_CONTAINER_ENDNOTE) || 
 		  (pNext->getContainerType() == FL_CONTAINER_FRAME) ||
-		  (pNext->isHidden() == FP_HIDDEN_FOLDED)))
+		  (pNext->isHidden() >= FP_HIDDEN_FOLDED)))
 	{
 		pNext = pNext->getNext();
 	}
@@ -2699,7 +2699,7 @@ fp_Container * fp_CellContainer::getPrevContainerInSection() const
 	fl_ContainerLayout * pPrev = pCL->getPrev();
 	while(pPrev && ((pPrev->getContainerType() == FL_CONTAINER_ENDNOTE) ||
 		  (pPrev->getContainerType() == FL_CONTAINER_FRAME) ||
-		  (pPrev->isHidden() == FP_HIDDEN_FOLDED)))
+		  (pPrev->isHidden() >= FP_HIDDEN_FOLDED)))
 
 	{
 		pPrev = pPrev->getPrev();
@@ -4634,7 +4634,7 @@ fp_Container * fp_TableContainer::getNextContainerInSection() const
 	fl_ContainerLayout * pNext = pCL->getNext();
 	while(pNext && ((pNext->getContainerType() == FL_CONTAINER_ENDNOTE) ||
 		  (pNext->getContainerType() == FL_CONTAINER_FRAME) ||
-		  (pNext->isHidden() == FP_HIDDEN_FOLDED)))
+		  (pNext->isHidden() >= FP_HIDDEN_FOLDED)))
 	{
 		pNext = pNext->getNext();
 	}
@@ -4657,7 +4657,7 @@ fp_Container * fp_TableContainer::getPrevContainerInSection() const
 	fl_ContainerLayout * pPrev = pCL->getPrev();
 	while(pPrev && ((pPrev->getContainerType() == FL_CONTAINER_ENDNOTE) ||
 		  (pPrev->getContainerType() == FL_CONTAINER_FRAME) ||
-		  (pPrev->isHidden() == FP_HIDDEN_FOLDED)))
+		  (pPrev->isHidden() >= FP_HIDDEN_FOLDED)))
 	{
 		pPrev = pPrev->getPrev();
 	}

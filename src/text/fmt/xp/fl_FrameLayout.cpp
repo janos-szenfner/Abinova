@@ -1193,7 +1193,7 @@ void fl_FrameLayout::_lookupMarginProperties(const PP_AttrProp* pSectionAP)
 	UT_sint32 iYPage = m_iYPage;
 
 	
-	if(pView->getViewMode() == VIEW_NORMAL && !pG->queryProperties(GR_Graphics::DGP_PAPER))
+	if(pView->getViewMode() == VIEW_OUTLINE || (pView->getViewMode() == VIEW_NORMAL && !pG->queryProperties(GR_Graphics::DGP_PAPER)))
 	{
 		m_iFramePositionTo = FL_FRAME_POSITIONED_TO_BLOCK;
 		m_iFrameWrapMode = FL_FRAME_WRAPPED_TO_RIGHT;

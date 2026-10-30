@@ -1291,6 +1291,13 @@ Defun_EV_GetMenuItemState_Fn(ap_GetState_View)
 	    s = EV_MIS_ZERO;
 	  break;
 
+	case AP_MENU_ID_VIEW_OUTLINE:
+	  if ( pFrameData->m_pViewMode == VIEW_OUTLINE)
+	    s = EV_MIS_Toggled;
+	  else
+	    s = EV_MIS_ZERO;
+	  break;
+
 	case AP_MENU_ID_VIEW_PRINT:
 	  if ( pFrameData->m_pViewMode == VIEW_PRINT)
 	    s = EV_MIS_Toggled;

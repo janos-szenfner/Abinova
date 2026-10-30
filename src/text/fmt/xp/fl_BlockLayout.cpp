@@ -503,7 +503,7 @@ void fl_BlockLayout::_lookupMarginProperties(const PP_AttrProp* pBlockAP)
 		xxx_UT_DEBUGMSG(("para prop %s layout size %d \n",mai.szProp,*mai.pVar));
 	}
 
-	if((pView->getViewMode() == VIEW_NORMAL) || ((pView->getViewMode() == VIEW_WEB) && !pG->queryProperties(GR_Graphics::DGP_PAPER)))
+	if((pView->getViewMode() == VIEW_NORMAL) || (pView->getViewMode() == VIEW_OUTLINE) || ((pView->getViewMode() == VIEW_WEB) && !pG->queryProperties(GR_Graphics::DGP_PAPER)))
 	{
 		if(m_iLeftMargin < 0)
 		{
@@ -519,7 +519,14 @@ void fl_BlockLayout::_lookupMarginProperties(const PP_AttrProp* pBlockAP)
 		// igonre right margin
 		m_iRightMargin = 0;
 	}
-	
+
+	if(pView->getViewMode() == VIEW_OUTLINE)
+	{
+		// outline view indents each paragraph by its level
+		m_iLeftMargin += pView->getOutlineIndentDepth(this) *
+			UT_convertSizeToLayoutUnits(0.3, DIM_IN);
+	}
+
 	// NOTE : Parsing spacing strings:
 	// NOTE : - if spacing string ends with "+", it's marked as an "At Least" measurement
 	// NOTE : - if spacing has a unit in it, it's an "Exact" measurement
@@ -561,7 +568,7 @@ void fl_BlockLayout::_lookupMarginProperties(const PP_AttrProp* pBlockAP)
 			UT_convertDimensionless(pszSpacing);
 	}
 
-	if((pView->getViewMode() == VIEW_NORMAL) || ((pView->getViewMode() == VIEW_WEB) && !pG->queryProperties(GR_Graphics::DGP_PAPER)))
+	if((pView->getViewMode() == VIEW_NORMAL) || (pView->getViewMode() == VIEW_OUTLINE) || ((pView->getViewMode() == VIEW_WEB) && !pG->queryProperties(GR_Graphics::DGP_PAPER)))
 	{
 		// flatten the text; we will indicate more than single spacing by using 1.2, which
 		// is enough for the text to be noticeably spaced, but not enough for it to take
@@ -569,7 +576,7 @@ void fl_BlockLayout::_lookupMarginProperties(const PP_AttrProp* pBlockAP)
 		m_eSpacingPolicy = spacing_MULTIPLE;
 
 		double dSpacing1 = UT_convertDimensionless("1.2");
-		if(m_dLineSpacing > dSpacing1) 
+		if(m_dLineSpacing > dSpacing1)
 			m_dLineSpacing = UT_convertDimensionless("1.2");
 	}
 
@@ -812,7 +819,7 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 		xxx_UT_DEBUGMSG(("para prop %s layout size %d \n",mai.szProp,*mai.pVar));
 	}
 
-	if((pView->getViewMode() == VIEW_NORMAL) || ((pView->getViewMode() == VIEW_WEB) && !pG->queryProperties(GR_Graphics::DGP_PAPER)))
+	if((pView->getViewMode() == VIEW_NORMAL) || (pView->getViewMode() == VIEW_OUTLINE) || ((pView->getViewMode() == VIEW_WEB) && !pG->queryProperties(GR_Graphics::DGP_PAPER)))
 	{
 		if(m_iLeftMargin < 0)
 		{
@@ -828,7 +835,14 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 		// igonre right margin
 		m_iRightMargin = 0;
 	}
-	
+
+	if(pView->getViewMode() == VIEW_OUTLINE)
+	{
+		// outline view indents each paragraph by its level
+		m_iLeftMargin += pView->getOutlineIndentDepth(this) *
+			UT_convertSizeToLayoutUnits(0.3, DIM_IN);
+	}
+
 	{
 		const char* pszAlign = getProperty("text-align");
 
@@ -936,7 +950,7 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 			UT_convertDimensionless(pszSpacing);
 	}
 
-	if((pView->getViewMode() == VIEW_NORMAL) || ((pView->getViewMode() == VIEW_WEB) && !pG->queryProperties(GR_Graphics::DGP_PAPER)))
+	if((pView->getViewMode() == VIEW_NORMAL) || (pView->getViewMode() == VIEW_OUTLINE) || ((pView->getViewMode() == VIEW_WEB) && !pG->queryProperties(GR_Graphics::DGP_PAPER)))
 	{
 		// flatten the text; we will indicate more than single spacing by using 1.2, which
 		// is enough for the text to be noticeably spaced, but not enough for it to take
@@ -944,7 +958,7 @@ void fl_BlockLayout::_lookupProperties(const PP_AttrProp* pBlockAP)
 		m_eSpacingPolicy = spacing_MULTIPLE;
 
 		double dSpacing1 = UT_convertDimensionless("1.2");
-		if(m_dLineSpacing > dSpacing1) 
+		if(m_dLineSpacing > dSpacing1)
 			m_dLineSpacing = UT_convertDimensionless("1.2");
 	}
 	//
@@ -2398,7 +2412,7 @@ fl_BlockLayout::_insertEndOfParagraphRun(void)
 	FPVisibility eHidden = isHidden();
 	bool bHidden = ((eHidden == FP_HIDDEN_TEXT && !bShowHidden)
 		              || eHidden == FP_HIDDEN_REVISION
-					|| eHidden == FP_HIDDEN_FOLDED
+					|| eHidden >= FP_HIDDEN_FOLDED
 		              || eHidden == FP_HIDDEN_REVISION_AND_TEXT);
 	if(!bHidden)
 		pFirst->layout();
@@ -4173,19 +4187,19 @@ fp_Container* fl_BlockLayout::getNewContainer(const fp_Container* /* pCon*/)
 		pLine->setPrev(nullptr);
 		
 		fp_Line* pPrevLine = nullptr;
-		if(getPrev())
+		// The immediate previous layout may be container-less (a
+		// collapsed/hidden block keeps no lines); walk back to the
+		// nearest sibling that still owns containers so the new line
+		// is anchored at the right point in the column instead of
+		// being inserted before the next block's column head.
+		fl_ContainerLayout * pPrevCL = getPrev();
+		while(pPrevCL && (pPrevCL->getLastContainer() == nullptr))
 		{
-			if(getPrev()->getLastContainer() == nullptr)
-			{
-				// Previous block exists but doesn't have a last line.
-				// This is a BUG. Try a work around for now. TODO Fix this elsewhere
-				UT_DEBUGMSG(("BUG!!! Previous block exists with no last line. This should not happen \n"));
-				//	getPrev()->format();
-			}
+			pPrevCL = pPrevCL->getPrev();
 		}
-		if (getPrev() && getPrev()->getLastContainer())
+		if (pPrevCL && pPrevCL->getLastContainer())
 		{
-			fp_Container * pPrevCon = static_cast<fp_Container *>(getPrev()->getLastContainer());
+			fp_Container * pPrevCon = static_cast<fp_Container *>(pPrevCL->getLastContainer());
 			if(pPrevCon->getContainerType() == FP_CONTAINER_LINE)
 			{
 				pContainer = static_cast<fp_VerticalContainer *>(pPrevCon->getContainer());
@@ -5215,7 +5229,7 @@ bool fl_BlockLayout::doclistener_populateSpan(const PX_ChangeRecord_Span * pcrs,
 	// Tomas, Apr 23, 2004
 	setNeedsReformat(this,blockOffset);
 	updateEnclosingBlockIfNeeded();
-	if(isHidden() == FP_HIDDEN_FOLDED)
+	if(isHidden() >= FP_HIDDEN_FOLDED)
 	{
 		collapse();
 	}

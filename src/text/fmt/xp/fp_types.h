@@ -97,6 +97,7 @@ enum ViewMode: uint8_t
   VIEW_PRINT,
   VIEW_NORMAL,
   VIEW_WEB,
+  VIEW_OUTLINE,
   VIEW_PREVIEW
 };
 

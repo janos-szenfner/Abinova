@@ -260,7 +260,7 @@ void fl_TableLayout::insertTableContainer( fp_TableContainer * pNewTab)
 		while(pPrevL && (pPrevL != pUPCL) && ((pPrevL->getContainerType() == FL_CONTAINER_FOOTNOTE)
           || (pPrevL->getContainerType() == FL_CONTAINER_ENDNOTE)||
 		  (pPrevL->getContainerType() == FL_CONTAINER_FRAME) ||
-		  (pPrevL->isHidden() == FP_HIDDEN_FOLDED) ||
+		  (pPrevL->isHidden() >= FP_HIDDEN_FOLDED) ||
           (pPrevL->getLastContainer() == nullptr)))
 		{
 			pPrevL = pPrevL->getPrev();
@@ -1369,7 +1369,7 @@ void fl_TableLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 		GR_Graphics * pG = getDocLayout()->getGraphics();
 		UT_return_if_fail( pView && pG );
 		
-		if(((pView->getViewMode() == VIEW_NORMAL) || (pView->getViewMode() == VIEW_WEB)) && 
+		if(((pView->getViewMode() == VIEW_NORMAL) || (pView->getViewMode() == VIEW_OUTLINE) || (pView->getViewMode() == VIEW_WEB)) && 
 		   m_iLeftColPos < 0 &&
 		   !pG->queryProperties(GR_Graphics::DGP_PAPER))
 		{
@@ -1710,7 +1710,7 @@ void fl_TableLayout::_lookupMarginProperties(const PP_AttrProp* pSectionAP)
 		GR_Graphics * pG = getDocLayout()->getGraphics();
 		UT_return_if_fail( pView && pG );
 
-		if(((pView->getViewMode() == VIEW_NORMAL) || (pView->getViewMode() == VIEW_WEB)) && 
+		if(((pView->getViewMode() == VIEW_NORMAL) || (pView->getViewMode() == VIEW_OUTLINE) || (pView->getViewMode() == VIEW_WEB)) && 
 		   m_iLeftColPos < 0 &&
 		   !pG->queryProperties(GR_Graphics::DGP_PAPER))
 		{
@@ -2485,8 +2485,8 @@ bool fl_CellLayout::recalculateFields(UT_uint32 iUpdateCount)
 void fl_CellLayout::_lookupProperties(const PP_AttrProp* pSectionAP)
 {
 	UT_return_if_fail(pSectionAP);
-	bool bFolded = (isHidden() == FP_HIDDEN_FOLDED);
-	if(bFolded && (isHidden() != FP_HIDDEN_FOLDED))
+	bool bFolded = (isHidden() >= FP_HIDDEN_FOLDED);
+	if(bFolded && (isHidden() < FP_HIDDEN_FOLDED))
 	{
 		UT_DEBUGMSG(("!!!!!!!!!!!!!!!!!!------------------!!!!!!!!!!!\n"));
 		UT_DEBUGMSG(("!!!!!!!!!!!!!!!!!!------------------!!!!!!!!!!!\n"));

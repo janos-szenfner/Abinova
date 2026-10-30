@@ -10643,6 +10643,1088 @@ bool FV_View::_blockHeadingLevel(const fl_BlockLayout * pBlock,
 	return false;
 }
 
+/* ----------------------------------------------------------------
+ * Outline view (VIEW_OUTLINE) — the document as a flattened heading
+ * outline.  Semantics follow wordcraft's Outlining tab: outline
+ * levels 1-9 (Heading N styles or a block outline-level prop), body
+ * text = level 10; promote/demote step levels (body text promotes to
+ * the level of the heading before it); move up/down carries
+ * collapsed content with its heading past the next shown paragraph;
+ * collapse/expand work level-wise; Show Level 1-9 hides everything
+ * deeper and all body text.  Collapsed state and the show-level
+ * filter are view state only — FP_HIDDEN_OUTLINE marks layouts we
+ * fold so they coexist with doc-driven folded/hidden states.
+ * -------------------------------------------------------------- */
+
+static const UT_sint32 OUTLINE_LEVEL_BODY = 10;
+
+/*!
+ * The top-level flow items of the document in document order:
+ * blocks, tables and TOCs that are direct children of a document
+ * section.  Blocks carry their heading level (1-9) or body level;
+ * tables and TOCs are always body-level items.
+ */
+void FV_View::getOutlineItems(std::vector<FV_OutlineItem> & items) const
+{
+	items.clear();
+	if(!m_pLayout)
+	{
+		return;
+	}
+	fl_SectionLayout * pSL = m_pLayout->getFirstSection();
+	while(pSL)
+	{
+		if(pSL->getType() == FL_SECTION_DOC)
+		{
+			for(fl_ContainerLayout * pL = pSL->getFirstLayout(); pL;
+				pL = pL->getNext())
+			{
+				const fl_ContainerType iType = pL->getContainerType();
+				if(iType == FL_CONTAINER_BLOCK)
+				{
+					FV_OutlineItem item;
+					item.pL = pL;
+					UT_sint32 iLevel = 0;
+					item.bHeading = _blockHeadingLevel(
+						static_cast<const fl_BlockLayout *>(pL), iLevel);
+					item.iLevel = item.bHeading ? iLevel : OUTLINE_LEVEL_BODY;
+					items.push_back(item);
+				}
+				else if((iType == FL_CONTAINER_TABLE) ||
+						(iType == FL_CONTAINER_TOC))
+				{
+					FV_OutlineItem item;
+					item.pL = pL;
+					item.iLevel = OUTLINE_LEVEL_BODY;
+					item.bHeading = false;
+					items.push_back(item);
+				}
+			}
+		}
+		pSL = static_cast<fl_SectionLayout *>(pSL->getNext());
+	}
+}
+
+bool FV_View::isOutlineCollapsed(const fl_ContainerLayout * pCL) const
+{
+	return pCL && (m_outlineCollapsed.count(
+					   const_cast<fl_ContainerLayout *>(pCL)) > 0);
+}
+
+/*!
+ * Which items the outline hides: deeper than Show Level, or under a
+ * collapsed heading.  Mirrors wordcraft layout/outline.rs hidden().
+ */
+static std::vector<char> s_outlineHidden(
+	const std::vector<FV_View::FV_OutlineItem> & items,
+	const std::set<fl_ContainerLayout*> & collapsed,
+	UT_sint32 iShowLevel)
+{
+	const UT_sint32 iDeepest =
+		(iShowLevel >= 1 && iShowLevel <= 9) ? iShowLevel
+										   : OUTLINE_LEVEL_BODY;
+	std::vector<char> hidden(items.size(), 0);
+	UT_sint32 iUnder = -1; /* level of the enclosing collapsed heading */
+	for(size_t i = 0; i < items.size(); i++)
+	{
+		const UT_sint32 iLevel = items[i].iLevel;
+		if(iUnder >= 0)
+		{
+			if(iLevel > iUnder)
+			{
+				hidden[i] = 1;
+				continue;
+			}
+			iUnder = -1;
+		}
+		if(iLevel > iDeepest)
+		{
+			hidden[i] = 1;
+			continue;
+		}
+		if(items[i].bHeading && collapsed.count(items[i].pL))
+		{
+			iUnder = iLevel;
+		}
+	}
+	return hidden;
+}
+
+/*!
+ * The end (exclusive, as an item index) of what is under item i:
+ * the items after a heading up to the next heading of its level or
+ * higher.  Body items have nothing under them (i + 1).
+ */
+static size_t s_outlineSubtreeEnd(
+	const std::vector<FV_View::FV_OutlineItem> & items, size_t i)
+{
+	const UT_sint32 iLevel = items[i].iLevel;
+	if(iLevel >= OUTLINE_LEVEL_BODY)
+	{
+		return i + 1;
+	}
+	for(size_t j = i + 1; j < items.size(); j++)
+	{
+		if(items[j].iLevel <= iLevel)
+		{
+			return j;
+		}
+	}
+	return items.size();
+}
+
+static bool s_outlineHasChildren(
+	const std::vector<FV_View::FV_OutlineItem> & items, size_t i)
+{
+	return s_outlineSubtreeEnd(items, i) > i + 1;
+}
+
+/*!
+ * Document position where item i's strux starts.
+ */
+static PT_DocPosition s_outlineItemPos(const FV_View::FV_OutlineItem & item)
+{
+	return item.pL->getPosition(true);
+}
+
+/*!
+ * Document position just past item i's content: the next item's strux
+ * position, or this item's own strux position plus its full length
+ * for the last item.
+ */
+static PT_DocPosition s_outlineItemEnd(
+	const std::vector<FV_View::FV_OutlineItem> & items, size_t i)
+{
+	if(i + 1 < items.size())
+	{
+		return s_outlineItemPos(items[i + 1]);
+	}
+	fl_ContainerLayout * pL = items[i].pL;
+	UT_uint32 iLen = 0;
+	if(pL->getContainerType() == FL_CONTAINER_BLOCK)
+	{
+		iLen = static_cast<fl_BlockLayout *>(pL)->getLength();
+	}
+	else if(pL->getContainerType() == FL_CONTAINER_TABLE)
+	{
+		iLen = static_cast<fl_TableLayout *>(pL)->getLength();
+	}
+	return pL->getPosition(true) + iLen;
+}
+
+/*!
+ * The index of the outline item containing document position pos —
+ * the last item that starts at or before pos.  -1 when pos is before
+ * the first item or there are no items.
+ */
+UT_sint32 FV_View::_outlineItemAt(PT_DocPosition pos) const
+{
+	std::vector<FV_OutlineItem> items;
+	getOutlineItems(items);
+	UT_sint32 iFound = -1;
+	for(size_t i = 0; i < items.size(); i++)
+	{
+		if(s_outlineItemPos(items[i]) <= pos)
+		{
+			iFound = static_cast<UT_sint32>(i);
+		}
+		else
+		{
+			break;
+		}
+	}
+	return iFound;
+}
+
+/*!
+ * Push the hidden state out to the layout tree: items that the
+ * current collapsed set and show level hide get FP_HIDDEN_OUTLINE;
+ * items we hid that are shown again get FP_VISIBLE back.  Doc-driven
+ * folded/hidden states (text-folded, revisions, display:none) are
+ * left alone.
+ */
+void FV_View::_applyOutlineVisibility(void)
+{
+	std::vector<FV_OutlineItem> items;
+	getOutlineItems(items);
+	const std::vector<char> hidden =
+		s_outlineHidden(items, m_outlineCollapsed, m_iOutlineShowLevel);
+	for(size_t i = 0; i < items.size(); i++)
+	{
+		fl_ContainerLayout * pL = items[i].pL;
+		if(hidden[i])
+		{
+			if(pL->isHidden() == FP_VISIBLE)
+			{
+				pL->setVisibility(FP_HIDDEN_OUTLINE);
+			}
+		}
+		else if(pL->isHidden() == FP_HIDDEN_OUTLINE)
+		{
+			pL->setVisibility(FP_VISIBLE);
+		}
+	}
+}
+
+/*!
+ * Drop every outline fold: all items we marked get FP_VISIBLE back.
+ * Called when leaving outline view (the rebuild then gives every
+ * block its lines back).
+ */
+void FV_View::_restoreOutlineVisibility(void)
+{
+	std::vector<FV_OutlineItem> items;
+	getOutlineItems(items);
+	for(size_t i = 0; i < items.size(); i++)
+	{
+		fl_ContainerLayout * pL = items[i].pL;
+		if(pL->isHidden() == FP_HIDDEN_OUTLINE)
+		{
+			pL->setVisibility(FP_VISIBLE);
+		}
+	}
+}
+
+/*!
+ * Re-apply the hidden state and rebuild the layout so folded items
+ * lose their containers and unfolded ones get theirs back.
+ */
+void FV_View::_outlineRelayout(void)
+{
+	_applyOutlineVisibility();
+	rebuildLayout();
+	m_pLayout->formatAll();
+	_generalUpdate();
+	_fixInsertionPointCoords();
+}
+
+/*!
+ * The extra left-indent depth a top-level block gets in outline
+ * view: headings indent by level - 1, body text by the level of the
+ * heading it follows.  Nested blocks (cells, frames, notes) get 0.
+ */
+UT_sint32 FV_View::getOutlineIndentDepth(const fl_BlockLayout * pBL) const
+{
+	if(m_viewMode != VIEW_OUTLINE || !pBL)
+	{
+		return 0;
+	}
+	fl_ContainerLayout * pCL =
+		const_cast<fl_BlockLayout *>(pBL)->myContainingLayout();
+	if(!pCL || (pCL->getContainerType() != FL_CONTAINER_DOCSECTION))
+	{
+		return 0;
+	}
+	UT_sint32 iLevel = 0;
+	if(_blockHeadingLevel(pBL, iLevel))
+	{
+		return (iLevel > 0) ? iLevel - 1 : 0;
+	}
+	const fl_ContainerLayout * pPrev = pBL->getPrev();
+	while(pPrev)
+	{
+		if(pPrev->getContainerType() == FL_CONTAINER_BLOCK)
+		{
+			UT_sint32 iPrev = 0;
+			if(_blockHeadingLevel(static_cast<const fl_BlockLayout *>(pPrev),
+								  iPrev))
+			{
+				return iPrev;
+			}
+		}
+		pPrev = pPrev->getPrev();
+	}
+	return 0;
+}
+
+/*!
+ * The item range the selection touches: [i0, i1] as indices into
+ * items, or false when the caret is before the first item.  A
+ * selection ending exactly at an item start does not touch it.
+ */
+static bool s_outlineTouchedRange(
+	const std::vector<FV_View::FV_OutlineItem> & items,
+	PT_DocPosition posStart, PT_DocPosition posEnd,
+	UT_sint32 & i0, UT_sint32 & i1)
+{
+	i0 = -1;
+	i1 = -1;
+	for(size_t i = 0; i < items.size(); i++)
+	{
+		const PT_DocPosition posI = s_outlineItemPos(items[i]);
+		if(posI <= posStart)
+		{
+			i0 = static_cast<UT_sint32>(i);
+		}
+		if(posI <= posEnd)
+		{
+			i1 = static_cast<UT_sint32>(i);
+		}
+	}
+	if(i0 < 0)
+	{
+		return false;
+	}
+	if(i1 < i0)
+	{
+		i1 = i0;
+	}
+	if((posEnd > posStart) && (i1 > i0) &&
+	   (s_outlineItemPos(items[i1]) == posEnd))
+	{
+		i1--;
+	}
+	return true;
+}
+
+/*!
+ * The headings an outline command acts on: the selection's heading
+ * items, else the heading at or before the caret item.
+ */
+static std::vector<UT_sint32> s_outlineHeadingTargets(
+	FV_View * pView, const std::vector<FV_View::FV_OutlineItem> & items)
+{
+	PT_DocPosition posStart = pView->getPoint();
+	PT_DocPosition posEnd = pView->getSelectionAnchor();
+	if(posEnd < posStart)
+	{
+		const PT_DocPosition t = posStart;
+		posStart = posEnd;
+		posEnd = t;
+	}
+	UT_sint32 i0 = -1, i1 = -1;
+	std::vector<UT_sint32> vTargets;
+	if(s_outlineTouchedRange(items, posStart, posEnd, i0, i1))
+	{
+		for(UT_sint32 i = i0; i <= i1; i++)
+		{
+			if(items[i].bHeading)
+			{
+				vTargets.push_back(i);
+			}
+		}
+		if(!vTargets.empty())
+		{
+			return vTargets;
+		}
+		for(UT_sint32 i = i0; i >= 0; i--)
+		{
+			if(items[i].bHeading)
+			{
+				vTargets.push_back(i);
+				break;
+			}
+		}
+	}
+	return vTargets;
+}
+
+/*!
+ * Show Level folded into the collapsed set (wordcraft
+ * settle_show_level): headings at the shown level with something
+ * under them and no deeper shown descendant become collapsed; the
+ * level filter clears so single headings can then be expanded or
+ * collapsed.
+ */
+static void s_outlineSettleShowLevel(
+	std::set<fl_ContainerLayout*> & collapsed, UT_sint32 & iShowLevel,
+	const std::vector<FV_View::FV_OutlineItem> & items)
+{
+	if(iShowLevel < 1 || iShowLevel > 9)
+	{
+		return;
+	}
+	const UT_sint32 n = iShowLevel;
+	const std::vector<char> hidden =
+		s_outlineHidden(items, collapsed, n);
+	for(size_t i = 0; i < items.size(); i++)
+	{
+		if(items[i].bHeading && items[i].iLevel <= n && !hidden[i] &&
+		   s_outlineHasChildren(items, i))
+		{
+			bool bDeeperShown = false;
+			const size_t iEnd = s_outlineSubtreeEnd(items, i);
+			for(size_t j = i + 1; j < iEnd; j++)
+			{
+				if(!hidden[j])
+				{
+					bDeeperShown = true;
+					break;
+				}
+			}
+			if(!bDeeperShown)
+			{
+				collapsed.insert(items[i].pL);
+			}
+		}
+	}
+	iShowLevel = 0;
+}
+
+/*!
+ * If the insertion point sits inside an item the outline hides,
+ * move it to the start of the nearest shown item (preferring the
+ * one above — the collapsed ancestor).  Positions do not change
+ * while folding, so this runs on the live item list.
+ */
+static void s_outlineFixPoint(FV_View * pView,
+							  const std::vector<FV_View::FV_OutlineItem> & items)
+{
+	if(items.empty())
+	{
+		return;
+	}
+	UT_sint32 i0 = -1, i1 = -1;
+	const PT_DocPosition pos = pView->getPoint();
+	if(!s_outlineTouchedRange(items, pos, pos, i0, i1) || i0 < 0)
+	{
+		return;
+	}
+	fl_ContainerLayout * pL = items[i0].pL;
+	const bool bFolded = (pL->isHidden() == FP_HIDDEN_OUTLINE) ||
+		pL->isCollapsed();
+	if(!bFolded)
+	{
+		return;
+	}
+	UT_sint32 iTarget = -1;
+	for(UT_sint32 i = i0 - 1; i >= 0; i--)
+	{
+		fl_ContainerLayout * pC = items[i].pL;
+		if(pC->isHidden() != FP_HIDDEN_OUTLINE && !pC->isCollapsed())
+		{
+			iTarget = i;
+			break;
+		}
+	}
+	if(iTarget < 0)
+	{
+		for(size_t i = i0 + 1; i < items.size(); i++)
+		{
+			fl_ContainerLayout * pC = items[i].pL;
+			if(pC->isHidden() != FP_HIDDEN_OUTLINE && !pC->isCollapsed())
+			{
+				iTarget = static_cast<UT_sint32>(i);
+				break;
+			}
+		}
+	}
+	if(iTarget >= 0)
+	{
+		pView->setPoint(s_outlineItemPos(items[iTarget]) + 1);
+	}
+}
+
+/*!
+ * Collapse (wordcraft outline.collapse): the deepest open level
+ * under each target heading closes first; a heading with nothing
+ * open under it closes itself.  bAll closes each target at once.
+ */
+bool FV_View::cmdOutlineCollapse(bool bAll)
+{
+	std::vector<FV_OutlineItem> items;
+	getOutlineItems(items);
+	if(items.empty())
+	{
+		return false;
+	}
+	s_outlineSettleShowLevel(m_outlineCollapsed, m_iOutlineShowLevel,
+							 items);
+	const std::vector<UT_sint32> vTargets =
+		s_outlineHeadingTargets(this, items);
+	const std::vector<char> hiddenNow =
+		s_outlineHidden(items, m_outlineCollapsed, 0);
+	bool bAny = false;
+	for(UT_sint32 h : vTargets)
+	{
+		if(!s_outlineHasChildren(items, h) ||
+		   m_outlineCollapsed.count(items[h].pL))
+		{
+			continue;
+		}
+		if(bAll)
+		{
+			m_outlineCollapsed.insert(items[h].pL);
+			bAny = true;
+			continue;
+		}
+		/* the deepest open subheading level with children closes */
+		std::vector<size_t> vOpen;
+		const size_t iEnd = s_outlineSubtreeEnd(items, h);
+		for(size_t j = h + 1; j < iEnd; j++)
+		{
+			if(items[j].bHeading && s_outlineHasChildren(items, j) &&
+			   !m_outlineCollapsed.count(items[j].pL) && !hiddenNow[j])
+			{
+				vOpen.push_back(j);
+			}
+		}
+		if(vOpen.empty())
+		{
+			m_outlineCollapsed.insert(items[h].pL);
+		}
+		else
+		{
+			UT_sint32 iDeepest = 0;
+			for(size_t j : vOpen)
+			{
+				iDeepest = std::max(iDeepest, items[j].iLevel);
+			}
+			for(size_t j : vOpen)
+			{
+				if(items[j].iLevel == iDeepest)
+				{
+					m_outlineCollapsed.insert(items[j].pL);
+				}
+			}
+		}
+		bAny = true;
+	}
+	if(!bAny)
+	{
+		return false;
+	}
+	_outlineRelayout();
+	s_outlineFixPoint(this, items);
+	return true;
+}
+
+/*!
+ * Expand (wordcraft outline.expand): a collapsed heading opens
+ * (what was collapsed under it stays so); an open one shows the
+ * shallowest collapsed level under it.  bAll opens the heading and
+ * everything under it.
+ */
+bool FV_View::cmdOutlineExpand(bool bAll)
+{
+	std::vector<FV_OutlineItem> items;
+	getOutlineItems(items);
+	if(items.empty())
+	{
+		return false;
+	}
+	s_outlineSettleShowLevel(m_outlineCollapsed, m_iOutlineShowLevel,
+							 items);
+	const std::vector<UT_sint32> vTargets =
+		s_outlineHeadingTargets(this, items);
+	bool bAny = false;
+	for(UT_sint32 h : vTargets)
+	{
+		const size_t iEnd = s_outlineSubtreeEnd(items, h);
+		if(bAll)
+		{
+			for(size_t j = h; j < iEnd; j++)
+			{
+				bAny |= (m_outlineCollapsed.erase(items[j].pL) > 0);
+			}
+			continue;
+		}
+		if(m_outlineCollapsed.erase(items[h].pL))
+		{
+			bAny = true;
+			continue;
+		}
+		const std::vector<char> hiddenNow =
+			s_outlineHidden(items, m_outlineCollapsed, 0);
+		UT_sint32 iShallow = OUTLINE_LEVEL_BODY + 1;
+		for(size_t j = h + 1; j < iEnd; j++)
+		{
+			if(m_outlineCollapsed.count(items[j].pL) && !hiddenNow[j])
+			{
+				iShallow = std::min(iShallow, items[j].iLevel);
+			}
+		}
+		if(iShallow <= OUTLINE_LEVEL_BODY)
+		{
+			for(size_t j = h + 1; j < iEnd; j++)
+			{
+				if(m_outlineCollapsed.count(items[j].pL) &&
+				   !hiddenNow[j] && items[j].iLevel == iShallow)
+				{
+					m_outlineCollapsed.erase(items[j].pL);
+				}
+			}
+			bAny = true;
+		}
+	}
+	if(!bAny)
+	{
+		return false;
+	}
+	_outlineRelayout();
+	return true;
+}
+
+/*!
+ * Double-click semantics (wordcraft outline.toggle): all of a
+ * collapsed heading opens, all of an open one closes.
+ */
+bool FV_View::cmdOutlineToggle(void)
+{
+	std::vector<FV_OutlineItem> items;
+	getOutlineItems(items);
+	const std::vector<UT_sint32> vTargets =
+		s_outlineHeadingTargets(this, items);
+	if(vTargets.empty())
+	{
+		return false;
+	}
+	const bool bCollapsed =
+		m_outlineCollapsed.count(items[vTargets.front()].pL) > 0;
+	if(bCollapsed)
+	{
+		return cmdOutlineExpand(true);
+	}
+	return cmdOutlineCollapse(true);
+}
+
+/*!
+ * Show Level (wordcraft outline.showLevel): 1-9 shows headings down
+ * to that level (no body text); 0 shows all levels.  Clears the
+ * collapsed set.
+ */
+bool FV_View::cmdOutlineShowLevel(UT_sint32 iLevel)
+{
+	if(iLevel < 0 || iLevel > 9)
+	{
+		return false;
+	}
+	m_iOutlineShowLevel = iLevel;
+	m_outlineCollapsed.clear();
+	_outlineRelayout();
+	std::vector<FV_OutlineItem> items;
+	getOutlineItems(items);
+	s_outlineFixPoint(this, items);
+	return true;
+}
+
+/*!
+ * Apply paragraph style szStyle to the single block pBL — the same
+ * changeStruxFmt(PTC_AddStyle) the style commands use, so direct
+ * properties covered by the new style clear with it.
+ */
+static void s_applyOutlineBlockStyle(PD_Document * pDoc,
+									 fl_BlockLayout * pBL,
+									 const char * szStyle)
+{
+	const PP_PropertyVector attribs = {
+		PT_STYLE_ATTRIBUTE_NAME, szStyle
+	};
+	/* anchor the change inside the block: a range starting at the
+	 * strux position itself resolves the first block to the one
+	 * before it */
+	const PT_DocPosition posStrux = pBL->getPosition(true);
+	const PT_DocPosition pos = posStrux + 1;
+	PT_DocPosition posEnd = posStrux + pBL->getLength() - 1;
+	if(posEnd <= pos)
+	{
+		posEnd = pos + 1;
+	}
+	pDoc->changeStruxFmt(PTC_AddStyle, pos, posEnd, attribs,
+					   PP_NOPROPS, PTX_Block);
+}
+
+/*!
+ * The heading style name for an outline level, "Heading N" (always
+ * defined — Heading 1-9 are builtin styles).
+ */
+static void s_outlineStyleForLevel(UT_sint32 iLevel, char * szBuf,
+								   size_t iBufSize)
+{
+	g_snprintf(szBuf, iBufSize, "Heading %d",
+			   static_cast<int>(iLevel));
+}
+
+/*!
+ * Promote / Demote (wordcraft para.outline_step, Alt+Shift+Left/
+ * Right): each touched block steps a heading level (Heading 1 and
+ * Heading 9 are the ends); body text promotes to the level of the
+ * heading before it (Heading 1 when there is none) and can't be
+ * demoted.  In outline view the headings hidden under a collapsed
+ * heading in the selection are carried along one level.
+ */
+bool FV_View::cmdOutlineStep(bool bPromote)
+{
+	std::vector<FV_OutlineItem> items;
+	getOutlineItems(items);
+	if(items.empty())
+	{
+		return false;
+	}
+	PT_DocPosition posStart = getPoint();
+	PT_DocPosition posEnd = getSelectionAnchor();
+	if(posEnd < posStart)
+	{
+		const PT_DocPosition t = posStart;
+		posStart = posEnd;
+		posEnd = t;
+	}
+	UT_sint32 i0 = -1, i1 = -1;
+	if(!s_outlineTouchedRange(items, posStart, posEnd, i0, i1))
+	{
+		return false;
+	}
+	/* hidden subheadings carried along with collapsed targets */
+	struct Carried { fl_BlockLayout * pBL; UT_sint32 iLevel; };
+	std::vector<Carried> vCarried;
+	if(isOutlineView() && !m_outlineCollapsed.empty())
+	{
+		const std::vector<char> hidden =
+			s_outlineHidden(items, m_outlineCollapsed, 0);
+		for(UT_sint32 i = i0; i <= i1; i++)
+		{
+			if(!items[i].bHeading ||
+			   !m_outlineCollapsed.count(items[i].pL))
+			{
+				continue;
+			}
+			const size_t iEnd = s_outlineSubtreeEnd(items, i);
+			for(size_t j = i + 1; j < iEnd; j++)
+			{
+				if(items[j].bHeading && hidden[j] &&
+				   items[j].pL->getContainerType() == FL_CONTAINER_BLOCK)
+				{
+					bool bDup = false;
+					for(const Carried & c : vCarried)
+					{
+						if(c.pBL == items[j].pL)
+						{
+							bDup = true;
+							break;
+						}
+					}
+					if(!bDup)
+					{
+						vCarried.push_back({
+							static_cast<fl_BlockLayout *>(items[j].pL),
+							items[j].iLevel});
+					}
+				}
+			}
+		}
+	}
+	/* the heading level before the range — promoted body text
+	 * takes it (Heading 1 when there is none) */
+	UT_sint32 iBefore = 1;
+	for(UT_sint32 i = i0 - 1; i >= 0; i--)
+	{
+		if(items[i].bHeading)
+		{
+			iBefore = items[i].iLevel;
+			break;
+		}
+	}
+	bool bChanged = false;
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	for(UT_sint32 i = i0; i <= i1; i++)
+	{
+		if(items[i].pL->getContainerType() != FL_CONTAINER_BLOCK)
+		{
+			continue;
+		}
+		UT_sint32 n = -1;
+		if(items[i].bHeading)
+		{
+			if(bPromote && items[i].iLevel > 1)
+			{
+				n = items[i].iLevel - 1;
+			}
+			else if(!bPromote && items[i].iLevel < 9)
+			{
+				n = items[i].iLevel + 1;
+			}
+		}
+		else if(bPromote)
+		{
+			n = iBefore;
+		}
+		if(n < 1)
+		{
+			continue;
+		}
+		char szStyle[32];
+		s_outlineStyleForLevel(n, szStyle, sizeof(szStyle));
+		s_applyOutlineBlockStyle(m_pDoc,
+							   static_cast<fl_BlockLayout *>(items[i].pL),
+							   szStyle);
+		bChanged = true;
+	}
+	for(const Carried & c : vCarried)
+	{
+		const UT_sint32 n = bPromote
+			? std::max<UT_sint32>(c.iLevel - 1, 1)
+			: std::min<UT_sint32>(c.iLevel + 1, 9);
+		if(n == c.iLevel)
+		{
+			continue;
+		}
+		char szStyle[32];
+		s_outlineStyleForLevel(n, szStyle, sizeof(szStyle));
+		s_applyOutlineBlockStyle(m_pDoc, c.pBL, szStyle);
+		bChanged = true;
+	}
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	if(!bChanged)
+	{
+		return false;
+	}
+	/* levels changed — the hidden set and indents may shift too */
+	if(isOutlineView())
+	{
+		_outlineRelayout();
+	}
+	_generalUpdate();
+	return true;
+}
+
+/*!
+ * Set the touched blocks' outline level directly (wordcraft
+ * outline.level / promoteToHeading1 / demoteToBody): iLevel 1-9
+ * applies Heading N; 0 applies the Normal (body text) style.
+ */
+bool FV_View::cmdOutlineSetLevel(UT_sint32 iLevel)
+{
+	if(iLevel < 0 || iLevel > 9)
+	{
+		return false;
+	}
+	std::vector<FV_OutlineItem> items;
+	getOutlineItems(items);
+	if(items.empty())
+	{
+		return false;
+	}
+	PT_DocPosition posStart = getPoint();
+	PT_DocPosition posEnd = getSelectionAnchor();
+	if(posEnd < posStart)
+	{
+		const PT_DocPosition t = posStart;
+		posStart = posEnd;
+		posEnd = t;
+	}
+	UT_sint32 i0 = -1, i1 = -1;
+	if(!s_outlineTouchedRange(items, posStart, posEnd, i0, i1))
+	{
+		return false;
+	}
+	char szStyle[32];
+	if(iLevel == 0)
+	{
+		g_strlcpy(szStyle, "Normal", sizeof(szStyle));
+	}
+	else
+	{
+		s_outlineStyleForLevel(iLevel, szStyle, sizeof(szStyle));
+	}
+	bool bChanged = false;
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	for(UT_sint32 i = i0; i <= i1; i++)
+	{
+		if(items[i].pL->getContainerType() != FL_CONTAINER_BLOCK)
+		{
+			continue;
+		}
+		s_applyOutlineBlockStyle(m_pDoc,
+							   static_cast<fl_BlockLayout *>(items[i].pL),
+							   szStyle);
+		bChanged = true;
+	}
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	if(!bChanged)
+	{
+		return false;
+	}
+	if(isOutlineView())
+	{
+		_outlineRelayout();
+	}
+	_generalUpdate();
+	return true;
+}
+
+/*!
+ * Extract the document range [posStart, posEnd) through the local
+ * paste buffer and re-insert it at posBefore (which must lie before
+ * posStart so it stays valid after the delete).  One undo step.
+ */
+bool FV_View::_moveDocRangeBefore(PT_DocPosition posStart,
+								  PT_DocPosition posEnd,
+								  PT_DocPosition posBefore)
+{
+	if(posStart >= posEnd || posBefore > posStart)
+	{
+		return false;
+	}
+	copyToLocal(posStart, posEnd);
+	if(!m_pLocalBuf || (m_pLocalBuf->getLength() == 0))
+	{
+		return false;
+	}
+	_saveAndNotifyPieceTableChange();
+	m_pDoc->beginUserAtomicGlob();
+	m_pDoc->disableListUpdates();
+	m_pDoc->setDoingPaste();
+	m_pDoc->setDontImmediatelyLayout(true);
+	UT_uint32 iDelCount = 0;
+	m_pDoc->deleteSpan(posStart, posEnd, nullptr, iDelCount, true);
+	_pasteFromLocalTo(posBefore);
+	m_pDoc->setDontImmediatelyLayout(false);
+	m_pDoc->clearDoingPaste();
+	m_pDoc->enableListUpdates();
+	m_pDoc->updateDirtyLists();
+	m_pDoc->endUserAtomicGlob();
+	_restorePieceTableState();
+	return true;
+}
+
+/*!
+ * Move Paragraph Up / Down (wordcraft para.moveUp/moveDown +
+ * outline.move_shown): the touched items swap places with the item
+ * above or below them.  In outline view what's hidden rides along
+ * with its heading — the moved range extends over hidden followers
+ * and passes the next shown item plus what is hidden under it.
+ */
+bool FV_View::cmdOutlineMove(bool bUp)
+{
+	std::vector<FV_OutlineItem> items;
+	getOutlineItems(items);
+	if(items.empty())
+	{
+		return false;
+	}
+	const std::vector<char> hidden = isOutlineView()
+		? s_outlineHidden(items, m_outlineCollapsed, m_iOutlineShowLevel)
+		: std::vector<char>(items.size(), 0);
+	PT_DocPosition posStart = getPoint();
+	PT_DocPosition posEnd = getSelectionAnchor();
+	if(posEnd < posStart)
+	{
+		const PT_DocPosition t = posStart;
+		posStart = posEnd;
+		posEnd = t;
+	}
+	UT_sint32 i0 = -1, i1 = -1;
+	if(!s_outlineTouchedRange(items, posStart, posEnd, i0, i1))
+	{
+		return false;
+	}
+	const UT_sint32 n = static_cast<UT_sint32>(items.size());
+	/* hidden followers move with the touched range */
+	UT_sint32 r1 = i1;
+	while((r1 + 1 < n) && hidden[r1 + 1])
+	{
+		r1++;
+	}
+	auto allBlocks = [&](UT_sint32 a, UT_sint32 b) -> bool {
+		for(UT_sint32 i = a; i <= b; i++)
+		{
+			if(items[i].pL->getContainerType() != FL_CONTAINER_BLOCK)
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+	auto sameSection = [&](UT_sint32 a, UT_sint32 b) -> bool {
+		fl_DocSectionLayout * pDSL = items[a].pL->getDocSectionLayout();
+		for(UT_sint32 i = a + 1; i <= b; i++)
+		{
+			if(items[i].pL->getDocSectionLayout() != pDSL)
+			{
+				return false;
+			}
+		}
+		return true;
+	};
+	if(bUp)
+	{
+		UT_sint32 v = -1;
+		for(UT_sint32 j = i0 - 1; j >= 0; j--)
+		{
+			if(!hidden[j])
+			{
+				v = j;
+				break;
+			}
+		}
+		if(v < 0 || !allBlocks(i0, r1) || !allBlocks(v, v) ||
+		   !sameSection(v, r1))
+		{
+			return false;
+		}
+		const PT_DocPosition posBefore = s_outlineItemPos(items[v]);
+		const PT_DocPosition posDel = s_outlineItemPos(items[i0]);
+		const PT_DocPosition posDelEnd = s_outlineItemEnd(items, r1);
+		if(!_moveDocRangeBefore(posDel, posDelEnd, posBefore))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		const UT_sint32 w = r1 + 1;
+		if(w >= n || !allBlocks(i0, r1) || !allBlocks(w, w) ||
+		   !sameSection(i0, w))
+		{
+			return false;
+		}
+		UT_sint32 e = w;
+		while((e + 1 < n) && hidden[e + 1])
+		{
+			e++;
+		}
+		if(!allBlocks(w, e) || !sameSection(i0, e))
+		{
+			return false;
+		}
+		/* moving [i0..r1] past [w..e] is the same as moving [w..e]
+		 * before i0 — and i0's position survives the later cut */
+		const PT_DocPosition posBefore = s_outlineItemPos(items[i0]);
+		const PT_DocPosition posDel = s_outlineItemPos(items[w]);
+		const PT_DocPosition posDelEnd = s_outlineItemEnd(items, e);
+		if(!_moveDocRangeBefore(posDel, posDelEnd, posBefore))
+		{
+			return false;
+		}
+	}
+	if(isOutlineView())
+	{
+		_outlineRelayout();
+	}
+	_generalUpdate();
+	return true;
+}
+
+/*!
+ * Select Heading and Content (wordcraft outline.selectSubtree):
+ * the heading at the caret plus everything under it.
+ */
+bool FV_View::cmdOutlineSelectSubtree(void)
+{
+	std::vector<FV_OutlineItem> items;
+	getOutlineItems(items);
+	if(items.empty())
+	{
+		return false;
+	}
+	const std::vector<UT_sint32> vTargets =
+		s_outlineHeadingTargets(this, items);
+	if(vTargets.empty())
+	{
+		return false;
+	}
+	const size_t h = static_cast<size_t>(vTargets.front());
+	const size_t iEnd = s_outlineSubtreeEnd(items, h);
+	const PT_DocPosition posBeg = s_outlineItemPos(items[h]);
+	const PT_DocPosition posFin = s_outlineItemEnd(items, iEnd - 1);
+	cmdSelect(posBeg, posFin);
+	return true;
+}
+
 /*!
  * The plain text of a block, trimmed.
  */

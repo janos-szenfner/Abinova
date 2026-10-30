@@ -48,7 +48,11 @@ enum FPVisibility: uint8_t {FP_VISIBLE = 0,
 			  FP_HIDDEN_TEXT,
 			  FP_HIDDEN_REVISION,
 			  FP_HIDDEN_REVISION_AND_TEXT,
-			  FP_HIDDEN_FOLDED
+			  FP_HIDDEN_FOLDED,
+			  /* folded by outline view state (not a doc property) —
+			 * ordered after FOLDED so `>= FP_HIDDEN_FOLDED` checks
+			 * cover it */
+			  FP_HIDDEN_OUTLINE
 };
 
 

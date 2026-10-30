@@ -4919,6 +4919,7 @@ static bool _has_drawn_icon(XAP_Menu_Id id)
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_INSERT_SYMBOL):
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_PRINT):
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_WEB):
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_OUTLINE):
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_NORMAL):
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM):
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_ZOOM_100):
@@ -5380,6 +5381,9 @@ static GtkWidget * _layout_icon(XAP_Menu_Id id, int w, int h)
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_WEB):
 		extra = _overlay_globe;
+		break;
+	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_OUTLINE):
+		/* plain page = Outline */
 		break;
 	case static_cast<XAP_Menu_Id>(AP_MENU_ID_VIEW_NORMAL):
 		/* plain page = Draft */
