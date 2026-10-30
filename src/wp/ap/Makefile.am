@@ -419,6 +419,8 @@ libap_la_SOURCES += \
 	gtk/ap_UnixFmtPane.h \
 	gtk/ap_UnixMiniBar.cpp \
 	gtk/ap_UnixMiniBar.h \
+	gtk/ap_UnixBackstage.cpp \
+	gtk/ap_UnixBackstage.h \
 	gtk/ap_UnixStatusBar.h \
 	gtk/ap_UnixStockIcons.cpp \
 	gtk/ap_UnixStockIcons.h \

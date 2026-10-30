@@ -661,6 +661,7 @@ public:
 	static EV_EditMethod_Fn resolveAnnotation;
 	static EV_EditMethod_Fn replyAnnotation;
 	static EV_EditMethod_Fn thesaurus;
+	static EV_EditMethod_Fn fileBackstage;
 
 	static EV_EditMethod_Fn refCaption;
 	static EV_EditMethod_Fn refDeleteSource;
@@ -1290,6 +1291,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(extSelToXY),			0,	""),
 
 	// f
+	EV_EditMethod(NF(fileBackstage),		0,	""),
 	EV_EditMethod(NF(fileExport), 0, ""),
 	EV_EditMethod(NF(fileImport), 0, ""),
 	EV_EditMethod(NF(fileInsertGraphic),	0,	""),
@@ -15343,6 +15345,50 @@ Defun1(thesaurus)
 	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
 	UT_return_val_if_fail(pImpl, false);
 	pImpl->toggleThesaurusPane();
+	return true;
+}
+
+/* Backstage File view (Word's File page): opens the full-window
+ * File view on a named page.  callData: "info" | "new" | "open" |
+ * "saveas" | "print" | "share" | "options" | "close"; empty
+ * toggles between info and closed. */
+Defun(fileBackstage)
+{
+	CHECK_FRAME;
+	UT_return_val_if_fail(pAV_View, false);
+	XAP_Frame * pFrame =
+		static_cast<XAP_Frame *>(pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	XAP_FrameImpl * pImpl = pFrame->getFrameImpl();
+	UT_return_val_if_fail(pImpl, false);
+
+	std::string sArg;
+	if (pCallData && pCallData->m_pData && pCallData->m_dataLength)
+	{
+		UT_UCS4String u(pCallData->m_pData, pCallData->m_dataLength);
+		sArg = u.utf8_str();
+	}
+	if (sArg == "close")
+	{
+		pImpl->hideBackstage();
+		return true;
+	}
+	if (sArg == "options")
+	{
+		/* Options stays a dialog, like Word's; backstage keeps the
+		 * last page behind it */
+		pImpl->showBackstage("info");
+		return EX(dlgOptions);
+	}
+	if (sArg.empty())
+	{
+		if (pImpl->isBackstageVisible())
+			pImpl->hideBackstage();
+		else
+			pImpl->showBackstage("info");
+		return true;
+	}
+	pImpl->showBackstage(sArg.c_str());
 	return true;
 }
 

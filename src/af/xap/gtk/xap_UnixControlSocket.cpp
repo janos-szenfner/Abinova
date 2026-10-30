@@ -962,6 +962,23 @@ static bool _m_ui_sidepane(std::string & out, std::string & err)
 	return true;
 }
 
+/* which backstage page is showing — "" when the File view is
+ * closed; mirrors ui.sidepane for the top-level stack */
+static bool _m_ui_backstage(std::string & out, std::string & err)
+{
+	XAP_Frame * f = _first_frame();
+	if (!f || !f->getFrameImpl())
+	{
+		err = "no frame";
+		return false;
+	}
+	XAP_FrameImpl * impl = f->getFrameImpl();
+	out = "{\"open\":" +
+		std::string(impl->isBackstageVisible() ? "true" : "false") +
+		",\"page\":\"" + _json_escape(impl->backstagePage()) + "\"}";
+	return true;
+}
+
 /* dialog-free save: params.path is the target file; honours the
  * automation write root when configured.  params.password (optional)
  * applies a save password for exporters that support encryption */
@@ -1679,6 +1696,15 @@ static bool _dispatch(_Conn * c, const std::string & line)
 	{
 		std::string out;
 		if (_m_ui_sidepane(out, err))
+			_conn_send(c, id, out.c_str(), nullptr);
+		else
+			_conn_send(c, id, nullptr, err.c_str());
+		return true;
+	}
+	if (method == "ui.backstage")
+	{
+		std::string out;
+		if (_m_ui_backstage(out, err))
 			_conn_send(c, id, out.c_str(), nullptr);
 		else
 			_conn_send(c, id, nullptr, err.c_str());

@@ -481,6 +481,12 @@ private:
 	bool				m_bCollapsed = false;
 	int					m_iReflowWidth = -1;
 	guint				m_iCollapseIdle = 0;
+	int					m_iLastPage = -1;	/* last non-File tab;
+											 * the File tab launches
+											 * the backstage then
+											 * snaps back here */
+	bool				m_bFileJump = false;	/* re-entrancy guard
+												 * for the snap-back */
 	int					m_iTabPressPage = -1;	/* current page at press
 												 * time while collapsed */
 

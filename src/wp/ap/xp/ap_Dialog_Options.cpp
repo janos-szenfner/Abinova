@@ -611,9 +611,9 @@ void AP_Dialog_Options::_initEnableControls()
 std::string AP_Dialog_Options::_legacyPageName(const std::string &stStored)
 {
 	static const char * s_legacy[] = {
-		PAGE_ID_INTERFACE,	// 0: old "General" tab
-		PAGE_ID_DOCUMENTS,	// 1
-		PAGE_ID_SMARTQUOTES	// 2
+		PAGE_ID_GENERAL,	// 0: old "General"/interface tab
+		PAGE_ID_SAVE,		// 1: old documents tab
+		PAGE_ID_PROOFING	// 2: old smart-quotes tab
 	};
 
 	if (!stStored.empty() &&
@@ -623,6 +623,13 @@ std::string AP_Dialog_Options::_legacyPageName(const std::string &stStored)
 		if (n < G_N_ELEMENTS(s_legacy))
 			return s_legacy[n];
 	}
+	/* pre-rework stable names map onto the Word-aligned pages */
+	if (stStored == "interface")
+		return PAGE_ID_GENERAL;
+	if (stStored == "documents")
+		return PAGE_ID_SAVE;
+	if (stStored == "smartquotes" || stStored == "spelling")
+		return PAGE_ID_PROOFING;
 	return stStored;
 }
 

@@ -13654,13 +13654,58 @@ void AP_UnixRibbon::_refreshContextualTabs()
 }
 
 void AP_UnixRibbon::_s_switch_page(GtkNotebook * /*book*/,
-								   GtkWidget * /*page*/,
+								   GtkWidget * page,
 								   guint /*page_num*/,
 								   gpointer data)
 {
 	AP_UnixRibbon * self = static_cast<AP_UnixRibbon *>(data);
-	if (self)
-		self->refresh();
+	if (!self)
+		return;
+
+	/* the File tab is a launcher, not a ribbon page: activating it
+	 * opens the Backstage view and the notebook snaps back to the
+	 * tab the user was on, so returning finds the previous tab
+	 * still selected (Word behaves the same) */
+	const char * key = page ? static_cast<const char *>(
+		g_object_get_data(G_OBJECT(page), "abi-tab-key")) : nullptr;
+	if (key && !strcmp(key, "file") && !self->m_bFileJump &&
+		self->m_wNotebook &&
+		!gtk_widget_in_destruction(self->m_wNotebook))
+	{
+		self->m_bFileJump = true;
+		AP_UnixFrameImpl * impl = self->m_pFrame
+			? static_cast<AP_UnixFrameImpl *>(self->m_pFrame->getFrameImpl())
+			: nullptr;
+		if (impl)
+			impl->showBackstage("info");
+		GtkNotebook * nb = GTK_NOTEBOOK(self->m_wNotebook);
+		const int n = gtk_notebook_get_n_pages(nb);
+		if (self->m_iLastPage >= 0 && self->m_iLastPage < n)
+			gtk_notebook_set_current_page(nb, self->m_iLastPage);
+		else
+		{
+			/* no recorded previous tab (e.g. Alt+F keytip before
+			 * any switch): land on Home */
+			for (int i = 0; i < n; ++i)
+			{
+				GtkWidget * p = gtk_notebook_get_nth_page(nb, i);
+				const char * tk = static_cast<const char *>(
+					g_object_get_data(G_OBJECT(p), "abi-tab-key"));
+				if (tk && !strcmp(tk, "home"))
+				{
+					gtk_notebook_set_current_page(nb, i);
+					break;
+				}
+			}
+		}
+		self->m_bFileJump = false;
+	}
+	else if (key && strcmp(key, "file"))
+		self->m_iLastPage = static_cast<int>(
+			gtk_notebook_page_num(GTK_NOTEBOOK(self->m_wNotebook),
+								  page));
+
+	self->refresh();
 }
 
 void AP_UnixRibbon::_s_motion_enter(GtkEventControllerMotion * /*ctrl*/,

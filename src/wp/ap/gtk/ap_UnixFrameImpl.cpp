@@ -54,6 +54,7 @@
 #include "ap_UnixClipPane.h"
 #include "ap_UnixFmtPane.h"
 #include "ap_UnixMiniBar.h"
+#include "ap_UnixBackstage.h"
 #include "ap_Prefs.h"
 #include "xap_App.h"
 #include "xap_Prefs.h"
@@ -88,6 +89,9 @@ AP_UnixFrameImpl::AP_UnixFrameImpl(AP_UnixFrame *pUnixFrame) :
 	m_pMiniBar(nullptr),
 	m_uMiniBarIdle(0),
 	m_bMiniBarMouse(false),
+	m_wTopStack(nullptr),
+	m_pBackstage(nullptr),
+	m_wBackstage(nullptr),
 	m_wDocPaned(nullptr),
 	m_wSideDeck(nullptr),
 	m_wStylesPaneW(nullptr),
@@ -155,6 +159,7 @@ AP_UnixFrameImpl::~AP_UnixFrameImpl()
 	DELETEP(m_pG2);
 	_cancelMiniBarShow();
 	DELETEP(m_pMiniBar);
+	DELETEP(m_pBackstage);
 	DELETEP(m_pRibbon);
 	DELETEP(m_pStylesPane);
 	DELETEP(m_pSelPane);
@@ -1911,10 +1916,85 @@ void AP_UnixFrameImpl::_setWindowIcon()
 	gtk_window_set_icon_name(GTK_WINDOW(window), "abinova");
 }
 
+/* ---- Backstage File view ----------------------------------------
+ * showBackstage flips the top-level GtkStack from the document
+ * chrome ("main" = the whole m_wVBox: ribbon, toolbars, canvas,
+ * status bar) to the backstage page; hideBackstage flips back and
+ * returns focus to the canvas */
+void AP_UnixFrameImpl::showBackstage(const char * szPage)
+{
+	if (!m_wTopStack || !m_pBackstage)
+		return;
+	if (szPage && *szPage)
+		m_pBackstage->setPage(szPage);
+	m_pBackstage->refresh();
+	gtk_stack_set_visible_child_name(GTK_STACK(m_wTopStack),
+									 "backstage");
+	m_pBackstage->grabFocus();
+}
+
+void AP_UnixFrameImpl::hideBackstage()
+{
+	if (!m_wTopStack)
+		return;
+	gtk_stack_set_visible_child_name(GTK_STACK(m_wTopStack), "main");
+	focusDocument();
+}
+
+bool AP_UnixFrameImpl::isBackstageVisible() const
+{
+	if (!m_wTopStack)
+		return false;
+	const char * name = gtk_stack_get_visible_child_name(
+		GTK_STACK(m_wTopStack));
+	return name && !strcmp(name, "backstage");
+}
+
+const char * AP_UnixFrameImpl::backstagePage() const
+{
+	if (!isBackstageVisible() || !m_pBackstage)
+		return "";
+	return m_pBackstage->page();
+}
+
 void AP_UnixFrameImpl::_createWindow()
 {
 	_createTopLevelWindow();
-	
+
+	/* Backstage host: wrap the fully-populated m_wVBox in a
+	 * top-level GtkStack so the File view can replace the whole
+	 * window content while it is up (Word shows no ribbon, rulers
+	 * or status bar on the File page).  Done here, after
+	 * _createTopLevelWindow, so every chrome child is already
+	 * inside the vbox. */
+	if (!m_wTopStack && m_wVBox && m_iFrameMode == XAP_NormalFrame)
+	{
+		m_wTopStack = gtk_stack_new();
+		gtk_stack_set_transition_type(GTK_STACK(m_wTopStack),
+									  GTK_STACK_TRANSITION_TYPE_NONE);
+		g_object_ref(m_wVBox);
+		if (GTK_IS_WINDOW(m_wTopLevelWindow))
+			/* setting a new child unparents m_wVBox */
+			gtk_window_set_child(GTK_WINDOW(m_wTopLevelWindow),
+								 m_wTopStack);
+		else
+		{
+			gtk_widget_unparent(m_wVBox);
+			gtk_widget_set_parent(m_wTopStack, m_wTopLevelWindow);
+		}
+		gtk_stack_add_named(GTK_STACK(m_wTopStack), m_wVBox, "main");
+		g_object_unref(m_wVBox);
+
+		m_pBackstage = new AP_UnixBackstage(getFrame());
+		m_wBackstage = m_pBackstage->createWidget();
+		gtk_stack_add_named(GTK_STACK(m_wTopStack), m_wBackstage,
+							"backstage");
+		gtk_stack_set_visible_child_name(GTK_STACK(m_wTopStack),
+										 "main");
+		gtk_widget_set_visible(m_wTopStack, TRUE);
+		gtk_widget_set_visible(m_wBackstage, TRUE);
+	}
+
 	gtk_widget_set_visible(getTopLevelWindow(), TRUE);
 
 	if(getFrame()->getFrameMode() == XAP_NormalFrame)

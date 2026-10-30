@@ -92,11 +92,20 @@ class ABI_EXPORT AP_Dialog_Options : public XAP_TabbedDialog_NonPersistent
 
 	// stable page identifiers for the options dialog's stacked pages;
 	// entry points (e.g. dlgSpellPrefs) request a page by name instead
-	// of by fragile tab index
+	// of by fragile tab index.  The page list follows Word's File >
+	// Options panes (General/Display/Proofing/Save/Advanced).
+	static constexpr const char * PAGE_ID_GENERAL    = "general";
+	static constexpr const char * PAGE_ID_DISPLAY    = "display";
+	static constexpr const char * PAGE_ID_PROOFING   = "proofing";
+	static constexpr const char * PAGE_ID_SAVE       = "save";
+	static constexpr const char * PAGE_ID_ADVANCED   = "advanced";
+	// dlgSpellPrefs opens the page holding the spelling switches;
+	// they live on Proofing now — keep the name as an alias
+	static constexpr const char * PAGE_ID_SPELLING   = PAGE_ID_PROOFING;
+	// pre-rework page names, still resolvable via _legacyPageName
 	static constexpr const char * PAGE_ID_INTERFACE  = "interface";
 	static constexpr const char * PAGE_ID_DOCUMENTS  = "documents";
 	static constexpr const char * PAGE_ID_SMARTQUOTES= "smartquotes";
-	static constexpr const char * PAGE_ID_SPELLING   = "spelling";
 
 	// enum tCheckState: uint8_t { check_FALSE = 0, check_TRUE, check_INDETERMINATE };
 

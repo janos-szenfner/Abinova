@@ -62,11 +62,11 @@
                     <property name="margin-top">6</property>
                     <property name="margin-bottom">6</property>
                     <child>
-                      <object class="GtkStackPage" id="pageInterface">
-                        <property name="name">interface</property>
-                        <property name="title" translatable="yes">Interface</property>
+                      <object class="GtkStackPage" id="pageGeneral">
+                        <property name="name">general</property>
+                        <property name="title" translatable="yes">General</property>
                         <property name="child">
-                          <object class="GtkGrid" id="grInterface">
+                          <object class="GtkGrid" id="grGeneral">
                             <property name="visible">1</property>
                             <property name="valign">start</property>
                             <property name="row-spacing">6</property>
@@ -98,21 +98,103 @@
                               </object>
                             </child>
                             <child>
-                              <object class="GtkLabel" id="lblOverwrite">
+                              <object class="GtkLabel" id="lblUpdates">
+                                <property name="visible">1</property>
+                                <property name="margin-top">12</property>
+                                <property name="label" translatable="yes">&lt;b&gt;Updates&lt;/b&gt;</property>
+                                <property name="use-markup">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">2</property><property name="column-span">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblCheckForUpdates">
                                 <property name="visible">1</property>
                                 <property name="margin-start">18</property>
-                                <property name="label" translatable="yes">_Enable overwrite mode</property>
+                                <property name="label" translatable="yes">_Check for updates automatically</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">3</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swCheckForUpdates">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">3</property></layout>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStackPage" id="pageDisplay">
+                        <property name="name">display</property>
+                        <property name="title" translatable="yes">Display</property>
+                        <property name="child">
+                          <object class="GtkGrid" id="grDisplay">
+                            <property name="visible">1</property>
+                            <property name="valign">start</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">12</property>
+                            <child>
+                              <object class="GtkLabel" id="lblShow">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="yes">&lt;b&gt;Show&lt;/b&gt;</property>
+                                <property name="use-markup">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">0</property><property name="column-span">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblUnprintable">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">Invisible &amp;Layout Marks</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">1</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swUnprintable">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">1</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblSmooth">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">Enable Smooth Scrolling</property>
                                 <property name="use-underline">1</property>
                                 <property name="xalign">0</property>
                                 <layout><property name="column">0</property><property name="row">2</property></layout>
                               </object>
                             </child>
                             <child>
-                              <object class="GtkSwitch" id="swOverwrite">
+                              <object class="GtkSwitch" id="swSmooth">
                                 <property name="visible">1</property>
                                 <property name="can-focus">1</property>
                                 <property name="valign">center</property>
+                                <property name="halign">end</property>
                                 <layout><property name="column">1</property><property name="row">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblScreen">
+                                <property name="visible">1</property>
+                                <property name="margin-top">12</property>
+                                <property name="label" translatable="yes">&lt;b&gt;Screen&lt;/b&gt;</property>
+                                <property name="use-markup">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">3</property><property name="column-span">2</property></layout>
                               </object>
                             </child>
                             <child>
@@ -138,36 +220,7 @@
                                     </child>
                                   </object>
                                 </child>
-                                <layout><property name="column">0</property><property name="row">3</property><property name="column-span">2</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="lblUpdates">
-                                <property name="visible">1</property>
-                                <property name="margin-top">12</property>
-                                <property name="label" translatable="yes">&lt;b&gt;Updates&lt;/b&gt;</property>
-                                <property name="use-markup">1</property>
-                                <property name="xalign">0</property>
                                 <layout><property name="column">0</property><property name="row">4</property><property name="column-span">2</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="lblCheckForUpdates">
-                                <property name="visible">1</property>
-                                <property name="margin-start">18</property>
-                                <property name="label" translatable="yes">_Check for updates automatically</property>
-                                <property name="use-underline">1</property>
-                                <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">5</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkSwitch" id="swCheckForUpdates">
-                                <property name="visible">1</property>
-                                <property name="can-focus">1</property>
-                                <property name="valign">center</property>
-                                <property name="halign">end</property>
-                                <layout><property name="column">1</property><property name="row">5</property></layout>
                               </object>
                             </child>
                           </object>
@@ -175,9 +228,194 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkStackPage" id="pageDocuments">
-                        <property name="name">documents</property>
-                        <property name="title" translatable="yes">Documents</property>
+                      <object class="GtkStackPage" id="pageProofing">
+                        <property name="name">proofing</property>
+                        <property name="title" translatable="yes">Proofing</property>
+                        <property name="child">
+                          <object class="GtkGrid" id="grProofing">
+                            <property name="visible">1</property>
+                            <property name="valign">start</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">12</property>
+                            <child>
+                              <object class="GtkLabel" id="lblSpellCheck">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
+                                <property name="use-markup">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">0</property><property name="column-span">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblAutoSpell">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">_Check spelling as you type</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">1</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swAutoSpell">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">1</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblSpellCaps">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">Check words in _UPPERCASE</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swSpellCaps">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblSpellNumbers">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">Check words containing _numbers</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">3</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swSpellNumbers">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">3</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblSpellInternet">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">Check _internet and file addresses</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">4</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swSpellInternet">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">4</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblSmartQuotes">
+                                <property name="visible">1</property>
+                                <property name="margin-top">12</property>
+                                <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
+                                <property name="use-markup">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">5</property><property name="column-span">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblSmartQuotesEnable">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">Enable smart quotes</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">6</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swSmartQuotes">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">6</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblCustomQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="margin-start">36</property>
+                                <property name="label" translatable="yes">Use custom smart quote style</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">7</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swCustomQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">7</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblOuterQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="margin-start">36</property>
+                                <property name="margin-top">6</property>
+                                <property name="label" translatable="yes">_Outer (double) quote style:</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">8</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkDropDown" id="omOuterQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="margin-top">6</property>
+                                <property name="can-focus">1</property>
+                                <property name="hexpand">1</property>
+                                <layout><property name="column">1</property><property name="row">8</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblInnerQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="margin-start">36</property>
+                                <property name="label" translatable="yes">_Inner (single) quote style:</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">9</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkDropDown" id="omInnerQuoteStyle">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="hexpand">1</property>
+                                <layout><property name="column">1</property><property name="row">9</property></layout>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStackPage" id="pageSave">
+                        <property name="name">save</property>
+                        <property name="title" translatable="yes">Save</property>
                         <property name="child">
                           <object class="GtkGrid" id="grDocs">
                             <property name="visible">1</property>
@@ -279,6 +517,48 @@
                                 <layout><property name="column">1</property><property name="row">2</property><property name="column-span">2</property></layout>
                               </object>
                             </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkStackPage" id="pageAdvanced">
+                        <property name="name">advanced</property>
+                        <property name="title" translatable="yes">Advanced</property>
+                        <property name="child">
+                          <object class="GtkGrid" id="grAdvanced">
+                            <property name="visible">1</property>
+                            <property name="valign">start</property>
+                            <property name="row-spacing">6</property>
+                            <property name="column-spacing">12</property>
+                            <child>
+                              <object class="GtkLabel" id="lblEditing">
+                                <property name="visible">1</property>
+                                <property name="label" translatable="yes">&lt;b&gt;Editing&lt;/b&gt;</property>
+                                <property name="use-markup">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">0</property><property name="column-span">2</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkLabel" id="lblOverwrite">
+                                <property name="visible">1</property>
+                                <property name="margin-start">18</property>
+                                <property name="label" translatable="yes">_Enable overwrite mode</property>
+                                <property name="use-underline">1</property>
+                                <property name="xalign">0</property>
+                                <layout><property name="column">0</property><property name="row">1</property></layout>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="swOverwrite">
+                                <property name="visible">1</property>
+                                <property name="can-focus">1</property>
+                                <property name="valign">center</property>
+                                <property name="halign">end</property>
+                                <layout><property name="column">1</property><property name="row">1</property></layout>
+                              </object>
+                            </child>
                             <child>
                               <object class="GtkLabel" id="lblRTL">
                                 <property name="visible">1</property>
@@ -286,7 +566,7 @@
                                 <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
                                 <property name="use-markup">1</property>
                                 <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">3</property><property name="column-span">3</property></layout>
+                                <layout><property name="column">0</property><property name="row">2</property><property name="column-span">2</property></layout>
                               </object>
                             </child>
                             <child>
@@ -296,7 +576,7 @@
                                 <property name="label" translatable="yes">_Default to right-to-left text direction</property>
                                 <property name="use-underline">1</property>
                                 <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">4</property></layout>
+                                <layout><property name="column">0</property><property name="row">3</property></layout>
                               </object>
                             </child>
                             <child>
@@ -305,197 +585,7 @@
                                 <property name="can-focus">1</property>
                                 <property name="valign">center</property>
                                 <property name="halign">end</property>
-                                <layout><property name="column">1</property><property name="row">4</property><property name="column-span">2</property></layout>
-                              </object>
-                            </child>
-                          </object>
-                        </property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkStackPage" id="pageSmartQuotes">
-                        <property name="name">smartquotes</property>
-                        <property name="title" translatable="yes">Smart Quotes</property>
-                        <property name="child">
-                          <object class="GtkGrid" id="grSmartQuotes">
-                            <property name="visible">1</property>
-                            <property name="valign">start</property>
-                            <property name="row-spacing">6</property>
-                            <property name="column-spacing">12</property>
-                            <child>
-                              <object class="GtkLabel" id="lblSmartQuotesEnable">
-                                <property name="visible">1</property>
-                                <property name="label" translatable="yes">Enable smart quotes</property>
-                                <property name="use-underline">1</property>
-                                <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">0</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkSwitch" id="swSmartQuotes">
-                                <property name="visible">1</property>
-                                <property name="can-focus">1</property>
-                                <property name="valign">center</property>
-                                <property name="halign">end</property>
-                                <property name="hexpand">1</property>
-                                <layout><property name="column">1</property><property name="row">0</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="lblCustomQuoteStyle">
-                                <property name="visible">1</property>
-                                <property name="margin-start">18</property>
-                                <property name="label" translatable="yes">Use custom smart quote style</property>
-                                <property name="use-underline">1</property>
-                                <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">1</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkSwitch" id="swCustomQuoteStyle">
-                                <property name="visible">1</property>
-                                <property name="can-focus">1</property>
-                                <property name="valign">center</property>
-                                <property name="halign">end</property>
-                                <layout><property name="column">1</property><property name="row">1</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="lblOuterQuoteStyle">
-                                <property name="visible">1</property>
-                                <property name="margin-start">36</property>
-                                <property name="margin-top">6</property>
-                                <property name="label" translatable="yes">_Outer (double) quote style:</property>
-                                <property name="use-underline">1</property>
-                                <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">2</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkDropDown" id="omOuterQuoteStyle">
-                                <property name="visible">1</property>
-                                <property name="margin-top">6</property>
-                                <property name="can-focus">1</property>
-                                <property name="hexpand">1</property>
-                                <layout><property name="column">1</property><property name="row">2</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="lblInnerQuoteStyle">
-                                <property name="visible">1</property>
-                                <property name="margin-start">36</property>
-                                <property name="label" translatable="yes">_Inner (single) quote style:</property>
-                                <property name="use-underline">1</property>
-                                <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">3</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkDropDown" id="omInnerQuoteStyle">
-                                <property name="visible">1</property>
-                                <property name="can-focus">1</property>
-                                <property name="hexpand">1</property>
                                 <layout><property name="column">1</property><property name="row">3</property></layout>
-                              </object>
-                            </child>
-                          </object>
-                        </property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkStackPage" id="pageSpelling">
-                        <property name="name">spelling</property>
-                        <property name="title" translatable="yes">Spelling</property>
-                        <property name="child">
-                          <object class="GtkGrid" id="grSpelling">
-                            <property name="visible">1</property>
-                            <property name="valign">start</property>
-                            <property name="row-spacing">6</property>
-                            <property name="column-spacing">12</property>
-                            <child>
-                              <object class="GtkLabel" id="lblAutoSpell">
-                                <property name="visible">1</property>
-                                <property name="label" translatable="yes">_Check spelling as you type</property>
-                                <property name="use-underline">1</property>
-                                <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">0</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkSwitch" id="swAutoSpell">
-                                <property name="visible">1</property>
-                                <property name="can-focus">1</property>
-                                <property name="valign">center</property>
-                                <property name="halign">end</property>
-                                <property name="hexpand">1</property>
-                                <layout><property name="column">1</property><property name="row">0</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="lblSpellCheck">
-                                <property name="visible">1</property>
-                                <property name="margin-top">12</property>
-                                <property name="label" translatable="yes">&lt;b&gt;%s&lt;/b&gt;</property>
-                                <property name="use-markup">1</property>
-                                <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">1</property><property name="column-span">2</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="lblSpellCaps">
-                                <property name="visible">1</property>
-                                <property name="margin-start">18</property>
-                                <property name="label" translatable="yes">Check words in _UPPERCASE</property>
-                                <property name="use-underline">1</property>
-                                <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">2</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkSwitch" id="swSpellCaps">
-                                <property name="visible">1</property>
-                                <property name="can-focus">1</property>
-                                <property name="valign">center</property>
-                                <property name="halign">end</property>
-                                <layout><property name="column">1</property><property name="row">2</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="lblSpellNumbers">
-                                <property name="visible">1</property>
-                                <property name="margin-start">18</property>
-                                <property name="label" translatable="yes">Check words containing _numbers</property>
-                                <property name="use-underline">1</property>
-                                <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">3</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkSwitch" id="swSpellNumbers">
-                                <property name="visible">1</property>
-                                <property name="can-focus">1</property>
-                                <property name="valign">center</property>
-                                <property name="halign">end</property>
-                                <layout><property name="column">1</property><property name="row">3</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkLabel" id="lblSpellInternet">
-                                <property name="visible">1</property>
-                                <property name="margin-start">18</property>
-                                <property name="label" translatable="yes">Check _internet and file addresses</property>
-                                <property name="use-underline">1</property>
-                                <property name="xalign">0</property>
-                                <layout><property name="column">0</property><property name="row">4</property></layout>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="GtkSwitch" id="swSpellInternet">
-                                <property name="visible">1</property>
-                                <property name="can-focus">1</property>
-                                <property name="valign">center</property>
-                                <property name="halign">end</property>
-                                <layout><property name="column">1</property><property name="row">4</property></layout>
                               </object>
                             </child>
                           </object>

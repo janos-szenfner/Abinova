@@ -6830,3 +6830,5 @@ responsibility** — see `README.md`.
   real tab. Fixed a key-dispatch bug where ribbon keytips swallowed
   every Alt+letter shortcut.
 - Draw tab: pen/pencil/highlighter ink annotation overlay — freeform strokes captured over the page persist as positioned custGeom frames (.abwn + .docx round-trip), with eraser, lasso select/delete and a Hide Ink toggle.
+- File tab opens a Word-style Backstage view instead of a ribbon page: left navigation (Info, New, Open, Save, Save As, Print, Share, Options), an Info pane with live document statistics (pages, words, paragraphs, characters, lines, comments) and document properties, Protect Document status and Restrict Editing/Inspect Document actions, plus recent files on the Open page. Esc or the back arrow returns to the document.
+- The Options dialog now follows Word's File > Options layout — General, Display, Proofing, Save, Advanced pages — and the Display page gains real "Invisible Layout Marks" and "Enable Smooth Scrolling" switches that write the ParaVisible and EnableSmoothScrolling preferences.

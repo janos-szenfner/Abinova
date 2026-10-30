@@ -230,26 +230,30 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
     m_stack = WID ( "stkMain" );
 
     // page titles shown by the stack sidebar come from the string set,
-    // not the .ui, so they track the app language
+    // not the .ui, so they track the app language; the page list
+    // follows Word's File > Options panes
     std::string stTitle;
-    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_TabLabel_Interface, stTitle );
-    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageInterface" ) ),
+    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_TabLabel_General, stTitle );
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageGeneral" ) ),
                                stTitle.c_str() );
-    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_Label_Documents, stTitle );
-    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageDocuments" ) ),
+    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_TabLabel_Display, stTitle );
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageDisplay" ) ),
                                stTitle.c_str() );
-    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_TabLabel_SmartQuotes, stTitle );
-    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageSmartQuotes" ) ),
+    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_TabLabel_Proofing, stTitle );
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageProofing" ) ),
                                stTitle.c_str() );
-    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Spell_SpellTitle, stTitle );
-    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageSpelling" ) ),
+    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_TabLabel_Save, stTitle );
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageSave" ) ),
+                               stTitle.c_str() );
+    pSS->getValueUTF8 ( AP_STRING_ID_DLG_Options_TabLabel_Advanced, stTitle );
+    gtk_stack_page_set_title ( GTK_STACK_PAGE ( gtk_builder_get_object (builder, "pageAdvanced" ) ),
                                stTitle.c_str() );
 
     m_buttonDefaults = WID ( "btnDefaults" );
     m_buttonClose = WID ( "btnClose" );
 
 
-    // Interface
+    // General
 
     tmp = WID ( "lblUserInterface" );
     localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_UI );
@@ -260,10 +264,26 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
     m_menuUnits = WID ( "omUnits" );
     _setupUnitMenu ( m_menuUnits, pSS );
 
+    // Display
+
+    tmp = WID ( "lblUnprintable" );
+    localizeLabelUnderline ( tmp, pSS,
+                             AP_STRING_ID_DLG_Options_Label_ViewUnprintable );
+
+    m_switchViewUnprintable = WID ( "swUnprintable" );
+
+    tmp = WID ( "lblSmooth" );
+    localizeLabel ( tmp, pSS,
+                    AP_STRING_ID_DLG_Options_Label_CheckEnableSmoothScrolling );
+
+    m_switchEnableSmoothScrolling = WID ( "swSmooth" );
+
     m_pushbuttonNewTransparentColor = WID ( "btnScreenColor" );
 
     tmp = WID ( "lblScreenColor" );
     localizeLabelUnderline ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_ChooseForTransparent );
+
+    // Advanced
 
     tmp = WID ( "lblOverwrite" );
     localizeLabelUnderline ( tmp, pSS,
@@ -337,15 +357,18 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
     _setupSmartQuotesCombos(m_omOuterQuoteStyle);
     _setupSmartQuotesCombos(m_omInnerQuoteStyle);
 
-    // Spelling
+    // Proofing
+
+    tmp = WID ( "lblSpellCheck" );
+    localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SpellCheckOptions );
+
+    tmp = WID ( "lblSmartQuotes" );
+    localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_TabLabel_SmartQuotes );
 
     tmp = WID ( "lblAutoSpell" );
     localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SpellCheckAsYouType );
 
     m_switchSpellCheckAuto = WID ( "swAutoSpell" );
-
-    tmp = WID ( "lblSpellCheck" );
-    localizeLabelMarkup ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SpellCheckOptions );
 
     tmp = WID ( "lblSpellCaps" );
     localizeLabel ( tmp, pSS, AP_STRING_ID_DLG_Options_Label_SpellCheckCaps );
@@ -375,7 +398,7 @@ void AP_UnixDialog_Options::_constructWindowContents ( GtkBuilder * builder )
                        G_CALLBACK ( s_chooseTransparentColor ),
                        static_cast<gpointer> ( this ) );
 
-    _setPageName ( PAGE_ID_INTERFACE );
+    _setPageName ( PAGE_ID_GENERAL );
 }
 
 GtkWidget* AP_UnixDialog_Options::_constructWindow ()
@@ -498,6 +521,12 @@ GtkWidget *AP_UnixDialog_Options::_lookupWidget ( tControl id )
         case id_CHECK_ENABLE_OVERWRITE:
             return m_switchEnableOverwrite;
 
+            // display
+        case id_CHECK_VIEW_UNPRINTABLE:
+            return m_switchViewUnprintable;
+        case id_CHECK_ENABLE_SMOOTH_SCROLLING:
+            return m_switchEnableSmoothScrolling;
+
             // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             // spelling
         case id_CHECK_SPELL_AUTO:
@@ -529,8 +558,6 @@ GtkWidget *AP_UnixDialog_Options::_lookupWidget ( tControl id )
             // not implemented
         case id_CHECK_VIEW_SHOW_STATUS_BAR:
         case id_CHECK_VIEW_SHOW_RULER:
-        case id_CHECK_VIEW_UNPRINTABLE:
-        case id_CHECK_ENABLE_SMOOTH_SCROLLING:
         case id_CHECK_VIEW_ALL:
         case id_CHECK_VIEW_HIDDEN_TEXT:
         case id_COMBO_PREFS_SCHEME:
@@ -597,6 +624,9 @@ DEFINE_GET_SET_BOOL ( SpellCheckInternet )
 
 DEFINE_GET_SET_BOOL ( CheckForUpdates )
 
+DEFINE_GET_SET_BOOL ( ViewUnprintable )
+DEFINE_GET_SET_BOOL ( EnableSmoothScrolling )
+
 // dummy implementations. XP pref backend isn't very smart.
 #define DEFINE_GET_SET_BOOL_DUMMY(Bool)     \
     bool AP_UnixDialog_Options::_gather##Bool(void) {   \
@@ -607,13 +637,11 @@ DEFINE_GET_SET_BOOL ( CheckForUpdates )
     }
 
 
-DEFINE_GET_SET_BOOL_DUMMY ( EnableSmoothScrolling )
 DEFINE_GET_SET_BOOL_DUMMY ( PrefsAutoSave )
 DEFINE_GET_SET_BOOL_DUMMY ( ViewAll )
 DEFINE_GET_SET_BOOL_DUMMY ( ViewHiddenText )
 DEFINE_GET_SET_BOOL_DUMMY ( ViewShowRuler )
 DEFINE_GET_SET_BOOL_DUMMY ( ViewShowStatusBar )
-DEFINE_GET_SET_BOOL_DUMMY ( ViewUnprintable )
 
 void AP_UnixDialog_Options::_gatherAutoSaveFileExt ( UT_String &stRetVal )
 {
@@ -755,7 +783,7 @@ void AP_UnixDialog_Options::_setPageName ( const std::string &stName )
                                            stName.c_str() );
     else
         gtk_stack_set_visible_child_name ( GTK_STACK ( m_stack ),
-                                           PAGE_ID_INTERFACE );
+                                           PAGE_ID_GENERAL );
 }
 
 /*static*/ void AP_UnixDialog_Options::s_defaults_clicked ( GtkWidget *widget, gpointer data )

@@ -89,6 +89,13 @@ public:
 	/* in-window split view of the same document (View > Split) */
 	virtual void toggleSplitView() {}
 	virtual bool isSplitView() const { return false; }
+	/* Backstage File view (Word's File page): a full-window view
+	 * with Info/New/Open/Save/Save As/Print/Share/Options that
+	 * replaces the document + chrome while open */
+	virtual void showBackstage(const char * /*szPage*/) {}
+	virtual void hideBackstage() {}
+	virtual bool isBackstageVisible() const { return false; }
+	virtual const char * backstagePage() const { return ""; }
 	/* tile all document windows (View > Arrange All); returns
 	 * false when the platform cannot position windows */
 	virtual bool arrangeAllWindows() { return false; }

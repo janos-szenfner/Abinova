@@ -165,6 +165,11 @@ public:
 
     GtkWidget *m_switchEnableOverwrite;
 
+	// Display
+
+	GtkWidget *m_switchViewUnprintable;
+	GtkWidget *m_switchEnableSmoothScrolling;
+
 	// Spelling
 
 		GtkWidget *m_switchSpellCheckAuto;
@@ -177,13 +182,11 @@ public:
 		GtkWidget *m_switchCheckForUpdates;
 
     		// Dummy
-		bool m_boolEnableSmoothScrolling;
 		bool m_boolPrefsAutoSave;
 		bool m_boolViewAll;
 		bool m_boolViewHiddenText;
 		bool m_boolViewShowRuler;
 		bool m_boolViewShowStatusBar;
-		bool m_boolViewUnprintable;
 private:
 	// Unix call back handlers
 	static void s_control_changed	     (GtkWidget *,	   gpointer);

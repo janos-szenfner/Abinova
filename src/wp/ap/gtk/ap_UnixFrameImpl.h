@@ -101,6 +101,14 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	/* moves keyboard focus back to the document canvas, e.g. after
 	 * a side-pane button was clicked so typing reaches the view */
 	void			focusDocument();
+
+	/* Backstage File view: the whole window content swaps between
+	 * the document chrome ("main") and the backstage page of the
+	 * top-level GtkStack created in _createWindow */
+	virtual void	showBackstage(const char * szPage) override;
+	virtual void	hideBackstage() override;
+	virtual bool	isBackstageVisible() const override;
+	virtual const char * backstagePage() const override;
 	/* called from the view listener on document changes */
 	void			refreshNavPane();
 
@@ -244,6 +252,13 @@ class AP_UnixFrameImpl : public XAP_UnixFrameImpl
 	static void _s_miniBarTopPressed(GtkGestureClick * g, gint n_press,
 									 gdouble x, gdouble y, gpointer data);
 	static void _s_miniBarScrolled(GtkAdjustment * adj, gpointer data);
+
+	/* Backstage File view: m_wVBox is reparented under a top-level
+	 * GtkStack ("main") with the backstage widget as the second
+	 * page; showBackstage flips the visible child */
+	GtkWidget * m_wTopStack;
+	class AP_UnixBackstage * m_pBackstage;
+	GtkWidget * m_wBackstage;
 
 	/* document area wrapped in a GtkPaned whose end child is the
 	 * side deck (GtkStack of docked panes) */
