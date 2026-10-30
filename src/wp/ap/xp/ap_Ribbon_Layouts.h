@@ -202,41 +202,11 @@ struct AP_RibbonTab
 
 /* --------------------------------------------------------------- File --- */
 
-static const AP_RibbonItem s_ribbon_file_document[] =
-{
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_NEW),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_NEW_USING_TEMPLATE),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_OPEN),
-	AP_RIBBON_MENUPOP_LSW(AP_MENU_ID_FILE_RECENT),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_SAVE),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_SAVEAS),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_REVERT),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_PROPERTIES),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_INSPECTDOC),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_CLOSE),
-	AP_RIBBON_END
-};
-
-static const AP_RibbonItem s_ribbon_file_print[] =
-{
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_PAGESETUP),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_PRINT_PREVIEW),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_FILE_PRINT),
-	AP_RIBBON_END
-};
-
-static const AP_RibbonItem s_ribbon_file_settings[] =
-{
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_TOOLS_OPTIONS),
-	AP_RIBBON_MENU_LSW(AP_MENU_ID_RDF_EDITOR),
-	AP_RIBBON_END
-};
-
+/* the File tab is a Backstage launcher only: it keeps its tab label
+ * (the switch-page handler opens the Backstage view) but carries no
+ * ribbon page — the old file groups duplicated the Backstage. */
 static const AP_RibbonGroup s_ribbon_file_groups[] =
 {
-	{ "document",	s_ribbon_file_document },
-	{ "print",		s_ribbon_file_print },
-	{ "settings",	s_ribbon_file_settings },
 	{ nullptr,		nullptr }
 };
 

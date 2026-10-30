@@ -239,6 +239,21 @@ static struct AbiStockMapping {
   { "abinova-shape-effects",	AP_MENU_ID_SHAPE_EFFECTS,		"abinova-shape-effects" },
   { "abinova-shape-textdir",	AP_MENU_ID_SHAPE_TEXTDIR,		"abinova-shape-textdir" },
   { "abinova-shape-aligntext",	AP_MENU_ID_SHAPE_ALIGNTEXT,	"abinova-shape-aligntext" },
+  { "abinova-draw-select",	AP_MENU_ID_DRAW_SELECT,			"abinova-draw-select" },
+  { "abinova-draw-lasso",	AP_MENU_ID_DRAW_LASSO,			"abinova-draw-lasso" },
+  { "abinova-draw-lassodelete",	AP_MENU_ID_DRAW_LASSODELETE,	"abinova-draw-lassodelete" },
+  { "abinova-draw-eraser",	AP_MENU_ID_DRAW_ERASER,			"abinova-draw-eraser" },
+  { "abinova-draw-pen",		AP_MENU_ID_DRAW_PEN,			"abinova-draw-pen" },
+  { "abinova-draw-pencil",	AP_MENU_ID_DRAW_PENCIL,			"abinova-draw-pencil" },
+  { "abinova-draw-highlighter",	AP_MENU_ID_DRAW_HIGHLIGHTER,	"abinova-draw-highlighter" },
+  { "abinova-draw-hideink",	AP_MENU_ID_DRAW_HIDEINK,		"abinova-draw-hideink" },
+  { "abinova-ctl-contentcontrol",	AP_MENU_ID_INSERT_CONTENTCONTROL,	"abinova-ctl-contentcontrol" },
+  { "abinova-ctl-props",	AP_MENU_ID_CTL_PROPS,			"abinova-ctl-props" },
+  { "abinova-ctl-designmode",	AP_MENU_ID_CTL_DESIGNMODE,		"abinova-ctl-designmode" },
+  { "abinova-ctl-remove",	AP_MENU_ID_CTL_REMOVE,			"abinova-ctl-remove" },
+  { "abinova-view-focusmode",	AP_MENU_ID_VIEW_FOCUSMODE,		"abinova-view-focusmode" },
+  { "abinova-view-readmode",	AP_MENU_ID_VIEW_READMODE,		"abinova-view-readmode" },
+  { "abinova-view-fmtpane",	AP_MENU_ID_VIEW_FMTPANE,		"abinova-view-fmtpane" },
   { nullptr, 					static_cast<_Ap_Menu_Id>(0),					nullptr }
 };
 

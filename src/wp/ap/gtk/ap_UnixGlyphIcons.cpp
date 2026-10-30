@@ -693,6 +693,407 @@ static void _g_shape_aligntext(const _GlyphPen & p)
 	_pen_line_c(p, dn, 3, p.ac);
 }
 
+/* ---- Draw tab icons (wordcraft Draw section) ---- */
+
+/* select: cursor arrow — wordcraft "select" */
+static void _g_draw_select(const _GlyphPen & p)
+{
+	const double a[] = { 5.0, 3.0, 5.0, 16.0, 14.0, 12.0 };
+	_pen_fill(p, a, 3, p.fg);
+	const double b[] = { 8.0, 13.0, 10.5, 18.0, 12.5, 17.0, 10.0, 12.0 };
+	_pen_fill(p, b, 4, p.fg);
+}
+
+/* lasso: an irregular selection loop with its tail —
+ * wordcraft "lasso" */
+static void _g_draw_lasso_shape(const _GlyphPen & p)
+{
+	const double loop[] = { 4.0, 7.0, 9.0, 3.0, 16.0, 5.0,
+							16.0, 11.0, 10.0, 13.0, 4.0, 11.0 };
+	_pen_closed(p, loop, 6, p.fg);
+	const double tail[] = { 6.0, 12.5, 5.0, 17.5 };
+	_pen_line_c(p, tail, 2, p.ac);
+}
+
+static void _g_draw_lasso(const _GlyphPen & p)
+{
+	_g_draw_lasso_shape(p);
+}
+
+/* lasso delete: the lasso crossed out */
+static void _g_draw_lassodelete(const _GlyphPen & p)
+{
+	_g_draw_lasso_shape(p);
+	const double x1[] = { 13.0, 15.0, 17.5, 19.5 };
+	_pen_line_c(p, x1, 2, p.ac);
+	const double x2[] = { 17.5, 15.0, 13.0, 19.5 };
+	_pen_line_c(p, x2, 2, p.ac);
+}
+
+/* eraser — wordcraft "eraser" */
+static void _g_draw_eraser(const _GlyphPen & p)
+{
+	const double body[] = { 3.0, 13.0, 11.0, 5.0, 17.0, 11.0,
+							11.0, 17.0, 7.0, 17.0 };
+	_pen_closed(p, body, 5, p.fg);
+	const double pink[] = { 3.0, 13.0, 7.0, 9.0, 13.0, 15.0,
+							11.0, 17.0, 7.0, 17.0 };
+	_pen_fill(p, pink, 5, p.ac);
+}
+
+/* pen — wordcraft "pen"/"pencil": nib stroke with an accent tip */
+static void _g_draw_pen_nib(const _GlyphPen & p)
+{
+	const double pen[] = { 4.0, 16.0, 14.0, 6.0, 16.0, 8.0,
+						   6.0, 18.0, 3.5, 18.5, 4.0, 16.0 };
+	_pen_closed(p, pen, 6, p.fg);
+	const double tip[] = { 14.0, 6.0, 15.5, 4.5, 17.5, 6.5, 16.0, 8.0 };
+	_pen_fill(p, tip, 4, p.ac);
+}
+
+static void _g_draw_pen(const _GlyphPen & p)    { _g_draw_pen_nib(p); }
+static void _g_draw_pencil(const _GlyphPen & p) { _g_draw_pen_nib(p); }
+
+/* highlighter: a broad accent stroke with a fg tip */
+static void _g_draw_highlighter(const _GlyphPen & p)
+{
+	const double mark[] = { 5.0, 15.0, 13.0, 7.0, 15.0, 9.0, 7.0, 17.0 };
+	_pen_fill(p, mark, 4, p.ac);
+	const double tip[] = { 13.0, 7.0, 15.0, 9.0, 17.0, 7.0, 15.0, 5.0 };
+	_pen_fill(p, tip, 4, p.fg);
+}
+
+/* hide ink — wordcraft "hideInk": squiggle struck through */
+static void _g_draw_hideink(const _GlyphPen & p)
+{
+	const double sq[] = { 3.0, 13.0, 6.0, 8.0, 9.0, 13.0, 12.0, 8.0 };
+	_pen_line_c(p, sq, 4, p.ac);
+	const double bar[] = { 3.0, 3.0, 17.0, 17.0 };
+	_pen_line_c(p, bar, 2, p.fg);
+}
+
+/* ---- Developer tab icons (wordcraft Developer › Controls) ---- */
+
+/* content control: a field frame holding text — wordcraft
+ * "ccRichText" */
+static void _g_ctl_contentcontrol(const _GlyphPen & p)
+{
+	_pen_rect(p, 2.5, 5.0, 17.5, 15.0, p.ac);
+	_pen_text(p, 7.5, 10.0, 8.0, "A", p.fg, TRUE);
+	_pen_text(p, 13.0, 10.5, 7.0, "a", p.fg, FALSE);
+}
+
+/* control properties: the info badge — wordcraft "properties" */
+static void _g_info_badge(const _GlyphPen & p)
+{
+	_pen_circle(p, 10.0, 10.0, 7.0, p.fg);
+	const double i[] = { 10.0, 9.0, 10.0, 14.5 };
+	_pen_line_c(p, i, 2, p.ac);
+	_pen_fcircle(p, 10.0, 6.3, 1.0, p.ac);
+}
+
+static void _g_ctl_props(const _GlyphPen & p) { _g_info_badge(p); }
+
+/* design mode: set-square ruler — wordcraft "designMode" */
+static void _g_ctl_designmode(const _GlyphPen & p)
+{
+	const double sq[] = { 4.0, 16.0, 16.0, 16.0, 4.0, 4.0, 4.0, 16.0 };
+	_pen_line_c(p, sq, 4, p.fg);
+	const double d[] = { 4.0, 12.0, 8.0, 16.0 };
+	_pen_line_c(p, d, 2, p.ac);
+	const double n[] = { 7.0, 13.0, 7.0, 12.0 };
+	_pen_line_c(p, n, 2, p.fg);
+}
+
+/* remove: a control frame crossed out */
+static void _g_ctl_remove(const _GlyphPen & p)
+{
+	_pen_rect(p, 2.5, 5.0, 17.5, 15.0, p.ac);
+	const double x1[] = { 6.0, 7.5, 14.0, 14.5 };
+	_pen_line_c(p, x1, 2, p.fg);
+	const double x2[] = { 14.0, 7.5, 6.0, 14.5 };
+	_pen_line_c(p, x2, 2, p.fg);
+}
+
+/* ---- View icons ---- */
+
+/* focus mode: four corner brackets around a text line —
+ * wordcraft "focus" */
+static void _g_view_focusmode(const _GlyphPen & p)
+{
+	const double tl[] = { 3.0, 7.0, 3.0, 3.0, 7.0, 3.0 };
+	_pen_line_c(p, tl, 3, p.fg);
+	const double tr[] = { 13.0, 3.0, 17.0, 3.0, 17.0, 7.0 };
+	_pen_line_c(p, tr, 3, p.fg);
+	const double br[] = { 17.0, 13.0, 17.0, 17.0, 13.0, 17.0 };
+	_pen_line_c(p, br, 3, p.fg);
+	const double bl[] = { 7.0, 17.0, 3.0, 17.0, 3.0, 13.0 };
+	_pen_line_c(p, bl, 3, p.fg);
+	const double ys[] = { 8.5, 11.5 };
+	_pen_lines(p, 7.0, 13.0, ys, 2);
+}
+
+/* read mode: open book, left leaf fg right leaf ac —
+ * wordcraft "readMode" */
+static void _g_view_readmode(const _GlyphPen & p)
+{
+	const double l[] = { 2.0, 4.0, 9.5, 5.0, 9.5, 17.0, 2.0, 16.0 };
+	_pen_closed(p, l, 4, p.fg);
+	const double r[] = { 18.0, 4.0, 10.5, 5.0, 10.5, 17.0, 18.0, 16.0 };
+	_pen_closed(p, r, 4, p.ac);
+}
+
+/* format/styles pane: split panel with a glyph — wordcraft
+ * "stylesPane" */
+static void _g_view_fmtpane(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.0, 3.0, 17.0, 17.0, p.fg);
+	const double dv[] = { 11.0, 3.0, 11.0, 17.0 };
+	_pen_line_c(p, dv, 2, p.fg);
+	_pen_text(p, 7.0, 10.0, 8.0, "A", p.ac, FALSE);
+}
+
+/* fullscreen: a screen with arrows to its corners —
+ * wordcraft "fullScreen" */
+static void _g_view_fullscreen(const _GlyphPen & p)
+{
+	_pen_rect(p, 2.0, 3.5, 18.0, 16.5, p.fg);
+	const double tl[] = { 5.0, 8.5, 5.0, 6.0, 7.5, 6.0 };
+	_pen_line_c(p, tl, 3, p.ac);
+	const double tr[] = { 12.5, 6.0, 15.0, 6.0, 15.0, 8.5 };
+	_pen_line_c(p, tr, 3, p.ac);
+	const double br[] = { 15.0, 11.5, 15.0, 14.0, 12.5, 14.0 };
+	_pen_line_c(p, br, 3, p.ac);
+	const double bl[] = { 7.5, 14.0, 5.0, 14.0, 5.0, 11.5 };
+	_pen_line_c(p, bl, 3, p.ac);
+}
+
+/* ---- File / chrome icons ---- */
+
+/* document template: page with a band + style mark —
+ * wordcraft "documentTemplate" */
+static void _g_doc_template(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 16.0, 18.0);
+	_pen_frect(p, 6.0, 5.0, 11.5, 7.0, p.ac);
+	_pen_text(p, 10.0, 13.0, 8.0, "A", p.ac, FALSE);
+}
+
+/* page setup: a page with a settings band */
+static void _g_page_setup(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 16.0, 18.0);
+	const double ys[] = { 6.0, 9.0, 12.0 };
+	_pen_lines(p, 6.0, 12.0, ys, 3);
+	_pen_frect(p, 5.0, 14.5, 15.0, 16.5, p.ac);
+}
+
+/* print preview: printer with a magnifier */
+static void _g_print_preview(const _GlyphPen & p)
+{
+	_pen_rect(p, 5.0, 2.5, 12.0, 6.5, p.fg);
+	_pen_rect(p, 2.5, 6.5, 15.5, 13.0, p.fg);
+	const double sh[] = { 5.0, 10.5, 12.0, 10.5, 12.0, 15.5, 5.0, 15.5 };
+	_pen_closed(p, sh, 4, p.ac);
+	_pen_circle(p, 14.5, 14.5, 3.0, p.fg);
+	const double h[] = { 16.6, 16.6, 19.0, 19.0 };
+	_pen_line_c(p, h, 2, p.fg);
+}
+
+/* open recent: folder with a clock */
+static void _g_open_recent(const _GlyphPen & p)
+{
+	const double top[] = { 2.0, 5.0, 7.0, 5.0, 8.5, 6.5, 13.5, 6.5, 13.5, 9.0 };
+	_pen_closed(p, top, 5, p.fg);
+	const double flap[] = { 2.0, 16.0, 4.5, 9.0, 13.5, 9.0, 11.5, 16.0 };
+	_pen_closed(p, flap, 4, p.ac);
+	_pen_circle(p, 14.5, 13.5, 4.2, p.fg);
+	const double hh[] = { 14.5, 13.5, 14.5, 11.0, 16.5, 13.5 };
+	_pen_line_c(p, hh, 3, p.fg);
+}
+
+/* revert: page with a turning arrow */
+static void _g_doc_revert(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 14.0, 16.0);
+	_pen_arc(p, 13.0, 13.0, 4.0, G_PI / 2.0, 3.0 * G_PI / 2.0, p.ac);
+	const double h[] = { 9.0, 9.0, 9.0, 5.5, 12.0, 7.5 };
+	_pen_fill(p, h, 3, p.ac);
+}
+
+/* window close: a simple X */
+static void _g_window_close(const _GlyphPen & p)
+{
+	const double x1[] = { 5.0, 5.0, 15.0, 15.0 };
+	_pen_line_c(p, x1, 2, p.fg);
+	const double x2[] = { 15.0, 5.0, 5.0, 15.0 };
+	_pen_line_c(p, x2, 2, p.fg);
+}
+
+/* find location (inspect doc): a map pin */
+static void _g_find_location(const _GlyphPen & p)
+{
+	const double pin[] = { 10.0, 17.5, 4.5, 9.0, 4.5, 4.5,
+						   15.5, 4.5, 15.5, 9.0, 10.0, 17.5 };
+	_pen_fill(p, pin, 6, p.ac);
+	_pen_circle(p, 10.0, 7.5, 3.0, p.fg);
+	_pen_fcircle(p, 10.0, 7.5, 1.2, p.fg);
+}
+
+/* gear wheel (options / system prefs) — wordcraft "options" */
+static void _g_gear(const _GlyphPen & p)
+{
+	for (int k = 0; k < 8; ++k)
+	{
+		const double t = k * G_PI / 4.0;
+		const double c1 = t - 0.28, c2 = t + 0.28;
+		const double r1 = 5.0, r2 = 8.2;
+		const double spoke[] = {
+			10.0 + r1 * cos(c1), 10.0 + r1 * sin(c1),
+			10.0 + r2 * cos(t - 0.17), 10.0 + r2 * sin(t - 0.17),
+			10.0 + r2 * cos(t + 0.17), 10.0 + r2 * sin(t + 0.17),
+			10.0 + r1 * cos(c2), 10.0 + r1 * sin(c2) };
+		(void)c1; (void)c2;
+		_pen_fill(p, spoke, 4, p.fg);
+	}
+	_pen_circle(p, 10.0, 10.0, 5.5, p.fg);
+	_pen_circle(p, 10.0, 10.0, 2.2, p.ac);
+}
+
+/* text editor (RDF editor): a page being written on */
+static void _g_text_editor(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 15.0, 17.0);
+	const double ys[] = { 6.5, 9.5 };
+	_pen_lines(p, 6.0, 12.0, ys, 2);
+	const double pn[] = { 7.0, 14.5, 12.5, 9.0 };
+	_pen_line_c(p, pn, 2, p.ac);
+}
+
+/* application exit: a door with an arrow leaving */
+static void _g_app_exit(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.0, 3.0, 11.0, 17.0, p.fg);
+	const double ar[] = { 8.0, 10.0, 17.5, 10.0 };
+	_pen_line_c(p, ar, 2, p.ac);
+	const double hh[] = { 15.0, 7.5, 17.5, 10.0, 15.0, 12.5 };
+	_pen_line_c(p, hh, 3, p.ac);
+}
+
+/* system search: magnifier */
+static void _g_sys_search(const _GlyphPen & p)
+{
+	_pen_circle(p, 9.0, 9.0, 5.0, p.fg);
+	const double h[] = { 12.5, 12.5, 17.0, 17.0 };
+	_pen_line_c(p, h, 2, p.ac);
+}
+
+/* update available: circular arrow */
+static void _g_update_avail(const _GlyphPen & p)
+{
+	_pen_arc(p, 10.0, 10.0, 6.0, -0.6, 4.4, p.fg);
+	const double h1[] = { 15.6, 6.5, 16.5, 11.0, 12.5, 9.0 };
+	_pen_fill(p, h1, 3, p.ac);
+	_pen_fcircle(p, 10.0, 10.0, 1.8, p.ac);
+}
+
+/* help contents: ring with a question mark — wordcraft "help" */
+static void _g_help_contents(const _GlyphPen & p)
+{
+	_pen_circle(p, 10.0, 10.0, 7.0, p.fg);
+	_pen_text(p, 10.0, 10.0, 10.0, "?", p.ac, TRUE);
+}
+
+/* help about: ring with an i */
+static void _g_help_about(const _GlyphPen & p)
+{
+	_pen_circle(p, 10.0, 10.0, 7.0, p.fg);
+	const double i[] = { 10.0, 9.0, 10.0, 14.0 };
+	_pen_line_c(p, i, 2, p.ac);
+	_pen_fcircle(p, 10.0, 6.2, 1.0, p.ac);
+}
+
+/* warning: triangle with a bang */
+static void _g_dialog_warning(const _GlyphPen & p)
+{
+	const double tri[] = { 10.0, 2.5, 17.5, 16.5, 2.5, 16.5 };
+	_pen_closed(p, tri, 3, p.fg);
+	const double b[] = { 10.0, 7.0, 10.0, 11.5 };
+	_pen_line_c(p, b, 2, p.ac);
+	_pen_fcircle(p, 10.0, 14.0, 0.9, p.ac);
+}
+
+/* color preferences: a palette dot circle */
+static void _g_pref_color(const _GlyphPen & p)
+{
+	_pen_circle(p, 10.0, 10.0, 7.0, p.fg);
+	_pen_fcircle(p, 10.0, 6.5, 1.2, p.ac);
+	_pen_fcircle(p, 13.5, 10.0, 1.2, p.ac);
+	_pen_fcircle(p, 10.0, 13.5, 1.2, p.ac);
+	_pen_fcircle(p, 6.5, 10.0, 1.2, p.ac);
+}
+
+/* wallpaper: landscape picture */
+static void _g_pref_wallpaper(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.0, 4.5, 17.0, 15.5, p.fg);
+	const double mtn[] = { 4.0, 13.0, 8.0, 7.5, 11.0, 11.0,
+						   13.0, 8.5, 16.0, 13.0 };
+	_pen_line_c(p, mtn, 5, p.ac);
+	_pen_fcircle(p, 13.5, 7.0, 1.2, p.ac);
+}
+
+/* sidebar: a panel with a filled side column */
+static void _g_sidebar(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.0, 3.0, 17.0, 17.0, p.fg);
+	_pen_frect(p, 12.0, 3.0, 17.0, 17.0, p.ac);
+}
+
+/* font preferences: A + small square */
+static void _g_pref_font(const _GlyphPen & p)
+{
+	_pen_text(p, 8.5, 10.5, 13.0, "A", p.fg, FALSE);
+	_pen_frect(p, 13.5, 13.5, 17.5, 17.5, p.ac);
+}
+
+/* clear: a page crossed out */
+static void _g_edit_clear(const _GlyphPen & p)
+{
+	_pen_page(p, 4.0, 2.0, 16.0, 18.0);
+	const double x1[] = { 6.5, 6.5, 13.5, 13.5 };
+	_pen_line_c(p, x1, 2, p.ac);
+	const double x2[] = { 13.5, 6.5, 6.5, 13.5 };
+	_pen_line_c(p, x2, 2, p.ac);
+}
+
+/* new window: two overlapping windows */
+static void _g_window_new(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.0, 6.0, 13.0, 16.5, p.fg);
+	_pen_rect(p, 7.0, 3.5, 17.0, 12.0, p.ac);
+}
+
+/* paragraph borders: framed square */
+static void _g_fmt_borders(const _GlyphPen & p)
+{
+	_pen_rect(p, 3.0, 3.0, 17.0, 17.0, p.fg);
+	const double ys[] = { 8.0, 12.0 };
+	_pen_lines(p, 6.0, 14.0, ys, 2);
+	_pen_frect(p, 3.0, 3.0, 17.0, 5.0, p.ac);
+}
+
+/* sort ascending: A>Z with a down arrow */
+static void _g_sort_asc(const _GlyphPen & p)
+{
+	_pen_text(p, 7.0, 7.0, 7.0, "A", p.fg, FALSE);
+	_pen_text(p, 7.0, 14.5, 7.0, "Z", p.fg, FALSE);
+	const double v[] = { 15.0, 4.0, 15.0, 16.0 };
+	_pen_line_c(p, v, 2, p.ac);
+	const double h[] = { 13.0, 13.0, 15.0, 16.0, 17.0, 13.0 };
+	_pen_line_c(p, h, 3, p.ac);
+}
+
 /* ---------------- name table ---------------- */
 
 typedef void (*_GlyphDraw)(const _GlyphPen &);
@@ -764,6 +1165,46 @@ static const _GlyphEntry _glyphs[] =
 	{ "abinova-shape-effects",	_g_shape_effects },
 	{ "abinova-shape-textdir",	_g_shape_textdir },
 	{ "abinova-shape-aligntext",_g_shape_aligntext },
+	{ "abinova-draw-select",	_g_draw_select },
+	{ "abinova-draw-lasso",		_g_draw_lasso },
+	{ "abinova-draw-lassodelete",	_g_draw_lassodelete },
+	{ "abinova-draw-eraser",	_g_draw_eraser },
+	{ "abinova-draw-pen",		_g_draw_pen },
+	{ "abinova-draw-pencil",	_g_draw_pencil },
+	{ "abinova-draw-highlighter",	_g_draw_highlighter },
+	{ "abinova-draw-hideink",	_g_draw_hideink },
+	{ "abinova-ctl-contentcontrol",	_g_ctl_contentcontrol },
+	{ "abinova-ctl-props",		_g_ctl_props },
+	{ "abinova-ctl-designmode",	_g_ctl_designmode },
+	{ "abinova-ctl-remove",		_g_ctl_remove },
+	{ "abinova-view-focusmode",	_g_view_focusmode },
+	{ "abinova-view-readmode",	_g_view_readmode },
+	{ "abinova-view-fmtpane",	_g_view_fmtpane },
+	{ "x-office-document-template",	_g_doc_template },
+	{ "document-page-setup",	_g_page_setup },
+	{ "document-print-preview",	_g_print_preview },
+	{ "document-open-recent",	_g_open_recent },
+	{ "document-revert",		_g_doc_revert },
+	{ "window-close",		_g_window_close },
+	{ "dialog-information",		_g_info_badge },
+	{ "find-location",		_g_find_location },
+	{ "preferences-system",		_g_gear },
+	{ "accessories-text-editor",	_g_text_editor },
+	{ "application-exit",		_g_app_exit },
+	{ "system-search",		_g_sys_search },
+	{ "software-update-available",	_g_update_avail },
+	{ "help-contents",		_g_help_contents },
+	{ "help-about",			_g_help_about },
+	{ "dialog-warning",		_g_dialog_warning },
+	{ "preferences-color",		_g_pref_color },
+	{ "preferences-desktop-wallpaper",	_g_pref_wallpaper },
+	{ "sidebar-show",		_g_sidebar },
+	{ "preferences-desktop-font",	_g_pref_font },
+	{ "edit-clear",			_g_edit_clear },
+	{ "window-new",			_g_window_new },
+	{ "tb_fmt_borders",		_g_fmt_borders },
+	{ "view-sort-ascending",	_g_sort_asc },
+	{ "view-fullscreen",		_g_view_fullscreen },
 	{ nullptr, nullptr }
 };
 
