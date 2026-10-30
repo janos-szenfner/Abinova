@@ -227,13 +227,55 @@ if [ $skip_build -eq 0 ]; then
 
 	# ------------------------------------------------------------ build
 	# MSYS2 make -j can deadlock at jobserver teardown — the build's
-	# work is done but make never exits (seen twice in CI, hanging
-	# past the last recipe). Bound the parallel pass; a serial make
-	# then finishes — a near no-op when the parallel pass completed.
-	timeout 3600 make -j"$jobs" || {
-		echo "build-windows: parallel make ended rc=$? — finishing serially" >&2
+	# work is done but make never exits (seen three times in CI,
+	# always silent after the last recipe). Run it in its own
+	# session with output to a log; a watchdog kills the group once
+	# the log has been silent for 7 minutes (a genuinely-busy recipe
+	# prints regularly), then a serial make finishes — a near no-op
+	# since the deadlock only strikes after the last recipe ran.
+	jlog="$bdir/make.log"
+	jrc="$bdir/make.rc"
+	rm -f "$jlog" "$jrc"
+	if command -v setsid >/dev/null 2>&1; then
+		setsid bash -c 'make -j"$1" > "$2" 2>&1; echo $? > "$3"' \
+			_ "$jobs" "$jlog" "$jrc" &
+		mkpid=$!
+		tail -f "$jlog" 2>/dev/null &
+		tpid=$!
+		stall=0; last=-1
+		while kill -0 "$mkpid" 2>/dev/null; do
+			sleep 15
+			sz=$(stat -c%s "$jlog" 2>/dev/null || echo 0)
+			if [ "$sz" = "$last" ]; then
+				stall=$((stall+15))
+				if [ "$stall" -ge 420 ]; then
+					echo "build-windows: make silent ${stall}s — killing jobserver-stuck make" >&2
+					kill -TERM -- -"$mkpid" 2>/dev/null || kill -TERM "$mkpid"
+					sleep 5
+					kill -KILL -- -"$mkpid" 2>/dev/null
+					break
+				fi
+			else
+				stall=0; last=$sz
+			fi
+		done
+		wait "$mkpid" 2>/dev/null
+		kill "$tpid" 2>/dev/null
+		rc=1; [ -f "$jrc" ] && rc=$(cat "$jrc")
+	else
+		timeout 3600 make -j"$jobs"; rc=$?
+	fi
+	if [ "$rc" != 0 ]; then
+		echo "build-windows: parallel make ended rc=$rc — finishing serially" >&2
+		# a watchdog kill can orphan a partial target whose mtime
+		# already looks fresh — drop anything touched recently so the
+		# serial pass rebuilds it rather than shipping a truncated file
+		find "$bdir" -type f -mmin -2 \
+			\( -name '*.o' -o -name '*.lo' -o -name '*.a' \
+			   -o -name '*.la' -o -name '*.exe' -o -name '*.dll' \) \
+			-delete 2>/dev/null
 		make -j1
-	}
+	fi
 fi
 
 if [ $bundle -eq 0 ]; then
