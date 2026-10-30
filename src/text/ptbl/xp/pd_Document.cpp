@@ -7983,31 +7983,31 @@ bool PD_Document::acceptAllRevisions()
 		
 		const gchar * pszRevision = nullptr;
 		pAP->getAttribute("revision", pszRevision);
-		
+
 		if(pszRevision == nullptr)
 		{
 			// no revisions on this fragment
-			t += pf->getLength();
+			t += pf->getPos() + pf->getLength() - t.getPosition();
 			continue;
 		}
-			
+
 		PP_RevisionAttr RevAttr(pszRevision);
 		RevAttr.pruneForCumulativeResult(this);
 		const PP_Revision * pRev = nullptr;
 		if(RevAttr.getRevisionsCount())
 			pRev = RevAttr.getNthRevision(0);
-		
+
 		if(!pRev)
 		{
 			// no revisions after pruning ???
-			t += pf->getLength();
+			t += pf->getPos() + pf->getLength() - t.getPosition();
 			continue;
 		}
-		
+
 		UT_uint32 iStart = t.getPosition();
 		UT_uint32 iEnd   = iStart + pf->getLength();
 		bool bDeleted = false;
-		
+
 		_acceptRejectRevision(false /*accept*/, iStart, iEnd, pRev, RevAttr, pf, bDeleted);
 		
 		// advance -- the call to _acceptRejectRevision could have
@@ -8069,7 +8069,7 @@ bool PD_Document::rejectAllHigherRevisions(UT_uint32 iLevel)
 		if(pszRevision == nullptr)
 		{
 			// no revisions on this fragment
-			t += pf->getLength();
+			t += pf->getPos() + pf->getLength() - t.getPosition();
 			continue;
 		}
 			
@@ -8078,7 +8078,7 @@ bool PD_Document::rejectAllHigherRevisions(UT_uint32 iLevel)
 		if(!pRev)
 		{
 			// no higher revisions
-			t += pf->getLength();
+			t += pf->getPos() + pf->getLength() - t.getPosition();
 			continue;
 		}
 		
@@ -8150,7 +8150,7 @@ bool PD_Document::acceptAllRevisionsUpTo(UT_uint32 iLevel)
 		if(pszRevision == nullptr || iLevel == 0)
 		{
 			// no revisions on this fragment, or none shown
-			t += pf->getLength();
+			t += pf->getPos() + pf->getLength() - t.getPosition();
 			continue;
 		}
 
@@ -8163,7 +8163,7 @@ bool PD_Document::acceptAllRevisionsUpTo(UT_uint32 iLevel)
 		if(!pRev)
 		{
 			// no shown revisions on this fragment
-			t += pf->getLength();
+			t += pf->getPos() + pf->getLength() - t.getPosition();
 			continue;
 		}
 
@@ -8235,7 +8235,7 @@ bool PD_Document::rejectAllRevisionsUpTo(UT_uint32 iLevel)
 		if(pszRevision == nullptr || iLevel == 0)
 		{
 			// no revisions on this fragment, or none shown
-			t += pf->getLength();
+			t += pf->getPos() + pf->getLength() - t.getPosition();
 			continue;
 		}
 
@@ -8245,7 +8245,7 @@ bool PD_Document::rejectAllRevisionsUpTo(UT_uint32 iLevel)
 		if(!pRev)
 		{
 			// no shown revisions on this fragment
-			t += pf->getLength();
+			t += pf->getPos() + pf->getLength() - t.getPosition();
 			continue;
 		}
 
@@ -8424,7 +8424,7 @@ void PD_Document::purgeRevisionTable(bool bUnconditional /* = false */)
 				hAPI.insert(sAPI.c_str());
 			}
 
-			t += pf->getLength();
+			t += pf->getPos() + pf->getLength() - t.getPosition();
 		}
 	}
 	

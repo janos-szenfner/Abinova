@@ -10,6 +10,12 @@ responsibility** — see `README.md`.
 
 ### Added
 
+- Compare group gains **Compare with File…**: diff the current
+  document against any importable file on disk (not just open
+  documents) — the merged legal-blackline document now also marks
+  paragraph boundaries as revisions, so accepting a deleted
+  paragraph removes it whole and rejecting an inserted one merges it
+  back; the result no longer gains a trailing empty paragraph.
 - Outline view (View > Outline): draft-like outline of the document's headings — promote/demote levels (Alt+Shift+Left/Right, Tab/Shift+Tab), move paragraphs up/down with their collapsed content (Alt+Shift+Up/Down), expand/collapse headings, Show Level 1-9 filter, and Close Outline View back to Print Layout. Outline state is view-only and never saved in the document.
 - **Shape Format ribbon tab** — a contextual Shape Tools tab appears
   for text boxes and shapes: Shape Fill / Shape Outline galleries

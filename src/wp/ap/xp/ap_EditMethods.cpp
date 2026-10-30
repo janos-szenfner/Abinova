@@ -968,6 +968,7 @@ public:
 	static EV_EditMethod_Fn toggleShowRevisionsAfter;
 	static EV_EditMethod_Fn toggleShowRevisionsAfterPrevious;
 	static EV_EditMethod_Fn revisionCompareDocuments;
+	static EV_EditMethod_Fn compareDocuments;
 	static EV_EditMethod_Fn restrictEditing;
 	
     static EV_EditMethod_Fn insAnnotation;
@@ -1098,6 +1099,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(colorBackTB), _D_, ""),
 	EV_EditMethod(NF(colorForeTB), _D_, ""),
 	EV_EditMethod(NF(commentsPane),			0,		""),
+	EV_EditMethod(NF(compareDocuments),	0,  ""),
 	EV_EditMethod(NF(contentControlDesignMode),	0,	""),
 	EV_EditMethod(NF(contentControlProps),		_D_,	""),
 	EV_EditMethod(NF(contentControlRemove),		0,	""),
@@ -19737,35 +19739,29 @@ static bool s_wordDiff(const std::vector<CmpTok> & a,
 	return true;
 }
 
-Defun1(revisionCompareDocuments)
+enum CmpResult {
+	CMP_OK = 0,
+	CMP_IDENTICAL,
+	CMP_TOO_LARGE,
+	CMP_FAILED
+};
+
+/*  Build the merged comparison of pOrig vs pRevised in a fresh
+    document window: every difference lands as a tracked revision so
+    the standard Accept/Reject tools work on the result.  Both source
+    documents are left untouched; the result must be saved
+    explicitly.  Text-only: the merged doc carries the union of both
+    documents' paragraphs as plain text. */
+static CmpResult s_compareDocsIntoFrame(PD_Document * pOrig,
+										PD_Document * pRevised)
 {
-	CHECK_FRAME;
-	ABIWORD_VIEW;
-	UT_return_val_if_fail(pView,false);
-	PD_Document * pDoc = pView->getDocument();
-	UT_return_val_if_fail(pDoc,false);
-
-	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
-	UT_return_val_if_fail(pFrame,false);
-
-	PD_Document * pDoc2 = s_doListDocuments(pFrame, true, XAP_DIALOG_ID_COMPAREDOCUMENTS);
-	if(!pDoc2)
-		return true;
-
-	pFrame->raise();
-
 	std::vector<CmpTok> toks1, toks2;
-	s_docTokens(pDoc, toks1);
-	s_docTokens(pDoc2, toks2);
+	s_docTokens(pOrig, toks1);
+	s_docTokens(pRevised, toks2);
 
 	std::vector<CmpOp> ops;
 	if(!s_wordDiff(toks1, toks2, ops))
-	{
-		pFrame->showMessageBox(AP_STRING_ID_MSG_CompareTooLarge,
-							   XAP_Dialog_MessageBox::b_O,
-							   XAP_Dialog_MessageBox::a_OK);
-		return true;
-	}
+		return CMP_TOO_LARGE;
 
 	bool bAnyChange = false;
 	for(CmpOp op : ops)
@@ -19777,38 +19773,87 @@ Defun1(revisionCompareDocuments)
 		}
 	}
 	if(!bAnyChange)
-	{
-		pFrame->showMessageBox(AP_STRING_ID_MSG_CompareIdentical,
-							   XAP_Dialog_MessageBox::b_O,
-							   XAP_Dialog_MessageBox::a_OK);
-		return true;
-	}
+		return CMP_IDENTICAL;
 
-	// build the merged result in a fresh document
 	XAP_App * pApp = XAP_App::getApp();
-	UT_return_val_if_fail(pApp,false);
+	if(!pApp)
+		return CMP_FAILED;
 
 	XAP_Frame * pNewFrame = pApp->newFrame();
-	UT_return_val_if_fail(pNewFrame,false);
+	if(!pNewFrame)
+		return CMP_FAILED;
 	pNewFrame->loadDocument(static_cast<const char *>(nullptr), IEFT_Unknown);
 	pNewFrame->show();
 
 	FV_View * pNewView = static_cast<FV_View *>(pNewFrame->getCurrentView());
-	UT_return_val_if_fail(pNewView,false);
+	if(!pNewView)
+		return CMP_FAILED;
 	PD_Document * pNewDoc = pNewView->getDocument();
-	UT_return_val_if_fail(pNewDoc,false);
+	if(!pNewDoc)
+		return CMP_FAILED;
 
 	pNewDoc->beginUserAtomicGlob();
 
 	size_t i = 0, j = 0;
 	bool bEmitted = false;
+	bool bPendingBreak = false;
+	CmpOp curParaOp = CMP_KEEP;
 	UT_UCS4String run;
 	CmpOp runOp = CMP_KEEP;
+
+	auto breakPara = [&]()
+	{
+		pNewDoc->setMarkRevisions(false);
+		pNewView->moveInsPtTo(FV_DOCPOS_EOD);
+		pNewView->insertParagraphBreak();
+		bEmitted = true;
+	};
+
+	/*  Normalize the last paragraph's strux revision mark to the op
+	 *  of the boundary that started it: a deletion that reaches the
+	 *  end of a block stamps a spurious -id on its <p>, and a
+	 *  paragraph break inherits the previous strux's attributes —
+	 *  both get overwritten here.  KEEP strips the attr, INS marks
+	 *  +id (pilcrow inserted), DEL marks -id (pilcrow deleted), so
+	 *  accept/reject also handle whole-paragraph changes. */
+	auto markLastBlock = [&](CmpOp op)
+	{
+		PT_DocPosition eod = 0;
+		pNewDoc->getBounds(true, eod);
+		if(eod <= 1)
+			return;
+		UT_uint32 rid = pNewDoc->getRevisionId();
+		if(rid == 0)
+		{
+			// no marked op has run yet — turning marking on once
+			// allocates id 1 plus its revision-table record
+			pNewDoc->setMarkRevisions(true);
+			rid = pNewDoc->getRevisionId();
+		}
+		pNewDoc->setMarkRevisions(false);
+		PP_PropertyVector attr = { "revision", "" };
+		pNewDoc->changeStruxFmt(PTC_RemoveFmt, eod - 1, eod - 1,
+								attr, PP_NOPROPS, PTX_Block);
+		if(op != CMP_KEEP)
+		{
+			char buf[16];
+			snprintf(buf, sizeof(buf), "%s%u",
+					 op == CMP_DEL ? "-" : "+", rid);
+			attr[1] = buf;
+			pNewDoc->changeStruxFmt(PTC_AddFmt, eod - 1, eod - 1,
+									attr, PP_NOPROPS, PTX_Block);
+		}
+	};
 
 	auto flush = [&](CmpOp op)
 	{
 		if(run.empty())
 			return;
+		if(bPendingBreak)
+		{
+			breakPara();
+			bPendingBreak = false;
+		}
 		if(op == CMP_DEL)
 		{
 			// deletion marks are made by inserting the text plainly
@@ -19852,12 +19897,18 @@ Defun1(revisionCompareDocuments)
 		{
 			flush(runOp);
 			runOp = CMP_KEEP;
-			if(bEmitted)
+			// paragraph boundaries are emitted lazily: one only turns
+			// into a real paragraph break once text follows it, so
+			// the comparison never adds a trailing empty paragraph
+			if(bPendingBreak)
 			{
-				pNewDoc->setMarkRevisions(false);
-				pNewView->moveInsPtTo(FV_DOCPOS_EOD);
-				pNewView->insertParagraphBreak();
+				breakPara();
+				bPendingBreak = false;
 			}
+			if(bEmitted)
+				markLastBlock(curParaOp);
+			curParaOp = op;
+			bPendingBreak = bEmitted;
 			continue;
 		}
 		if(op != runOp)
@@ -19869,10 +19920,124 @@ Defun1(revisionCompareDocuments)
 		run += ' ';
 	}
 	flush(runOp);
-
+	/* every real paragraph was already finalized by its closing
+	 * para token inside the loop — the token stream always ends with
+	 * a para token, so the last curParaOp belongs to a phantom
+	 * trailing paragraph that never materializes */
 	pNewDoc->setMarkRevisions(false);
 	pNewDoc->endUserAtomicGlob();
 
+	return CMP_OK;
+}
+
+Defun1(revisionCompareDocuments)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame,false);
+
+	PD_Document * pDoc2 = s_doListDocuments(pFrame, true, XAP_DIALOG_ID_COMPAREDOCUMENTS);
+	if(!pDoc2)
+		return true;
+
+	pFrame->raise();
+
+	CmpResult res = s_compareDocsIntoFrame(pDoc, pDoc2);
+	if(res == CMP_TOO_LARGE)
+	{
+		pFrame->showMessageBox(AP_STRING_ID_MSG_CompareTooLarge,
+							   XAP_Dialog_MessageBox::b_O,
+							   XAP_Dialog_MessageBox::a_OK);
+	}
+	else if(res == CMP_IDENTICAL)
+	{
+		pFrame->showMessageBox(AP_STRING_ID_MSG_CompareIdentical,
+							   XAP_Dialog_MessageBox::b_O,
+							   XAP_Dialog_MessageBox::a_OK);
+	}
+	return true;
+}
+
+/*!
+    Compare the current document (original) against a file on disk
+    (revised): params.data is the revised document's path — any
+    importable format; without data a file-open dialog asks for it.
+    The differences land in a new document as tracked revisions,
+    exactly like revisionCompareDocuments — which picks among
+    already-open documents instead.
+*/
+Defun(compareDocuments)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView,false);
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc,false);
+
+	XAP_Frame * pFrame = static_cast<XAP_Frame *> ( pAV_View->getParentData());
+	UT_return_val_if_fail(pFrame,false);
+
+	std::string sPath;
+	if(pCallData && pCallData->m_pData && pCallData->m_dataLength > 0)
+	{
+		UT_UCS4String s(pCallData->m_pData, pCallData->m_dataLength);
+		sPath = s.utf8_str();
+	}
+	const bool bInteractive = sPath.empty();
+
+	char * pPicked = nullptr;
+	if(bInteractive)
+	{
+		IEFileType ieft = IEFT_Unknown;
+		if(!s_AskForPathname(pFrame, false, XAP_DIALOG_ID_FILE_OPEN,
+							 nullptr, &pPicked, &ieft) || !pPicked)
+			return true;		// user cancelled — not an error
+		sPath = pPicked;
+	}
+
+	PD_Document * pDoc2 = new PD_Document;
+	const UT_Error e = pDoc2->readFromFile(sPath.c_str(), IEFT_Unknown,
+										   nullptr);
+	if(e != UT_OK)
+	{
+		pDoc2->unref();
+		if(bInteractive)
+		{
+			pFrame->showMessageBox(
+				e == UT_IE_FILENOTFOUND ? AP_STRING_ID_MSG_IE_FileNotFound
+										: AP_STRING_ID_MSG_IE_BogusDocument,
+				XAP_Dialog_MessageBox::b_O,
+				XAP_Dialog_MessageBox::a_OK,
+				sPath.c_str());
+		}
+		g_free(pPicked);
+		return false;
+	}
+
+	CmpResult res = s_compareDocsIntoFrame(pDoc, pDoc2);
+	pDoc2->unref();
+	g_free(pPicked);
+
+	if(!bInteractive)
+		return res == CMP_OK;
+
+	if(res == CMP_TOO_LARGE)
+	{
+		pFrame->showMessageBox(AP_STRING_ID_MSG_CompareTooLarge,
+							   XAP_Dialog_MessageBox::b_O,
+							   XAP_Dialog_MessageBox::a_OK);
+	}
+	else if(res == CMP_IDENTICAL)
+	{
+		pFrame->showMessageBox(AP_STRING_ID_MSG_CompareIdentical,
+							   XAP_Dialog_MessageBox::b_O,
+							   XAP_Dialog_MessageBox::a_OK);
+	}
 	return true;
 }
 

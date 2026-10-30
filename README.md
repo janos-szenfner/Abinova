@@ -780,10 +780,12 @@ automation.
   revisions.
 - **Compare group**: a dropdown with **Compare Documents…** —
   diffs the current document against a second open document at
-  word level and opens a NEW document (a legal blackline) where
-  every difference is marked as a revision, so it can be
-  reviewed with the normal Accept/Reject tools; the sources are
-  never modified — and **Combine Documents…**, which appends
+  word level, or **Compare with File…** to pick any importable
+  document on disk; either way a NEW document (a legal blackline)
+  opens where every difference — including paragraph boundaries —
+  is marked as a revision, so it can be reviewed with the normal
+  Accept/Reject tools; the sources are never modified — and
+  **Combine Documents…**, which appends
   another open document's paragraphs to the current one as
   tracked insertions for review (deleted-revision spans in the
   source are skipped).

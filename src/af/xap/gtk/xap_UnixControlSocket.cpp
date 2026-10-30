@@ -387,7 +387,8 @@ static bool _cmd_reads_path(const char * cmd)
 	 * path must be confined at store time or the read check on
 	 * updateStyles is bypassable */
 	static const char * const kRead[] = {
-		"attachTemplate", "openRecent", "updateStyles"
+		"attachTemplate", "compareDocuments", "openRecent",
+		"updateStyles"
 	};
 	for (const char * n : kRead)
 		if (!strcmp(cmd, n))

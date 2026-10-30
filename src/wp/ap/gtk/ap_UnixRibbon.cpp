@@ -9231,6 +9231,14 @@ GtkWidget * AP_UnixRibbon::_makeComparePopover()
 								  16, 16),
 							  "revisionCompareDocuments", nullptr));
 	gtk_box_append(GTK_BOX(box),
+				   _presetRow("Compare with File\xE2\x80\xA6",
+							  "Compare this document with a revised "
+							  "version saved on disk",
+							  _layout_icon(
+								  static_cast<XAP_Menu_Id>(AP_MENU_ID_TOOLS_REVISIONS_COMPARE_DOCUMENTS),
+								  16, 16),
+							  "compareDocuments", nullptr));
+	gtk_box_append(GTK_BOX(box),
 				   _presetRow("Combine Documents\xE2\x80\xA6",
 							  "Combine revisions from another open "
 							  "document into this one",
