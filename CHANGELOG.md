@@ -6,6 +6,35 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.7] — 2026-10-30
+
+### Changed
+
+- **Drawn vector icons are now the default icon set** — the
+  code-drawn glyph set (wordcraft-style cairo primitives, no icon
+  theme dependency) covers the whole ribbon, toolbar and menu
+  surface: every `tb_*` toolbar icon and every theme name the app
+  references now has a drawn glyph, rendered identically on Linux,
+  macOS, Windows and FreeBSD. `ABINOVA_GLYPH_ICONS=0` opts back out
+  to theme icons.
+- **File tab is a backstage launcher only** — the old File ribbon
+  page duplicated the newer backstage view; it is removed, the File
+  tab still opens the backstage, and leaving it now always lands on
+  the Home tab instead of the previously visited tab.
+
+### Bug fixes
+
+- **macOS ribbon icons**: the Draw tab (pen, pencil, highlighter,
+  eraser, lasso, select, lasso-delete, hide-ink), the Developer tab
+  controls, View's Focus/Read/Format-pane/Fullscreen buttons and the
+  File menu entries resolved to theme names bundled Adwaita does not
+  ship — they rendered nothing. All now draw through the glyph set.
+- **Caret blinking**: the blink phase toggled on every pending
+  repaint, so the caret could land dark at the insertion point after
+  a move — or strobe during rapid repaints. Only the half-period
+  timer flips the phase now; a caret move turns it on and restarts
+  the on-phase (wordcraft `caret_glide` semantics).
+
 ## [4.0.6] — 2026-10-30
 
 ### Added
