@@ -74,7 +74,8 @@ jobs:
             printf 'Summary:    Abinova word processor (self-contained build)\n'
             printf 'License:    GPL-2.0-or-later\n'
             printf 'URL:        https://github.com/janos-szenfner/Abinova\n'
-            printf 'BuildArch:  x86_64\nAutoReqProv: no\n\n'
+            printf 'BuildArch:  x86_64\nAutoReqProv: no\n'
+            printf 'BuildRoot:  %%{_topdir}/BUILDROOT/abinova-%s-1.x86_64\n\n' "${VERSION#v}"
             printf '%%description\n'
             printf 'GTK4 AbiWord-derived document editor. Installs to /opt/abinova\n'
             printf 'with a /usr/bin/abinova symlink; no external dependencies.\n\n'

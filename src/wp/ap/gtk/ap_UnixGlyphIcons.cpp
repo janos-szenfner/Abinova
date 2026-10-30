@@ -659,7 +659,8 @@ static void _g_shape_effects(const _GlyphPen & p)
 {
 	for (int k = 2; k >= 0; k--)
 	{
-		GdkRGBA dim = { 0.0, 0.0, 0.0, (30.0 + (2 - k) * 20.0) / 255.0 };
+		GdkRGBA dim = { 0.0f, 0.0f, 0.0f,
+						static_cast<float>(30.0f + (2 - k) * 20.0f) / 255.0f };
 		_pen_frect(p, 7.0 - k, 7.0 - k, 18.0 + k, 18.0 + k, dim);
 	}
 	_pen_frect(p, 3.0, 3.0, 14.0, 14.0, p.ac);
