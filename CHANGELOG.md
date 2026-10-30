@@ -6,6 +6,16 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.9] — 2026-10-31
+
+### Bug fixes
+
+- **Caret blinks again, for real this time** — the per-draw
+  disable/enable bracket reset the caret's opacity and blink phase
+  on every frame, so the 0.1 s fade-in never completed and the
+  caret stayed permanently invisible. Blink and fade state now
+  survive across draws.
+
 ## [4.0.8] — 2026-10-30
 
 ### Bug fixes

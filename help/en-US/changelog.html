@@ -4,6 +4,12 @@
 <h1>Changelog</h1>
 <p>All notable changes in this experimental Abinova GTK4 fork, grouped by category. Based on upstream Abiword 3.1.90 (<code>5e3e1cc</code> import).</p>
 <p>This project is experimental and supplied <b>without any warranty or responsibility</b> — see <code>README.md</code>.</p>
+<h2>[4.0.8] — 2026-10-30</h2>
+<h3>Bug fixes</h3>
+<ul>
+<li><b>File tab lands on Home, always</b> — closing the backstage (back   arrow, or a cancelled Open/Save dialog) left the notebook on the   empty launcher page; the snap-to-Home now runs after the tab   switch completes.</li>
+<li><b>Caret is drawn again</b> — the blink's offscreen guard fired   before the first window-size update and locked the caret dark;   the check now waits for a real window size, and input moves pin   the logical on-state so it can't desync from the fade.</li>
+</ul>
 <h2>[4.0.7] — 2026-10-30</h2>
 <h3>Changed</h3>
 <ul>
