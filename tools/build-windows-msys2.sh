@@ -185,7 +185,6 @@ if [ $skip_deps -eq 0 ]; then
 			"${pkgpfx}-gst-plugins-good" \
 			"${pkgpfx}-boost" \
 			"${pkgpfx}-glib2" \
-			"${pkgpfx}-make" \
 			perl make; then
 			break
 		fi
@@ -228,46 +227,40 @@ if [ $skip_build -eq 0 ]; then
 
 	# ------------------------------------------------------------ build
 	# MSYS2 make -j can deadlock at jobserver teardown — the build's
-	# work is done but make never exits (seen three times in CI,
-	# always silent after the last recipe). Prefer mingw32-make:
-	# its jobserver is a native Windows named pipe, not the POSIX
-	# fifo that wedges in MSYS make — recipes still run under sh.
-	# The silence watchdog below stays either way.
-	pmake=make
-	command -v mingw32-make >/dev/null 2>&1 && pmake=mingw32-make
-	echo "build-windows: parallel make via $pmake -j$jobs"
+	# work is done but make never exits (seen four times in CI,
+	# always silent after the last recipe). mingw32-make is NOT a
+	# fix: it hangs on startup here without a line of output.
+	#
+	# Background the parallel make with output to a log; a watchdog
+	# kills it once the log has been silent for 7 minutes (or the
+	# pass exceeds an hour), then a serial make finishes — a near
+	# no-op since the deadlock only strikes after the last recipe.
 	jlog="$bdir/make.log"
-	jrc="$bdir/make.rc"
-	rm -f "$jlog" "$jrc"
-	if command -v setsid >/dev/null 2>&1; then
-		setsid bash -c '"$4" -j"$1" > "$2" 2>&1; echo $? > "$3"' \
-			_ "$jobs" "$jlog" "$jrc" "$pmake" &
-		mkpid=$!
-		tail -f "$jlog" 2>/dev/null &
-		tpid=$!
-		stall=0; last=-1
-		while kill -0 "$mkpid" 2>/dev/null; do
-			sleep 15
-			sz=$(stat -c%s "$jlog" 2>/dev/null || echo 0)
-			if [ "$sz" = "$last" ]; then
-				stall=$((stall+15))
-				if [ "$stall" -ge 420 ]; then
-					echo "build-windows: make silent ${stall}s — killing jobserver-stuck make" >&2
-					kill -TERM -- -"$mkpid" 2>/dev/null || kill -TERM "$mkpid"
-					sleep 5
-					kill -KILL -- -"$mkpid" 2>/dev/null
-					break
-				fi
-			else
-				stall=0; last=$sz
-			fi
-		done
-		wait "$mkpid" 2>/dev/null
-		kill "$tpid" 2>/dev/null
-		rc=1; [ -f "$jrc" ] && rc=$(cat "$jrc")
-	else
-		timeout 3600 "$pmake" -j"$jobs"; rc=$?
-	fi
+	rm -f "$jlog"
+	make -j"$jobs" > "$jlog" 2>&1 &
+	mkpid=$!
+	tail -f "$jlog" 2>/dev/null &
+	tpid=$!
+	stall=0; last=-1; elapsed=0
+	while kill -0 "$mkpid" 2>/dev/null; do
+		sleep 15
+		elapsed=$((elapsed+15))
+		sz=$(stat -c%s "$jlog" 2>/dev/null || echo 0)
+		if [ "$sz" = "$last" ]; then
+			stall=$((stall+15))
+		else
+			stall=0; last=$sz
+		fi
+		if [ "$stall" -ge 420 ] || [ "$elapsed" -ge 3600 ]; then
+			echo "build-windows: killing make (silent ${stall}s, elapsed ${elapsed}s)" >&2
+			kill -TERM "$mkpid" 2>/dev/null
+			sleep 10
+			kill -KILL "$mkpid" 2>/dev/null
+			break
+		fi
+	done
+	wait "$mkpid"; rc=$?
+	kill "$tpid" 2>/dev/null
 	if [ "$rc" != 0 ]; then
 		echo "build-windows: parallel make ended rc=$rc — finishing serially" >&2
 		# a watchdog kill can orphan a partial target whose mtime
