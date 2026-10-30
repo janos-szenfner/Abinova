@@ -92,7 +92,7 @@ opt_pkgs=''
 # gtk deps
 cairo_req='cairo-pdf >= 1.18.0 cairo-ps >= 1.18.0 pangocairo >= 1.56.0'
 #
-gtk_req="gtk4 >= $GTK_VERSION_REQ librsvg-2.0 >= 2.58.0 pango >= 1.56.0"
+gtk_req="gtk4 >= $GTK_VERSION_REQ librsvg-2.0 >= 2.58.0 pango >= 1.56.0 freetype2"
 dnl gtk4-unix-print only exists when GTK is built with the Unix
 dnl print backend (Linux/BSD); Quartz and Win32 GTK lack it
 PKG_CHECK_EXISTS([gtk4-unix-print], [gtk_req="$gtk_req gtk4-unix-print"],[])

@@ -55,18 +55,18 @@ jobs:
           sudo apt-get install -y rpm
           BUNDLE="${{ env.bundle }}"
           mkdir -p rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-          mkdir -p "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/opt"
-          mkdir -p "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/bin"
-          mkdir -p "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share"
-          cp -a "$BUNDLE" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/opt/abinova"
-          ln -s ../opt/abinova/bin/abinova "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/bin/abinova"
-          cp -a "$BUNDLE/share/applications" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/"
-          cp -a "$BUNDLE/share/icons" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/"
-          cp -a "$BUNDLE/share/metainfo" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/" || true
-          cp -a "$BUNDLE/share/mime" "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/" || true
+          mkdir -p "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/opt"
+          mkdir -p "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/bin"
+          mkdir -p "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share"
+          cp -a "$BUNDLE" "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/opt/abinova"
+          ln -s ../opt/abinova/bin/abinova "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/bin/abinova"
+          cp -a "$BUNDLE/share/applications" "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share/"
+          cp -a "$BUNDLE/share/icons" "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share/"
+          cp -a "$BUNDLE/share/metainfo" "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share/" || true
+          cp -a "$BUNDLE/share/mime" "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share/" || true
           # launch through the /usr/bin symlink, not PATH lookup
           sed -i 's|^Exec=.*|Exec=/usr/bin/abinova %U|' \
-            "rpmbuild/BUILDROOT/abinova-${VERSION#v}-1.x86_64/usr/share/applications/"*.desktop
+            "rpmbuild/BUILD/abinova-${VERSION#v}-build/BUILDROOT/usr/share/applications/"*.desktop
           {
             printf 'Name:       abinova\n'
             printf 'Version:    %s\n' "${VERSION#v}"
@@ -75,7 +75,6 @@ jobs:
             printf 'License:    GPL-2.0-or-later\n'
             printf 'URL:        https://github.com/janos-szenfner/Abinova\n'
             printf 'BuildArch:  x86_64\nAutoReqProv: no\n'
-            printf 'BuildRoot:  %%{_topdir}/BUILDROOT/abinova-%s-1.x86_64\n\n' "${VERSION#v}"
             printf '%%description\n'
             printf 'GTK4 AbiWord-derived document editor. Installs to /opt/abinova\n'
             printf 'with a /usr/bin/abinova symlink; no external dependencies.\n\n'
