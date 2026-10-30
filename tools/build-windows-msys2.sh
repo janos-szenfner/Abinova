@@ -226,7 +226,14 @@ if [ $skip_build -eq 0 ]; then
 	} >&2
 
 	# ------------------------------------------------------------ build
-	make -j"$jobs"
+	# MSYS2 make -j can deadlock at jobserver teardown — the build's
+	# work is done but make never exits (seen twice in CI, hanging
+	# past the last recipe). Bound the parallel pass; a serial make
+	# then finishes — a near no-op when the parallel pass completed.
+	timeout 3600 make -j"$jobs" || {
+		echo "build-windows: parallel make ended rc=$? — finishing serially" >&2
+		make -j1
+	}
 fi
 
 if [ $bundle -eq 0 ]; then
