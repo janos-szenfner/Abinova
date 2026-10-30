@@ -185,6 +185,7 @@ if [ $skip_deps -eq 0 ]; then
 			"${pkgpfx}-gst-plugins-good" \
 			"${pkgpfx}-boost" \
 			"${pkgpfx}-glib2" \
+			"${pkgpfx}-make" \
 			perl make; then
 			break
 		fi
@@ -228,17 +229,19 @@ if [ $skip_build -eq 0 ]; then
 	# ------------------------------------------------------------ build
 	# MSYS2 make -j can deadlock at jobserver teardown — the build's
 	# work is done but make never exits (seen three times in CI,
-	# always silent after the last recipe). Run it in its own
-	# session with output to a log; a watchdog kills the group once
-	# the log has been silent for 7 minutes (a genuinely-busy recipe
-	# prints regularly), then a serial make finishes — a near no-op
-	# since the deadlock only strikes after the last recipe ran.
+	# always silent after the last recipe). Prefer mingw32-make:
+	# its jobserver is a native Windows named pipe, not the POSIX
+	# fifo that wedges in MSYS make — recipes still run under sh.
+	# The silence watchdog below stays either way.
+	pmake=make
+	command -v mingw32-make >/dev/null 2>&1 && pmake=mingw32-make
+	echo "build-windows: parallel make via $pmake -j$jobs"
 	jlog="$bdir/make.log"
 	jrc="$bdir/make.rc"
 	rm -f "$jlog" "$jrc"
 	if command -v setsid >/dev/null 2>&1; then
-		setsid bash -c 'make -j"$1" > "$2" 2>&1; echo $? > "$3"' \
-			_ "$jobs" "$jlog" "$jrc" &
+		setsid bash -c '"$4" -j"$1" > "$2" 2>&1; echo $? > "$3"' \
+			_ "$jobs" "$jlog" "$jrc" "$pmake" &
 		mkpid=$!
 		tail -f "$jlog" 2>/dev/null &
 		tpid=$!
@@ -263,7 +266,7 @@ if [ $skip_build -eq 0 ]; then
 		kill "$tpid" 2>/dev/null
 		rc=1; [ -f "$jrc" ] && rc=$(cat "$jrc")
 	else
-		timeout 3600 make -j"$jobs"; rc=$?
+		timeout 3600 "$pmake" -j"$jobs"; rc=$?
 	fi
 	if [ "$rc" != 0 ]; then
 		echo "build-windows: parallel make ended rc=$rc — finishing serially" >&2
