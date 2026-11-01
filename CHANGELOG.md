@@ -6,6 +6,18 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.10] — 2026-10-31
+
+### Bug fixes
+
+- **Hostile document titles can't corrupt the window title** —
+  NUL bytes in `dc.title` metadata or filenames are stripped before
+  they reach the X11 title path.
+- **macOS double-click opens documents again** — Finder's injected
+  `-psn_` launch argument is no longer mistaken for a file to open.
+- **Update checks can be tested** — `ABINOVA_PRETEND_VERSION`
+  poses as an older version for the update-available path.
+
 ## [4.0.9] — 2026-10-31
 
 ### Bug fixes
