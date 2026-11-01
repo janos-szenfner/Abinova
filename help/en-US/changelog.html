@@ -4,6 +4,13 @@
 <h1>Changelog</h1>
 <p>All notable changes in this experimental Abinova GTK4 fork, grouped by category. Based on upstream Abiword 3.1.90 (<code>5e3e1cc</code> import).</p>
 <p>This project is experimental and supplied <b>without any warranty or responsibility</b> — see <code>README.md</code>.</p>
+<h2>[4.0.10] — 2026-10-31</h2>
+<h3>Bug fixes</h3>
+<ul>
+<li><b>Hostile document titles can't corrupt the window title</b> —   NUL bytes in <code>dc.title</code> metadata or filenames are stripped before   they reach the X11 title path.</li>
+<li><b>macOS double-click opens documents again</b> — Finder's injected   <code>-psn_</code> launch argument is no longer mistaken for a file to open.</li>
+<li><b>Update checks can be tested</b> — <code>ABINOVA_PRETEND_VERSION</code>   poses as an older version for the update-available path.</li>
+</ul>
 <h2>[4.0.9] — 2026-10-31</h2>
 <h3>Bug fixes</h3>
 <ul>

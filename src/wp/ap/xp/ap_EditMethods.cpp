@@ -11251,64 +11251,82 @@ Defun(fontSize)
 	return true;
 }
 
+static double _stepFontSize(double dPoints, bool bIncrease)
+{
+	if(bIncrease)
+	{
+		if(dPoints >= 26.0)		return dPoints + 4.0;
+		else if(dPoints >= 8.0)	return dPoints + 2.0;
+		else					return dPoints + 1.0;
+	}
+	if(dPoints > 26.0)			return dPoints - 4.0;
+	else if(dPoints > 8.0)		return dPoints - 2.0;
+	else						return dPoints - 1.0;
+}
+
 static bool _fontSizeChange(FV_View * pView, bool bIncrease)
 {
 	UT_return_val_if_fail(pView, false);
-	PP_PropertyVector span_props;
 
-	pView->getCharFormat(span_props);
-	UT_return_val_if_fail(!span_props.empty(), false);
-
-	const std::string & s = PP_getAttribute("font-size", span_props);
-
-	if(s.empty())
+	/* Word steps each font size in the selection from its own
+	 * size (wordcraft #4903): group consecutive positions that
+	 * share a font-size and step each group separately so a mixed
+	 * selection is not flattened to a single size */
+	PD_DocumentRange range;
+	pView->getDocumentRangeOfCurrentSelection(&range);
+	const PT_DocPosition posSelStart = range.m_pos1;
+	const PT_DocPosition posSelEnd = range.m_pos2;
+	if (posSelEnd <= posSelStart)
 		return false;
 
-	double dPoints = UT_convertToPoints(s.c_str());
-
-#define PT_INC_SMALL  1.0
-#define PT_INC_MEDIUM 2.0
-#define PT_INC_LARGE  4.0
-	
-	if(bIncrease)
+	bool bAny = false;
+	PT_DocPosition pos = posSelStart;
+	while (pos < posSelEnd)
 	{
-		if(dPoints >= 26.0)
-			dPoints += PT_INC_LARGE;
-		else if(dPoints >= 8.0)
-			dPoints += PT_INC_MEDIUM;
-		else
-			dPoints += PT_INC_SMALL;
+		pView->cmdSelect(pos, pos);
+		PP_PropertyVector span_props;
+		pView->getCharFormat(span_props);
+		const std::string & s = PP_getAttribute("font-size",
+												span_props);
+		if (s.empty())
+		{
+			++pos;
+			continue;
+		}
+		/* extend the group while the same size continues */
+		PT_DocPosition gEnd = pos + 1;
+		while (gEnd < posSelEnd)
+		{
+			pView->cmdSelect(gEnd, gEnd);
+			PP_PropertyVector sp2;
+			pView->getCharFormat(sp2);
+			const std::string & s2 = PP_getAttribute("font-size",
+													 sp2);
+			if (s2 != s)
+				break;
+			++gEnd;
+		}
+		double dPoints = _stepFontSize(UT_convertToPoints(s.c_str()),
+									   bIncrease);
+		if (dPoints >= 2.0)
+		{
+			const gchar * sz =
+				UT_formatDimensionString(DIM_PT, dPoints);
+			if (sz && *sz)
+			{
+				pView->cmdSelect(pos, gEnd);
+				PP_PropertyVector properties = {
+					"font-size", sz
+				};
+				pView->setCharFormat(properties);
+				bAny = true;
+			}
+		}
+		pos = gEnd;
 	}
-	else
-	{
-		if(dPoints > 26.0)
-			dPoints -= PT_INC_LARGE;
-		else if(dPoints > 8.0)
-			dPoints -= PT_INC_MEDIUM;
-		else
-			dPoints -= PT_INC_SMALL;
-		
-	}
-
-#undef PT_INC_SMALL
-#undef PT_INC_MEDIUM
-#undef PT_INC_LARGE
-
-	// make sure that we do not decrease fonts too far ...
-	if(dPoints < 2.0)
-		return false;
-	
-	const gchar * sz = UT_formatDimensionString(DIM_PT, dPoints);
-
-	if(!sz || !*sz)
-		return false;
-
-	PP_PropertyVector properties = {
-		"font-size", sz
-	};
-	pView->setCharFormat(properties);
-
-	return true;
+	/* restore the user's selection */
+	pView->cmdSelect(posSelStart, posSelEnd);
+	return bAny;
 }
 
 Defun1(fontSizeIncrease)

@@ -6,6 +6,15 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.1.0] — 2026-11-01
+
+### Bug fixes
+
+- **Font size steps each run from its own size** — grow/shrink
+  font on a mixed-size selection no longer flattens everything to
+  one size; consecutive same-size spans step independently
+  (wordcraft #4903).
+
 ## [4.0.10] — 2026-10-31
 
 ### Bug fixes
