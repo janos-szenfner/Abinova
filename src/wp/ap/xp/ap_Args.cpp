@@ -146,6 +146,20 @@ void AP_Args::parseOptions()
 		g_error_free (err); err = nullptr;
 		return;
 	}
+	/* macOS launches from Finder inject a "-psn_…" Process Serial
+	 * Number argument; it is not a document — drop it from the file
+	 * list so a double-clicked document isn't shadowed by a
+	 * "file not found" error (wordcraft #1103) */
+	for (int i = 0; m_sFiles && m_sFiles[i]; )
+	{
+		if (!strncmp(m_sFiles[i], "-psn_", 5))
+		{
+			for (int j = i; m_sFiles[j]; ++j)
+				m_sFiles[j] = m_sFiles[j + 1];
+		}
+		else
+			++i;
+	}
 #ifdef _WIN32
 	// otherwise, decode arguments
 	const char **arr;

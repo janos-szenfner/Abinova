@@ -22,6 +22,7 @@
 
 #ifdef HAVE_CONFIG_H
 #include <string>
+#include <algorithm>
 #include "config.h"
 #endif
 
@@ -117,6 +118,10 @@ bool XAP_FrameImpl::_updateTitle()
 	/* first try to use the metadata title as our title */
 	std::string title;
 	if (m_pFrame->m_pDoc->getMetaDataProp ("dc.title", title) && m_pFrame->m_sTitle.size()) {
+		/* NUL bytes in a hostile document title truncate the window
+		 * title mid-word (wordcraft #3634) */
+		title.erase(std::remove(title.begin(), title.end(), '\0'),
+					title.end());
 		m_pFrame->m_sTitle = title;
 		m_pFrame->m_sNonDecoratedTitle = m_pFrame->m_sTitle;
 
@@ -169,6 +174,10 @@ bool XAP_FrameImpl::_updateTitle()
 			iter.advance();
 		const char * szTrunc = iter.current();
 		m_pFrame->m_sTitle = szTrunc ? szTrunc : sUntruncatedString.utf8_str();
+		m_pFrame->m_sTitle.erase(
+			std::remove(m_pFrame->m_sTitle.begin(),
+						m_pFrame->m_sTitle.end(), '\0'),
+			m_pFrame->m_sTitle.end());
 
 		if(lenRO > 0)
 			m_pFrame->m_sTitle += " (" + s + ")";

@@ -390,6 +390,12 @@ void XAP_updateCheckQuery(XAP_UpdateInfo & info, const char * currentVersion)
 		info.errorDetail = err;
 		return;
 	}
+	/* ABINOVA_PRETEND_VERSION lets testing pose as another version so
+	 * the "update available" path can be exercised without a rebuild
+	 * (wordcraft UPD.1) */
+	const char * pretend = getenv("ABINOVA_PRETEND_VERSION");
+	if (pretend && *pretend)
+		currentVersion = pretend;
 	int cur[3], lat[3];
 	if (XAP_parseVersionTag(currentVersion ? currentVersion : "", cur) &&
 		XAP_parseVersionTag(info.version, lat))
