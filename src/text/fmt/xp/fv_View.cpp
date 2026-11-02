@@ -10181,6 +10181,12 @@ void FV_View::warpInsPtToXY(UT_sint32 xPos, UT_sint32 yPos, bool bClick = false)
  */
 void FV_View::getPageScreenOffsets(const fp_Page* pThePage, UT_sint32& xoff,UT_sint32& yoff) const
 {
+	if (!pThePage)
+	{
+		xoff = 0;
+		yoff = 0;
+		return;
+	}
 	_getPageXandYOffset(pThePage, xoff, yoff, false);
 	yoff -= m_yScrollOffset;
 	xoff -= m_xScrollOffset;
@@ -10193,6 +10199,11 @@ void FV_View::getPageScreenOffsets(const fp_Page* pThePage, UT_sint32& xoff,UT_s
 void FV_View::getPageYOffset(const fp_Page* pThePage, UT_sint32& yoff) const
 {
 	UT_sint32 xoff = 0;
+	if (!pThePage)
+	{
+		yoff = 0;
+		return;
+	}
 	_getPageXandYOffset(pThePage, xoff, yoff, true);
 }
 

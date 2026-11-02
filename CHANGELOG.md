@@ -6,6 +6,21 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.12] — 2026-11-02
+
+### Bug fixes
+
+- **Ribbon radio commands work again** — zoom presets (200/100/75/
+  50/Page Width/Whole Page) and every other radio action created
+  on demand were dead: `ensureAction` connected only `change-state`
+  on the stateful GAction while ribbon buttons emit `activate`.
+  The shared handler now covers both, so radio buttons dispatch
+  the selected item's command (issue #2).
+- **No more crash scrolling documents with pictures** — a page can
+  be deleted mid-draw when a picture triggers a reflow during
+  scroll; the page-offset helpers now guard the null page instead
+  of dereferencing it in `fp_Page::getHeight` (issue #2).
+
 ## [4.0.11] — 2026-11-01
 
 ### Bug fixes

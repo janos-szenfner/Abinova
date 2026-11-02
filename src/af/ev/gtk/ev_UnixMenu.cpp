@@ -488,6 +488,12 @@ GSimpleAction * EV_UnixMenu::_createAction(XAP_Menu_Id id,
 		m_vecCallbacks.push_back(wd);
 		g_signal_connect(G_OBJECT(action), "change-state",
 						 G_CALLBACK(_wd::s_onChangeState), wd);
+		/* Ribbon buttons activate actions (menubar items use
+		 * change-state); a stateful radio action emits "activate"
+		 * with the target id, so give it the same handler or the
+		 * button click is silently dropped */
+		g_signal_connect(G_OBJECT(action), "activate",
+						 G_CALLBACK(_wd::s_onChangeState), wd);
 		g_action_map_add_action(G_ACTION_MAP(m_actionGroup), G_ACTION(action));
 		g_object_unref(action);
 		*radioGroup = action;

@@ -5,7 +5,8 @@ processor (upstream base 3.1.90) taking its own direction: a
 GTK4-only toolkit port, a LibreOffice NotebookBar-style ribbon UI,
 all document formats compiled into the core library (no plugins),
 and a repository-wide audit of historical Debian/Launchpad bug
-reports. The first release is planned as version **4.0.0**.
+reports. Current stable release: **4.0.12**; see `CHANGELOG.md`
+for the categorized change list.
 
 The native format keeps the AWML vocabulary but writes it under
 the new `.abwn` extension with `<abinova>` as the root element,
@@ -136,9 +137,9 @@ all.
 > damage, data loss, or other consequences arising from its use.
 > Use at your own risk.
 
-> **Version:** the next release of this fork will be versioned
-> **4.0.0**. It has not been released yet — everything described
-> below is on `main`. See `CHANGELOG.md` for the full change list.
+> **Version:** the current release is **4.0.12** — all major
+> features below are shipped. See `CHANGELOG.md` for the
+> per-release change list.
 
 ## Table of contents
 
