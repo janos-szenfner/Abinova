@@ -6,6 +6,23 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.13] — 2026-11-02
+
+### Bug fixes
+
+- **DOCX: a paragraph naming an undefined style is formatted as
+  Normal, as in Word** — a `w:pStyle` reference to a missing style
+  now resolves to the document's Normal instead of nothing.
+- **Go To page/line clamps instead of wrapping** — typing a page
+  or line past the end goes to the last one rather than snapping
+  back to 1.
+- **Backstage keytips** — a bare letter key activates the matching
+  nav row (I Info, N New, O Open, S Save, A Save As, P Print,
+  H Share, T Options), as in Word's Alt,F accelerators.
+- **Colour swatch tooltips show names, not hex** — the font/
+  highlight palettes now label each swatch ("Yellow", "Dark Red")
+  instead of the raw `ff0000`-style code.
+
 ## [4.0.12] — 2026-11-02
 
 ### Bug fixes

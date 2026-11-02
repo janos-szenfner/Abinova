@@ -285,7 +285,9 @@ AP_UnixDialog_Goto::onPageChanged ()
 	m_JumpTarget = AP_JUMPTARGET_PAGE;
 	UT_uint32 page = static_cast<UT_uint32>(gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbPage)));
 	if (page > m_DocCount.page) {
-		gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbPage), 1);
+		/* clamp to the last page, don't wrap to page one */
+		gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbPage),
+								   m_DocCount.page);
 	}
 	onJumpClicked();
 }
@@ -300,7 +302,8 @@ AP_UnixDialog_Goto::onLineChanged ()
 	m_JumpTarget = AP_JUMPTARGET_LINE;
 	UT_uint32 line = static_cast<UT_uint32>(gtk_spin_button_get_value (GTK_SPIN_BUTTON (m_sbLine)));
 	if (line > m_DocCount.line) {
-		gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbLine), 1);
+		gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbLine),
+								   m_DocCount.line);
 	}
 	if (line == 0) {
 		gtk_spin_button_set_value (GTK_SPIN_BUTTON (m_sbLine), m_DocCount.line);

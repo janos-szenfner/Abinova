@@ -825,6 +825,11 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			OXML_Document * doc = OXML_Document::getInstance();
 			UT_return_if_fail( _error_if_fail(doc != nullptr) );
 			OXML_SharedStyle ref = doc->getStyleById(val);
+			if (ref.get() == nullptr || !ref->getName().compare("")) {
+				/* a paragraph naming an undefined style is
+				 * formatted as Normal, as in Word */
+				ref = doc->getStyleById("_Normal");
+			}
 			if (ref.get() != nullptr && ref->getName().compare("")) {
 				UT_return_if_fail( _error_if_fail( UT_OK == para->setAttribute(PT_STYLE_ATTRIBUTE_NAME, ref->getName().c_str()) ));
 			}

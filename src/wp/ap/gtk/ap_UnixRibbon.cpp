@@ -1538,6 +1538,20 @@ static const char * const _s_color_palette[] =
 	"000099", "674ea7", "a64d79", "783f04", "1155cc"
 };
 
+/* tooltip names for the palette above — Word shows friendly colour
+ * names, not raw hex */
+static const char * const _s_color_names[] =
+{
+	"Black", "Dark Gray", "Gray", "Gray 2", "Light Gray",
+	"Lighter Gray", "Off-White", "Pale Gray", "White Smoke", "White",
+	"Red", "Orange", "Yellow", "Green", "Cyan",
+	"Blue", "Violet", "Magenta", "Burnt Orange", "Brown",
+	"Light Red", "Light Orange", "Light Yellow", "Light Green", "Light Cyan",
+	"Light Blue", "Light Violet", "Light Magenta", "Soft Red", "Soft Violet",
+	"Dark Red", "Dark Orange", "Dark Yellow", "Dark Green", "Dark Cyan",
+	"Dark Blue", "Dark Violet", "Dark Magenta", "Dark Brown", "Cobalt"
+};
+
 void AP_UnixRibbon::_s_tb_color_automatic(GtkWidget * widget, gpointer data)
 {
 	_TbCtx * ctx =
@@ -6494,7 +6508,7 @@ GtkWidget * AP_UnixRibbon::_paletteSwatchGrid(const char * szMethod)
 	{
 		GtkWidget * sw = gtk_button_new();
 		gtk_widget_set_size_request(sw, 20, 20);
-		gtk_widget_set_tooltip_text(sw, _s_color_palette[i]);
+		gtk_widget_set_tooltip_text(sw, _s_color_names[i]);
 		char css[160];
 		g_snprintf(css, sizeof(css),
 				   "button { background-image: none;"
@@ -16246,7 +16260,7 @@ GtkWidget * AP_UnixRibbon::_makeTblColorPopover(const char * szMethod,
 	{
 		GtkWidget * sw = gtk_button_new();
 		gtk_widget_set_size_request(sw, 20, 20);
-		gtk_widget_set_tooltip_text(sw, _s_color_palette[i]);
+		gtk_widget_set_tooltip_text(sw, _s_color_names[i]);
 		char css[160];
 		g_snprintf(css, sizeof(css),
 				   "button { background-image: none;"

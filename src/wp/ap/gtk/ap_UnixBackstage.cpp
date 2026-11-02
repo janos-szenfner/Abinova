@@ -48,20 +48,21 @@ struct _NavSpec
 	const char * method;	/* action rows: edit method to run */
 	bool		 action;	/* true: run method instead of
 							 * switching pages */
+	char		 keytip;	/* Alt-accelerator letter (Word keytips) */
 };
 
 /* the left column, Word order: Info first since it doubles as the
  * landing page */
 static const _NavSpec s_nav[] =
 {
-	{ "info",	"Info",		nullptr,		false },
-	{ "new",	"New",		nullptr,		false },
-	{ "open",	"Open",		nullptr,		false },
-	{ nullptr,	"Save",		"fileSave",		true },
-	{ "saveas",	"Save As",	nullptr,		false },
-	{ "print",	"Print",	nullptr,		false },
-	{ "share",	"Share",	nullptr,		false },
-	{ nullptr,	"Options",	"dlgOptions",	true }
+	{ "info",	"Info",		nullptr,		false, 'I' },
+	{ "new",	"New",		nullptr,		false, 'N' },
+	{ "open",	"Open",		nullptr,		false, 'O' },
+	{ nullptr,	"Save",		"fileSave",		true,  'S' },
+	{ "saveas",	"Save As",	nullptr,		false, 'A' },
+	{ "print",	"Print",	nullptr,		false, 'P' },
+	{ "share",	"Share",	nullptr,		false, 'H' },
+	{ nullptr,	"Options",	"dlgOptions",	true,  'T' }
 };
 
 /*****************************************************************/
@@ -202,12 +203,35 @@ gboolean AP_UnixBackstage::_s_key(GtkEventControllerKey * /*c*/,
 								  GdkModifierType /*state*/,
 								  gpointer data)
 {
-	if (keyval != GDK_KEY_Escape)
-		return FALSE;
+	if (keyval == GDK_KEY_Escape)
+	{
+		AP_UnixBackstage * self = static_cast<AP_UnixBackstage *>(data);
+		if (self)
+			self->_close();
+		return TRUE;
+	}
+	/* Keytips: a bare letter activates the matching nav row, as
+	 * Alt,F,<letter> does in Word (P prints, A opens Save As) */
 	AP_UnixBackstage * self = static_cast<AP_UnixBackstage *>(data);
-	if (self)
-		self->_close();
-	return TRUE;
+	if (!self)
+		return FALSE;
+	gunichar uc = gdk_keyval_to_unicode(keyval);
+	if (!g_unichar_isalpha(uc))
+		return FALSE;
+	char tip = g_ascii_toupper(static_cast<char>(uc));
+	for (const _NavSpec & spec : s_nav)
+	{
+		if (spec.keytip == tip)
+		{
+			if (spec.action)
+				self->_runAndClose(spec.method, nullptr,
+								   false);
+			else
+				self->setPage(spec.page);
+			return TRUE;
+		}
+	}
+	return FALSE;
 }
 
 /* a wide page row: bold label + dimmed detail underneath, dispatches
