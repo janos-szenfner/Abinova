@@ -29,6 +29,8 @@
 
 // Internal includes
 #include "ie_imp_OpenDocument.h"
+#include "ut_types.h"
+#include "ut_go_file.h"
 
 /**
  * Constructor
@@ -83,6 +85,9 @@ UT_Confidence_t IE_Imp_OpenDocument_Sniffer::recognizeContents (GsfInput * input
 {
     UT_Confidence_t confidence = UT_CONFIDENCE_ZILCH;
 	
+	if (UT_go_zip_declares_too_many_entries (input, UT_MAX_ZIP_ENTRIES))
+		return UT_CONFIDENCE_ZILCH;
+
 	GsfInfile * zip  = gsf_infile_zip_new (input, nullptr);
 	if (zip != nullptr) {
 		GsfInput* pInput = gsf_infile_child_by_name(zip, "mimetype");

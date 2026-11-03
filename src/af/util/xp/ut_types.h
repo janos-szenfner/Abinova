@@ -104,6 +104,16 @@ typedef UT_uint8 UT_Confidence_t;
  */
 #define UT_MAX_ARCHIVE_MEMBER_SIZE (256u * 1024u * 1024u)
 
+/*!
+ * Bound on the number of central-directory entries a zip archive
+ * (docx/odt/epub) may declare.  The end-of-central-directory record
+ * is attacker-controlled — a small package can declare millions of
+ * entries and make the zip reader parse a directory entry each
+ * (wordcraft #3660).  Archives declaring more than this are refused
+ * before libgsf opens them.
+ */
+#define UT_MAX_ZIP_ENTRIES 20000u
+
 #include "ut_export.h" // ABI_EXPORT is defined in there.
 
 #if __GNUC__

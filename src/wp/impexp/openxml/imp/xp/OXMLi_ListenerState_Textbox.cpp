@@ -26,6 +26,7 @@
 
 // Internal includes
 #include "OXML_Document.h"
+#include "OXML_Element_Paragraph.h"
 #include "OXMLi_StreamListener.h"
 
 // Abinova includes
@@ -1041,6 +1042,52 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 		if(style)
 		{
 			m_style = style;
+		}
+
+		/* a shape flagged o:hr is a pasted web <hr>: a rule taking a
+		 * line of its own, not a floating box.  Abinova draws that as
+		 * the paragraph's bottom border — find the paragraph element
+		 * under whatever run/pict elements are stacked above it. */
+		const gchar* hr = attrMatches(NS_O_KEY, "hr", rqst->ppAtts);
+		if (hr && (!strcmp(hr, "t") || !strcmp(hr, "true") || !strcmp(hr, "1")))
+		{
+			OXMLi_ElementStack stack = *rqst->stck;
+			while (!stack.empty())
+			{
+				OXML_SharedElement e = stack.top();
+				stack.pop();
+				if (dynamic_cast<OXML_Element_Paragraph*>(e.get()))
+				{
+					e->setProperty("bot-style", "1");
+					/* the rule's stroke weight is the shape's height;
+					 * VML hrs report e.g. height:1.5pt or 0 */
+					const gchar* fill = attrMatches(NS_V_KEY, "fillcolor", rqst->ppAtts);
+					if (fill && *fill == '#')
+						e->setProperty("bot-color", fill + 1);
+					if (style)
+					{
+						std::string s(style);
+						size_t pos = s.find("height:");
+						if (pos != std::string::npos)
+						{
+							size_t end = s.find(';', pos + 7);
+							std::string h = s.substr(pos + 7,
+								end == std::string::npos ?
+									std::string::npos : end - pos - 7);
+							double pt = UT_convertToPoints(h.c_str());
+							if (pt > 0.0)
+							{
+								char buf[32];
+								g_snprintf(buf, sizeof(buf), "%.2fpt", pt);
+								e->setProperty("bot-thickness", buf);
+							}
+						}
+					}
+					break;
+				}
+			}
+			rqst->handled = true;
+			return;
 		}
 
 		/* v:rect/roundrect/oval/line/polyline are standalone fallback

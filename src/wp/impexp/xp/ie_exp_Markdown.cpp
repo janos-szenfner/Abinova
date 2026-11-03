@@ -404,13 +404,18 @@ public:
 				if (level < 1) level = 1;
 				bool ordered = szListStyle &&
 					strstr(szListStyle, "Numbered") != nullptr;
+				/* a quoted list item (Block Text style + list props)
+				 * stays in the quote (wordcraft #5156) */
+				bool bIsQuote = (szStyle && !strcmp(szStyle, "Block Text"));
 
 				if (m_bPrevWasList)
 					_listSep();
 				else
 					_sep();
 				m_bPrevWasList = true;
-				m_bPrevWasQuote = false;
+				m_bPrevWasQuote = bIsQuote;
+				if (bIsQuote)
+					_output("> ", false);
 				for (int k = 1; k < level; k++)
 					_output("  ", false);
 				if (ordered)

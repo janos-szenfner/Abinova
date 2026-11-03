@@ -20,6 +20,8 @@
  */
 
 #include "ie_imp_EPUB_Sniffer.h"
+#include "ut_types.h"
+#include "ut_go_file.h"
 
 // Supported suffixes
 static IE_SuffixConfidence IE_Imp_EPUB_Sniffer_SuffixConfidence[] =
@@ -59,6 +61,8 @@ const IE_MimeConfidence * IE_Imp_EPUB_Sniffer::getMimeConfidence()
 UT_Confidence_t IE_Imp_EPUB_Sniffer::recognizeContents(GsfInput * input)
 {
     UT_DEBUGMSG(("Recognizing contents\n"));
+    if (UT_go_zip_declares_too_many_entries(input, UT_MAX_ZIP_ENTRIES))
+        return UT_CONFIDENCE_ZILCH;
     GsfInfile* zip = gsf_infile_zip_new(input, NULL);
     UT_Confidence_t confidence = UT_CONFIDENCE_ZILCH;
     if (zip != NULL)

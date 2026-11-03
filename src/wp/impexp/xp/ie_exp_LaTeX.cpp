@@ -1147,8 +1147,14 @@ void s_LaTeX_Listener::_outputData(const UT_UCS4Char * data, UT_uint32 length)
 		{
 
 		case ' ':
-			if (m_bInScript)
-			sBuf += '\\';
+			if (pData > data && pData[-1] == ' ')
+			{
+				/* TeX collapses a run of spaces into one; a control
+				 * space keeps each further one (wordcraft #5051) */
+				sBuf += '\\';
+			}
+			else if (m_bInScript)
+				sBuf += '\\';
 			sBuf += ' ';
 			pData++;
 			break;

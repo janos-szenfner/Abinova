@@ -2093,3 +2093,176 @@ UT_go_utf8_collate_casefold (const char *a, const char *b)
 	return res;
 }
 
+
+/* ------------------------------------------------------------------------- */
+
+/*
+ * A bytes-only check of a ZIP package's declared entry count before
+ * libgsf opens it (wordcraft #3660).  gsf_infile_zip_new parses every
+ * central-directory header the end record declares; a ZIP64 record can
+ * claim millions of entries for a file of a few hundred megabytes and
+ * each parsed entry costs memory.  The end records are found the way
+ * libgsf finds them (APPNOTE.TXT 4.3.14-4.3.16) and a package declaring
+ * more than max_entries is refused before libgsf parses anything.
+ * Anything else wrong is left for libgsf to report.
+ *
+ * Returns TRUE when the package must be refused.
+ */
+
+#define UT_GO_ZIP_EOCD   "PK\x05\x06"
+#define UT_GO_ZIP_EOCD64 "PK\x06\x06"
+#define UT_GO_ZIP_LOC    "PK\x06\x07"
+#define UT_GO_ZIP_CDH    "PK\x01\x02"
+#define UT_GO_ZIP_MAX_END_RECORDS 16
+
+static guint16
+s_u16_at (const guint8 *b, gsize len, gsize at)
+{
+	if (at + 2 > len)
+		return 0;
+	return (guint16)(b[at] | (b[at + 1] << 8));
+}
+
+static guint32
+s_u32_at (const guint8 *b, gsize len, gsize at)
+{
+	if (at + 4 > len)
+		return 0;
+	return (guint32)b[at] | ((guint32)b[at + 1] << 8) |
+		((guint32)b[at + 2] << 16) | ((guint32)b[at + 3] << 24);
+}
+
+static guint64
+s_u64_at (const guint8 *b, gsize len, gsize at)
+{
+	if (at + 8 > len)
+		return 0;
+	return (guint64)s_u32_at (b, len, at) |
+		((guint64)s_u32_at (b, len, at + 4) << 32);
+}
+
+static gboolean
+s_sig_at (const guint8 *b, gsize len, gsize at, const gchar sig[4])
+{
+	return at + 4 <= len && memcmp (b + at, sig, 4) == 0;
+}
+
+/* the last central-directory-header signature at or before `from`,
+ * or -1: a valid end record needs one between its directory offset
+ * and itself */
+static gssize
+s_last_cdh_before (const guint8 *b, gsize lo, gsize hi)
+{
+	gsize i = hi;
+	while (i >= lo + 4)
+	{
+		i--;
+		if (s_sig_at (b, hi, i, UT_GO_ZIP_CDH))
+			return (gssize)i;
+	}
+	return -1;
+}
+
+gboolean
+UT_go_zip_declares_too_many_entries (GsfInput *input, guint64 max_entries)
+{
+	g_return_val_if_fail (GSF_IS_INPUT (input), FALSE);
+
+	gsf_off_t size = gsf_input_size (input);
+	if (size < 22)
+		return FALSE;
+
+	/* the comment may push the end record up to 64 KiB + 22 bytes
+	 * back; take slack for the zip64 records that precede it */
+	gsf_off_t tail = MIN (size, (gsf_off_t)(65535 + 22 + 512));
+	gsf_off_t start = size - tail;
+	if (gsf_input_seek (input, start, G_SEEK_SET))
+		return FALSE; /* unseekable: libgsf will say what is wrong */
+
+	guint8 *buf = g_new (guint8, tail);
+	const guint8 *data = gsf_input_read (input, tail, buf);
+	if (!data)
+	{
+		g_free (buf);
+		return FALSE;
+	}
+
+	gboolean refuse = FALSE;
+	gsize len = (gsize)tail;
+	gsize end = len;
+	int seen = 0;
+
+	while (!refuse)
+	{
+		/* rposition for EOCD in buf[0..end) */
+		gsize at = (gsize)-1;
+		for (gsize i = end; i >= 4; i--)
+		{
+			if (s_sig_at (data, end, i - 4, UT_GO_ZIP_EOCD))
+			{
+				at = i - 4;
+				break;
+			}
+		}
+		if (at == (gsize)-1)
+			break;
+		end = at;
+		if (++seen > UT_GO_ZIP_MAX_END_RECORDS)
+		{
+			refuse = TRUE;
+			break;
+		}
+
+		/* libgsf skips a record whose comment runs past the file */
+		guint16 comment = s_u16_at (data, len, at + 20);
+		if (at + 22 + comment > len)
+			continue;
+
+		guint16 on_disk = s_u16_at (data, len, at + 8);
+		guint16 total   = s_u16_at (data, len, at + 10);
+		guint32 cd_off  = s_u32_at (data, len, at + 16);
+		gboolean zip64  = (total == 0xFFFF || cd_off == 0xFFFFFFFF);
+
+		if (zip64 && at >= 20 &&
+			s_sig_at (data, len, at - 20, UT_GO_ZIP_LOC))
+		{
+			guint64 eocd64 = s_u64_at (data, len, at - 12);
+			guint32 disks  = s_u32_at (data, len, at - 4);
+			if (disks > 1 || eocd64 < (guint64)start || eocd64 >= (guint64)(start + at))
+				continue;
+			gsize from = (gsize)(eocd64 - (guint64)start);
+			for (gsize i = from; i + 56 <= at; i++)
+			{
+				if (!s_sig_at (data, len, i, UT_GO_ZIP_EOCD64))
+					continue;
+				guint64 n = MAX (s_u64_at (data, len, i + 24),
+								 s_u64_at (data, len, i + 32));
+				if (n > max_entries)
+					refuse = TRUE;
+			}
+			continue;
+		}
+
+		if (total == 0)
+			break;
+
+		/* the central directory may begin before our tail window;
+		 * the check needs a CDH signature between cd_off and the
+		 * record — inspect the in-window share */
+		guint64 abs = (guint64)start + at;
+		if ((guint64)cd_off < abs)
+		{
+			gsize lo = ((guint64)cd_off > (guint64)start)
+				? (gsize)((guint64)cd_off - (guint64)start) : 0;
+			if (s_last_cdh_before (data, lo, at) >= 0)
+			{
+				if (MAX (on_disk, total) > max_entries)
+					refuse = TRUE;
+				break; /* the record libgsf uses — last one checked */
+			}
+		}
+	}
+
+	g_free (buf);
+	return refuse;
+}

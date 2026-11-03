@@ -36,6 +36,7 @@
 
 // Abinova includes
 #include "ut_types.h"
+#include "ut_go_file.h"
 #include "ut_assert.h"
 #include "ut_locale.h"
 #include "ut_xml.h"
@@ -196,6 +197,12 @@ UT_Error IE_Imp_OpenXML::_loadFile (GsfInput * oo_src)
 	UT_LocaleTransactor localeGuard(LC_NUMERIC, "C");
 
 	UT_Error ret = UT_OK;
+
+	/* the zip end record is attacker-controlled — refuse a package
+	 * declaring an absurd number of entries before libgsf parses
+	 * them all (#3660-class hardening) */
+	if (UT_go_zip_declares_too_many_entries (oo_src, UT_MAX_ZIP_ENTRIES))
+		return UT_ERROR;
 
 	GsfInfile * pGsfInfile = GSF_INFILE (gsf_infile_zip_new (oo_src, nullptr));
     

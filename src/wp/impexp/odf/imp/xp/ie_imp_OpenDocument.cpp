@@ -36,6 +36,7 @@
 
 // Abinova includes
 #include "ut_types.h"
+#include "ut_go_file.h"
 #include "ut_misc.h"
 #include "xap_App.h"
 #include "xap_Frame.h"
@@ -134,6 +135,11 @@ bool IE_Imp_OpenDocument::pasteFromBuffer(PD_DocumentRange * pDocRange,
  */
 UT_Error IE_Imp_OpenDocument::_loadFile (GsfInput * oo_src)
 {
+    /* refuse a package declaring an absurd number of zip entries
+     * before libgsf parses them all (#3660-class hardening) */
+    if (UT_go_zip_declares_too_many_entries (oo_src, UT_MAX_ZIP_ENTRIES))
+        return UT_ERROR;
+
     m_pGsfInfile = GSF_INFILE (gsf_infile_zip_new (oo_src, nullptr));
 
     if (m_pGsfInfile == nullptr) {

@@ -20,6 +20,8 @@
  */
 
 #include "ie_imp_EPUB.h"
+#include "ut_types.h"
+#include "ut_go_file.h"
 
 /* Strip a namespace prefix ("opf:item" -> "item"). UT_XML does no
  * namespace processing, so prefixed names reach listeners verbatim.
@@ -247,6 +249,9 @@ bool IE_Imp_EPUB::pasteFromBuffer(PD_DocumentRange* pDocRange,
 
 UT_Error IE_Imp_EPUB::_loadFile(GsfInput* input)
 {
+    if (UT_go_zip_declares_too_many_entries(input, UT_MAX_ZIP_ENTRIES))
+        return UT_ERROR;
+
     m_epub = gsf_infile_zip_new(input, NULL);
 
     if (m_epub == NULL)

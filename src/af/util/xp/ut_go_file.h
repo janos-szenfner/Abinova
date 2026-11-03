@@ -70,6 +70,9 @@ ABI_EXPORT char *UT_go_basename_from_uri (const char *uri);
 ABI_EXPORT char *UT_go_dirname_from_uri (const char *uri, gboolean brief);
 ABI_EXPORT gboolean UT_go_directory_create (char const *uri, GError **err);
 
+ABI_EXPORT gboolean UT_go_zip_declares_too_many_entries (GsfInput *input,
+														 guint64 max_entries);
+
 ABI_EXPORT GsfInput  *UT_go_file_open		(char const *uri, GError **err);
 ABI_EXPORT GsfOutput *UT_go_file_create	(char const *uri, GError **err);
 

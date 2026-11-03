@@ -2000,6 +2000,16 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 	for (i=0; i<count; i++)
 	{
 		fp_Column* pCol = m_vecColumnLeaders[i];
+		// the separator between two columns is as tall as the
+		// section's text: the row's top to its tallest column's
+		// bottom, not the left column's own height
+		UT_sint32 iRowY = pCol->getY();
+		UT_sint32 iRowH = 0;
+		for (fp_Column* c = pCol; c; c = c->getFollower())
+		{
+			if (c->getHeight() > iRowH)
+				iRowH = c->getHeight();
+		}
 		while (pCol)
 		{
 			dg_DrawArgs da = *pDA;
@@ -2017,9 +2027,9 @@ void fp_Page::draw(dg_DrawArgs* pDA, bool /*bAlwaysUseWhiteBackground*/)
 				// draw line between columns if required.
 
 				UT_sint32 x = pDA->xoff + (pCol->getX() + pCol->getWidth() + pNextCol->getX()) / 2;
-				UT_sint32 y = pDA->yoff + pCol->getY();
+				UT_sint32 y = pDA->yoff + iRowY;
 				pDA->pG->setColor(m_pView->getColorColumnLine());
-				painter.drawLine(x, y, x, y + pCol->getHeight());
+				painter.drawLine(x, y, x, y + iRowH);
 			}
 
 			pCol = pNextCol;

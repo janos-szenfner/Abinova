@@ -26,6 +26,8 @@
 
 // Internal includes
 #include <ie_imp_OpenXML.h>
+#include "ut_types.h"
+#include "ut_go_file.h"
 
 /**
  * Constructor
@@ -82,6 +84,9 @@ UT_Confidence_t IE_Imp_OpenXML_Sniffer::recognizeContents (GsfInput * input)
 	UT_Confidence_t confidence = UT_CONFIDENCE_ZILCH;
 
 	GsfInfile * zip;
+
+	if (UT_go_zip_declares_too_many_entries (input, UT_MAX_ZIP_ENTRIES))
+		return UT_CONFIDENCE_ZILCH;
 
 	zip = gsf_infile_zip_new (input, nullptr);
 	if (zip != nullptr)

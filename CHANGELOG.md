@@ -6,6 +6,37 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.14] — 2026-11-03
+
+### Bug fixes
+
+- **LaTeX export keeps repeated spaces** — a run of two or more
+  spaces exported as literal spaces and TeX collapsed them into
+  one; the second and further space now exports as a `\ ` control
+  space, so `a  b   c` round-trips intact.
+- **Markdown export keeps lists inside block quotes** — a quoted
+  list item (Block Text style with list properties) exported as a
+  plain `- item`, silently moving it out of the quote; it now
+  takes a `> ` prefix.
+- **DOCX: pasted `<hr>` rules render again** — a web page's
+  horizontal rule arrives as a VML `v:rect` flagged `o:hr`, often
+  with `width:0`; it imported as an invisible floating box. It now
+  becomes the paragraph's bottom border, spanning the text column
+  with the shape's height and colour.
+- **Column separator spans the section's text** — the line drawn
+  between two columns used the left column's own height; it now
+  runs from the row's top to its tallest column's bottom.
+
+### Security
+
+- **Zip packages declaring absurd entry counts are refused** —
+  the end-of-central-directory record is attacker-controlled: a
+  small `.docx`/`.odt`/`.epub` can declare millions of entries and
+  make the zip reader parse them all. A pre-parse check of the end
+  record (including ZIP64) now rejects packages declaring more
+  than 20,000 entries in the OOXML, OpenDocument, EPUB, WPG and
+  WordPerfect importers and their sniffers.
+
 ## [4.0.13] — 2026-11-02
 
 ### Bug fixes

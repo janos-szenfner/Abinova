@@ -21,6 +21,8 @@
  */
 
 #include "ie_impGraphic_WPG.h"
+#include "ut_types.h"
+#include "ut_go_file.h"
 #include <librevenge-stream/librevenge-stream.h>
 
 using libwpg::WPGraphics;
@@ -81,7 +83,7 @@ GsfInfile * AbiWordPerfectGraphicsInputStream::container()
 	if (!m_ole)
 		m_ole = GSF_INFILE(gsf_infile_msole_new (m_input, nullptr));
 
-	if (!m_ole)
+	if (!m_ole && !UT_go_zip_declares_too_many_entries (m_input, UT_MAX_ZIP_ENTRIES))
 		m_ole = GSF_INFILE(gsf_infile_zip_new (m_input, nullptr));
 
 	return m_ole;

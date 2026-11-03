@@ -4,6 +4,37 @@
 <h1>Changelog</h1>
 <p>All notable changes in this experimental Abinova GTK4 fork, grouped by category. Based on upstream Abiword 3.1.90 (<code>5e3e1cc</code> import).</p>
 <p>This project is experimental and supplied <b>without any warranty or responsibility</b> — see <code>README.md</code>.</p>
+<h2>[4.0.14] — 2026-11-03</h2>
+<h3>Bug fixes</h3>
+<ul>
+<li><b>LaTeX export keeps repeated spaces</b> — a run of two or more   spaces exported as literal spaces and TeX collapsed them into   one; the second and further space now exports as a <code>\ </code> control   space, so <code>a  b   c</code> round-trips intact.</li>
+<li><b>Markdown export keeps lists inside block quotes</b> — a quoted   list item (Block Text style with list properties) exported as a   plain <code>- item</code>, silently moving it out of the quote; it now   takes a <code>&gt; </code> prefix.</li>
+<li><b>DOCX: pasted <code>&lt;hr&gt;</code> rules render again</b> — a web page's   horizontal rule arrives as a VML <code>v:rect</code> flagged <code>o:hr</code>, often   with <code>width:0</code>; it imported as an invisible floating box. It now   becomes the paragraph's bottom border, spanning the text column   with the shape's height and colour.</li>
+<li><b>Column separator spans the section's text</b> — the line drawn   between two columns used the left column's own height; it now   runs from the row's top to its tallest column's bottom.</li>
+</ul>
+<h3>Security</h3>
+<ul>
+<li><b>Zip packages declaring absurd entry counts are refused</b> —   the end-of-central-directory record is attacker-controlled: a   small <code>.docx</code>/<code>.odt</code>/<code>.epub</code> can declare millions of entries and   make the zip reader parse them all. A pre-parse check of the end   record (including ZIP64) now rejects packages declaring more   than 20,000 entries in the OOXML, OpenDocument, EPUB, WPG and   WordPerfect importers and their sniffers.</li>
+</ul>
+<h2>[4.0.13] — 2026-11-02</h2>
+<h3>Bug fixes</h3>
+<ul>
+<li><b>DOCX: a paragraph naming an undefined style is formatted as   Normal, as in Word</b> — a <code>w:pStyle</code> reference to a missing style   now resolves to the document's Normal instead of nothing.</li>
+<li><b>Go To page/line clamps instead of wrapping</b> — typing a page   or line past the end goes to the last one rather than snapping   back to 1.</li>
+<li><b>Backstage keytips</b> — a bare letter key activates the matching   nav row (I Info, N New, O Open, S Save, A Save As, P Print,   H Share, T Options), as in Word's Alt,F accelerators.</li>
+<li><b>Colour swatch tooltips show names, not hex</b> — the font/   highlight palettes now label each swatch ("Yellow", "Dark Red")   instead of the raw <code>ff0000</code>-style code.</li>
+</ul>
+<h2>[4.0.12] — 2026-11-02</h2>
+<h3>Bug fixes</h3>
+<ul>
+<li><b>Ribbon radio commands work again</b> — zoom presets (200/100/75/   50/Page Width/Whole Page) and every other radio action created   on demand were dead: <code>ensureAction</code> connected only <code>change-state</code>   on the stateful GAction while ribbon buttons emit <code>activate</code>.   The shared handler now covers both, so radio buttons dispatch   the selected item's command (issue #2).</li>
+<li><b>No more crash scrolling documents with pictures</b> — a page can   be deleted mid-draw when a picture triggers a reflow during   scroll; the page-offset helpers now guard the null page instead   of dereferencing it in <code>fp_Page::getHeight</code> (issue #2).</li>
+</ul>
+<h2>[4.0.11] — 2026-11-01</h2>
+<h3>Bug fixes</h3>
+<ul>
+<li><b>Font size steps each run from its own size</b> — grow/shrink   font on a mixed-size selection no longer flattens everything to   one size; consecutive same-size spans step independently.</li>
+</ul>
 <h2>[4.0.10] — 2026-10-31</h2>
 <h3>Bug fixes</h3>
 <ul>
