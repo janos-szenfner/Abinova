@@ -23,6 +23,11 @@ responsibility** — see `README.md`.
   the binary search misses, so a future sort lapse cannot
   silently drop commands; a `DEBUG` build asserts the ordering
   at container construction.
+- **Documents open at their saved zoom** — the OOXML `w:zoom`
+  percent already imported as the `document-zoom` doc property is
+  now applied when the file opens (clamped to the zoom dialog's
+  range), like Word; files without it keep the inherited
+  frame/preference zoom.
 - **No more crash scrolling documents with pictures** —
   `FV_View::_draw` still dereferenced a NULL `fp_Page` in two
   more spots the 4.0.12 fix missed: a section that transiently
@@ -31,7 +36,10 @@ responsibility** — see `README.md`.
   (`getFirstOwnedPage()->getHeight()`), and an empty page list in
   `calculateNumHorizPages`; a page deleted mid-draw is now also
   re-validated before the ink overlay and the next-page advance
-  (issue #2).
+  (issue #2). On top of the guards, `FL_DocLayout::deletePage()`
+  now parks pages in a graveyard while a paint is in progress
+  instead of freeing them outright — a reflow mid-draw can no
+  longer free a page under the painter at all.
 
 ## [4.0.14] — 2026-11-03
 

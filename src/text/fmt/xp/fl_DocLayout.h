@@ -195,6 +195,12 @@ public:
 	fl_BlockLayout*	findBlockAtPosition(PT_DocPosition pos, bool bLookOnlyBefore = false) const;
     fl_BlockLayout*	findBlockAtPositionReverse(PT_DocPosition pos) const;
 	void		deletePage(fp_Page* pPage, bool bDontNotify);
+	/* while a view is inside _draw(), deletePage() moves the page
+	 * into m_vecPageGraveyard instead of freeing it — the actual
+	 * delete is swept when the outermost draw returns, so a
+	 * reflow mid-paint can never free a page under the painter */
+	void		deferPageFree(bool bDefer);
+	bool		isPageFreeDeferred() const { return m_iDeferPageFree > 0; }
 
 	void		formatAll();
 	void  		updateLayout();
@@ -429,6 +435,8 @@ private:
 	PL_ListenerId		m_lid;
 
 	std::vector<std::unique_ptr<fp_Page>> m_vecPages;
+	std::vector<std::unique_ptr<fp_Page>> m_vecPageGraveyard;
+	UT_uint32			m_iDeferPageFree = 0;
 	fl_DocSectionLayout*m_pFirstSection;
 	fl_DocSectionLayout*m_pLastSection;
 

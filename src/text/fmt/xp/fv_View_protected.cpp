@@ -4756,6 +4756,21 @@ void FV_View::_fixInsertionPointCoords(bool bIgnoreAll)
 }
 
 // Finds what pages are on screen and draws them
+namespace {
+
+/* Defers fp_Page destruction while a paint is in progress — see
+ * FL_DocLayout::deferPageFree(). */
+struct FV_DrawDeferral
+{
+	FL_DocLayout * l;
+	explicit FV_DrawDeferral(FL_DocLayout * p) : l(p)
+		{ if (l) l->deferPageFree(true); }
+	~FV_DrawDeferral()
+		{ if (l) l->deferPageFree(false); }
+};
+
+}
+
 void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 					UT_sint32 width, UT_sint32 height,
 					bool bDirtyRunsOnly, bool bClip)
@@ -4799,6 +4814,10 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 	}
 
 	painter.beginDoubleBuffering();
+
+	/* a picture arriving mid-paint can trigger a reflow that deletes
+	 * pages under us — hold their storage until the draw returns */
+	FV_DrawDeferral deferPages(m_pLayout);
 
 	// TMN: Leave this rect at function scope!
 	// gr_Graphics only stores a _pointer_ to it!

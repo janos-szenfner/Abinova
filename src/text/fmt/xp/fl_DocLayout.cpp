@@ -2448,6 +2448,29 @@ fp_Page* FL_DocLayout::getLastPage() const
 	return m_vecPages[m_vecPages.size() - 1].get();
 }
 
+/*!
+ * Bracket a paint pass so deletePage() cannot free a page under the
+ * painter: while deferred, erased pages live in m_vecPageGraveyard and
+ * are destroyed when the outermost deferral ends.
+ */
+void FL_DocLayout::deferPageFree(bool bDefer)
+{
+	if (bDefer)
+	{
+		++m_iDeferPageFree;
+		return;
+	}
+	UT_return_if_fail(m_iDeferPageFree > 0);
+	if (m_iDeferPageFree == 0)
+	{
+		return;
+	}
+	if (--m_iDeferPageFree == 0)
+	{
+		m_vecPageGraveyard.clear();
+	}
+}
+
 void FL_DocLayout::deletePage(fp_Page* pPage, bool bDontNotify /* default false */)
 {
 	auto itPage = std::find_if(m_vecPages.begin(), m_vecPages.end(),
@@ -2473,9 +2496,14 @@ void FL_DocLayout::deletePage(fp_Page* pPage, bool bDontNotify /* default false 
 	// m_vecPages is authoritative for page order; removing the entry
 	// unlinks the page from its neighbours automatically (fp_Page
 	// getPrev()/getNext() derive from this vector). The unique_ptr
-	// frees the page.
+	// frees the page — unless a view draw is in progress, in which
+	// case it is parked in the graveyard until the paint finishes.
 	if(itPage != m_vecPages.end())
 	{
+		if (m_iDeferPageFree > 0)
+		{
+			m_vecPageGraveyard.push_back(std::move(*itPage));
+		}
 		m_vecPages.erase(itPage);
 		// Pages after the hole shift down one slot.
 		for(UT_sint32 i = ndx; i < static_cast<UT_sint32>(m_vecPages.size()); i++)

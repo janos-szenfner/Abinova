@@ -549,6 +549,27 @@ UT_Error AP_Frame::importDocument(const char * szFilename, int ieft, bool markCl
  */
 UT_uint32 AP_Frame::getNewZoom(XAP_Frame::tZoomType * tZoom)
 {
+	/* a document saved at a specific zoom (OOXML w:zoom percent,
+	 * stored as the document-zoom doc property) opens at that
+	 * zoom, like Word — otherwise fall through to the inherited
+	 * frame/pref zoom */
+	{
+		PD_Document * pDoc = static_cast<PD_Document *>(m_pDoc);
+		const PP_AttrProp * pAP = pDoc ? pDoc->getAttrProp() : nullptr;
+		const gchar * szDocZoom = nullptr;
+		if (pAP && pAP->getProperty("document-zoom", szDocZoom) &&
+			szDocZoom && *szDocZoom)
+		{
+			int pct = atoi(szDocZoom);
+			if (pct > 0)
+			{
+				pct = UT_MAX(pct, static_cast<int>(XAP_DLG_ZOOM_MINIMUM_ZOOM));
+				pct = UT_MIN(pct, static_cast<int>(XAP_DLG_ZOOM_MAXIMUM_ZOOM));
+				*tZoom = XAP_Frame::z_PERCENT;
+				return static_cast<UT_uint32>(pct);
+			}
+		}
+	}
 	std::vector<XAP_Frame*> vecClones;
 	XAP_Frame *pF = nullptr;
 	XAP_App * pApp = XAP_App::getApp();
