@@ -182,6 +182,17 @@ EV_EditMethodContainer::EV_EditMethodContainer(UT_uint32 cStatic,EV_EditMethod a
 {
 	m_countStatic = cStatic;
 	m_arrayStaticEditMethods = arrayStaticEditMethods;
+#ifdef DEBUG
+	/* findEditMethodByName() bsearches this table — catch a sort
+	 * lapse at construction in debug builds (the runtime fallback
+	 * in findEditMethodByName keeps ship builds working anyway) */
+	for (UT_uint32 i = 1; i < m_countStatic; ++i)
+	{
+		const char * a = m_arrayStaticEditMethods[i - 1].getName();
+		const char * b = m_arrayStaticEditMethods[i].getName();
+		UT_ASSERT(!a || !b || strcmp(a, b) <= 0);
+	}
+#endif
 }
 
 EV_EditMethodContainer::~EV_EditMethodContainer()
@@ -265,6 +276,21 @@ EV_EditMethod * EV_EditMethodContainer::findEditMethodByName(const char * szName
 	    // in the future and return
 	    s_emHash.insert(std::make_pair(szName, mthd));
 	    return mthd;
+	}
+
+	/* bsearch only works when the static table is strictly
+	 * strcmp-sorted; a sort lapse must not silently delete commands
+	 * (4.0.15: zoom*, importStyles, viewFormat, zoteroRefresh were
+	 * unreachable), so fall back to a linear scan of it too */
+	for (UT_uint32 i = 0; i < m_countStatic; ++i)
+	{
+		const char * nm = m_arrayStaticEditMethods[i].getName();
+		if (nm && strcmp(szName, nm) == 0)
+		{
+			s_emHash.insert(std::make_pair(szName,
+							 &m_arrayStaticEditMethods[i]));
+			return &m_arrayStaticEditMethods[i];
+		}
 	}
 
 	// else do a linear search through our dynamic method vector

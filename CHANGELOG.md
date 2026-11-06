@@ -6,6 +6,33 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.15] — 2026-11-06
+
+### Bug fixes
+
+- **Ribbon zoom presets work** — the edit-method table was no
+  longer strictly sorted (`zotero*` ahead of `zoom*`, plus two
+  single-entry inversions), so the binary search in
+  `findEditMethodByName()` could not reach `zoom`, `zoom100`,
+  `zoom200`, `zoom50`, `zoom75`, `zoomIn`, `zoomOut`,
+  `zoomWhole`, `zoomWidth` — every ribbon/menu zoom preset was a
+  silent no-op while the status bar and dialog still worked
+  (issue #2). Also unreachable: `importStyles`, `viewFormat`,
+  `zoteroRefresh`. The table is sorted again, and
+  `findEditMethodByName()` now falls back to a linear scan when
+  the binary search misses, so a future sort lapse cannot
+  silently drop commands; a `DEBUG` build asserts the ordering
+  at container construction.
+- **No more crash scrolling documents with pictures** —
+  `FV_View::_draw` still dereferenced a NULL `fp_Page` in two
+  more spots the 4.0.12 fix missed: a section that transiently
+  owns no page while a reflow (e.g. a picture arriving during
+  scroll) rebuilds the page list
+  (`getFirstOwnedPage()->getHeight()`), and an empty page list in
+  `calculateNumHorizPages`; a page deleted mid-draw is now also
+  re-validated before the ink overlay and the next-page advance
+  (issue #2).
+
 ## [4.0.14] — 2026-11-03
 
 ### Bug fixes

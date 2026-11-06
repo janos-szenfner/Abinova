@@ -17538,8 +17538,11 @@ void FV_View::calculateNumHorizPages()
 	{
 		m_iNumHorizPages = 20;
 	}
-	else if(getWindowWidth() < m_pLayout->getFirstPage()->getWidth())
+	else if(!m_pLayout->getFirstPage() ||
+			getWindowWidth() < m_pLayout->getFirstPage()->getWidth())
 	{
+		/* the layout can transiently hold no pages while a reflow
+		 * (e.g. a picture arriving mid-scroll) rebuilds them */
 		m_iNumHorizPages = 1;
 	}
 	else //Find the new m_iNumPages
@@ -17548,7 +17551,12 @@ void FV_View::calculateNumHorizPages()
 		UT_sint32 widthPagesInRow = 0;
 		UT_sint32 iFirstPageInRow = 0; //iRow * m_iNumHorizPages; //TODO:make this use the row of the current page.
 		fp_Page * pPage = m_pLayout->getNthPage(iFirstPageInRow);
-		
+		if (!pPage)
+		{
+			m_iNumHorizPages = 1;
+			return;
+		}
+
 		widthPagesInRow = getWidthPagesInRow(pPage);
 		
 		if ( (windowWidth < widthPagesInRow) && (m_iNumHorizPages > 1) )

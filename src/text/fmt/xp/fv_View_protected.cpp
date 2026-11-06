@@ -4855,8 +4855,22 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 			iFirstVisiblePageNumber = 0;
 			while (pDSL)
 			{
-				iPageHeight = pDSL->getFirstOwnedPage()->getHeight() - pDSL -> getTopMargin() - pDSL -> getBottomMargin();
-				iPageWidth = pDSL->getFirstOwnedPage()->getWidth();
+				/* a section can transiently own no page while a reflow
+				 * (e.g. a picture arriving during scroll) is deleting
+				 * and recreating pages — _getPageXandYOffset treats the
+				 * same NULL as height 0; a zero iPageHeight would also
+				 * fault on the yRemaining/iPageHeight division */
+				fp_Page * pFirstOwned = pDSL->getFirstOwnedPage();
+				if (!pFirstOwned)
+				{
+					break;
+				}
+				iPageHeight = pFirstOwned->getHeight() - pDSL -> getTopMargin() - pDSL -> getBottomMargin();
+				iPageWidth = pFirstOwned->getWidth();
+				if (iPageHeight <= 0)
+				{
+					break;
+				}
 				if (yRemaining < iPageHeight * pDSL->getPageCount())
 				{
 					iFirstVisiblePageNumber += yRemaining/iPageHeight;
@@ -4896,7 +4910,7 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 	while(pPage)
 	{
 		pDSL = pPage->getOwningSection();
-		if(getViewMode() == VIEW_PRINT || getViewMode() == VIEW_PREVIEW)
+		if(getViewMode() == VIEW_PRINT || getViewMode() == VIEW_PREVIEW || !pDSL)
 		{
 			iPageHeight = pPage->getHeight();
 		}
@@ -4977,10 +4991,18 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 		}
 
 		// Draw the page and all its subcontainers (i.e., the content)
+		const UT_sint32 iDrawnIndex = m_pLayout->findPage(pPage);
 		pPage->draw(&da);
 
-		// Draw-mode pen/lasso preview rides the same paint cycle
-		_paintInkOverlay(&da, pPage);
+		/* drawing can delete the page under us — a picture finishing
+		 * load triggers a reflow mid-paint.  findPage() only compares
+		 * pointers, so it is safe on a stale pointer */
+		const bool bPageGone = m_pLayout->findPage(pPage) < 0;
+		if (!bPageGone)
+		{
+			// Draw-mode pen/lasso preview rides the same paint cycle
+			_paintInkOverlay(&da, pPage);
+		}
 
 		// draw page decorations
 		UT_RGBColor clr(0,0,0); 	// black
@@ -5022,8 +5044,17 @@ void FV_View::_draw(UT_sint32 x, UT_sint32 y,
 		// page drop shadow is painted under the paper fill in
 		// fp_Page::draw (wordcraft-style soft rect, screen only)
 
-		// advance to the next page
-		pPage = pPage -> getNext();
+		// advance to the next page — when the drawn page was deleted
+		// mid-draw its successor slid into the slot it occupied
+		if (bPageGone)
+		{
+			pPage = (iDrawnIndex >= 0)
+				? m_pLayout->getNthPage(iDrawnIndex) : nullptr;
+		}
+		else
+		{
+			pPage = pPage -> getNext();
+		}
 	}
 	if (bClip)
 	{

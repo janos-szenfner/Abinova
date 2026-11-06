@@ -1355,7 +1355,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(hyperlinkStatusBar),	0,		""),
 	// i
 	EV_EditMethod(NF(iconsPane),			0,	""),
-	EV_EditMethod(NF(importStyles),			0,		""),
 	EV_EditMethod(NF(imageAltText),			0,	""),
 	EV_EditMethod(NF(imageColor),			0,	""),
 	EV_EditMethod(NF(imageCompress),			0,	""),
@@ -1364,6 +1363,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(imageCropShape),		0,	""),
 	EV_EditMethod(NF(imageFlip),			0,	""),
 	EV_EditMethod(NF(imageRotate),			0,	""),
+	EV_EditMethod(NF(importStyles),			0,		""),
 	EV_EditMethod(NF(insAnnotation),		0,		""),
 	EV_EditMethod(NF(insAnnotationFromSel),	0,		""),
 	EV_EditMethod(NF(insBreak),				0,		""),
@@ -1790,9 +1790,11 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(viewClipPane), 0, ""),
 #if !XAP_SIMPLE_TOOLBAR
 	EV_EditMethod(NF(viewExtra),			0,		""),
-	EV_EditMethod(NF(viewFormat),			0,		""),
 #endif
 	EV_EditMethod(NF(viewFocusMode), 0, ""),
+#if !XAP_SIMPLE_TOOLBAR
+	EV_EditMethod(NF(viewFormat),			0,		""),
+#endif
 	EV_EditMethod(NF(viewFullScreen), 0, ""),
 	EV_EditMethod(NF(viewGridlines), 0, ""),
 	EV_EditMethod(NF(viewHeadFoot), 		0,		""),
@@ -1848,8 +1850,6 @@ static EV_EditMethod s_arrayEditMethods[] =
 	// y
 
 	// z
-	EV_EditMethod(NF(zoteroInsert),			0,		""),
-	EV_EditMethod(NF(zoteroRefresh),		0,		""),
 	EV_EditMethod(NF(zoom), 				0,		""),
 	EV_EditMethod(NF(zoom100), 0, ""),
 	EV_EditMethod(NF(zoom200), 0, ""),
@@ -1858,7 +1858,9 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(zoomIn), 0, ""),
 	EV_EditMethod(NF(zoomOut), 0, ""),
 	EV_EditMethod(NF(zoomWhole), 0, ""),
-	EV_EditMethod(NF(zoomWidth), 0, "")
+	EV_EditMethod(NF(zoomWidth), 0, ""),
+	EV_EditMethod(NF(zoteroInsert),			0,		""),
+	EV_EditMethod(NF(zoteroRefresh),		0,		"")
 };
 
 
