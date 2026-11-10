@@ -2509,6 +2509,47 @@ static bool s_AskForPathname(XAP_Frame * pFrame,
 			UT_legalizeFileName(title);
 			pDialog->setCurrentPathname(title);
 			pDialog->setSuggestFilename(true);
+		} else if (!pFrame->getFilename() || !*pFrame->getFilename()) {
+			// untitled document: suggest its first words as the name
+			bool bSuggested = false;
+			FV_View * pView = static_cast<FV_View*>(pFrame->getCurrentView());
+			if (pView)
+			{
+				PT_DocPosition posBOD = 0, posEOD = 0;
+				if (pView->getEditableBounds(false, posBOD) &&
+					pView->getEditableBounds(true, posEOD) && posEOD > posBOD)
+				{
+					UT_UCS4Char * pText =
+						pView->getTextBetweenPos(posBOD,
+							posEOD > posBOD + 200 ? posBOD + 200 : posEOD);
+					if (pText)
+					{
+						UT_UCS4Char * t = pText;
+						while (*t && (*t == ' ' || *t == UCS_LF)) t++;	// trim
+						UT_UCS4Char * end = t + UT_UCS4_strlen(t);
+						while (end > t && (end[-1] == ' ' || end[-1] == UCS_LF)) end--;
+						*end = 0;
+						if (*t)
+						{
+							UT_UTF8String u8(t);
+							std::string name(u8.utf8_str());
+							UT_legalizeFileName(name);
+							if (!name.empty())
+							{
+								pDialog->setCurrentPathname(name);
+								pDialog->setSuggestFilename(true);
+								bSuggested = true;
+							}
+						}
+						delete[] pText;
+					}
+				}
+			}
+			if (!bSuggested)
+			{
+				pDialog->setCurrentPathname(pFrame->getFilename());
+				pDialog->setSuggestFilename(false);
+			}
 		} else {
 			pDialog->setCurrentPathname(pFrame->getFilename());
 			pDialog->setSuggestFilename(false);

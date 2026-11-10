@@ -401,6 +401,15 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 		i++;
 	}
 	if (i >= G_N_ELEMENTS(p) || p[i] == '\0') {
+		if (m_List_Type == TEXT_LITERAL_LIST)
+		{
+			/* numFmt=none: no %L marker, the delim itself is the
+			 * literal label text */
+			for (i = 0; i < G_N_ELEMENTS(p) && p[i]; i++)
+				s_appendLabelChar(labelStr, insPoint, maxlen,
+								  CONV_TO_UCS p[i]);
+			return;
+		}
 //		UT_ASSERT(UT_NOT_REACHED);
 		UT_DEBUGMSG (("Hub: not a delim (SHOULD NOT HAPPEN)!!!\n"));
 		*insPoint = 0;
@@ -419,7 +428,8 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 	rightDelim[i - rTmp] = '\0';
 
 	fl_AutoNumPtr pParentForLabel = m_pParent.lock();
-	if(pParentForLabel != nullptr  && IS_NUMBERED_LIST_TYPE(m_List_Type))
+	if(pParentForLabel != nullptr  && IS_NUMBERED_LIST_TYPE(m_List_Type)
+		&& m_List_Type != TEXT_LITERAL_LIST)
 	{
 		pParentForLabel->_getLabelstr( labelStr, insPoint, depth+1,getParentItem(), maxlen);
 		if(*insPoint != 0)
@@ -545,6 +555,11 @@ void    fl_AutoNum::_getLabelstr( UT_UCS4Char labelStr[], UT_uint32 * insPoint,
 
 	case HEBREW_LIST:
 		dec2hebrew(labelStr,insPoint,place,maxlen);
+		break;
+
+	case TEXT_LITERAL_LIST:
+		/* literal label (OOXML numFmt=none): the delimiters carry the
+		 * whole text, nothing is generated in the middle */
 		break;
 
 	case BULLETED_LIST:

@@ -184,6 +184,8 @@ UT_Error AP_Frame::_loadDocument(const char * szFilename, IEFileType ieft,
 	UT_return_val_if_fail (pNewDoc, UT_ERROR);
 	UT_Error errorCode = UT_OK;
 
+	GR_Graphics::clearMissingFonts();
+
 	auto replaceDocument = [&, pNewDoc]() -> UT_Error
 	{
 		XAP_App::getApp()->forgetClones(this);
@@ -907,7 +909,29 @@ void AP_Frame::_replaceView(GR_Graphics * pG, FL_DocLayout *pDocLayout,
 	{
 		static_cast<PD_Document *>(m_pDoc)->disableListUpdates();
 	}
-	pDocLayout->fillLayouts();      
+	pDocLayout->fillLayouts();
+	/* flag document fonts that fontconfig had to substitute — the
+	 * font cache is populated by the first fillLayouts pass */
+	{
+		const std::set<std::string> & missing = GR_Graphics::getMissingFonts();
+		if (!missing.empty())
+		{
+			std::string msg("Missing fonts:");
+			size_t shown = 0;
+			for (const auto & f : missing)
+			{
+				if (shown++ == 8)
+				{
+					msg += " ...";
+					break;
+				}
+				msg += " " + f;
+			}
+			msg += " — substituted";
+			setStatusMessage(msg);
+			xxx_UT_DEBUGMSG(("DOM: %s\n", msg.c_str()));
+		}
+	}
 	if(bSameDocument)
 	{
 		static_cast<PD_Document *>(m_pDoc)->enableListUpdates();

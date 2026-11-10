@@ -26,6 +26,7 @@
 #include <cstring>
 #include <map>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #ifndef M_PI
@@ -480,29 +481,35 @@ static cairo_surface_t * dibToSurface(const Buf & rec,
 	const size_t rowBytes =
 		(static_cast<size_t>(width) * bpp + 31) / 32 * 4;
 	bool allAlphaZero = bpp == 32;
-	auto px = [&](int ix, int iy, uint32_t & a, uint32_t & rgb) -> bool {
+	/* pick the bit depth once per bitmap instead of switching per
+	 * pixel — the bppTag is a compile-time constant in each
+	 * instantiated decode loop */
+	auto px = [&](int ix, int iy, uint32_t & a, uint32_t & rgb,
+				  auto bppTag) -> bool {
+		constexpr int BPP = decltype(bppTag)::value;
 		if (ix < 0 || ix >= width || iy < 0 || iy >= height)
 			return false;
 		size_t base = static_cast<size_t>(iy) * rowBytes;
-		uint32_t v = 0;
 		a = 255;
-		switch (bpp)
+		if constexpr (BPP == 32)
 		{
-		case 32:
 			if (base + 4 > cbBits) return false;
-			v = bits[base] | (bits[base + 1] << 8) |
+			uint32_t v = bits[base] | (bits[base + 1] << 8) |
 				(bits[base + 2] << 16) |
 				(static_cast<uint32_t>(bits[base + 3]) << 24);
 			a = (v >> 24) & 0xFF;
 			rgb = v & 0xFFFFFF;
 			if (a) allAlphaZero = false;
 			return true;
-		case 24:
+		}
+		else if constexpr (BPP == 24)
+		{
 			if (base + 3 > cbBits) return false;
 			rgb = bits[base] | (bits[base + 1] << 8) |
 				(bits[base + 2] << 16);
 			return true;
-		case 16:
+		}
+		else if constexpr (BPP == 16)
 		{
 			if (base + 2 > cbBits) return false;
 			uint32_t v16 = bits[base] | (bits[base + 1] << 8);
@@ -531,42 +538,60 @@ static cairo_surface_t * dibToSurface(const Buf & rec,
 			}
 			return true;
 		}
-		case 8:
+		else if constexpr (BPP == 8)
+		{
 			if (base + 1 > cbBits) return false;
 			rgb = pal[bits[base] & 0xFF];
 			return true;
-		case 4:
+		}
+		else if constexpr (BPP == 4)
+		{
 			if (base + 1 > cbBits) return false;
 			rgb = pal[(bits[base] >> ((~ix & 1) * 4)) & 0xF];
 			return true;
-		case 1:
+		}
+		else /* BPP == 1 */
+		{
 			if (base + 1 > cbBits) return false;
 			rgb = pal[(bits[base] >> (7 - (ix & 7))) & 1];
 			return true;
-		default:
-			return false;
 		}
 	};
 
-	for (int ry = 0; ry < height; ++ry)
-	{
-		int sy = topDown ? ry : height - 1 - ry;
-		uint32_t * row =
-			reinterpret_cast<uint32_t *>(dst + ry * stride);
-		for (int rx = 0; rx < width; ++rx)
+	auto blit = [&](auto bppTag) {
+		for (int ry = 0; ry < height; ++ry)
 		{
-			uint32_t a = 255, rgb = 0;
-			if (!px(rx, sy, a, rgb))
+			int sy = topDown ? ry : height - 1 - ry;
+			uint32_t * row =
+				reinterpret_cast<uint32_t *>(dst + ry * stride);
+			for (int rx = 0; rx < width; ++rx)
 			{
-				row[rx] = 0;
-				continue;
+				uint32_t a = 255, rgb = 0;
+				if (!px(rx, sy, a, rgb, bppTag))
+				{
+					row[rx] = 0;
+					continue;
+				}
+				uint32_t r = rgb & 0xFF, g = (rgb >> 8) & 0xFF,
+					b = (rgb >> 16) & 0xFF;
+				/* premultiply */
+				r = r * a / 255; g = g * a / 255; b = b * a / 255;
+				row[rx] = (a << 24) | (r << 16) | (g << 8) | b;
 			}
-			uint32_t r = rgb & 0xFF, g = (rgb >> 8) & 0xFF,
-				b = (rgb >> 16) & 0xFF;
-			/* premultiply */
-			r = r * a / 255; g = g * a / 255; b = b * a / 255;
-			row[rx] = (a << 24) | (r << 16) | (g << 8) | b;
 		}
+	};
+
+	switch (bpp)
+	{
+	case 32: blit(std::integral_constant<int, 32>{}); break;
+	case 24: blit(std::integral_constant<int, 24>{}); break;
+	case 16: blit(std::integral_constant<int, 16>{}); break;
+	case 8:  blit(std::integral_constant<int, 8>{});  break;
+	case 4:  blit(std::integral_constant<int, 4>{});  break;
+	case 1:  blit(std::integral_constant<int, 1>{});  break;
+	default:
+		cairo_surface_destroy(surf);
+		return nullptr;
 	}
 	if (bpp == 32 && allAlphaZero)
 	{

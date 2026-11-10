@@ -486,10 +486,13 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 		}
 
 		const gchar* fill = attrMatches(NS_W_KEY, "fill", rqst->ppAtts);
+		const gchar* val = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 
 		OXML_SharedElement elem = OXMLi_elemTop(rqst->stck);
 
-		if(fill && strcmp(fill, "auto")) 
+		/* w:val="nil" declares no shading at all — never paint fill */
+		if(fill && strcmp(fill, "auto") &&
+			!(val && !strcmp(val, "nil")))
 		{
 			UT_Error err = UT_OK;
 			err = elem->setProperty("bgcolor", fill);

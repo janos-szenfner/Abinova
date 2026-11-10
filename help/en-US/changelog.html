@@ -4,6 +4,32 @@
 <h1>Changelog</h1>
 <p>All notable changes in this experimental Abinova GTK4 fork, grouped by category. Based on upstream Abiword 3.1.90 (<code>5e3e1cc</code> import).</p>
 <p>This project is experimental and supplied <b>without any warranty or responsibility</b> — see <code>README.md</code>.</p>
+<h2>[4.0.16] — 2026-11-10</h2>
+<h3>Bug fixes</h3>
+<ul>
+<li><b>Markdown export escapes a trailing <code>#</code> in heading text</b> —   a paragraph whose text ended in <code>#</code> exported a closing   ATX marker instead of the literal character.</li>
+<li><b>Find matches typographic quotes</b> — searching for <code>'</code> or   <code>"</code> in regex and wildcard modes now also hits   <code>'</code>/<code>'</code> and <code>"</code>/<code>"</code> in the document,   as literal find already did.</li>
+<li><b>DOCX: VML text boxes keep their text direction</b> —   <code>layout-flow</code> and <code>writing-mode</code> style attributes now   map to <code>frame-text-direction</code>, so <code>tb-rl</code>/vertical   boxes import with vertical text.</li>
+<li><b>DOCX: <code>w:shd</code> <code>val="nil"</code> paints no fill</b> — a   shading element explicitly marked <code>nil</code> no longer applies   its <code>fill</code> colour.</li>
+<li><b>DOCX numbering: <code>numFmt="none"</code> levels show their   literal label</b> — levels such as <code>lvlText="RESPONSE:"</code>   now render the text verbatim instead of falling back to a   bullet.</li>
+</ul>
+<h3>Performance</h3>
+<ul>
+<li><b>EMF bitmap decode picks the bit depth once per bitmap</b> —   the per-pixel bit-depth switch in the DIB decoder is now a   compile-time-dispatched loop, speeding up embedded DIB   playback several-fold on large metafiles.</li>
+</ul>
+<h3>Features</h3>
+<ul>
+<li><b>Save As suggests the document's first words</b> — for an   untitled document, the save dialog proposes a filename built   from the first words of the text.</li>
+<li><b>Missing fonts are flagged</b> — after a document loads, font   families that fontconfig had to substitute are listed in the   status bar.</li>
+<li><b>Mini toolbar hover preview</b> — hovering a formatting   button applies it to the selection as a preview; clicking   commits the change, moving the pointer off rolls it back.</li>
+</ul>
+<h2>[4.0.15] — 2026-11-06</h2>
+<h3>Bug fixes</h3>
+<ul>
+<li><b>Ribbon zoom presets work</b> — the edit-method table was no   longer strictly sorted, so the binary search in   <code>findEditMethodByName()</code> could not reach the   <code>zoom*</code> commands (nor <code>importStyles</code>,   <code>viewFormat</code>, <code>zoteroRefresh</code>) — every   ribbon/menu zoom preset was a silent no-op. The table is sorted   again and the lookup falls back to a linear scan on a binary   miss.</li>
+<li><b>Documents open at their saved zoom</b> — the OOXML   <code>w:zoom</code> percent is now applied when the file opens   (clamped to the zoom dialog's range).</li>
+<li><b>No more crash scrolling documents with pictures</b> —   <code>FV_View::_draw</code> still dereferenced a NULL   <code>fp_Page</code> in two spots the 4.0.12 fix missed, and a   page deleted mid-draw is now re-validated;   <code>FL_DocLayout::deletePage()</code> parks pages in a   graveyard while a paint is in progress.</li>
+</ul>
 <h2>[4.0.14] — 2026-11-03</h2>
 <h3>Bug fixes</h3>
 <ul>

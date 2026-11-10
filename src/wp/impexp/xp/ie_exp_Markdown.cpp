@@ -582,13 +582,20 @@ private:
 	{
 		std::string out;
 		out.reserve(s.size());
-		for (char c : s)
+		for (size_t i = 0; i < s.size(); i++)
 		{
+			char c = s[i];
 			switch (c)
 			{
 			case '\\': case '*': case '_': case '~':
 			case '[': case ']': case '|': case '`':
 				out += '\\';
+				out += c;
+				break;
+			case '#':
+				// a trailing '#' would close an ATX heading
+				if (i == s.size() - 1)
+					out += '\\';
 				out += c;
 				break;
 			default:

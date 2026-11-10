@@ -5,7 +5,7 @@ processor (upstream base 3.1.90) taking its own direction: a
 GTK4-only toolkit port, a LibreOffice NotebookBar-style ribbon UI,
 all document formats compiled into the core library (no plugins),
 and a repository-wide audit of historical Debian/Launchpad bug
-reports. Current stable release: **4.0.15**; see `CHANGELOG.md`
+reports. Current stable release: **4.0.16**; see `CHANGELOG.md`
 for the categorized change list.
 
 The native format keeps the AWML vocabulary but writes it under
@@ -137,7 +137,7 @@ all.
 > damage, data loss, or other consequences arising from its use.
 > Use at your own risk.
 
-> **Version:** the current release is **4.0.15** — all major
+> **Version:** the current release is **4.0.16** — all major
 > features below are shipped. See `CHANGELOG.md` for the
 > per-release change list.
 

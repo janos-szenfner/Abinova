@@ -29,6 +29,7 @@
 #include <stack>
 
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 #include "xap_Features.h"
@@ -504,6 +505,11 @@ class ABI_EXPORT GR_Graphics
 					   const char* pszFontStretch,
 					   const char* pszFontSize,
 					   const char* pszLang);
+
+	/* font families the document asked for that are not installed —
+	 * filled by findFont, cleared on each document load */
+	static const std::set<std::string> & getMissingFonts();
+	static void                     clearMissingFonts();
 
 	/* Static 'virtual' -- if you are providing an implementation for this
 	 * function in a derrived graphics class, please define

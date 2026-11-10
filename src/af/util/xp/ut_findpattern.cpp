@@ -272,6 +272,21 @@ GRegex * UT_findPatternCompile(UT_FindPatternKind kind,
 				static_cast<gint>(strlen(utf8.utf8_str())));
 			rx = esc ? esc : "";
 			g_free(esc);
+			/* a keyboard ' or " also matches the typographic forms
+			 * U+2018/U+2019 and U+201C/U+201D in the document */
+			{
+				std::string q;
+				for (size_t i = 0; i < rx.size(); i++)
+				{
+					if (rx[i] == '\'')
+						q += "[\\x{27}\\x{2018}\\x{2019}]";
+					else if (rx[i] == '"')
+						q += "[\\x{22}\\x{201C}\\x{201D}]";
+					else
+						q += rx[i];
+				}
+				rx = q;
+			}
 		}
 		else
 			rx = utf8.utf8_str();

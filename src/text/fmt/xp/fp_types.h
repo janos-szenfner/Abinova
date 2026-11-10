@@ -52,6 +52,10 @@ enum FL_ListType: uint8_t
   HEBREW_LIST = 0x81,
   ARABICALPHA_LIST = 0x82,
   ARABICABJAD_LIST = 0x83,
+  /* a level whose label is literal text (OOXML numFmt=none) — the
+   * middle of the delimiter emits nothing, the literal text is
+   * carried in the trailing delimiter */
+  TEXT_LITERAL_LIST = 0x84,
   NOT_A_LIST = 0xff
 };
 

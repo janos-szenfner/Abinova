@@ -77,8 +77,14 @@ void OXML_List::setDelim(const std::string & dlm)
 
 	delim = dlm;
 
-	if(type == BULLETED_LIST)
+	/* a numFmt=none level keeps its literal label — don't reclassify
+	 * it as a bullet from the first character of lvlText */
+	if(type == BULLETED_LIST || type == TEXT_LITERAL_LIST)
 	{
+		if (type == TEXT_LITERAL_LIST)
+		{
+			return;
+		}
 	    UT_UCS4String ucs4Str = delim;
 
 		if (!ucs4Str.empty())
@@ -342,6 +348,26 @@ UT_Error OXML_List::serialize(IE_Exp_OpenXML* exporter)
 			case BULLETED_LIST:
 				txt = BULLET;
 				break;
+			case TEXT_LITERAL_LIST:
+			{
+				/* numFmt=none round-trip: label text is literal, so
+				 * strip any "%L" placeholder marker from lvlText */
+				listType = "none";
+				size_t mpos = 0;
+				while ((mpos = txt.find('%', mpos)) != std::string::npos)
+				{
+					char nxt = mpos + 1 < txt.size() ? txt[mpos + 1] : 0;
+					if (nxt == 'L' || (nxt >= '0' && nxt <= '9'))
+					{
+						txt.erase(mpos, 2);
+					}
+					else
+					{
+						mpos++;
+					}
+				}
+				break;
+			}
 			default:
 				txt = BULLET;
 				break;

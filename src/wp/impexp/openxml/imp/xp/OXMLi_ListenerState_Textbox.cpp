@@ -1158,6 +1158,13 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 							vShape->setProperty("frame-stack-order", v.c_str());
 						else if (k == "mso-wrap-style" && v == "none")
 							vShape->setProperty("wrap-mode", "wrapped-topbot");
+						else if (k == "layout-flow" || k == "writing-mode")
+						{
+							if (v == "vertical" || v == "tb-rl" || v == "tbRl")
+								vShape->setProperty("frame-text-direction", "vert270");
+							else if (v == "horizontal" || v == "lr-tb")
+								vShape->setProperty("frame-text-direction", "horz");
+						}
 					}
 					pos = end + 1;
 				}
@@ -1210,6 +1217,13 @@ void OXMLi_ListenerState_Textbox::startElement (OXMLi_StartElementRequest * rqst
 					else if(!attrName.compare("height"))
 					{
 						textboxElem->setProperty("frame-height", _vmlScaleY(attrValue).c_str());
+					}
+					else if(!attrName.compare("layout-flow") || !attrName.compare("writing-mode"))
+					{
+						if (attrValue == "vertical" || attrValue == "tb-rl" || attrValue == "tbRl")
+							textboxElem->setProperty("frame-text-direction", "vert270");
+						else if (attrValue == "horizontal" || attrValue == "lr-tb")
+							textboxElem->setProperty("frame-text-direction", "horz");
 					}
 					//TODO: more attributes coming
 				}	

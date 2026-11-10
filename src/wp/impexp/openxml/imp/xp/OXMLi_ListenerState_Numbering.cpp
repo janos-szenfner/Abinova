@@ -122,6 +122,12 @@ void OXMLi_ListenerState_Numbering::startElement (OXMLi_StartElementRequest * rq
 		if(val && m_currentList)
 		{
 			std::string delim(val);
+			/* a numFmt=none level carries literal label text, e.g.
+			 * "RESPONSE:" — anchor it as the trailing delimiter so it
+			 * renders verbatim */
+			if (m_currentList->getType() == TEXT_LITERAL_LIST &&
+				delim.find('%') == std::string::npos)
+				delim = "%L" + delim;
 			m_currentList->setDelim(delim);
 		}
 		rqst->handled = true;
@@ -359,6 +365,9 @@ void OXMLi_ListenerState_Numbering::handleFormattingType(const gchar* val)
 		m_currentList->setType(ARABICABJAD_LIST);
 	else if(!strcmp(val, "hebrew1"))
 		m_currentList->setType(HEBREW_LIST);
+	else if(!strcmp(val, "none"))
+		/* a level with no numbering shows its lvlText literally */
+		m_currentList->setType(TEXT_LITERAL_LIST);
 	else //default
 		m_currentList->setType(BULLETED_LIST);
 	//TODO: add more types here

@@ -81,6 +81,8 @@ AP_UnixMiniBar::AP_UnixMiniBar(XAP_Frame * pFrame)
 	, m_wColorDlg(nullptr)
 	, m_bSyncing(false)
 	, m_bDismissed(false)
+	, m_wPreviewing(nullptr)
+	, m_bPreviewApplied(false)
 	, m_iBarW(-1)
 	, m_iBarH(-1)
 {
@@ -258,6 +260,16 @@ void AP_UnixMiniBar::reposition()
 
 void AP_UnixMiniBar::hide()
 {
+	if (m_bPreviewApplied)
+	{
+		/* the strip went away under a preview — roll it back the
+		 * same way a pointer-leave would */
+		FV_View * pView = _view();
+		if (pView)
+			pView->cmdUndo(1);
+		m_bPreviewApplied = false;
+		m_wPreviewing = nullptr;
+	}
 	if (!m_wBar)
 		return;
 	s_popdown_popovers(m_wBar);
@@ -373,10 +385,58 @@ void AP_UnixMiniBar::_s_toggle_clicked(GtkWidget * w, gpointer data)
 	const char * szMethod = static_cast<const char *>(
 		g_object_get_data(G_OBJECT(w), "abi-minibar-method"));
 	UT_return_if_fail(szMethod && *szMethod);
+	/* hovering already applied this button as a preview — the click
+	 * commits it rather than invoking the method a second time
+	 * (toggles would flip back off) */
+	if (self->m_bPreviewApplied && self->m_wPreviewing == w)
+	{
+		self->m_bPreviewApplied = false;
+		self->m_wPreviewing = nullptr;
+		self->syncState();
+		return;
+	}
 	self->_invokeMethod(szMethod);
 	/* keep the strip focused-look state honest without waiting for
 	 * the next view notify */
 	self->syncState();
+}
+
+void AP_UnixMiniBar::_s_toggle_enter(GtkEventControllerMotion * c,
+									 gdouble /*x*/, gdouble /*y*/,
+									 gpointer data)
+{
+	AP_UnixMiniBar * self = static_cast<AP_UnixMiniBar *>(data);
+	UT_return_if_fail(self);
+	FV_View * pView = self->_view();
+	if (!pView || pView->isSelectionEmpty())
+		return;
+	GtkWidget * w = gtk_event_controller_get_widget(
+		GTK_EVENT_CONTROLLER(c));
+	if (!w)
+		return;
+	const char * szMethod = static_cast<const char *>(
+		g_object_get_data(G_OBJECT(w), "abi-minibar-method"));
+	if (!szMethod || !*szMethod)
+		return;
+	/* preview: run the method on the selection now; leave undoes it
+	 * unless the button gets clicked first */
+	self->_invokeMethod(szMethod);
+	self->m_wPreviewing = w;
+	self->m_bPreviewApplied = true;
+}
+
+void AP_UnixMiniBar::_s_toggle_leave(GtkEventControllerMotion * /*c*/,
+									 gpointer data)
+{
+	AP_UnixMiniBar * self = static_cast<AP_UnixMiniBar *>(data);
+	UT_return_if_fail(self);
+	if (!self->m_bPreviewApplied)
+		return;
+	FV_View * pView = self->_view();
+	if (pView)
+		pView->cmdUndo(1);
+	self->m_bPreviewApplied = false;
+	self->m_wPreviewing = nullptr;
 }
 
 void AP_UnixMiniBar::_s_font_changed(GtkWidget * w, gpointer data)
@@ -686,6 +746,12 @@ G_GNUC_END_IGNORE_DEPRECATIONS
 							   g_strdup(szMethod), g_free);
 		g_signal_connect(b, "clicked",
 						 G_CALLBACK(_s_toggle_clicked), this);
+		GtkEventController * motion = gtk_event_controller_motion_new();
+		g_signal_connect(motion, "enter",
+						 G_CALLBACK(_s_toggle_enter), this);
+		g_signal_connect(motion, "leave",
+						 G_CALLBACK(_s_toggle_leave), this);
+		gtk_widget_add_controller(b, motion);
 		gtk_box_append(GTK_BOX(m_wBar), b);
 		*toggles[i] = b;
 	}

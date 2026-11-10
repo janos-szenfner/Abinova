@@ -287,6 +287,49 @@ void GR_Graphics::setAlpha(double dAlpha)
 	m_dAlpha = dAlpha;
 }
 
+/* families the document asked for that no installed font provides */
+static std::set<std::string> s_missingFonts;
+
+const std::set<std::string> & GR_Graphics::getMissingFonts()
+{
+	return s_missingFonts;
+}
+
+void GR_Graphics::clearMissingFonts()
+{
+	s_missingFonts.clear();
+}
+
+/* the family a font request actually resolves to may differ from the
+ * name on disk; record requests that no installed font answers */
+static void s_trackMissingFont(const char* pszFontFamily,
+							   const char* resolvedFamily)
+{
+	if (!pszFontFamily || !*pszFontFamily || !strcmp(pszFontFamily, "NULL"))
+		return;
+	if (!resolvedFamily || !*resolvedFamily ||
+		!strcmp(resolvedFamily, "Sans"))
+		return;
+	/* a family list like "Times New Roman, serif" is satisfied if any
+	 * entry resolves — check the first, which is what we pass to Pango */
+	std::string fam(pszFontFamily);
+	size_t comma = fam.find(',');
+	if (comma != std::string::npos)
+		fam.erase(comma);
+	while (!fam.empty() &&
+		   (fam.front() == ' ' || fam.front() == '\'' || fam.front() == '"'))
+		fam.erase(fam.begin());
+	while (!fam.empty() &&
+		   (fam.back() == ' ' || fam.back() == '\'' || fam.back() == '"'))
+		fam.pop_back();
+	if (fam.empty())
+		return;
+	if (g_ascii_strcasecmp(resolvedFamily, fam.c_str()))
+		s_missingFonts.insert(fam);
+	else
+		s_missingFonts.erase(fam);
+}
+
 GR_Font* GR_Graphics::findFont(const char* pszFontFamily,
 							   const char* pszFontStyle,
 							   const char* pszFontVariant,
@@ -315,6 +358,12 @@ GR_Font* GR_Graphics::findFont(const char* pszFontFamily,
 						  pszFontStretch, pszFontSize,
 						  pszLang);
 		UT_ASSERT(pFont);
+		if (pFont)
+			s_trackMissingFont(pszFontFamily,
+							   findNearestFont(pszFontFamily, pszFontStyle,
+											   pszFontVariant, pszFontWeight,
+											   pszFontStretch, pszFontSize,
+											   pszLang));
 		xxx_UT_DEBUGMSG(("Insert font %x in gr_Graphics cache \n",pFont));
 		// add it to the cache
 		

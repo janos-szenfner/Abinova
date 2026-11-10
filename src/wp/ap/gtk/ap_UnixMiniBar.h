@@ -77,6 +77,10 @@ private:
 	GtkWidget *		_makeColorButton();
 
 	static void		_s_toggle_clicked(GtkWidget * w, gpointer data);
+	static void		_s_toggle_enter(GtkEventControllerMotion * c,
+									gdouble x, gdouble y, gpointer data);
+	static void		_s_toggle_leave(GtkEventControllerMotion * c,
+									gpointer data);
 	static void		_s_font_changed(GtkWidget * w, gpointer data);
 	static void		_s_size_changed(GtkWidget * w, gpointer data);
 	static void		_s_swatch_clicked(GtkWidget * w, gpointer data);
@@ -100,6 +104,11 @@ private:
 	GtkWidget *		m_wColorDlg;
 	bool			m_bSyncing;
 	bool			m_bDismissed;
+	/* hover preview: a formatting button applies its change to the
+	 * selection on pointer enter and undoes it on leave unless the
+	 * button was clicked (which commits the preview) */
+	GtkWidget *		m_wPreviewing;
+	bool			m_bPreviewApplied;
 	/* cached strip size: the combos carry parented GtkPopovers whose
 	 * size requests pollute gtk_widget_measure() once realized, so
 	 * the bar is measured once, then the value is reused */

@@ -6,6 +6,46 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.16] — 2026-11-10
+
+### Bug fixes
+
+- **Markdown export escapes a trailing `#` in heading text** — a
+  paragraph whose text ended in `#` exported a closing ATX marker
+  instead of the literal character.
+- **Find matches typographic quotes** — searching for `'` or `"`
+  in regex and wildcard modes now also hits `'`/`'` and
+  `"`/`"` in the document, as literal find already did.
+- **DOCX: VML text boxes keep their text direction** — `layout-flow`
+  and `writing-mode` style attributes now map to
+  `frame-text-direction`, so `tb-rl`/`vertical` boxes import with
+  vertical text.
+- **DOCX: `w:shd` `val="nil"` paints no fill** — a shading element
+  explicitly marked `nil` no longer applies its `fill` colour.
+- **DOCX numbering: `numFmt="none"` levels show their literal label**
+  — levels such as `lvlText="RESPONSE:"` now render the text
+  verbatim (new `TEXT_LITERAL_LIST` type) instead of falling back
+  to a bullet.
+
+### Performance
+
+- **EMF bitmap decode picks the bit depth once per bitmap** — the
+  per-pixel `switch (bpp)` in the DIB decoder is now a
+  compile-time-dispatched loop, speeding up embedded DIB playback
+  several-fold on large metafiles.
+
+### Features
+
+- **Save As suggests the document's first words** — for an untitled
+  document, the save dialog proposes a filename built from the
+  first words of the text.
+- **Missing fonts are flagged** — after a document loads, font
+  families that fontconfig had to substitute are listed in the
+  status bar.
+- **Mini toolbar hover preview** — hovering a formatting button
+  applies it to the selection as a preview; clicking commits the
+  change, moving the pointer off rolls it back.
+
 ## [4.0.15] — 2026-11-06
 
 ### Bug fixes
