@@ -510,6 +510,19 @@ GtkWidget * AP_UnixRibbon::createWidget()
 		"}"
 		".abinova-ribbon switch.qat-autosave > slider {"
 		"  min-width: 12px; min-height: 12px; margin: -1px;"
+		"}"
+		/* hover feedback: ribbon controls fade their background in
+		 * and out like Word's ribbon instead of snapping */
+		".abinova-ribbon button,"
+		".abinova-ribbon menubutton {"
+		"  transition: background 120ms ease-in-out,"
+		"              box-shadow 120ms ease-in-out,"
+		"              border-color 120ms ease-in-out;"
+		"}"
+		".abinova-ribbon button:hover,"
+		".abinova-ribbon menubutton:hover {"
+		"  background: alpha(@theme_selected_bg_color, 0.16);"
+		"  box-shadow: inset 0 0 0 1px alpha(@theme_selected_bg_color, 0.45);"
 		"}";
 	GtkCssProvider * css = gtk_css_provider_new();
 	gtk_css_provider_load_from_string(css, ribbon_css);

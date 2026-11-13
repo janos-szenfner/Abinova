@@ -3107,3 +3107,4 @@ Proofing/Save/Advanced) writing the existing pref keys — our
 
 Verify: `make -j2` clean; File backstage opens, Options writes
 pref values (check profile file), info pane shows real stats.
+- [4.0.16 follow-up] WordCraft 0.18 parity: compare LCS-chunk fallback DONE (s_wordDiffChunked in ap_EditMethods.cpp — para-level Myers diff, then per-para word diff, whole-para del+ins for oversized paras); RTF \' escape-leak VERIFIED SAFE; revision-marks-around-equations VERIFIED GAP (oMath buffers raw XML, w:ins/w:del around math dropped — port later); PENDING: --strict headless convert flag, ribbon hover CSS, per-column line numbers, ODT gap-19 spot-checks

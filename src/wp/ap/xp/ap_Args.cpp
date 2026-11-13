@@ -43,6 +43,7 @@ const char * AP_Args::m_sGeometry = nullptr;
 const char * AP_Args::m_sToFormat = nullptr;
 const char * AP_Args::m_sPrintTo = nullptr;
 int AP_Args::m_iVerbose = 1;
+int AP_Args::m_iStrict = 0;
 const char ** AP_Args::m_sFiles = nullptr;
 int AP_Args::m_iVersion = 0;
 int AP_Args::m_iControlPort = 0;
@@ -62,6 +63,7 @@ static GOptionEntry _entries[] = {
         {"geometry", 'g', 0, G_OPTION_ARG_STRING, &AP_Args::m_sGeometry, "Set initial frame geometry", "GEOMETRY"} ,
         {"to", 't', 0, G_OPTION_ARG_STRING, &AP_Args::m_sToFormat, "Target format of the file (abwn, zabwn, docx, odt, rtf, txt, utf8, html, pdf, ...)", "FORMAT"},
         {"verbose", '\0', 0, G_OPTION_ARG_INT, &AP_Args::m_iVerbose, "Set verbosity level (0, 1, 2), with 2 being the most verbose", "LEVEL"},
+        {"strict", '\0', 0, G_OPTION_ARG_NONE, &AP_Args::m_iStrict, "Refuse conversion when fonts have to be substituted (with --to)", nullptr},
         {"print", 'p',0, G_OPTION_ARG_STRING, &AP_Args::m_sPrintTo, "Print this file to printer","'Printer name' or '-' for default printer"},
         {"imp-props", 'i', 0, G_OPTION_ARG_STRING, &AP_Args::m_impProps, "Importer Arguments", "CSS String"},
         {"exp-props", 'e', 0, G_OPTION_ARG_STRING, &AP_Args::m_expProps, "Exporter Arguments", "CSS String"},
@@ -195,6 +197,7 @@ bool AP_Args::doWindowlessArgs(bool & bSuccessful)
 	{
 		AP_Convert * conv = new AP_Convert();
 		conv->setVerbose(m_iVerbose);
+		conv->setStrict(m_iStrict != 0);
 		if (m_impProps)
 			conv->setImpProps (m_impProps);
 		if (m_expProps)

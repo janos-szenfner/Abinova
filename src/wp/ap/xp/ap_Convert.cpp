@@ -36,6 +36,7 @@
 
 #include "gr_DrawArgs.h"
 #include "gr_Graphics.h"
+#include "gr_Graphics.h"
 #include "fv_View.h"
 #include "fl_BlockLayout.h"
 #include "ap_EditMethods.h"
@@ -139,6 +140,18 @@ bool AP_Convert::convertTo(const char * szSourceFilename,
 	uri = UT_go_shell_arg_to_uri (szTargetFilename);
 	error = static_cast<AD_Document*>(pNewDoc)->saveAs(uri, targetFormat, m_expProps.utf8_str());
 	g_free(uri);
+
+	if (m_bStrict && error == UT_OK &&
+		!GR_Graphics::getMissingFonts().empty())
+	{
+		fprintf(stderr, "Abinova: [%s] conversion refused — missing font", szSourceFilename);
+		for (const std::string & f : GR_Graphics::getMissingFonts())
+			fprintf(stderr, " '%s'", f.c_str());
+		fprintf(stderr, "\n");
+		remove(szTargetFilename);
+		UNREFP(pNewDoc);
+		return false;
+	}
 
 	switch (error) {
 	case UT_OK:

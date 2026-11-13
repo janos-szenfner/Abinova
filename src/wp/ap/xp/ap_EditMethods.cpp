@@ -20330,6 +20330,137 @@ enum CmpResult {
 	CMP_FAILED
 };
 
+/*  Split a token stream into paragraph ranges (each range ends at
+    its para-break marker, inclusive). */
+static void s_paraRanges(const std::vector<CmpTok> & toks,
+						 std::vector<std::pair<size_t,size_t>> & paras)
+{
+	size_t start = 0;
+	for(size_t i = 0; i < toks.size(); ++i)
+	{
+		if(toks[i].para)
+		{
+			paras.push_back(std::make_pair(start, i + 1));
+			start = i + 1;
+		}
+	}
+	if(start < toks.size())
+		paras.push_back(std::make_pair(start, toks.size()));
+}
+
+/*  Joined text of a paragraph range — used as the equality key for
+    the coarse paragraph-level diff. */
+static UT_UCS4String s_paraText(const std::vector<CmpTok> & toks,
+								size_t lo, size_t hi)
+{
+	UT_UCS4String s;
+	for(size_t i = lo; i < hi; ++i)
+	{
+		if(toks[i].para)
+			continue;
+		s += toks[i].text;
+		s += static_cast<UT_UCS4Char>(' ');
+	}
+	return s;
+}
+
+/*  Chunked fallback for documents too large or too different for the
+    whole-document O(ND) pass: diff paragraphs as units, then re-diff
+    only the changed paragraph pairs at word level.  Paragraphs too
+    big even per-pair collapse to whole-para delete+insert rather
+    than aborting the comparison. */
+static bool s_wordDiffChunked(const std::vector<CmpTok> & a,
+							  const std::vector<CmpTok> & b,
+							  std::vector<CmpOp> & ops)
+{
+	std::vector<std::pair<size_t,size_t>> pa, pb;
+	s_paraRanges(a, pa);
+	s_paraRanges(b, pb);
+
+	std::vector<CmpTok> ta, tb;
+	for(const auto & r : pa)
+	{
+		CmpTok tk = {true, s_paraText(a, r.first, r.second)};
+		ta.push_back(tk);
+	}
+	for(const auto & r : pb)
+	{
+		CmpTok tk = {true, s_paraText(b, r.first, r.second)};
+		tb.push_back(tk);
+	}
+
+	/* paragraph granularity stays under the limits on realistic
+	 * documents; if even that overflows, give up */
+	std::vector<CmpOp> paraOps;
+	if(!s_wordDiff(ta, tb, paraOps))
+		return false;
+
+	/* walk the para ops, pairing a maximal DEL run with the INS run
+	 * right after it — each such window is a changed region whose
+	 * paragraphs get an individual word diff */
+	auto emitSlice = [&](CmpOp op,
+						 const std::vector<CmpTok> & toks,
+						 size_t lo, size_t hi) {
+		for(size_t i = lo; i < hi; ++i)
+			ops.push_back(op);
+	};
+
+	size_t i = 0, j = 0;			/* para indexes into pa / pb */
+	for(size_t k = 0; k < paraOps.size(); )
+	{
+		if(paraOps[k] == CMP_KEEP)
+		{
+			emitSlice(CMP_KEEP, a, pa[i].first, pa[i].second);
+			++i; ++j; ++k;
+			continue;
+		}
+		/* collect adjacent DEL and INS runs at this point */
+		size_t nDel = 0, nIns = 0;
+		while(k + nDel < paraOps.size() && paraOps[k + nDel] == CMP_DEL)
+			++nDel;
+		size_t kk = k + nDel;
+		while(kk + nIns < paraOps.size() && paraOps[kk + nIns] == CMP_INS)
+			++nIns;
+
+		/* pair changed paragraphs within the region, re-diff each
+		 * pair at word level when it fits the limits */
+		size_t pairs = std::min(nDel, nIns);
+		for(size_t p = 0; p < pairs; ++p)
+		{
+			const auto & ra = pa[i + p];
+			const auto & rb = pb[j + p];
+			std::vector<CmpTok> wa(a.begin() + static_cast<long>(ra.first),
+								   a.begin() + static_cast<long>(ra.second));
+			std::vector<CmpTok> wb(b.begin() + static_cast<long>(rb.first),
+								   b.begin() + static_cast<long>(rb.second));
+			/* drop the trailing para markers — they re-enter as a
+			 * shared KEEP after the content ops */
+			if(!wa.empty() && wa.back().para) wa.pop_back();
+			if(!wb.empty() && wb.back().para) wb.pop_back();
+			std::vector<CmpOp> sub;
+			if(s_wordDiff(wa, wb, sub))
+			{
+				for(CmpOp o : sub)
+					ops.push_back(o);
+				ops.push_back(CMP_KEEP);	/* the para break itself */
+			}
+			else
+			{
+				/* still too big: whole-para delete + insert */
+				emitSlice(CMP_DEL, a, ra.first, ra.second);
+				emitSlice(CMP_INS, b, rb.first, rb.second);
+			}
+		}
+		for(size_t p = pairs; p < nDel; ++p)
+			emitSlice(CMP_DEL, a, pa[i + p].first, pa[i + p].second);
+		for(size_t p = pairs; p < nIns; ++p)
+			emitSlice(CMP_INS, b, pb[j + p].first, pb[j + p].second);
+
+		i += nDel; j += nIns; k += nDel + nIns;
+	}
+	return true;
+}
+
 /*  Build the merged comparison of pOrig vs pRevised in a fresh
     document window: every difference lands as a tracked revision so
     the standard Accept/Reject tools work on the result.  Both source
@@ -20344,7 +20475,8 @@ static CmpResult s_compareDocsIntoFrame(PD_Document * pOrig,
 	s_docTokens(pRevised, toks2);
 
 	std::vector<CmpOp> ops;
-	if(!s_wordDiff(toks1, toks2, ops))
+	if(!s_wordDiff(toks1, toks2, ops) &&
+	   !s_wordDiffChunked(toks1, toks2, ops))
 		return CMP_TOO_LARGE;
 
 	bool bAnyChange = false;

@@ -57,6 +57,7 @@ public:
 	static int    m_iToThumb;
 	static const char * m_sThumbXY;
 	static int	  m_iVerbose;
+	static int    m_iStrict;
 	static int	  m_iShow;
 	static const char ** m_sFiles;
 	static int    m_iVersion;

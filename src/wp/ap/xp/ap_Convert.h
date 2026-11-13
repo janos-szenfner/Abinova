@@ -60,9 +60,11 @@ class ABI_EXPORT AP_Convert
 	void setExpProps (const char * props) {
 		m_expProps = props;
 	}
+	void setStrict (bool strict) { m_bStrict = strict; }
 
  private:
 	int m_iVerbose;
+	bool m_bStrict = false;
 
 	UT_UTF8String m_impProps;
 	UT_UTF8String m_expProps;
