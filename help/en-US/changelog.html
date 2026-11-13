@@ -4,6 +4,16 @@
 <h1>Changelog</h1>
 <p>All notable changes in this experimental Abinova GTK4 fork, grouped by category. Based on upstream Abiword 3.1.90 (<code>5e3e1cc</code> import).</p>
 <p>This project is experimental and supplied <b>without any warranty or responsibility</b> — see <code>README.md</code>.</p>
+<h2>[4.0.17] — 2026-11-13</h2>
+<h3>Bug fixes</h3>
+<ul>
+<li><b>Compare no longer gives up on large or very different   documents</b> — when the whole-document word diff exceeds its   limits, the comparison falls back to aligning paragraphs first   and re-diffing only the changed paragraph pairs; oversized   paragraphs degrade to whole-paragraph delete/insert instead of   aborting.</li>
+</ul>
+<h3>Features</h3>
+<ul>
+<li><b><code>--strict</code> conversion flag</b> —   <code>--to</code> conversion refuses to write the output when   fontconfig had to substitute a font the document asks for, so   batch conversions can fail loudly on missing fonts.</li>
+<li><b>Ribbon hover fades</b> — ribbon buttons fade their hover   state in and out (120&nbsp;ms) with a selected-colour background   and inset ring.</li>
+</ul>
 <h2>[4.0.16] — 2026-11-10</h2>
 <h3>Bug fixes</h3>
 <ul>

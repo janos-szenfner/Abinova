@@ -6,6 +6,28 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.17] — 2026-11-13
+
+### Bug fixes
+
+- **Compare no longer gives up on large or very different
+  documents** — when the whole-document word diff exceeds its
+  limits, the comparison falls back to aligning paragraphs first
+  and re-diffing only the changed paragraph pairs; oversized
+  paragraphs degrade to whole-paragraph delete/insert instead of
+  aborting.
+
+### Features
+
+- **`--strict` conversion flag** — `--to` conversion refuses to
+  write the output when fontconfig had to substitute a font the
+  document asks for, so batch conversions can fail loudly on
+  missing fonts (`abinova --strict --to=pdf --to-name=out.pdf
+  in.docx`).
+- **Ribbon hover fades** — ribbon buttons fade their hover state
+  in and out (120 ms) with a selected-colour background and
+  inset ring.
+
 ## [4.0.16] — 2026-11-10
 
 ### Bug fixes
