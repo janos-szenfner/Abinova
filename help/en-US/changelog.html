@@ -4,6 +4,23 @@
 <h1>Changelog</h1>
 <p>All notable changes in this experimental Abinova GTK4 fork, grouped by category. Based on upstream Abiword 3.1.90 (<code>5e3e1cc</code> import).</p>
 <p>This project is experimental and supplied <b>without any warranty or responsibility</b> — see <code>README.md</code>.</p>
+<h2>[4.0.18] — 2026-11-27</h2>
+<h3>Bug fixes</h3>
+<ul>
+<li><b>Line numbering in sections only activates when countBy is set</b> — a DOCX lnNumType carrying only restart/start/distance no longer switches numbering on where Word leaves it off.</li>
+<li><b>No line break after ? or between / and _</b> — matches Word's URL breaking, so query strings and paths no longer split mid-token.</li>
+<li><b>Complex-script bold/italic import</b> — w:bCs/w:iCs now map to the bold/italic properties instead of being dropped.</li>
+<li><b>Undecodable pictures show a labeled placeholder</b> — a picture whose data is corrupt or past the pixel limits now renders a grey box captioned "picture could not be displayed" instead of an unexplained empty rectangle.</li>
+</ul>
+<h3>Features</h3>
+<ul>
+<li><b>Markdown source editing</b> — View &gt; Markdown Source reloads a Markdown document through the plain-text importer so the source can be edited verbatim; toggling again re-renders it.</li>
+<li><b>Whole-document proofing language</b> — the language dialog's document-default choice now applies the language across the existing document text (one undo step), not just to future typing.</li>
+<li><b>Scroll-speed preference</b> — the ScrollSpeed pref (percent, 100 = native) scales both mouse-wheel notches and touchpad smooth scrolling.</li>
+<li><b>Missing-font hints</b> — the missing-font status message now says where the fonts can be obtained: the Microsoft core/ClearType package for the well-known families, or generic install-and-restart advice otherwise.</li>
+<li><b>Bounded font cache</b> — the graphics font cache stops growing past 1024 entries in pathological mixed-font documents; overflow fonts still render and are freed at teardown.</li>
+</ul>
+
 <h2>[4.0.17] — 2026-11-13</h2>
 <h3>Bug fixes</h3>
 <ul>

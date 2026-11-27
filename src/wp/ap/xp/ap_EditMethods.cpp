@@ -580,6 +580,7 @@ public:
 	static EV_EditMethod_Fn fileNewUsingTemplate;
     static EV_EditMethod_Fn fileRevert;
 	static EV_EditMethod_Fn fileOpen;
+	static EV_EditMethod_Fn viewMarkdownSource;
 	static EV_EditMethod_Fn openRecent;
 	static EV_EditMethod_Fn fileSave;
 	static EV_EditMethod_Fn fileSaveAs;
@@ -1301,6 +1302,7 @@ static EV_EditMethod s_arrayEditMethods[] =
 	EV_EditMethod(NF(fileNew),				_A_,	""),
 	EV_EditMethod(NF(fileNewUsingTemplate),				_A_,	""),
 	EV_EditMethod(NF(fileOpen), 			_A_,	""),
+	EV_EditMethod(NF(viewMarkdownSource), 	_A_,	""),
 	EV_EditMethod(NF(fileRevert), 0, ""),
 	EV_EditMethod(NF(fileSave), 			0,	""),
 	EV_EditMethod(NF(fileSaveAs),			0,	""),
@@ -3061,6 +3063,63 @@ Defun1(fileOpen)
 
 	g_free(pNewFile);
 	return E2B(error);
+}
+
+/* Toggle between rendered and source editing for Markdown documents.
+ * Markdown is plain text underneath, so the source view is simply the
+ * file reloaded through the text importer — edits there save back as
+ * verbatim markdown, and toggling again re-renders. The document must
+ * be clean (unsaved layout-mode edits would not survive translation),
+ * so a dirty document prompts to save first through the normal path. */
+Defun1(viewMarkdownSource)
+{
+	CHECK_FRAME;
+	ABIWORD_VIEW;
+	UT_return_val_if_fail(pView, false);
+
+	PD_Document * pDoc = pView->getDocument();
+	UT_return_val_if_fail(pDoc, false);
+	XAP_Frame * pFrame = static_cast<XAP_Frame *>(pView->getParentData());
+	UT_return_val_if_fail(pFrame, false);
+	const char * fname = pFrame->getFilename();
+	if (!fname || !*fname)
+		return false;
+	std::string lower(fname);
+	for (auto & c : lower) c = static_cast<char>(tolower(c));
+	auto endsWith = [&lower](const char * suf) {
+		size_t n = strlen(suf);
+		return lower.size() >= n && lower.compare(lower.size() - n, n, suf) == 0;
+	};
+	if (!endsWith(".md") && !endsWith(".markdown") && !endsWith(".mdown") &&
+		!endsWith(".mkd") && !endsWith(".mkdn"))
+		return false;
+
+	if (pFrame->isDirty())
+	{
+		static EV_EditMethodCallData callData;
+		if (!saveImmediate(pAV_View, &callData))
+			return false;
+		if (pFrame->isDirty())
+			return false; // user cancelled the save
+	}
+
+	/* a source-mode document is one the text importer loaded; rendered
+	 * markdown comes through the markdown importer */
+	IEFileType curType = pDoc->getLastOpenedType();
+	IEFileType textType = IE_Imp::fileTypeForSuffix(".txt");
+	IEFileType target = (curType == textType)
+		? IE_Imp::fileTypeForSuffix(".md") : textType;
+
+	s_StartStopLoadingCursor(true, pFrame);
+	UT_Error err = pFrame->loadDocument(fname, target);
+	s_StartStopLoadingCursor(false, nullptr);
+	if (UT_IS_IE_SUCCESS(err))
+	{
+		pFrame->updateZoom();
+		pFrame->show();
+		return true;
+	}
+	return false;
 }
 
 /* Recent Files popover rows call us with the MRU path in pCallData.
@@ -10853,6 +10912,22 @@ static bool s_doLangDlg(FV_View * pView)
 				pLayout->queueAll(FL_DocLayout::bgcrSpelling | FL_DocLayout::bgcrGrammar);
 #endif
 			pDoc->setProperties(props_out);
+			/* Word's Review > Language applies the choice to the
+			 * whole document, not just future typing — text already
+			 * carrying a direct lang attribute would otherwise keep
+			 * proofing in the old language. Apply it as a span
+			 * attribute across the editable range, inside one undo
+			 * step. */
+			PT_DocPosition posBOD, posEOD;
+			pView->getEditableBounds(false, posBOD);
+			pView->getEditableBounds(true, posEOD);
+			if(posEOD > posBOD)
+			{
+				pDoc->beginUserAtomicGlob();
+				pDoc->changeSpanFmt(PTC_SetFmt, posBOD, posEOD,
+									PP_NOPROPS, props_out);
+				pDoc->endUserAtomicGlob();
+			}
 		}
 		
 	}

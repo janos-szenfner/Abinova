@@ -145,6 +145,8 @@
 #define XAP_PREF_DEFAULT_DefaultSaveDirectory "" /* empty for $PWD basically */
 
 #define XAP_PREF_KEY_ZoomType		"ZoomType"
+#define XAP_PREF_KEY_ScrollSpeed		"ScrollSpeed"
+#define XAP_PREF_DEFAULT_ScrollSpeed	"100" /* percent multiplier: 100 = native, 200 = double */
 #define XAP_PREF_DEFAULT_ZoomType	"Width" /* 100, Width, Page */
 
 
@@ -237,6 +239,7 @@ dcl(ColorForRevision10)
 dcl(EnableSmoothScrolling)
 dcl(CaretAnimation)
 dcl(ZoomType)
+dcl(ScrollSpeed)
 dcl(ZoomPercentage)
 dcl(DefaultSaveDirectory)
 dcl(HTMLExportOptions)

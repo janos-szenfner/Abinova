@@ -4111,7 +4111,37 @@ void fp_ImageRun::_draw(dg_DrawArgs* pDA)
 	}
 	else
 	{
+		/* the image failed to decode (corrupt data or past the sane
+		 * pixel limits) — the bare fill alone reads as an empty box,
+		 * so label it: the user should know content is missing, not
+		 * absent */
 		painter.fillRect(pView->getColorImage(), xoff, yoff, getWidth(), getHeight());
+		if(pG->queryProperties(GR_Graphics::DGP_SCREEN))
+		{
+			GR_Font * pFont = pG->findFont("sans", "normal", "normal", "normal",
+										   "normal", "10pt", nullptr);
+			if(pFont)
+			{
+				const char * label = "[ picture could not be displayed ]";
+				UT_UCS4String ulabel(label);
+				const UT_UCS4Char * ucs = ulabel.ucs4_str();
+				UT_uint32 len = ulabel.length();
+				UT_uint32 twidth = pG->measureString(ucs, 0, len, nullptr);
+				UT_uint32 ascent = pG->getFontAscent(pFont);
+				UT_uint32 fheight = ascent + pG->getFontDescent(pFont);
+				if(static_cast<UT_sint32>(twidth) < getWidth() &&
+				   static_cast<UT_sint32>(fheight) < getHeight())
+				{
+					UT_sint32 tx = xoff + (getWidth() - static_cast<UT_sint32>(twidth)) / 2;
+					UT_sint32 ty = yoff + (getHeight() - static_cast<UT_sint32>(fheight)) / 2
+								 + static_cast<UT_sint32>(ascent);
+					UT_RGBColor black(0, 0, 0);
+					pG->setColor(black);
+					pG->setFont(pFont);
+					painter.drawChars(ucs, 0, len, tx, ty);
+				}
+			}
+		}
 	}
 
 	// unf*ck clipping rect

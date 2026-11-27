@@ -992,6 +992,7 @@ class ABI_EXPORT GR_Graphics
 
 	typedef std::map<std::string, GR_Font*> FontCache;
 	FontCache  m_hashFontCache;
+	std::vector<GR_Font*> m_vecFontCleanup;
 
 	static UT_VersionInfo   s_Version;
 	static UT_uint32        s_iInstanceCount;

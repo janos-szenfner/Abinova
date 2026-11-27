@@ -6,6 +6,43 @@ category. Based on upstream Abiword 3.1.90 (`5e3e1cc` import).
 This project is experimental and supplied **without any warranty or
 responsibility** — see `README.md`.
 
+## [4.0.18] — 2026-11-27
+
+### Bug fixes
+
+- **Line numbering in sections only activates when `countBy` is
+  set** — a DOCX `lnNumType` carrying only restart/start/distance
+  no longer switches numbering on where Word leaves it off.
+- **No line break after `?` or between `/` and `_`** — matches
+  Word's URL breaking, so query strings and paths no longer split
+  mid-token.
+- **Complex-script bold/italic import** — `w:bCs`/`w:iCs` now map
+  to the bold/italic properties instead of being dropped.
+- **Undecodable pictures show a labeled placeholder** — a picture
+  whose data is corrupt or past the pixel limits now renders a
+  grey box captioned "picture could not be displayed" instead of
+  an unexplained empty rectangle.
+
+### Features
+
+- **Markdown source editing** — View ▸ Markdown Source reloads a
+  Markdown document through the plain-text importer so the source
+  can be edited verbatim; toggling again re-renders it.
+- **Whole-document proofing language** — the language dialog's
+  document-default choice now applies the language across the
+  existing document text (one undo step), not just to future
+  typing.
+- **Scroll-speed preference** — the `ScrollSpeed` pref (percent,
+  100 = native) scales both mouse-wheel notches and touchpad
+  smooth scrolling.
+- **Missing-font hints** — the missing-font status message now
+  says where the fonts can be obtained: the Microsoft
+  core/ClearType package for the well-known families, or generic
+  install-and-restart advice otherwise.
+- **Bounded font cache** — the graphics font cache stops growing
+  past 1024 entries in pathological mixed-font documents;
+  overflow fonts still render and are freed at teardown.
+
 ## [4.0.17] — 2026-11-13
 
 ### Bug fixes

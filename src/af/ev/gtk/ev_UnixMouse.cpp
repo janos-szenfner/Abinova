@@ -32,6 +32,9 @@
 #include "ev_EditEventMapper.h"
 #include "xav_View.h"
 #include "gr_Graphics.h"
+#include "xap_App.h"
+#include "xap_Prefs.h"
+#include "xap_Prefs_SchemeIds.h"
 
 EV_UnixMouse::EV_UnixMouse(EV_EditEventMapper * pEEM)
 	: EV_Mouse(pEEM)
@@ -408,8 +411,24 @@ void EV_UnixMouse::mouseScroll(AV_View* pView, GdkEvent *e, gdouble ev_x, gdoubl
  * the same distance the discrete wheel-button edit methods use. */
 void EV_UnixMouse::smoothScrollDeltas(AV_View* pView, gdouble delta_x, gdouble delta_y)
 {
-	m_dSmoothScrollX += delta_x;
-	m_dSmoothScrollY += delta_y;
+	/* user-tunable scroll speed: the XAP pref ScrollSpeed is a
+	 * percentage multiplier (100 = native); touchpads emit many
+	 * small deltas so this applies to the accumulated deltas
+	 * directly, wheel notches apply it in the discrete step below */
+	double speed = 1.0;
+	XAP_Prefs * prefs = XAP_App::getApp()->getPrefs();
+	if (prefs)
+	{
+		std::string v;
+		if (prefs->getPrefsValue(XAP_PREF_KEY_ScrollSpeed, v) && !v.empty())
+		{
+			double pct = g_ascii_strtod(v.c_str(), nullptr);
+			if (pct >= 10.0 && pct <= 1000.0)
+				speed = pct / 100.0;
+		}
+	}
+	m_dSmoothScrollX += delta_x * speed;
+	m_dSmoothScrollY += delta_y * speed;
 	GR_Graphics * pG = pView->getGraphics();
 	// one notch scrolls the same distance as the discrete wheel path
 	const gdouble fPixPerNotch = pG->tdu(pView->getWheelScrollStep());

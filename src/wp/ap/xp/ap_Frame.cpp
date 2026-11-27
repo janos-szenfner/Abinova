@@ -928,6 +928,30 @@ void AP_Frame::_replaceView(GR_Graphics * pG, FL_DocLayout *pDocLayout,
 				msg += " " + f;
 			}
 			msg += " — substituted";
+			/* hint where the missing families can be obtained: the
+			 * Microsoft core/ClearType families ship with Office or
+			 * the corefonts package; everything else gets generic
+			 * install-the-file advice */
+			bool bMsFont = false;
+			for (const auto & f : missing)
+			{
+				std::string lf = f;
+				for (auto & c : lf) c = static_cast<char>(tolower(c));
+				if (lf == "calibri" || lf == "cambria" || lf == "carlito" ||
+					lf == "caladea" || lf == "candara" || lf == "consolas" ||
+					lf == "constantia" || lf == "corbel" || lf == "aptos" ||
+					lf == "arial" || lf == "times new roman" ||
+					lf == "courier new" || lf == "georgia" || lf == "verdana" ||
+					lf == "tahoma" || lf == "trebuchet ms" || lf == "impact")
+				{
+					bMsFont = true;
+					break;
+				}
+			}
+			if (bMsFont)
+				msg += " (Microsoft fonts — install the MS core/ClearType fonts package or copy them from a Windows/Office installation)";
+			else
+				msg += " (install the font files and restart to render faithfully)";
 			setStatusMessage(msg);
 			xxx_UT_DEBUGMSG(("DOM: %s\n", msg.c_str()));
 		}

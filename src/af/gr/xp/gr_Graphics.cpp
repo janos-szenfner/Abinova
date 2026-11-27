@@ -368,7 +368,18 @@ GR_Font* GR_Graphics::findFont(const char* pszFontFamily,
 		// add it to the cache
 		
 		if(pFont)
-			m_hashFontCache.insert(std::make_pair(key, pFont));
+		{
+			/* layout runs hold raw GR_Font pointers, so entries can
+			 * never be evicted mid-session — but the cache itself is
+			 * capped so pathological documents (hundreds of distinct
+			 * size/style combos) stop growing the hash; overflow
+			 * fonts still render, they just aren't cached, and are
+			 * freed with the rest at teardown via m_vecFontCleanup */
+			if(m_hashFontCache.size() < 1024)
+				m_hashFontCache.insert(std::make_pair(key, pFont));
+			else
+				m_vecFontCleanup.push_back(pFont);
+		}
 	}
 	else
 	{
@@ -442,6 +453,9 @@ void GR_Graphics::_destroyFonts ()
 {
 	UT_map_delete_all_second(m_hashFontCache);
 	m_hashFontCache.clear ();
+	for(GR_Font * f : m_vecFontCleanup)
+		delete f;
+	m_vecFontCleanup.clear();
 }
 
 GR_Caret * GR_Graphics::getNthCaret(UT_sint32 i) const

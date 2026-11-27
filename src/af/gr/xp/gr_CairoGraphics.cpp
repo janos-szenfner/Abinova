@@ -1887,13 +1887,39 @@ bool GR_CairoGraphics::canBreak(GR_RenderInfo & ri, UT_sint32 &iNext,
 		iDelta = 1;
 	}
 
-	if(RI.s_pLogAttrs[ri.m_iOffset + iDelta].is_line_break)
+	/* Word's URL/token veto rules: no line break right after the '?'
+	 * that starts a query, nor after a slash when an underscore
+	 * follows — pango allows both, Word keeps the token whole */
+	auto vetoBreak = [&](UT_sint32 idx) -> bool {
+		if(!RI.m_pText)
+			return false;
+		UT_TextIterator & text = static_cast<UT_TextIterator &>(*RI.m_pText);
+		const UT_uint32 saved = text.getPosition();
+		UT_uint32 pos0 = text.getPosition();
+		bool veto = false;
+		if(idx >= 1)
+		{
+			text.setPosition(pos0);
+			text += (idx - 1);
+			const UT_UCS4Char cPrev = text.getChar();
+			text += 1;
+			const UT_UCS4Char cNext = text.getChar();
+			if(cPrev == '?' ||
+			   (cPrev == '/' && cNext == '_'))
+				veto = true;
+		}
+		text.setPosition(saved);
+		return veto;
+	};
+
+	if(RI.s_pLogAttrs[ri.m_iOffset + iDelta].is_line_break &&
+	   !vetoBreak(ri.m_iOffset + iDelta))
 		return true;
 
 	// find the next break
 	for(UT_sint32 i = ri.m_iOffset + iDelta + 1; i < RI.m_iLength; ++i)
 	{
-		if(RI.s_pLogAttrs[i].is_line_break)
+		if(RI.s_pLogAttrs[i].is_line_break && !vetoBreak(i))
 		{
 			iNext = i - iDelta;
 			break;

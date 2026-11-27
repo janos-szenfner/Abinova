@@ -26,6 +26,8 @@
 
 #include "xap_Frame.h"
 #include "xap_App.h"
+#include "xap_Prefs.h"
+#include "xap_Prefs_SchemeIds.h"
 
 AV_View::AV_View(XAP_App * pApp, XAP_Frame * pParentData)
 :	m_pApp(pApp),
@@ -227,7 +229,22 @@ void AV_View::removeScrollListener(AV_ScrollObj* pObj)
  */
 UT_sint32 AV_View::getWheelScrollStep(void) const
 {
-	return getGraphics()->tlu(4 * 20);
+	UT_sint32 step = getGraphics()->tlu(4 * 20);
+	/* user-tunable wheel speed (percent; see XAP_PREF_KEY_ScrollSpeed).
+	 * The smooth-scroll path scales deltas separately, so this only
+	 * affects discrete notches and the per-notch conversion. */
+	XAP_Prefs * prefs = XAP_App::getApp()->getPrefs();
+	if (prefs)
+	{
+		std::string v;
+		if (prefs->getPrefsValue(XAP_PREF_KEY_ScrollSpeed, v) && !v.empty())
+		{
+			double pct = g_ascii_strtod(v.c_str(), nullptr);
+			if (pct >= 10.0 && pct <= 1000.0)
+				step = static_cast<UT_sint32>(step * pct / 100.0);
+		}
+	}
+	return step;
 }
 
 /*! the input is in layout units

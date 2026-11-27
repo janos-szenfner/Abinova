@@ -1133,7 +1133,11 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 			bParaMark) {
 			OXML_SharedElement run = OXMLi_elemTop(rqst->stck);
 
-			if (nameMatches(rqst->pName, NS_W_KEY, "b")) {
+			if (nameMatches(rqst->pName, NS_W_KEY, "b") ||
+				nameMatches(rqst->pName, NS_W_KEY, "bCs")) {
+				/* bCs is the complex-script twin of b; abinova has no
+				 * per-script bold split, so both drive font-weight —
+				 * complex-script text keeps the style's bold */
 				const gchar * isOn = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 				if (isOn == nullptr || !strcmp(isOn, "on") || !strcmp(isOn, "1") || !strcmp(isOn, "true") ) {
 					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("font-weight", "bold") ));
@@ -1141,7 +1145,9 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("font-weight", "normal") ));
 				}
 
-			} else if (nameMatches(rqst->pName, NS_W_KEY, "i")) {
+			} else if (nameMatches(rqst->pName, NS_W_KEY, "i") ||
+					   nameMatches(rqst->pName, NS_W_KEY, "iCs")) {
+				/* iCs pairs with i the same way */
 				const gchar * isOn = attrMatches(NS_W_KEY, "val", rqst->ppAtts);
 				if (isOn == nullptr || !strcmp(isOn, "on") || !strcmp(isOn, "1") || !strcmp(isOn, "true") ) {
 					UT_return_if_fail( this->_error_if_fail( UT_OK == run->setProperty("font-style", "italic") ));
@@ -1468,7 +1474,12 @@ void OXMLi_ListenerState_Common::startElement (OXMLi_StartElementRequest * rqst)
 
 			} else if (nameMatches(rqst->pName, NS_W_KEY, "lnNumType")) {
 				OXML_SharedSection sect = OXMLi_sectTop(rqst->sect_stck);
-				if (sect.get()) {
+				/* Word treats w:lnNumType without a w:countBy as no
+				 * numbering at all — copying start/restart/distance on
+				 * their own would turn numbering on where the document
+				 * has it off */
+				const gchar * vCountBy = attrMatches(NS_W_KEY, "countBy", rqst->ppAtts);
+				if (sect.get() && vCountBy && *vCountBy) {
 					struct { const char * a; const char * p; } m[] = {
 						{"countBy", "section-ln-count-by"},
 						{"start",   "section-ln-start"},
